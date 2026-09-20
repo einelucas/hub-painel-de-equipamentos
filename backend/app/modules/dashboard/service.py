@@ -13,6 +13,8 @@ from decimal import Decimal
 from sqlalchemy import Select, Subquery, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import CurrentUser
+from app.core.scope import allowed_unit_ids, assert_unit_allowed, restrict_to_units
 from app.models.equipment import STAGES, Equipment, EquipmentComponent, ProjectContext
 from app.models.process import Negotiation, PurchaseOrder
 from app.modules.dashboard.schemas import (
@@ -34,11 +36,14 @@ DEADLINE_UNAVAILABLE_REASON = (
 NEGOTIATION_STAGES = (1, 2)
 
 
-def _scope(unit_id: str | None, equipment_id: str | None) -> Select[tuple[str, int, date | None]]:
-    """Recorte base: ids/estágios dos equipamentos visíveis no filtro atual."""
+def _scope(
+    unit_id: str | None, equipment_id: str | None, allowed: set[str] | None
+) -> Select[tuple[str, int, date | None]]:
+    """Recorte base: equipamentos visíveis no filtro atual e nas unidades autorizadas."""
     stmt = select(Equipment.id, Equipment.current_stage, Equipment.startup_at).join(
         Equipment.project_context
     )
+    stmt = restrict_to_units(stmt, allowed)
     if unit_id:
         stmt = stmt.where(ProjectContext.unit_id == unit_id)
     if equipment_id:
@@ -47,9 +52,12 @@ def _scope(unit_id: str | None, equipment_id: str | None) -> Select[tuple[str, i
 
 
 async def get_summary(
-    session: AsyncSession, *, unit_id: str | None, equipment_id: str | None
+    session: AsyncSession, *, actor: CurrentUser, unit_id: str | None, equipment_id: str | None
 ) -> DashboardSummaryOut:
-    scope = _scope(unit_id, equipment_id).subquery()
+    if unit_id:
+        await assert_unit_allowed(session, actor, unit_id)
+    allowed = await allowed_unit_ids(session, actor)
+    scope = _scope(unit_id, equipment_id, allowed).subquery()
 
     stage_rows = (
         await session.execute(

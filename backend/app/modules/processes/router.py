@@ -38,17 +38,18 @@ _write = require_permission(Permission.PROCESS_WRITE)
 async def get_processes(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> EquipmentProcessesOut:
-    return await service.get_all_processes(session, equipment_id)
+    return await service.get_all_processes(session, equipment_id, actor)
 
 
 @router.get("/equipments/{equipment_id}/negotiation", response_model=NegotiationOut)
 async def get_negotiation(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> NegotiationOut:
+    await service.assert_readable(session, equipment_id, actor)
     return service.negotiation_out(
         equipment_id, await service.get_process(session, Negotiation, equipment_id)
     )
@@ -76,8 +77,9 @@ async def patch_negotiation(
 async def get_legal(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> LegalProcessOut:
+    await service.assert_readable(session, equipment_id, actor)
     return service.legal_out(
         equipment_id, await service.get_process(session, LegalProcess, equipment_id)
     )
@@ -105,8 +107,9 @@ async def patch_legal(
 async def get_contract(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> ContractOut:
+    await service.assert_readable(session, equipment_id, actor)
     return service.contract_out(
         equipment_id, await service.get_process(session, Contract, equipment_id)
     )
@@ -134,8 +137,9 @@ async def patch_contract(
 async def get_purchase_request(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> PurchaseRequestOut:
+    await service.assert_readable(session, equipment_id, actor)
     return service.purchase_request_out(
         equipment_id, await service.get_process(session, PurchaseRequest, equipment_id)
     )
@@ -163,8 +167,9 @@ async def patch_purchase_request(
 async def get_purchase_order(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> PurchaseOrderOut:
+    await service.assert_readable(session, equipment_id, actor)
     return service.purchase_order_out(
         equipment_id, await service.get_process(session, PurchaseOrder, equipment_id)
     )

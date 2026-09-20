@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { Plus, Search } from "lucide-vue-next";
-import type { CatalogItem, CatalogList, Equipment, EquipmentList, Pagination } from "~/types/equipment";
+import { CloudDownload, Plus, Search, SlidersHorizontal } from "lucide-vue-next";
+import type {
+  CatalogItem,
+  CatalogList,
+  Equipment,
+  EquipmentList,
+  Pagination,
+  Responsible,
+} from "~/types/equipment";
+import { formatDate } from "~/utils/format";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 
 definePageMeta({ middleware: "auth" });
@@ -13,18 +21,38 @@ const context = useModuleContextStore();
 const equipments = ref<Equipment[]>([]);
 const pagination = ref<Pagination | null>(null);
 const disciplines = ref<CatalogItem[]>([]);
+const responsibles = ref<Responsible[]>([]);
 const search = ref("");
 const stage = ref<string>("");
 const disciplineId = ref("");
+const responsibleUserId = ref("");
+const exporting = ref(false);
 const page = ref(1);
 const loading = ref(true);
 const refreshing = ref(false);
 const error = ref("");
 const showForm = ref(false);
+const showAdmin = ref(false);
 let requestVersion = 0;
+// Teto de segurança: evita puxar volume ilimitado para o navegador.
+const EXPORT_PAGE_LIMIT = 20;
 
 const allowed = computed(() => auth.can("equipments:read"));
 const canCreate = computed(() => auth.can("equipments:write") && Boolean(context.selectedUnit));
+// Administração contextual: só aparece para quem realmente pode administrar.
+const canAdminister = computed(() => auth.can("catalogs:manage") || auth.can("users:manage"));
+
+/** Catálogos mudaram: recarrega o que a tela usa para refletir na hora. */
+async function adminChanged(): Promise<void> {
+  disciplines.value = (await api.get<CatalogList<CatalogItem>>("/disciplines")).items;
+  await context.loadEquipmentOptions();
+  if (context.selectedUnit) {
+    responsibles.value = (
+      await api.get<CatalogList<Responsible>>("/responsibles", { unit_id: context.selectedUnit })
+    ).items;
+  }
+  await load();
+}
 
 async function syncQuery(): Promise<void> {
   const query: Record<string, string> = { ...(route.query as Record<string, string>) };
@@ -49,6 +77,7 @@ async function load(): Promise<void> {
     if (search.value.trim()) query.search = search.value.trim();
     if (stage.value !== "") query.stage = Number(stage.value);
     if (disciplineId.value) query.discipline_id = disciplineId.value;
+    if (responsibleUserId.value) query.responsible_user_id = responsibleUserId.value;
     const result = await api.get<EquipmentList>("/equipments", query);
     if (version !== requestVersion) return;
     equipments.value = result.items;
@@ -72,6 +101,58 @@ async function reload(): Promise<void> {
   await load();
 }
 
+/** Monta a consulta do recorte atual; `pageSize` alto traz o conjunto filtrado. */
+function currentQuery(pageSize: number, page: number): Record<string, unknown> {
+  const query: Record<string, unknown> = {
+    ...context.apiQuery,
+    page,
+    pageSize,
+    sortBy: "name",
+  };
+  if (search.value.trim()) query.search = search.value.trim();
+  if (stage.value !== "") query.stage = Number(stage.value);
+  if (disciplineId.value) query.discipline_id = disciplineId.value;
+  if (responsibleUserId.value) query.responsible_user_id = responsibleUserId.value;
+  return query;
+}
+
+async function exportAll(): Promise<void> {
+  exporting.value = true;
+  error.value = "";
+  try {
+    // Percorre as páginas do recorte para não exportar só o que está na tela.
+    const rows: Equipment[] = [];
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const result = await api.get<EquipmentList>("/equipments", currentQuery(100, page));
+      rows.push(...result.items);
+      totalPages = result.pagination.totalPages;
+      page += 1;
+    } while (page <= totalPages && page <= EXPORT_PAGE_LIMIT);
+
+    useExport().excel(
+      `equipamentos-${new Date().toISOString().slice(0, 10)}`,
+      rows.map((item) => ({
+        Equipamento: item.name,
+        Unidade: item.unit.code,
+        Contexto: item.projectContext.code,
+        Área: item.area?.name ?? "",
+        Disciplina: item.discipline?.name ?? "",
+        Responsável: item.responsibleUser?.name ?? "",
+        Etapa: `${item.currentStage} · ${item.stageName}`,
+        Startup: formatDate(item.startupAt),
+        Criticidade: item.criticality ?? "",
+        Componentes: item.componentsCount,
+      })),
+    );
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível exportar.";
+  } finally {
+    exporting.value = false;
+  }
+}
+
 async function saved(_equipment: Equipment): Promise<void> {
   showForm.value = false;
   await context.loadEquipmentOptions();
@@ -88,6 +169,11 @@ onMounted(async () => {
     equipment: typeof route.query.equipment === "string" ? route.query.equipment : undefined,
   });
   disciplines.value = (await api.get<CatalogList<CatalogItem>>("/disciplines")).items;
+  if (context.selectedUnit) {
+    responsibles.value = (
+      await api.get<CatalogList<Responsible>>("/responsibles", { unit_id: context.selectedUnit })
+    ).items;
+  }
   await syncQuery();
   await load();
 });
@@ -112,6 +198,22 @@ onMounted(async () => {
           </div>
         </form>
         <template #actions>
+          <button
+            v-if="canAdminister"
+            class="btn"
+            data-testid="admin-button"
+            @click="showAdmin = true"
+          >
+            <SlidersHorizontal :size="16" /> Administração
+          </button>
+          <button
+            class="btn"
+            :disabled="exporting || loading"
+            data-testid="export-button"
+            @click="exportAll"
+          >
+            <CloudDownload :size="16" /> {{ exporting ? "Exportando..." : "Exportar" }}
+          </button>
           <button
             v-if="auth.can('equipments:write')"
             class="btn primary"
@@ -143,6 +245,19 @@ onMounted(async () => {
               <option v-for="item in disciplines" :key="item.id" :value="item.id">{{ item.name }}</option>
             </select>
           </label>
+          <label class="inline-field">
+            <span>Responsável</span>
+            <select
+              v-model="responsibleUserId"
+              :disabled="!context.selectedUnit"
+              :title="!context.selectedUnit ? 'Selecione uma unidade para filtrar por responsável' : undefined"
+              data-testid="responsible-filter"
+              @change="reload"
+            >
+              <option value="">Todos</option>
+              <option v-for="item in responsibles" :key="item.id" :value="item.id">{{ item.name }}</option>
+            </select>
+          </label>
         </div>
 
         <div v-if="loading" class="queue-state"><span class="spinner" /> Carregando equipamentos...</div>
@@ -160,6 +275,14 @@ onMounted(async () => {
         </template>
       </section>
     </div>
+
+    <EquipmentAdmin
+      v-if="canAdminister"
+      :open="showAdmin"
+      :unit-id="context.selectedUnit"
+      @close="showAdmin = false"
+      @changed="adminChanged"
+    />
 
     <AppModal :open="showForm" title="Novo equipamento" @close="showForm = false">
       <EquipmentForm v-if="showForm && context.selectedUnit" :unit-id="context.selectedUnit" @saved="saved" @cancel="showForm = false" />

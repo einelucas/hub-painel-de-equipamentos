@@ -16,7 +16,9 @@ Os componentes genéricos de UI e os charts permanecem reutilizáveis.
 
 O backend é FastAPI com SQLAlchemy assíncrono. A composição das rotas acontece em `app/api/v1/router.py`.
 
-A base preserva autenticação, usuários, auditoria e health checks. O domínio foi separado em `catalogs`, `equipments`, `dashboard`, `processes`, `workflow` e `queues`, cada um com router, service e schemas explícitos.
+A base preserva autenticação, usuários, auditoria e health checks. O domínio foi separado em `catalogs`, `equipments`, `dashboard`, `processes`, `workflow`, `queues`, `access` e `suppliers`, cada um com router, service e schemas explícitos.
+
+A autorização por unidade é centralizada em `app/core/scope.py` e aplicada em todos os módulos que leem ou escrevem dados de uma unidade. Conhecer o UUID de um equipamento não dá acesso a ele: fora do escopo a resposta é 404, com mensagem que não revela a existência do recurso.
 
 `dashboard` agrega tudo no banco em uma resposta consolidada e `queues` recorta o workflow por área, reaproveitando os requisitos de transição do módulo `workflow` para nunca divergir do detalhe.
 
@@ -24,4 +26,4 @@ A base preserva autenticação, usuários, auditoria e health checks. O domínio
 
 ## Persistência
 
-O schema compartilhado continua na migration `0001_shared_base`. A migration `0002_equipment_domain` adiciona o domínio normalizado e reversível, e `0003_acquisition_process` acrescenta as entidades do processo de aquisição. Estado de workflow é mantido apenas em `equipment.current_stage`; transições são históricas e imutáveis.
+O schema compartilhado continua na migration `0001_shared_base`. A migration `0002_equipment_domain` adiciona o domínio normalizado e reversível, `0003_acquisition_process` acrescenta as entidades do processo de aquisição e `0004_access_and_suppliers` adiciona acesso por unidade e fornecedores. Estado de workflow é mantido apenas em `equipment.current_stage`; transições são históricas e imutáveis.

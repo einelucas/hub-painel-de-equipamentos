@@ -17,7 +17,7 @@ const showComponent = ref(false);
 const showReopen = ref(false);
 const reopenReason = ref("");
 const editingComponent = ref<EquipmentComponent | null>(null);
-const tab = ref<"process" | "components" | "history">("process");
+const tab = ref<"process" | "components" | "suppliers" | "history">("process");
 const equipmentId = computed(() => String(route.params.id));
 const workflow = useEquipmentWorkflow(equipmentId);
 
@@ -116,6 +116,7 @@ onMounted(load);
       <div class="detail-tabs" role="tablist">
         <button :class="{ active: tab === 'process' }" role="tab" @click="tab = 'process'">Processo</button>
         <button :class="{ active: tab === 'components' }" role="tab" @click="tab = 'components'">Componentes ({{ detail.components.length }})</button>
+        <button :class="{ active: tab === 'suppliers' }" role="tab" data-testid="tab-suppliers" @click="tab = 'suppliers'">Fornecedores</button>
         <button :class="{ active: tab === 'history' }" role="tab" @click="tab = 'history'">Histórico</button>
       </div>
 
@@ -159,6 +160,8 @@ onMounted(load);
         <div v-if="detail.components.length === 0" class="empty-state table-empty"><h2>Nenhum componente cadastrado</h2><p>Os componentes deste equipamento aparecerão aqui.</p></div>
         <div v-else class="table-wrap"><Table><TableHeader><TableRow><TableHead>Componente</TableHead><TableHead>Tag</TableHead><TableHead>Setor</TableHead><TableHead>Lead time</TableHead><TableHead>Pré-start</TableHead><TableHead>Entrega contratual</TableHead><TableHead>Frete</TableHead><TableHead /></TableRow></TableHeader><TableBody><TableRow v-for="component in detail.components" :key="component.id"><TableCell class="font-semibold">{{ component.name }}</TableCell><TableCell>{{ component.tag ?? "—" }}</TableCell><TableCell>{{ component.sector ?? "—" }}</TableCell><TableCell>{{ component.leadTimeDays === null ? "—" : `${component.leadTimeDays} dias` }}</TableCell><TableCell>{{ component.preStartDays === null ? "—" : `${component.preStartDays} dias` }}</TableCell><TableCell>{{ formatDate(component.contractDeliveryAt) }}</TableCell><TableCell>{{ component.freightDays === null ? "—" : `${component.freightDays} dias` }}</TableCell><TableCell><button v-if="auth.can('equipments:write')" class="text-button" @click="editComponent(component)">Editar</button></TableCell></TableRow></TableBody></Table></div>
       </section>
+
+      <EquipmentSuppliers v-else-if="tab === 'suppliers'" :equipment-id="equipmentId" />
 
       <section v-else class="surface">
         <div class="surface-header"><div><h2>Histórico</h2><p>Transições de etapa e alterações relevantes do processo.</p></div></div>

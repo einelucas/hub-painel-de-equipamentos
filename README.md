@@ -2,7 +2,7 @@
 
 Módulo **Painel de Equipamentos**, pertencente à área de **Planejamento** do Hub.
 
-O repositório contém o domínio operacional: catálogos, equipamentos, componentes, processo de aquisição, máquina de estados 0–8, auditoria, dashboard consolidado, filas por área e detalhe do equipamento integrados.
+O repositório contém o domínio operacional: catálogos, equipamentos, componentes, processo de aquisição, máquina de estados 0–8, fornecedores, autorização por unidade, auditoria, dashboard consolidado, filas por área e detalhe do equipamento integrados.
 
 ## Stack
 
@@ -26,8 +26,10 @@ painel-de-equipamentos/
 │   │   │   ├── catalogs/
 │   │   │   ├── dashboard/
 │   │   │   ├── equipments/
+│   │   │   ├── access/
 │   │   │   ├── processes/
 │   │   │   ├── queues/
+│   │   │   ├── suppliers/
 │   │   │   ├── users/
 │   │   │   └── workflow/
 │   │   └── shared/
@@ -64,7 +66,13 @@ O detalhe em `/equipamentos/{id}` é a tela de operação do processo de aquisi�
 
 A etapa só muda pelo serviço de workflow no backend, que valida as pré-condições, registra a transição e gera auditoria de forma atômica. Salvar dados nunca avança o processo.
 
-Consulte [docs/etapa-01-primeiro-fluxo.md](docs/etapa-01-primeiro-fluxo.md), [docs/etapa-02-workflow-aquisicao.md](docs/etapa-02-workflow-aquisicao.md) e [docs/etapa-03-dashboard-navegacao-filas.md](docs/etapa-03-dashboard-navegacao-filas.md) para contratos, decisões e limitações.
+O acesso é escopado por unidade: o perfil define o que o usuário pode fazer e o vínculo usuário–unidade define onde. ADMIN enxerga todas as unidades; VIEWER e ANALYST, apenas as atribuídas. Conhecer o UUID de um equipamento de outra unidade não dá acesso a ele.
+
+Cada equipamento pode ter fornecedores vinculados, com um principal que aparece na fila de Suprimentos. A exportação da listagem de equipamentos respeita todos os filtros aplicados.
+
+A administração é contextual, dentro da aba em que o dado é usado e só para quem tem permissão: catálogos e acesso por unidade na aba **Equipamentos**, cadastro mestre de fornecedores na aba **Suprimentos** (também acessível em `/fornecedores`). O header pertence ao Hub corporativo e não recebe funções do módulo.
+
+Consulte [docs/etapa-01-primeiro-fluxo.md](docs/etapa-01-primeiro-fluxo.md), [docs/etapa-02-workflow-aquisicao.md](docs/etapa-02-workflow-aquisicao.md) [docs/etapa-03-dashboard-navegacao-filas.md](docs/etapa-03-dashboard-navegacao-filas.md) [docs/etapa-04-consolidacao-operacional.md](docs/etapa-04-consolidacao-operacional.md) e [docs/etapa-04-1-administracao-contextual.md](docs/etapa-04-1-administracao-contextual.md) para contratos, decisões e limitações.
 
 ## Executar o backend
 

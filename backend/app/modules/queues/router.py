@@ -24,6 +24,7 @@ def _queue_filters(
     equipment_id: str | None = Query(default=None),
     stage: int | None = Query(default=None, ge=0, le=8),
     search: str | None = Query(default=None, max_length=200),
+    responsible_user_id: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, alias="pageSize", ge=1, le=100),
 ) -> QueueFilters:
@@ -32,6 +33,7 @@ def _queue_filters(
         equipment_id=equipment_id,
         stage=stage,
         search=search,
+        responsible_user_id=responsible_user_id,
         page=page,
         page_size=page_size,
     )
@@ -41,24 +43,24 @@ def _queue_filters(
 async def get_engineering_queue(
     filters: QueueFilters = Depends(_queue_filters),
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> EngineeringQueueOut:
-    return await service.engineering_queue(session, filters)
+    return await service.engineering_queue(session, filters, actor)
 
 
 @router.get("/legal", response_model=LegalQueueOut)
 async def get_legal_queue(
     filters: QueueFilters = Depends(_queue_filters),
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> LegalQueueOut:
-    return await service.legal_queue(session, filters)
+    return await service.legal_queue(session, filters, actor)
 
 
 @router.get("/procurement", response_model=ProcurementQueueOut)
 async def get_procurement_queue(
     filters: QueueFilters = Depends(_queue_filters),
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(_read),
+    actor: CurrentUser = Depends(_read),
 ) -> ProcurementQueueOut:
-    return await service.procurement_queue(session, filters)
+    return await service.procurement_queue(session, filters, actor)

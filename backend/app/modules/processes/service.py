@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser
-from app.core.errors import NotFoundError
+from app.core.scope import assert_equipment_allowed
 from app.models.equipment import Equipment
 from app.models.process import (
     Contract,
@@ -40,11 +40,10 @@ ProcessModel = TypeVar(
 )
 
 
-async def _assert_equipment(session: AsyncSession, equipment_id: str) -> Equipment:
-    equipment = await session.get(Equipment, equipment_id)
-    if equipment is None:
-        raise NotFoundError("Equipamento não encontrado")
-    return equipment
+async def _assert_equipment(
+    session: AsyncSession, equipment_id: str, actor: CurrentUser
+) -> Equipment:
+    return await assert_equipment_allowed(session, actor, equipment_id)
 
 
 async def get_process(
@@ -73,6 +72,10 @@ async def ensure_process(
     return instance
 
 
+async def assert_readable(session: AsyncSession, equipment_id: str, actor: CurrentUser) -> None:
+    await _assert_equipment(session, equipment_id, actor)
+
+
 def _json_value(value: Any) -> Any:
     if isinstance(value, Decimal):
         return str(value)
@@ -90,7 +93,7 @@ async def update_process(
     changes: dict[str, Any],
     actor: CurrentUser,
 ) -> ProcessModel:
-    await _assert_equipment(session, equipment_id)
+    await _assert_equipment(session, equipment_id, actor)
     instance = await ensure_process(session, model, equipment_id)
     previous: dict[str, Any] = {}
     changed: dict[str, Any] = {}
@@ -146,8 +149,10 @@ def purchase_order_out(equipment_id: str, item: PurchaseOrder | None) -> Purchas
     return PurchaseOrderOut.model_validate(item)
 
 
-async def get_all_processes(session: AsyncSession, equipment_id: str) -> EquipmentProcessesOut:
-    await _assert_equipment(session, equipment_id)
+async def get_all_processes(
+    session: AsyncSession, equipment_id: str, actor: CurrentUser
+) -> EquipmentProcessesOut:
+    await _assert_equipment(session, equipment_id, actor)
     return EquipmentProcessesOut(
         negotiation=negotiation_out(
             equipment_id, await get_process(session, Negotiation, equipment_id)

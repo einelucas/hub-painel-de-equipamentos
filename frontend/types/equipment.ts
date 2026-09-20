@@ -272,6 +272,7 @@ export interface LegalRow extends QueueRow {
 
 export interface ProcurementRow extends QueueRow {
   responsibleUser: UserRef | null;
+  primarySupplier: SupplierRef | null;
   kind: PurchaseRequestKind | null;
   requestNumber: string | null;
   requestedAt: string | null;
@@ -283,4 +284,46 @@ export interface ProcurementRow extends QueueRow {
 export interface QueueList<T> {
   items: T[];
   pagination: Pagination;
+}
+
+export interface Responsible {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface Supplier {
+  id: string;
+  legalName: string;
+  tradeName: string | null;
+  taxId: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EquipmentSupplier {
+  supplier: Supplier;
+  role: string | null;
+  isPrimary: boolean;
+  createdAt: string;
+}
+
+export interface SupplierRef {
+  id: string;
+  legalName: string;
+  tradeName: string | null;
+}
+
+export interface UnitRef {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface UserUnits {
+  userId: string;
+  role: string;
+  allUnits: boolean;
+  units: UnitRef[];
 }

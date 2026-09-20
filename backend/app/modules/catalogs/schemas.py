@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.shared.schema import CamelModel
 
@@ -74,3 +74,17 @@ class WorkPackageCreateIn(CamelModel):
     project_context_id: str
     code: str = Field(min_length=1, max_length=60)
     name: str = Field(min_length=1, max_length=160)
+
+
+class CatalogUpdateIn(CamelModel):
+    """Atualização comum dos catálogos. `code` só é aceito onde existe."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    code: str | None = Field(default=None, min_length=1, max_length=60)
+    active: bool | None = None
+
+    @model_validator(mode="after")
+    def has_update(self) -> CatalogUpdateIn:
+        if not self.model_fields_set:
+            raise ValueError("Informe ao menos um campo para atualizar")
+        return self

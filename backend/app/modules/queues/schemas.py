@@ -48,8 +48,15 @@ class LegalRowOut(QueueRowOut):
     delivery_at: date | None
 
 
+class SupplierRefOut(CamelModel):
+    id: str
+    legal_name: str
+    trade_name: str | None
+
+
 class ProcurementRowOut(QueueRowOut):
     responsible_user: UserRefOut | None
+    primary_supplier: SupplierRefOut | None
     kind: str | None
     request_number: str | None
     requested_at: date | None

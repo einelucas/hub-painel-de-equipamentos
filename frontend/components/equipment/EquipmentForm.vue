@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CatalogItem, CatalogList, Equipment } from "~/types/equipment";
+import type { CatalogItem, CatalogList, Equipment, Responsible } from "~/types/equipment";
 
 const props = defineProps<{ unitId: string; equipment?: Equipment | null }>();
 const emit = defineEmits<{ saved: [equipment: Equipment]; cancel: [] }>();
@@ -8,6 +8,7 @@ const contexts = ref<CatalogItem[]>([]);
 const areas = ref<CatalogItem[]>([]);
 const disciplines = ref<CatalogItem[]>([]);
 const workPackages = ref<CatalogItem[]>([]);
+const responsibles = ref<Responsible[]>([]);
 const loading = ref(true);
 const saving = ref(false);
 const error = ref("");
@@ -21,6 +22,7 @@ const form = reactive({
   workPackageId: props.equipment?.workPackage?.id ?? "",
   criticality: props.equipment?.criticality ?? "",
   capexEstimated: props.equipment?.capexEstimated?.toString() ?? "",
+  responsibleUserId: props.equipment?.responsibleUser?.id ?? "",
 });
 
 async function loadWorkPackages(): Promise<void> {
@@ -37,14 +39,20 @@ async function loadWorkPackages(): Promise<void> {
 async function loadCatalogs(): Promise<void> {
   loading.value = true;
   try {
-    const [contextResult, areaResult, disciplineResult] = await Promise.all([
+    const [contextResult, areaResult, disciplineResult, responsibleResult] = await Promise.all([
       api.get<CatalogList<CatalogItem>>(`/units/${props.unitId}/project-contexts`),
       api.get<CatalogList<CatalogItem>>("/areas", { unit_id: props.unitId }),
       api.get<CatalogList<CatalogItem>>("/disciplines"),
+      api.get<CatalogList<Responsible>>("/responsibles", { unit_id: props.unitId }),
     ]);
     contexts.value = contextResult.items;
     areas.value = areaResult.items;
     disciplines.value = disciplineResult.items;
+    responsibles.value = responsibleResult.items;
+    // Responsável sem acesso à unidade não pode continuar selecionado.
+    if (form.responsibleUserId && !responsibles.value.some((item) => item.id === form.responsibleUserId)) {
+      form.responsibleUserId = "";
+    }
     if (!form.projectContextId && contexts.value.length === 1) form.projectContextId = contexts.value[0]!.id;
     await loadWorkPackages();
   } catch (caught) {
@@ -71,6 +79,7 @@ async function submit(): Promise<void> {
     workPackageId: form.workPackageId || null,
     criticality: form.criticality || null,
     capexEstimated: form.capexEstimated === "" ? null : Number(form.capexEstimated),
+    responsibleUserId: form.responsibleUserId || null,
   };
   try {
     const result = props.equipment
@@ -110,6 +119,13 @@ onMounted(loadCatalogs);
       <label class="field"><span>Startup</span><input v-model="form.startupAt" type="date"></label>
       <label class="field"><span>Criticidade</span><input v-model="form.criticality" maxlength="40" placeholder="Conforme classificação oficial"></label>
       <label class="field"><span>CAPEX estimado</span><input v-model="form.capexEstimated" type="number" min="0" step="0.01"></label>
+      <label class="field">
+        <span>Responsável</span>
+        <select v-model="form.responsibleUserId" data-testid="responsible-select">
+          <option value="">Não atribuído</option>
+          <option v-for="item in responsibles" :key="item.id" :value="item.id">{{ item.name }}</option>
+        </select>
+      </label>
       <p v-if="equipment" class="stage-note field-wide">A etapa atual é alterada pelo fluxo do processo, na aba Processo.</p>
     </div>
     <div class="form-actions">

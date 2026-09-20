@@ -22,13 +22,21 @@ class Permission(str, Enum):
     WORKFLOW_TRANSITION = "workflow:transition"
     WORKFLOW_REOPEN = "workflow:reopen"
     PROCESS_WRITE = "process:write"
+    SUPPLIERS_READ = "suppliers:read"
+    SUPPLIERS_WRITE = "suppliers:write"
 
 
-_READ = {Permission.EQUIPMENTS_READ, Permission.CATALOGS_READ, Permission.WORKFLOW_READ}
+_READ = {
+    Permission.EQUIPMENTS_READ,
+    Permission.CATALOGS_READ,
+    Permission.WORKFLOW_READ,
+    Permission.SUPPLIERS_READ,
+}
 _WRITE = _READ | {
     Permission.EQUIPMENTS_WRITE,
     Permission.PROCESS_WRITE,
     Permission.WORKFLOW_TRANSITION,
+    Permission.SUPPLIERS_WRITE,
 }
 
 _MATRIX: dict[Role, set[Permission]] = {
