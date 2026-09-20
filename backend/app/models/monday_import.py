@@ -107,6 +107,38 @@ class MondayImportIssue(Base):
     )
 
 
+class MondayMigrationRun(Base):
+    """Registra uma execução de `plan`/`apply`: quais exports, qual mapping,
+    qual plano e qual resultado produziram o estado atual do domínio."""
+
+    __tablename__ = "monday_migration_run"
+
+    id: Mapped[str] = uuid_pk()
+    project_context_id: Mapped[str] = mapped_column(
+        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="PLANNED")
+    batch_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    mapping_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    plan_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_id: Mapped[str] = mapped_column(
+        String, ForeignKey("User.id", ondelete="RESTRICT"), nullable=False
+    )
+    summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    error: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    started_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(Timestamp3, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('PLANNED', 'APPLYING', 'APPLIED', 'FAILED')",
+            name="monday_migration_run_status_check",
+        ),
+        Index("monday_migration_run_context_idx", "project_context_id"),
+        Index("monday_migration_run_plan_idx", "plan_sha256"),
+    )
+
+
 class ExternalMapping(Base):
     """Vínculo genérico para não espalhar IDs do Monday pelo domínio."""
 

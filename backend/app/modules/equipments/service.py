@@ -24,6 +24,7 @@ from app.models.equipment import (
     Discipline,
     Equipment,
     EquipmentComponent,
+    EquipmentWorkPackage,
     ProjectContext,
     WorkflowTransition,
     WorkPackage,
@@ -55,6 +56,7 @@ def _base_load_options() -> tuple[Any, ...]:
         joinedload(Equipment.area),
         joinedload(Equipment.discipline),
         joinedload(Equipment.work_package),
+        selectinload(Equipment.work_package_links).joinedload(EquipmentWorkPackage.work_package),
         joinedload(Equipment.responsible_user),
     )
 
@@ -91,6 +93,10 @@ def _equipment_out(equipment: Equipment, components_count: int | None = None) ->
             if equipment.work_package
             else None
         ),
+        work_packages=[
+            NamedRefOut(id=link.work_package.id, code=link.work_package.code, name=link.work_package.name)
+            for link in sorted(equipment.work_package_links, key=lambda item: item.work_package.code)
+        ],
         responsible_user=(
             UserRefOut(
                 id=equipment.responsible_user.id,

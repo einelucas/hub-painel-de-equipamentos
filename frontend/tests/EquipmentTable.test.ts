@@ -17,6 +17,7 @@ const equipment = {
   discipline: null,
   area: null,
   workPackage: null,
+  workPackages: [],
   responsibleUser: null,
   componentsCount: 2,
   createdAt: "2026-09-20T00:00:00",

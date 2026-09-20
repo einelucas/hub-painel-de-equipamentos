@@ -89,6 +89,7 @@ class EquipmentOut(CamelModel):
     discipline: NamedRefOut | None
     area: NamedRefOut | None
     work_package: NamedRefOut | None
+    work_packages: list[NamedRefOut] = Field(default_factory=list)
     responsible_user: UserRefOut | None
     components_count: int
     created_at: datetime
@@ -110,6 +111,7 @@ class EquipmentListOut(CamelModel):
 class ComponentCreateIn(CamelModel):
     name: str = Field(min_length=1, max_length=200)
     tag: str | None = Field(default=None, max_length=100)
+    startup_at: date | None = None
     sector: str | None = Field(default=None, max_length=120)
     lead_time_days: int | None = Field(default=None, ge=0)
     pre_start_days: int | None = Field(default=None, ge=0)
@@ -120,6 +122,7 @@ class ComponentCreateIn(CamelModel):
 class ComponentUpdateIn(CamelModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     tag: str | None = Field(default=None, max_length=100)
+    startup_at: date | None = None
     sector: str | None = Field(default=None, max_length=120)
     lead_time_days: int | None = Field(default=None, ge=0)
     pre_start_days: int | None = Field(default=None, ge=0)
@@ -138,6 +141,7 @@ class ComponentOut(CamelModel):
     equipment_id: str
     name: str
     tag: str | None
+    startup_at: date | None
     sector: str | None
     lead_time_days: int | None
     pre_start_days: int | None
