@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: painel-equipamentos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: equipamentos
+      POSTGRES_PASSWORD: equipamentos
+      POSTGRES_DB: painel_equipamentos
+    ports:
+      - "5433:5432"
+    volumes:
+      - painel_equipamentos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U equipamentos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: painel-equipamentos-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql://equipamentos:equipamentos@postgres:5432/painel_equipamentos
+      MIGRATION_DATABASE_URL: postgresql://equipamentos:equipamentos@postgres:5432/painel_equipamentos
+      ALLOW_TEST_DB_MIGRATIONS: "true"
+      CORS_ORIGINS: http://localhost:3000
+      DEV_AUTH_ENABLED: "true"
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+
+volumes:
+  painel_equipamentos_pgdata:

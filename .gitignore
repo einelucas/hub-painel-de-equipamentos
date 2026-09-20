@@ -1,0 +1,33 @@
+node_modules/
+.nuxt/
+.output/
+out/
+build/
+*.tsbuildinfo
+.env
+.env.local
+.env.test
+.env.*.local
+!.env.example
+.DS_Store
+*.log
+coverage/
+playwright-report/
+test-results/
+.vercel
+scripts.zip
+*.zip
+
+# Python (backend/)
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+openapi.json
+
+# Ferramentas locais / cache de pacotes
+.pnpm-store/
+.playwright-mcp/
