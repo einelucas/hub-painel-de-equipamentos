@@ -1,0 +1,7 @@
+allowBuilds:
+  core-js: true
+  esbuild: true
+  unrs-resolver: true
+
+overrides:
+  "@vitejs/plugin-vue>vite": "7.3.6"
