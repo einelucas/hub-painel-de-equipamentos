@@ -2,9 +2,9 @@
 
 API FastAPI do módulo Painel de Equipamentos.
 
-A base inicial preserva apenas infraestrutura compartilhada: configuração, conexão assíncrona com PostgreSQL, autenticação OIDC/Keycloak, usuários, permissões administrativas, auditoria, logging, tratamento de erros e health checks.
-
-Nenhuma entidade ou regra de negócio de equipamentos foi criada nesta etapa.
+Além do domínio operacional, o backend possui a fundação administrativa do importador Monday: parser
+XLSX semântico, normalização, dry-run, staging idempotente e reconciliação. O importador não está exposto
+por endpoint e ainda não aplica os dados às entidades definitivas.
 
 ## Stack
 
@@ -47,6 +47,7 @@ python -m ruff check app tests scripts
 python -m mypy app
 python scripts/export_openapi.py
 python scripts/check_schema_drift.py
+python -m app.modules.monday_import ../references/monday_exports
 ```
 
 Para testes de integração, copie `.env.test.example` para `.env.test`, use um banco cujo nome termine em `_test`, aplique `alembic upgrade head` e execute `python -m pytest`.
@@ -63,7 +64,7 @@ Para testes de integração, copie `.env.test.example` para `.env.test`, use um 
 
 As rotas administrativas exigem perfil `ADMIN`.
 
-## Estrutura para os próximos módulos
+## Estrutura dos módulos
 
 Novas funcionalidades podem ser adicionadas em pacotes próprios, por exemplo:
 
@@ -75,4 +76,5 @@ app/modules/equipments/
 └── repository.py
 ```
 
-Crie models e migrations somente depois que o domínio de equipamentos estiver especificado.
+Consulte `../docs/migration/monday-import-architecture.md` antes de evoluir o apply definitivo da
+migração. As regras pendentes não devem ser inferidas dos XLSX.

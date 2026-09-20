@@ -13,3 +13,6 @@ Este diretório descreve a base técnica e o primeiro fluxo funcional do módulo
 - `etapa-03-dashboard-navegacao-filas.md`: navbar, Dashboard Geral, filtros globais e filas por área.
 - `etapa-04-consolidacao-operacional.md`: autorização por unidade, responsáveis, fornecedores e exportação.
 - `etapa-04-1-administracao-contextual.md`: administração dentro das abas e preservação do shell do Hub.
+- `migration/monday-import-architecture.md`: parser XLSX, staging, idempotência, reconciliação,
+  cálculos confirmados e decisões pendentes do MIG-001.
+- `migration/monday-c2-mapping.md`: classificação campo a campo do board C2.

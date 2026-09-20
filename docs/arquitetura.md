@@ -24,6 +24,10 @@ A autorização por unidade é centralizada em `app/core/scope.py` e aplicada em
 
 `workflow` concentra a máquina de estados: `stages.py` declara as pré-condições de cada transição e `service.py` as executa sob transação, com o equipamento bloqueado e revalidação do estágio antes do commit. É o único componente autorizado a alterar `equipment.current_stage`.
 
+`monday_import` é uma fronteira administrativa sem endpoint. O parser e o dry-run são puros; o service
+grava somente staging e identidades externas. Ele não contorna `workflow` nem cria registros definitivos
+do domínio. A arquitetura detalhada está em `docs/migration/monday-import-architecture.md`.
+
 ## Persistência
 
-O schema compartilhado continua na migration `0001_shared_base`. A migration `0002_equipment_domain` adiciona o domínio normalizado e reversível, `0003_acquisition_process` acrescenta as entidades do processo de aquisição e `0004_access_and_suppliers` adiciona acesso por unidade e fornecedores. Estado de workflow é mantido apenas em `equipment.current_stage`; transições são históricas e imutáveis.
+O schema compartilhado continua na migration `0001_shared_base`. A migration `0002_equipment_domain` adiciona o domínio normalizado e reversível, `0003_acquisition_process` acrescenta as entidades do processo de aquisição, `0004_access_and_suppliers` adiciona acesso por unidade e fornecedores e `0005_monday_import_foundation` adiciona staging/mapeamento externo. Estado de workflow é mantido apenas em `equipment.current_stage`; transições são históricas e imutáveis.
