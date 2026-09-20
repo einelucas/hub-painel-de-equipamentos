@@ -26,6 +26,7 @@ painel-de-equipamentos/
 │   │   │   ├── catalogs/
 │   │   │   ├── dashboard/
 │   │   │   ├── equipments/
+│   │   │   ├── monday_import/
 │   │   │   ├── access/
 │   │   │   ├── processes/
 │   │   │   ├── queues/
@@ -73,6 +74,10 @@ Cada equipamento pode ter fornecedores vinculados, com um principal que aparece 
 A administração é contextual, dentro da aba em que o dado é usado e só para quem tem permissão: catálogos e acesso por unidade na aba **Equipamentos**, cadastro mestre de fornecedores na aba **Suprimentos** (também acessível em `/fornecedores`). O header pertence ao Hub corporativo e não recebe funções do módulo.
 
 Consulte [docs/etapa-01-primeiro-fluxo.md](docs/etapa-01-primeiro-fluxo.md), [docs/etapa-02-workflow-aquisicao.md](docs/etapa-02-workflow-aquisicao.md) [docs/etapa-03-dashboard-navegacao-filas.md](docs/etapa-03-dashboard-navegacao-filas.md) [docs/etapa-04-consolidacao-operacional.md](docs/etapa-04-consolidacao-operacional.md) e [docs/etapa-04-1-administracao-contextual.md](docs/etapa-04-1-administracao-contextual.md) para contratos, decisões e limitações.
+
+A fundação de migração do Monday está documentada em
+[docs/migration/monday-import-architecture.md](docs/migration/monday-import-architecture.md), com o
+mapeamento completo em [docs/migration/monday-c2-mapping.md](docs/migration/monday-c2-mapping.md).
 
 ## Executar o backend
 

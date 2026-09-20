@@ -12,6 +12,12 @@ from app.models.equipment import (
     WorkflowTransition,
     WorkPackage,
 )
+from app.models.monday_import import (
+    ExternalMapping,
+    MondayImportBatch,
+    MondayImportIssue,
+    MondayImportRecord,
+)
 from app.models.process import (
     Contract,
     LegalProcess,
@@ -30,7 +36,11 @@ __all__ = [
     "Equipment",
     "EquipmentComponent",
     "EquipmentSupplier",
+    "ExternalMapping",
     "LegalProcess",
+    "MondayImportBatch",
+    "MondayImportIssue",
+    "MondayImportRecord",
     "Negotiation",
     "ProjectContext",
     "PurchaseOrder",

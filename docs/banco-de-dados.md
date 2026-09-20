@@ -31,6 +31,15 @@ A migration `0004_access_and_suppliers` cria `user_unit_access`, `supplier` e `e
 
 O backfill da migration vincula os VIEWER/ANALYST existentes às unidades existentes, preservando o comportamento anterior de acesso global; ADMIN é global por perfil e usuários novos exigem atribuição explícita.
 
+## Staging da migração Monday
+
+A migration `0005_monday_import_foundation` cria `monday_import_batch`, `monday_import_record`,
+`monday_import_issue` e `external_mapping`. O staging preserva payload bruto e normalizado, origem,
+SHA-256, fase, linha, issues e o eventual destino final. A chave única por contexto/origem/SHA-256 evita
+duplicar o mesmo arquivo. Nenhuma FK foi adicionada às tabelas de domínio apenas para acomodar o Monday.
+
+O downgrade remove somente essas quatro tabelas. Ele não altera equipamentos, componentes ou processos.
+
 ## Migrations
 
 A execução de migrations é permitida somente em `development` ou `test` com `ALLOW_TEST_DB_MIGRATIONS=true`.
@@ -41,4 +50,4 @@ python -m alembic upgrade head
 
 Use `python scripts/check_schema_drift.py` para comparar os models com um banco já migrado.
 
-`0001_shared_base` permanece inalterada. O downgrade de `0002_equipment_domain` remove somente as tabelas do novo domínio, em ordem segura de dependências, o de `0003_acquisition_process` remove apenas as cinco tabelas do processo de aquisição e o de `0004_access_and_suppliers` remove as três tabelas de acesso e fornecedores.
+`0001_shared_base` permanece inalterada. O downgrade de `0002_equipment_domain` remove somente as tabelas do novo domínio, em ordem segura de dependências, o de `0003_acquisition_process` remove apenas as cinco tabelas do processo de aquisição, o de `0004_access_and_suppliers` remove as três tabelas de acesso e fornecedores e o de `0005_monday_import_foundation` remove somente o staging/mapeamento externo.

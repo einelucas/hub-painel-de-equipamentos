@@ -60,8 +60,11 @@ async def db_session() -> AsyncIterator[AsyncSession]:
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def _clean_database() -> AsyncIterator[None]:
+async def _clean_database(request: pytest.FixtureRequest) -> AsyncIterator[None]:
     """Limpa as tabelas compartilhadas após cada teste de integração."""
+    if "unit" in request.node.path.parts:
+        yield
+        return
     yield
     table_names = ", ".join(f'"{t.name}"' for t in reversed(Base.metadata.sorted_tables))
     async with engine.begin() as conn:
