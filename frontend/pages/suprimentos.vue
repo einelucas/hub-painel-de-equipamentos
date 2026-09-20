@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SlidersHorizontal } from "lucide-vue-next";
 import type { ProcurementRow } from "~/types/equipment";
 import { formatCurrency, formatDate } from "~/utils/format";
 
@@ -7,6 +8,8 @@ const route = useRoute();
 const auth = useAuthStore();
 const queue = useQueue<ProcurementRow>("procurement");
 const allowed = computed(() => auth.can("equipments:read"));
+const canAdminister = computed(() => auth.can("suppliers:write"));
+const showAdmin = ref(false);
 
 async function applySearch(term: string): Promise<void> {
   queue.search.value = term;
@@ -46,6 +49,17 @@ onMounted(async () => {
       @search="applySearch"
       @page="queue.goToPage"
     >
+      <template #actions>
+        <button
+          v-if="canAdminister"
+          class="btn"
+          data-testid="admin-button"
+          @click="showAdmin = true"
+        >
+          <SlidersHorizontal :size="16" /> Administração
+        </button>
+      </template>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -58,6 +72,7 @@ onMounted(async () => {
             <TableHead>Número OC</TableHead>
             <TableHead>Data OC</TableHead>
             <TableHead>Valor OC</TableHead>
+            <TableHead>Fornecedor principal</TableHead>
             <TableHead>Pendência</TableHead>
             <TableHead />
           </TableRow>
@@ -73,12 +88,20 @@ onMounted(async () => {
             <TableCell>{{ row.orderNumber ?? "—" }}</TableCell>
             <TableCell>{{ formatDate(row.orderedAt) }}</TableCell>
             <TableCell>{{ formatCurrency(row.amount) }}</TableCell>
+            <TableCell>{{ row.primarySupplier?.legalName ?? "—" }}</TableCell>
             <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
             <TableCell><NuxtLink class="text-button" :to="`/equipamentos/${row.equipmentId}`">Ver detalhes</NuxtLink></TableCell>
           </TableRow>
         </TableBody>
       </Table>
     </QueueShell>
+
+    <SupplierAdmin
+      v-if="canAdminister"
+      :open="showAdmin"
+      @close="showAdmin = false"
+      @changed="queue.load"
+    />
   </ModuleWorkspace>
 </template>
 

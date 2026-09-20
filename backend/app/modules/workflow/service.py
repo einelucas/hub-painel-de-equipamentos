@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser
 from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.permissions import Permission, assert_can
+from app.core.scope import assert_equipment_allowed
 from app.models.audit import AuditLog
 from app.models.equipment import STAGES, Equipment, WorkflowTransition
 from app.models.process import (
@@ -84,7 +85,11 @@ def _evaluate(from_stage: int, state: ProcessState) -> list[RequirementOut]:
     ]
 
 
-async def _get_equipment(session: AsyncSession, equipment_id: str, *, lock: bool) -> Equipment:
+async def _get_equipment(
+    session: AsyncSession, equipment_id: str, *, lock: bool, actor: CurrentUser
+) -> Equipment:
+    # Escopo antes de qualquer leitura: UUID conhecido não dá acesso a outra unidade.
+    await assert_equipment_allowed(session, actor, equipment_id)
     stmt = select(Equipment).where(Equipment.id == equipment_id)
     if lock:
         stmt = stmt.with_for_update().execution_options(populate_existing=True)
@@ -97,7 +102,7 @@ async def _get_equipment(session: AsyncSession, equipment_id: str, *, lock: bool
 async def available_transitions(
     session: AsyncSession, equipment_id: str, actor: CurrentUser
 ) -> AvailableTransitionsOut:
-    equipment = await _get_equipment(session, equipment_id, lock=False)
+    equipment = await _get_equipment(session, equipment_id, lock=False, actor=actor)
     state = await _load_state(session, equipment_id)
     current = equipment.current_stage
     options: list[TransitionOptionOut] = []
@@ -180,7 +185,7 @@ async def execute_transition(
     reason: str | None,
     actor: CurrentUser,
 ) -> AvailableTransitionsOut:
-    equipment = await _get_equipment(session, equipment_id, lock=True)
+    equipment = await _get_equipment(session, equipment_id, lock=True, actor=actor)
     from_stage = equipment.current_stage
     kind = _classify(from_stage, target_stage)
     clean_reason = reason.strip() if reason else None
@@ -229,8 +234,8 @@ async def execute_transition(
     return await available_transitions(session, equipment_id, actor)
 
 
-async def history(session: AsyncSession, equipment_id: str) -> HistoryOut:
-    await _get_equipment(session, equipment_id, lock=False)
+async def history(session: AsyncSession, equipment_id: str, actor: CurrentUser) -> HistoryOut:
+    await _get_equipment(session, equipment_id, lock=False, actor=actor)
     transitions = (
         (
             await session.execute(

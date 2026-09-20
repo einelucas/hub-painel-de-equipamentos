@@ -15,6 +15,8 @@ async def get_dashboard_summary(
     unit_id: str | None = Query(default=None),
     equipment_id: str | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> DashboardSummaryOut:
-    return await service.get_summary(session, unit_id=unit_id, equipment_id=equipment_id)
+    return await service.get_summary(
+        session, actor=actor, unit_id=unit_id, equipment_id=equipment_id
+    )

@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from app.models.audit import AuditLog
 from app.models.equipment import WorkflowTransition
+from tests.helpers import grant_unit
 
 
 async def _catalogs(client, auth_header, suffix: str = "A") -> dict[str, str]:
@@ -24,6 +25,7 @@ async def _catalogs(client, auth_header, suffix: str = "A") -> dict[str, str]:
             headers=headers,
         )
     ).json()
+    await grant_unit(client, auth_header, unit["id"])
     area = (
         await client.post(
             "/api/v1/areas",

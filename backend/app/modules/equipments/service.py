@@ -11,6 +11,13 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.auth import CurrentUser
 from app.core.errors import DomainError, NotFoundError
+from app.core.scope import (
+    allowed_unit_ids,
+    assert_context_allowed,
+    assert_equipment_allowed,
+    restrict_to_units,
+    user_can_access_unit,
+)
 from app.models.equipment import (
     STAGES,
     Area,
@@ -131,12 +138,15 @@ async def _validate_relations(
         user = await session.get(User, responsible_user_id)
         if user is None or not user.active:
             raise DomainError("Responsável inválido ou inativo")
+        if not await user_can_access_unit(session, responsible_user_id, context.unit_id):
+            raise DomainError("O responsável não tem acesso à unidade do equipamento")
     return context
 
 
 def _apply_filters(
     stmt: Select[Any],
     *,
+    allowed_units: set[str] | None,
     unit_id: str | None,
     project_context_id: str | None,
     equipment_id: str | None,
@@ -145,8 +155,11 @@ def _apply_filters(
     discipline_id: str | None,
     responsible_user_id: str | None,
 ) -> Select[Any]:
+    # O join com o contexto é sempre necessário: é por ele que se chega à unidade.
+    stmt = stmt.join(Equipment.project_context)
+    stmt = restrict_to_units(stmt, allowed_units)
     if unit_id:
-        stmt = stmt.join(Equipment.project_context).where(ProjectContext.unit_id == unit_id)
+        stmt = stmt.where(ProjectContext.unit_id == unit_id)
     if project_context_id:
         stmt = stmt.where(Equipment.project_context_id == project_context_id)
     if equipment_id:
@@ -165,6 +178,7 @@ def _apply_filters(
 async def list_equipments(
     session: AsyncSession,
     *,
+    actor: CurrentUser,
     unit_id: str | None,
     project_context_id: str | None,
     equipment_id: str | None,
@@ -179,8 +193,10 @@ async def list_equipments(
 ) -> EquipmentListOut:
     page = max(1, page)
     page_size = min(100, max(1, page_size))
+    allowed_units = await allowed_unit_ids(session, actor)
     count_stmt = _apply_filters(
         select(func.count()).select_from(Equipment),
+        allowed_units=allowed_units,
         unit_id=unit_id,
         project_context_id=project_context_id,
         equipment_id=equipment_id,
@@ -198,6 +214,7 @@ async def list_equipments(
     )
     stmt = _apply_filters(
         select(Equipment, component_count.label("components_count")),
+        allowed_units=allowed_units,
         unit_id=unit_id,
         project_context_id=project_context_id,
         equipment_id=equipment_id,
@@ -224,6 +241,7 @@ async def list_equipments(
 async def create_equipment(
     session: AsyncSession, *, values: dict[str, Any], actor: CurrentUser
 ) -> EquipmentOut:
+    await assert_context_allowed(session, actor, values["project_context_id"])
     await _validate_relations(
         session,
         project_context_id=values["project_context_id"],
@@ -268,7 +286,10 @@ async def get_equipment_out(session: AsyncSession, equipment_id: str) -> Equipme
     return _equipment_out(equipment)
 
 
-async def get_equipment_detail(session: AsyncSession, equipment_id: str) -> EquipmentDetailOut:
+async def get_equipment_detail(
+    session: AsyncSession, equipment_id: str, actor: CurrentUser
+) -> EquipmentDetailOut:
+    await assert_equipment_allowed(session, actor, equipment_id)
     equipment = await get_equipment_model(session, equipment_id)
     return EquipmentDetailOut(
         equipment=_equipment_out(equipment),
@@ -300,8 +321,11 @@ async def get_equipment_detail(session: AsyncSession, equipment_id: str) -> Equi
 async def update_equipment(
     session: AsyncSession, *, equipment_id: str, changes: dict[str, Any], actor: CurrentUser
 ) -> EquipmentOut:
+    await assert_equipment_allowed(session, actor, equipment_id)
     equipment = await get_equipment_model(session, equipment_id)
     new_context = changes.get("project_context_id", equipment.project_context_id)
+    if new_context != equipment.project_context_id:
+        await assert_context_allowed(session, actor, new_context)
     await _validate_relations(
         session,
         project_context_id=new_context,
@@ -344,9 +368,10 @@ def _json_dict(values: dict[str, Any]) -> dict[str, Any]:
     return {key: _json_value(value) for key, value in values.items()}
 
 
-async def list_components(session: AsyncSession, equipment_id: str) -> list[EquipmentComponent]:
-    if await session.get(Equipment, equipment_id) is None:
-        raise NotFoundError("Equipamento não encontrado")
+async def list_components(
+    session: AsyncSession, equipment_id: str, actor: CurrentUser
+) -> list[EquipmentComponent]:
+    await assert_equipment_allowed(session, actor, equipment_id)
     stmt = select(EquipmentComponent).where(EquipmentComponent.equipment_id == equipment_id).order_by(
         EquipmentComponent.name.asc()
     )
@@ -356,8 +381,7 @@ async def list_components(session: AsyncSession, equipment_id: str) -> list[Equi
 async def create_component(
     session: AsyncSession, *, equipment_id: str, values: dict[str, Any], actor: CurrentUser
 ) -> EquipmentComponent:
-    if await session.get(Equipment, equipment_id) is None:
-        raise NotFoundError("Equipamento não encontrado")
+    await assert_equipment_allowed(session, actor, equipment_id)
     component = EquipmentComponent(equipment_id=equipment_id, **values)
     session.add(component)
     await session.flush()
@@ -380,6 +404,7 @@ async def update_component(
     component = await session.get(EquipmentComponent, component_id)
     if component is None:
         raise NotFoundError("Componente não encontrado")
+    await assert_equipment_allowed(session, actor, component.equipment_id)
     previous: dict[str, Any] = {}
     changed: dict[str, Any] = {}
     for field, value in changes.items():

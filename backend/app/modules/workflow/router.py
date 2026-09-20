@@ -47,6 +47,6 @@ async def post_transition(
 async def get_history(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
 ) -> HistoryOut:
-    return await service.history(session, equipment_id)
+    return await service.history(session, equipment_id, actor)

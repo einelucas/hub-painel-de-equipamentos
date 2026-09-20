@@ -11,3 +11,5 @@ Este diretório descreve a base técnica e o primeiro fluxo funcional do módulo
 - `etapa-01-primeiro-fluxo.md`: implementação integrada da Etapa 1, validações e pendências.
 - `etapa-02-workflow-aquisicao.md`: máquina de estados 0–8, processos de aquisição, reabertura e pendências.
 - `etapa-03-dashboard-navegacao-filas.md`: navbar, Dashboard Geral, filtros globais e filas por área.
+- `etapa-04-consolidacao-operacional.md`: autorização por unidade, responsáveis, fornecedores e exportação.
+- `etapa-04-1-administracao-contextual.md`: administração dentro das abas e preservação do shell do Hub.

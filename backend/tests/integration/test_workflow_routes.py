@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from app.models.audit import AuditLog
 from app.models.equipment import WorkflowTransition
 from app.models.process import Negotiation
+from tests.helpers import grant_unit
 
 # Requisito de cada transição `target - 1 -> target`.
 # Dados fictícios de teste: nenhum número/contrato real do processo.
@@ -42,6 +43,7 @@ async def _catalogs(client, auth_header, suffix: str = "W") -> dict[str, str]:
             headers=headers,
         )
     ).json()
+    await grant_unit(client, auth_header, unit["id"])
     return {"unit": unit["id"], "context": context["id"]}
 
 

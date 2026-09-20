@@ -21,6 +21,7 @@ if TYPE_CHECKING:
         PurchaseOrder,
         PurchaseRequest,
     )
+    from app.models.supplier import EquipmentSupplier
 
 
 class Unit(Base):
@@ -153,6 +154,9 @@ class Equipment(Base):
         back_populates="equipment", cascade="all, delete-orphan"
     )
     purchase_order: Mapped[PurchaseOrder | None] = relationship(
+        back_populates="equipment", cascade="all, delete-orphan"
+    )
+    supplier_links: Mapped[list[EquipmentSupplier]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
 

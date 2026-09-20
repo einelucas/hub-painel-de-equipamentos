@@ -10,7 +10,9 @@ export type Permission =
   | "workflow:read"
   | "workflow:transition"
   | "workflow:reopen"
-  | "process:write";
+  | "process:write"
+  | "suppliers:read"
+  | "suppliers:write";
 
 export interface CurrentUser {
   id: string;
@@ -25,4 +27,12 @@ export interface ApiProblem {
   detail?: string | Array<{ msg?: string }>;
   message?: string;
   error?: string;
+}
+
+export interface UserSummary {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  active: boolean;
 }

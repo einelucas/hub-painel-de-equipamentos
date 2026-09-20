@@ -2,8 +2,14 @@ import { defineStore } from "pinia";
 import type { CurrentUser, Permission, Role } from "~/types/api";
 
 // Espelha app/core/permissions.py no backend, que continua sendo a fonte de verdade.
-const READ: Permission[] = ["equipments:read", "catalogs:read", "workflow:read"];
-const WRITE: Permission[] = [...READ, "equipments:write", "process:write", "workflow:transition"];
+const READ: Permission[] = ["equipments:read", "catalogs:read", "workflow:read", "suppliers:read"];
+const WRITE: Permission[] = [
+  ...READ,
+  "equipments:write",
+  "process:write",
+  "workflow:transition",
+  "suppliers:write",
+];
 
 const MATRIX: Record<Role, Permission[]> = {
   VIEWER: READ,

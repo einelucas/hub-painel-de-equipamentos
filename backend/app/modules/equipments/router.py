@@ -36,10 +36,11 @@ async def get_equipments(
     sort_by: str = Query(default="name", alias="sortBy"),
     sort_dir: str = Query(default="asc", alias="sortDir", pattern="^(asc|desc)$"),
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> EquipmentListOut:
     return await service.list_equipments(
         session,
+        actor=actor,
         unit_id=unit_id,
         project_context_id=project_context_id,
         equipment_id=equipment_id,
@@ -67,9 +68,9 @@ async def post_equipment(
 async def get_equipment(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> EquipmentDetailOut:
-    return await service.get_equipment_detail(session, equipment_id)
+    return await service.get_equipment_detail(session, equipment_id, actor)
 
 
 @router.patch("/equipments/{equipment_id}", response_model=EquipmentOut)
@@ -88,12 +89,12 @@ async def patch_equipment(
 async def get_components(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> ComponentListOut:
     return ComponentListOut(
         items=[
             ComponentOut.model_validate(item)
-            for item in await service.list_components(session, equipment_id)
+            for item in await service.list_components(session, equipment_id, actor)
         ]
     )
 

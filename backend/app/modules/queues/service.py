@@ -18,6 +18,8 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.core.auth import CurrentUser
+from app.core.scope import allowed_unit_ids, assert_unit_allowed, restrict_to_units
 from app.models.equipment import STAGES, Equipment, EquipmentComponent, ProjectContext
 from app.models.process import (
     Contract,
@@ -35,7 +37,9 @@ from app.modules.queues.schemas import (
     PendingRequirementOut,
     ProcurementQueueOut,
     ProcurementRowOut,
+    SupplierRefOut,
 )
+from app.modules.suppliers.service import primary_suppliers
 from app.modules.workflow.stages import FINAL_STAGE, ProcessState, requirements_for
 
 # Recorte de etapas por área. Cada intervalo é inclusivo.
@@ -56,14 +60,21 @@ class QueueFilters:
     equipment_id: str | None = None
     stage: int | None = None
     search: str | None = None
+    responsible_user_id: str | None = None
     page: int = 1
     page_size: int = 25
 
 
 def _filtered(
-    stmt: Select[Any], filters: QueueFilters, stage_range: tuple[int, int]
+    stmt: Select[Any],
+    filters: QueueFilters,
+    stage_range: tuple[int, int],
+    allowed_units: set[str] | None,
 ) -> Select[Any]:
     stmt = stmt.join(Equipment.project_context)
+    stmt = restrict_to_units(stmt, allowed_units)
+    if filters.responsible_user_id:
+        stmt = stmt.where(Equipment.responsible_user_id == filters.responsible_user_id)
     if filters.unit_id:
         stmt = stmt.where(ProjectContext.unit_id == filters.unit_id)
     if filters.equipment_id:
@@ -79,20 +90,25 @@ def _filtered(
 
 
 async def _load_page(
-    session: AsyncSession, queue: str, filters: QueueFilters
+    session: AsyncSession, queue: str, filters: QueueFilters, actor: CurrentUser
 ) -> tuple[list[Equipment], PaginationOut]:
     page = max(1, filters.page)
     page_size = min(100, max(1, filters.page_size))
     stage_range = QUEUE_STAGES[queue]
+    if filters.unit_id:
+        await assert_unit_allowed(session, actor, filters.unit_id)
+    allowed_units = await allowed_unit_ids(session, actor)
     total = (
         await session.execute(
-            _filtered(select(func.count()).select_from(Equipment), filters, stage_range)
+            _filtered(
+                select(func.count()).select_from(Equipment), filters, stage_range, allowed_units
+            )
         )
     ).scalar_one()
     rows = (
         (
             await session.execute(
-                _filtered(select(Equipment), filters, stage_range)
+                _filtered(select(Equipment), filters, stage_range, allowed_units)
                 .options(
                     joinedload(Equipment.project_context).joinedload(ProjectContext.unit),
                     joinedload(Equipment.area),
@@ -191,9 +207,9 @@ def _base_fields(equipment: Equipment, state: ProcessState) -> dict[str, Any]:
 
 
 async def engineering_queue(
-    session: AsyncSession, filters: QueueFilters
+    session: AsyncSession, filters: QueueFilters, actor: CurrentUser
 ) -> EngineeringQueueOut:
-    equipments, pagination = await _load_page(session, "engineering", filters)
+    equipments, pagination = await _load_page(session, "engineering", filters, actor)
     ids = [item.id for item in equipments]
     states = await _process_states(session, ids)
     counts = await _component_counts(session, ids)
@@ -228,8 +244,8 @@ async def _component_counts(session: AsyncSession, equipment_ids: list[str]) -> 
     return {equipment_id: count for equipment_id, count in rows}
 
 
-async def legal_queue(session: AsyncSession, filters: QueueFilters) -> LegalQueueOut:
-    equipments, pagination = await _load_page(session, "legal", filters)
+async def legal_queue(session: AsyncSession, filters: QueueFilters, actor: CurrentUser) -> LegalQueueOut:
+    equipments, pagination = await _load_page(session, "legal", filters, actor)
     ids = [item.id for item in equipments]
     states = await _process_states(session, ids)
     items: list[LegalRowOut] = []
@@ -254,20 +270,31 @@ async def legal_queue(session: AsyncSession, filters: QueueFilters) -> LegalQueu
 
 
 async def procurement_queue(
-    session: AsyncSession, filters: QueueFilters
+    session: AsyncSession, filters: QueueFilters, actor: CurrentUser
 ) -> ProcurementQueueOut:
-    equipments, pagination = await _load_page(session, "procurement", filters)
+    equipments, pagination = await _load_page(session, "procurement", filters, actor)
     ids = [item.id for item in equipments]
     states = await _process_states(session, ids)
+    suppliers = await primary_suppliers(session, ids)
     items: list[ProcurementRowOut] = []
     for equipment in equipments:
         state = states[equipment.id]
         request = state.purchase_request
         order = state.purchase_order
+        supplier = suppliers.get(equipment.id)
         items.append(
             ProcurementRowOut(
                 **_base_fields(equipment, state),
                 responsible_user=_user(equipment.responsible_user),
+                primary_supplier=(
+                    SupplierRefOut(
+                        id=supplier.id,
+                        legal_name=supplier.legal_name,
+                        trade_name=supplier.trade_name,
+                    )
+                    if supplier
+                    else None
+                ),
                 kind=request.kind if request else None,
                 request_number=request.request_number if request else None,
                 requested_at=request.requested_at if request else None,

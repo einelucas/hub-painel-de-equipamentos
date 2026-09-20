@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from app.modules.queues.service import QUEUE_STAGES
+from tests.helpers import grant_unit
 
 # Dados fictícios de teste: nenhum número/contrato real do processo.
 _ADVANCE_PAYLOAD: dict[int, tuple[str, dict[str, object]]] = {
@@ -37,6 +38,7 @@ async def _unit_with_context(client, auth_header, suffix: str) -> dict[str, str]
             headers=headers,
         )
     ).json()
+    await grant_unit(client, auth_header, unit["id"])
     return {"unit": unit["id"], "context": context["id"]}
 
 
