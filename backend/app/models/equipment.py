@@ -97,10 +97,43 @@ class WorkPackage(Base):
 
     project_context: Mapped[ProjectContext] = relationship(back_populates="work_packages")
     equipments: Mapped[list[Equipment]] = relationship(back_populates="work_package")
+    equipment_links: Mapped[list[EquipmentWorkPackage]] = relationship(back_populates="work_package")
 
     __table_args__ = (
         Index("work_package_context_code_key", "project_context_id", "code", unique=True),
         Index("work_package_context_id_idx", "project_context_id"),
+    )
+
+
+class EquipmentWorkPackage(Base):
+    """Relação N:N: a origem real traz múltiplos Work Packages por equipamento.
+
+    `equipment.work_package_id` permanece como referência "primária" (compat
+    com telas/consultas existentes que assumem 0..1); esta tabela é a fonte de
+    verdade para 0..N. Nenhum código escolhe arbitrariamente qual é o
+    primário — a migração só preenche `work_package_id` quando há exatamente
+    um Work Package na origem.
+    """
+
+    __tablename__ = "equipment_work_package"
+
+    id: Mapped[str] = uuid_pk()
+    equipment_id: Mapped[str] = mapped_column(
+        ForeignKey("equipment.id", ondelete="CASCADE"), nullable=False
+    )
+    work_package_id: Mapped[str] = mapped_column(
+        ForeignKey("work_package.id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+
+    equipment: Mapped[Equipment] = relationship(back_populates="work_package_links")
+    work_package: Mapped[WorkPackage] = relationship(back_populates="equipment_links")
+
+    __table_args__ = (
+        Index(
+            "equipment_work_package_pair_key", "equipment_id", "work_package_id", unique=True
+        ),
+        Index("equipment_work_package_equipment_id_idx", "equipment_id"),
     )
 
 
@@ -159,6 +192,9 @@ class Equipment(Base):
     supplier_links: Mapped[list[EquipmentSupplier]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
+    work_package_links: Mapped[list[EquipmentWorkPackage]] = relationship(
+        back_populates="equipment", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         CheckConstraint("current_stage BETWEEN 0 AND 8", name="equipment_current_stage_check"),
@@ -176,6 +212,10 @@ class EquipmentComponent(Base):
     equipment_id: Mapped[str] = mapped_column(ForeignKey("equipment.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     tag: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Startup do componente, observado por subitem na origem Monday. Não é
+    # preenchido a partir de `equipment.startup_at`: quando o componente tem
+    # valor próprio, ele prevalece nos cálculos de prazo.
+    startup_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     sector: Mapped[str | None] = mapped_column(String(120), nullable=True)
     lead_time_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     pre_start_days: Mapped[int | None] = mapped_column(Integer, nullable=True)

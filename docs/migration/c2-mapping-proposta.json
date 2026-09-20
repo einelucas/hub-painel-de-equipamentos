@@ -1,0 +1,48 @@
+{
+  "_comentario": "Proposta de mapping para o C2, gerada a partir dos dois XLSX canônicos (Equipamentos_LEM_C2_ fase-0.xlsx + Equipamentos_LEM_C2_1789930920.xlsx). Nenhum valor foi inferido ou inventado: tudo está como PENDENTE até haver um ID real no Hub. Este arquivo NÃO tem o formato final aceito por mapping_file.py (que exige UUID em cada valor) — é uma proposta para revisão humana antes de virar o mapping.json real.",
+  "responsibles": {
+    "Ana Carolina": "PENDENTE",
+    "Ediel": "PENDENTE",
+    "Samuel": "PENDENTE",
+    "Uilson": "PENDENTE"
+  },
+  "areas": {
+    "2104.A Casa de Força": "PENDENTE",
+    "Caldeira": "PENDENTE",
+    "Casa de Força": "PENDENTE",
+    "Drenagem": "PENDENTE",
+    "Geral": "PENDENTE",
+    "Pipe Rack": "PENDENTE"
+  },
+  "disciplines": {
+    "Automação": "PENDENTE",
+    "E&I": "PENDENTE",
+    "Metal Mec.": "PENDENTE"
+  },
+  "workPackages": {
+    "AUT001": "PENDENTE",
+    "CAL001": "PENDENTE",
+    "CAL003": "PENDENTE",
+    "CAL004": "PENDENTE",
+    "CAL006": "PENDENTE",
+    "CAL007": "PENDENTE",
+    "CAL008": "PENDENTE",
+    "CAL009": "PENDENTE",
+    "CAL010": "PENDENTE",
+    "CAL011": "PENDENTE",
+    "CAL012": "PENDENTE",
+    "CIV001": "PENDENTE",
+    "CIV002": "PENDENTE",
+    "CIV003": "PENDENTE",
+    "CIV004": "PENDENTE",
+    "CIV005": "PENDENTE",
+    "CIV006": "PENDENTE",
+    "CIV008": "PENDENTE",
+    "CIV012": "PENDENTE",
+    "CIV014": "PENDENTE",
+    "CIV015": "PENDENTE",
+    "EIA001": "PENDENTE",
+    "ELT001": "PENDENTE",
+    "MEC001": "PENDENTE"
+  }
+}

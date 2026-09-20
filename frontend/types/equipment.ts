@@ -40,6 +40,8 @@ export interface Equipment {
   discipline: NamedRef | null;
   area: NamedRef | null;
   workPackage: NamedRef | null;
+  /** Lista completa (0..N); `workPackage` acima continua como referência primária. */
+  workPackages: NamedRef[];
   responsibleUser: UserRef | null;
   componentsCount: number;
   createdAt: string;
@@ -106,6 +108,8 @@ export interface EquipmentComponent {
   equipmentId: string;
   name: string;
   tag: string | null;
+  /** Startup próprio do subitem; nunca herdado de `equipment.startupAt`. */
+  startupAt: string | null;
   sector: string | null;
   leadTimeDays: number | null;
   preStartDays: number | null;
