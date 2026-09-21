@@ -54,7 +54,7 @@ onMounted(async () => {
             <TableHead>Etapa</TableHead>
             <TableHead>Disciplina</TableHead>
             <TableHead>Área</TableHead>
-            <TableHead>Pacote</TableHead>
+            <TableHead>Pacotes</TableHead>
             <TableHead>Responsável</TableHead>
             <TableHead>Startup</TableHead>
             <TableHead>Pendência</TableHead>
@@ -68,7 +68,7 @@ onMounted(async () => {
             <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
             <TableCell>{{ row.discipline?.name ?? "—" }}</TableCell>
             <TableCell>{{ row.area?.name ?? "—" }}</TableCell>
-            <TableCell>{{ row.workPackage?.name ?? "—" }}</TableCell>
+            <TableCell>{{ row.workPackages.length ? row.workPackages.map((item) => item.code ?? item.name).join(", ") : "—" }}</TableCell>
             <TableCell>{{ row.responsibleUser?.name ?? "—" }}</TableCell>
             <TableCell>{{ formatDate(row.startupAt) }}</TableCell>
             <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>

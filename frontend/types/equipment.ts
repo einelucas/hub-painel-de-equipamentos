@@ -39,8 +39,14 @@ export interface Equipment {
   unit: NamedRef;
   discipline: NamedRef | null;
   area: NamedRef | null;
+  /**
+   * @deprecated Espelho do FK legado singular (0..1). Não é mais escrito por
+   * create/update — use `workPackages` (0..N, fonte oficial). Só existe
+   * porque a migração do Monday ainda o preenche quando a origem trazia
+   * exatamente 1 Work Package.
+   */
   workPackage: NamedRef | null;
-  /** Lista completa (0..N); `workPackage` acima continua como referência primária. */
+  /** Fonte oficial de leitura (0..N), ordenada por `code`. */
   workPackages: NamedRef[];
   responsibleUser: UserRef | null;
   componentsCount: number;
@@ -256,7 +262,7 @@ export interface QueueRow {
 export interface EngineeringRow extends QueueRow {
   discipline: NamedRef | null;
   area: NamedRef | null;
-  workPackage: NamedRef | null;
+  workPackages: NamedRef[];
   responsibleUser: UserRef | null;
   startupAt: string | null;
   criticality: string | null;

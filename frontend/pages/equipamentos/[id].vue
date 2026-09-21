@@ -103,7 +103,13 @@ onMounted(load);
           <div class="detail-field"><span>Contexto</span><strong>{{ detail.equipment.projectContext.code }} · {{ detail.equipment.projectContext.name }}</strong></div>
           <div class="detail-field"><span>Área</span><strong>{{ detail.equipment.area?.name ?? "—" }}</strong></div>
           <div class="detail-field"><span>Disciplina</span><strong>{{ detail.equipment.discipline?.name ?? "—" }}</strong></div>
-          <div class="detail-field"><span>Pacote de trabalho</span><strong>{{ detail.equipment.workPackage?.name ?? "—" }}</strong></div>
+          <div class="detail-field">
+            <span>Pacotes de trabalho</span>
+            <strong v-if="!detail.equipment.workPackages.length">—</strong>
+            <div v-else class="wp-chips">
+              <span v-for="item in detail.equipment.workPackages" :key="item.id" class="wp-chip">{{ item.code ?? item.name }}</span>
+            </div>
+          </div>
           <div class="detail-field"><span>Responsável</span><strong>{{ detail.equipment.responsibleUser?.name ?? "—" }}</strong></div>
           <div class="detail-field"><span>Etapa atual</span><strong><span class="stage-badge" :class="stageTone(currentStage)" data-testid="current-stage">{{ currentStage }} · {{ currentStageLabel }}</span></strong></div>
           <div class="detail-field"><span>Startup</span><strong>{{ formatDate(detail.equipment.startupAt) }}</strong></div>
@@ -221,6 +227,8 @@ onMounted(load);
 .stage-badge--progress { background: #fff3df; color: #9b6418; }
 .stage-badge--advanced { background: #e8f1fc; color: #2f5f9c; }
 .stage-badge--complete { background: #eaf4e5; color: #477a32; }
+.wp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wp-chip { display: inline-flex; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 700; background: #eef2f7; color: #2b3e58; }
 .text-button { border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
 .timeline { display: grid; padding: 4px 20px 22px; }
 .timeline-item { position: relative; display: grid; grid-template-columns: 20px 1fr; gap: 10px; padding: 14px 0; border-bottom: 1px solid #edf1f5; }

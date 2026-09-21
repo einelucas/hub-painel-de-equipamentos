@@ -16,11 +16,11 @@ from typing import Any, TypeVar
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.auth import CurrentUser
 from app.core.scope import allowed_unit_ids, assert_unit_allowed, restrict_to_units
-from app.models.equipment import STAGES, Equipment, EquipmentComponent, ProjectContext
+from app.models.equipment import STAGES, Equipment, EquipmentComponent, EquipmentWorkPackage, ProjectContext
 from app.models.process import (
     Contract,
     LegalProcess,
@@ -113,7 +113,9 @@ async def _load_page(
                     joinedload(Equipment.project_context).joinedload(ProjectContext.unit),
                     joinedload(Equipment.area),
                     joinedload(Equipment.discipline),
-                    joinedload(Equipment.work_package),
+                    selectinload(Equipment.work_package_links).joinedload(
+                        EquipmentWorkPackage.work_package
+                    ),
                     joinedload(Equipment.responsible_user),
                 )
                 .order_by(Equipment.current_stage.asc(), Equipment.name.asc())
@@ -183,6 +185,13 @@ def _named(item: Any) -> NamedRefOut | None:
     return NamedRefOut(id=item.id, name=item.name, code=getattr(item, "code", None))
 
 
+def _named_work_packages(links: list[EquipmentWorkPackage]) -> list[NamedRefOut]:
+    return [
+        NamedRefOut(id=link.work_package.id, code=link.work_package.code, name=link.work_package.name)
+        for link in sorted(links, key=lambda item: item.work_package.code)
+    ]
+
+
 def _user(item: Any) -> UserRefOut | None:
     if item is None:
         return None
@@ -219,7 +228,7 @@ async def engineering_queue(
                 **_base_fields(equipment, states[equipment.id]),
                 discipline=_named(equipment.discipline),
                 area=_named(equipment.area),
-                work_package=_named(equipment.work_package),
+                work_packages=_named_work_packages(equipment.work_package_links),
                 responsible_user=_user(equipment.responsible_user),
                 startup_at=equipment.startup_at,
                 criticality=equipment.criticality,

@@ -1,0 +1,47 @@
+{
+  "responsibles": {
+    "Ana Carolina": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+    "Ediel": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+    "Samuel": "b01e75dd-2598-4511-8fd4-ec262b2a2aab",
+    "Uilson": "1e36697d-8f48-4219-993d-d1011df633ea"
+  },
+  "areas": {
+    "2104.A Casa de Força": "bdba7695-8196-4fde-80b6-4c66b840851f",
+    "Caldeira": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+    "Casa de Força": "bdba7695-8196-4fde-80b6-4c66b840851f",
+    "Drenagem": "68c0827f-0495-477d-8e1c-841585e28959",
+    "Geral": "aab76b0f-1997-4e55-a389-f6ad64587f11",
+    "Pipe Rack": "e820b5c4-13f7-434b-b4e9-72b81dbbe15f"
+  },
+  "disciplines": {
+    "Automação": "a3d8e872-1d72-42f0-81cc-191ffe5e1930",
+    "E&I": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+    "Metal Mec.": "4c721acb-0694-4bab-891d-da50651af598"
+  },
+  "workPackages": {
+    "AUT001": "e13c4548-da5e-4c64-a7ea-58e372c46728",
+    "CAL001": "1554cc3a-d1fd-4100-be0f-1ff09891e78f",
+    "CAL003": "e010bffe-2c9a-4674-a970-5361b8275f4e",
+    "CAL004": "2ab30a99-e738-49ac-8641-b6ff380b0595",
+    "CAL006": "ad11264c-35ae-4b22-b74d-78499a2c8ace",
+    "CAL007": "00ae95b7-30a1-43ab-93df-23db1567314e",
+    "CAL008": "dc286fc7-1b69-4f25-aabb-99dd944b5faf",
+    "CAL009": "91371118-111e-4a15-a956-f0bb7a7dd25b",
+    "CAL010": "68b2f6d3-5ce7-40be-8d68-d0a2c8769f8a",
+    "CAL011": "89dfa2a5-8e7f-4355-9077-7fc14d750f2b",
+    "CAL012": "c605cb21-74a9-457c-b773-6d31b4bdc836",
+    "CIV001": "13898e47-5568-4e98-948f-c5cb042e24ed",
+    "CIV002": "4e790aae-9ccb-46b0-8f86-5dc9ea26f226",
+    "CIV003": "b9d0a279-94bc-463e-a1e3-d2c8aba4656d",
+    "CIV004": "3f5f8d53-ca4c-4d24-ac9f-3f00ad711fb1",
+    "CIV005": "69405a69-6f49-4f2b-87fa-bb1199959d84",
+    "CIV006": "5154828e-1c6b-435c-abc0-510da42ff476",
+    "CIV008": "6381e3ae-2546-4f95-8302-da560d041bdc",
+    "CIV012": "0f00c3c5-10d1-45b9-9d06-2dce64378dc2",
+    "CIV014": "db8344a6-d50d-498a-b2b3-d4710c80240f",
+    "CIV015": "c1a5cb56-7ff0-4362-a980-71df7b03d9f5",
+    "EIA001": "41823372-5491-44b9-a181-c97f20b7420b",
+    "ELT001": "3953dabc-8817-4cc5-b767-e1d93d106cb9",
+    "MEC001": "102925e7-6be1-46d8-9cdd-492e0d82da34"
+  }
+}

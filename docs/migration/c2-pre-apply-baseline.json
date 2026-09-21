@@ -1,0 +1,23 @@
+{
+  "note": "Checkpoint lógico pré-apply do C2 (sem Neon CLI/pg_dump disponíveis neste ambiente). Todas as tabelas de domínio afetadas pelo apply estavam vazias antes da execução, então o rollback em caso de falha é: apagar linhas com project_context_id = C2 / batch_ids abaixo (nada mais existe para colidir).",
+    "capturedAt": "2026-09-21",
+  "alembicRevision": "0006_monday_apply_foundation",
+  "projectContextId": "b264c140-7f10-4430-93d0-d880c2029bd0",
+  "batchIds": [
+    "6aabcef1-da07-42d7-8c65-6bafd49985d2",
+    "6ad09143-f016-4d23-8f13-3893d1eef62e"
+  ],
+  "preApplyCounts": {
+    "Equipment": 0,
+    "EquipmentComponent": 0,
+    "EquipmentWorkPackage": 0,
+    "Negotiation": 0,
+    "LegalProcess": 0,
+    "Contract": 0,
+    "PurchaseRequest": 0,
+    "PurchaseOrder": 0,
+    "ExternalMapping": 0,
+    "MondayMigrationRun": 0,
+    "AuditLog": 55
+  }
+}

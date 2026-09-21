@@ -1,0 +1,3922 @@
+{
+  "projectContextId": "b264c140-7f10-4430-93d0-d880c2029bd0",
+  "batchIds": [
+    "6aabcef1-da07-42d7-8c65-6bafd49985d2",
+    "6ad09143-f016-4d23-8f13-3893d1eef62e"
+  ],
+  "mappingSha256": "c3675f2ce6ec7de5736c53259b4c2f27217ef3a2670f9a5f33538b9f4f472aa0",
+  "planSha256": "851b885928090ab4645ab4c1e76dc97540b0214f0704220abb63b0f1671be791",
+  "counts": {
+    "equipments": {
+      "create": 41,
+      "update": 0,
+      "noop": 0,
+      "blocked": 0
+    },
+    "components": {
+      "create": 164,
+      "update": 0,
+      "noop": 0,
+      "blocked": 0
+    },
+    "negotiations": {
+      "create": 10,
+      "update": 0,
+      "noop": 0,
+      "blocked": 0
+    },
+    "legalProcesses": {
+      "create": 10,
+      "update": 0,
+      "noop": 0,
+      "blocked": 0
+    },
+    "contracts": {
+      "create": 4,
+      "update": 0,
+      "noop": 0,
+      "blocked": 0
+    },
+    "purchaseRequests": {
+      "create": 1,
+      "update": 0,
+      "noop": 0,
+      "blocked": 0
+    },
+    "purchaseOrders": {
+      "create": 1,
+      "update": 0,
+      "noop": 0,
+      "blocked": 0
+    }
+  },
+  "groups": {
+    "equipments": [
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:analisador de gas da caldeira",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Analisador de gás da Caldeira",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Curto <90",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:bomba sump",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Bomba SUMP",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "0f00c3c5-10d1-45b9-9d06-2dce64378dc2",
+            "c1a5cb56-7ff0-4362-a980-71df7b03d9f5",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836",
+            "db8344a6-d50d-498a-b2b3-d4710c80240f"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:bomba sump - drenagem",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Bomba SUMP - Drenagem",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "68c0827f-0495-477d-8e1c-841585e28959",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "2ab30a99-e738-49ac-8641-b6ff380b0595",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836",
+            "db8344a6-d50d-498a-b2b3-d4710c80240f"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:caldeira de biomassa",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Caldeira de Biomassa",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Longo >180",
+          "current_stage": 8,
+          "work_package_ids": [
+            "00ae95b7-30a1-43ab-93df-23db1567314e",
+            "13898e47-5568-4e98-948f-c5cb042e24ed",
+            "1554cc3a-d1fd-4100-be0f-1ff09891e78f",
+            "3953dabc-8817-4cc5-b767-e1d93d106cb9",
+            "41823372-5491-44b9-a181-c97f20b7420b",
+            "5154828e-1c6b-435c-abc0-510da42ff476",
+            "6381e3ae-2546-4f95-8302-da560d041bdc",
+            "91371118-111e-4a15-a956-f0bb7a7dd25b",
+            "ad11264c-35ae-4b22-b74d-78499a2c8ace",
+            "b9d0a279-94bc-463e-a1e3-d2c8aba4656d"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:conjunto turbo-gerador",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Conjunto Turbo-Gerador",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Longo >180",
+          "current_stage": 4,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:cubiculos",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Cubículos",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Longo >180",
+          "current_stage": 4,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:eletrocentro se12",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Eletrocentro SE12",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Longo >180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "0f00c3c5-10d1-45b9-9d06-2dce64378dc2",
+            "69405a69-6f49-4f2b-87fa-bb1199959d84",
+            "c1a5cb56-7ff0-4362-a980-71df7b03d9f5"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:eletrocentros - casa de quimicos",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Eletrocentros - Casa de Químicos",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "0f00c3c5-10d1-45b9-9d06-2dce64378dc2",
+            "69405a69-6f49-4f2b-87fa-bb1199959d84",
+            "c1a5cb56-7ff0-4362-a980-71df7b03d9f5"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:equipamentos da biomassa: linha de alternativos",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Equipamentos da Biomassa: Linha de Alternativos",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+          "criticality": "Longo >180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "4e790aae-9ccb-46b0-8f86-5dc9ea26f226",
+            "5154828e-1c6b-435c-abc0-510da42ff476",
+            "6381e3ae-2546-4f95-8302-da560d041bdc"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Equipamentos da Biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulização.",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Longo >180",
+          "current_stage": 6,
+          "work_package_ids": [
+            "1554cc3a-d1fd-4100-be0f-1ff09891e78f",
+            "4e790aae-9ccb-46b0-8f86-5dc9ea26f226",
+            "5154828e-1c6b-435c-abc0-510da42ff476",
+            "6381e3ae-2546-4f95-8302-da560d041bdc",
+            "91371118-111e-4a15-a956-f0bb7a7dd25b",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:estrutura metalica - pipe rack",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Estrutura Metálica - Pipe Rack",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "e820b5c4-13f7-434b-b4e9-72b81dbbe15f",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "3f5f8d53-ca4c-4d24-ac9f-3f00ad711fb1",
+            "5154828e-1c6b-435c-abc0-510da42ff476",
+            "6381e3ae-2546-4f95-8302-da560d041bdc",
+            "91371118-111e-4a15-a956-f0bb7a7dd25b",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836",
+            "e010bffe-2c9a-4674-a970-5361b8275f4e"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:estruturas metalicas caldeira",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "ESTRUTURAS METÁLICAS CALDEIRA",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Médio 90~180",
+          "current_stage": 6,
+          "work_package_ids": [
+            "13898e47-5568-4e98-948f-c5cb042e24ed",
+            "1554cc3a-d1fd-4100-be0f-1ff09891e78f",
+            "5154828e-1c6b-435c-abc0-510da42ff476",
+            "91371118-111e-4a15-a956-f0bb7a7dd25b",
+            "b9d0a279-94bc-463e-a1e3-d2c8aba4656d",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836",
+            "e010bffe-2c9a-4674-a970-5361b8275f4e"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:gerador a diesel",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Gerador a Diesel",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "41823372-5491-44b9-a181-c97f20b7420b"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:lm - isolamento termico",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "LM - Isolamento térmico",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "aab76b0f-1997-4e55-a389-f6ad64587f11",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+          "criticality": "Longo >180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "102925e7-6be1-46d8-9cdd-492e0d82da34"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:lubrificacao forcada - unidade de lubrificacao",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Lubrificação Forçada - Unidade de Lubrificação",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:manometros e termometros",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Manômetros e Termômetros",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "41823372-5491-44b9-a181-c97f20b7420b"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:moto bombas",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Moto Bombas",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Longo >180",
+          "current_stage": 4,
+          "work_package_ids": [
+            "13898e47-5568-4e98-948f-c5cb042e24ed",
+            "5154828e-1c6b-435c-abc0-510da42ff476",
+            "6381e3ae-2546-4f95-8302-da560d041bdc",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:motores da caldeira",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Motores Da Caldeira",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Longo >180",
+          "current_stage": 4,
+          "work_package_ids": [
+            "c605cb21-74a9-457c-b773-6d31b4bdc836"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:paineis de plc",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Painéis de PLC",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "a3d8e872-1d72-42f0-81cc-191ffe5e1930",
+          "responsible_user_id": "b01e75dd-2598-4511-8fd4-ec262b2a2aab",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "e13c4548-da5e-4c64-a7ea-58e372c46728"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:paineis qdca/qnbs",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Painéis QDCA/QNBS",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:painel de acionamento (cilindros) das grelhas",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Painel de Acionamento (Cilindros) das Grelhas",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Curto <90",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:ponte rolante 25 ton",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Ponte rolante 25 ton",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "bdba7695-8196-4fde-80b6-4c66b840851f",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:projetores, iluminacao industrial e iluminacao perimetral",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Projetores, Iluminação Industrial E Iluminação Perimetral",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Curto <90",
+          "current_stage": 0,
+          "work_package_ids": [
+            "41823372-5491-44b9-a181-c97f20b7420b"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:remotas",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Remotas",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "a3d8e872-1d72-42f0-81cc-191ffe5e1930",
+          "responsible_user_id": "b01e75dd-2598-4511-8fd4-ec262b2a2aab",
+          "criticality": "Longo >180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:retificadores",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Retificadores",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:sensores eletronicos de alarme e nivel por eletrodo (nivel cald.)",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Sensores Eletrônicos De Alarme E Nível Por Eletrodo (Nível Cald.)",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:servidor(desktop e tablets)",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Servidor(Desktop e Tablets)",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "a3d8e872-1d72-42f0-81cc-191ffe5e1930",
+          "responsible_user_id": "b01e75dd-2598-4511-8fd4-ec262b2a2aab",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:sistema de requeima de cinzas",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Sistema de Requeima de Cinzas",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Longo >180",
+          "current_stage": 4,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:sopradores de fuligem",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Sopradores de Fuligem",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Longo >180",
+          "current_stage": 4,
+          "work_package_ids": [
+            "13898e47-5568-4e98-948f-c5cb042e24ed",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Modelo Carga Variável",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "bdba7695-8196-4fde-80b6-4c66b840851f",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+          "criticality": "Curto <90",
+          "current_stage": 0,
+          "work_package_ids": [
+            "c605cb21-74a9-457c-b773-6d31b4bdc836",
+            "dc286fc7-1b69-4f25-aabb-99dd944b5faf"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:transformadores",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transformadores",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:transmissores",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transmissores",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "41823372-5491-44b9-a181-c97f20b7420b"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:transportadores de cinza",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "13898e47-5568-4e98-948f-c5cb042e24ed",
+            "5154828e-1c6b-435c-abc0-510da42ff476",
+            "6381e3ae-2546-4f95-8302-da560d041bdc"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:tubulacao de alta pressao - p22 tg ate caldeira",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Tubulação de alta pressão - P22 TG até caldeira",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+          "criticality": "Curto <90",
+          "current_stage": 0,
+          "work_package_ids": [
+            "68b2f6d3-5ce7-40be-8d68-d0a2c8769f8a",
+            "89dfa2a5-8e7f-4355-9077-7fc14d750f2b",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:valvula eletrica caldeira",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvula elétrica Caldeira",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Longo >180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "41823372-5491-44b9-a181-c97f20b7420b"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:valvulas de alivio/seguranca (alta pressao) caldeira",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas De Alívio/Segurança (Alta Pressão) Caldeira",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Longo >180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:valvulas de alivio/seguranca (baixa pressao) caldeira",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas De Alívio/Segurança (Baixa Pressão) Caldeira",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:valvulas de controle on-off desuper e dumper",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas de Controle On-Off Desuper e Dumper",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Longo >180",
+          "current_stage": 0,
+          "work_package_ids": [
+            "41823372-5491-44b9-a181-c97f20b7420b"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:valvulas manuais (alta pressao)",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas Manuais (Alta Pressão)",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "2cc554e2-5d1a-44a5-b3e1-0e79915aac28",
+          "criticality": "Médio 90~180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Ventiladores centrífugos - Conjuntos",
+          "origin": "Nacional",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "4c721acb-0694-4bab-891d-da50651af598",
+          "responsible_user_id": "1e36697d-8f48-4219-993d-d1011df633ea",
+          "criticality": "Longo >180",
+          "current_stage": 6,
+          "work_package_ids": [
+            "0f00c3c5-10d1-45b9-9d06-2dce64378dc2",
+            "13898e47-5568-4e98-948f-c5cb042e24ed",
+            "c605cb21-74a9-457c-b773-6d31b4bdc836"
+          ]
+        },
+        "issues": []
+      },
+      {
+        "kind": "equipment",
+        "sourceKey": "normalized-name:visores de nivel",
+        "parentSourceKey": null,
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Visores de nível",
+          "origin": "A definir",
+          "startup_at": "2027-10-27",
+          "area_id": "132f728b-ec2b-4d6f-8420-bedfeb5e4d28",
+          "discipline_id": "aba78b16-f0d8-4509-8752-71fb12d566d7",
+          "responsible_user_id": "d868a72e-e8df-4978-a63c-2ca1882c7e71",
+          "criticality": "Longo >180",
+          "current_stage": 0,
+          "work_package_ids": []
+        },
+        "issues": []
+      }
+    ],
+    "components": [
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321217525",
+        "parentSourceKey": "normalized-name:analisador de gas da caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Analisador de gás da Caldeira",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 70,
+          "pre_start_days": 90,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320695931",
+        "parentSourceKey": "normalized-name:bomba sump",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Bomba SUMP",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 155,
+          "pre_start_days": 120,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322157522",
+        "parentSourceKey": "normalized-name:bomba sump - drenagem",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Bomba Sump",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 90,
+          "pre_start_days": 60
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320164464",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "EVAPORADOR (FEIXE)",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 63,
+          "pre_start_days": 352,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320164469",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "FORNALHA",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 126,
+          "pre_start_days": 293,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320164481",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "GRELHA",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 70,
+          "pre_start_days": 188,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320164533",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "ECONOMIZADOR",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 94,
+          "pre_start_days": 330,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320181465",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SISTEMA DE ALIMENTAÇÃO DE ÁGUA",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 46,
+          "pre_start_days": 191,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320181533",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "PRÉ-AQUECEDOR DE AR",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 68,
+          "pre_start_days": 266,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320181592",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SISTEMA DE TIRAGEM DE GASES",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 77,
+          "pre_start_days": 177,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320181622",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SISTEMA DE LAVAGEM DE GASES",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 25,
+          "pre_start_days": 226,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320181656",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "PLACA DE IDENTIFICAÇÃO",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 3,
+          "pre_start_days": 112,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320189380",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "CONDENSADOR",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 30,
+          "pre_start_days": 251,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320189719",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "ROSCA TRANSPORTADORA PARA FULIGEM",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 46,
+          "pre_start_days": 142,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320192782",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SISTEMA DE SOPRAGEM DE FULIGEM",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 15,
+          "pre_start_days": 202,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320192787",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SISTEMA DE DRENOS E PURGAS",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 30,
+          "pre_start_days": 202,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320202782",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SISTEMA DE INSUFLAÇÃO DE AR PRIMÁRIO",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 25,
+          "pre_start_days": 212,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320203171",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SELAGEM",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 150,
+          "pre_start_days": 170,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320203380",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SISTEMA DE ALIMENTAÇÃO - COMBUSTÍVEL",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 35,
+          "pre_start_days": 191,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320204082",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "DESAERADOR",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 59,
+          "pre_start_days": 266,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320204953",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "ESTRUTURA DE SUSTENTAÇÃO DA CALDEIRA E BUCKSTAYS",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 80,
+          "pre_start_days": 322,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320204958",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "TUBULÕES",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 67,
+          "pre_start_days": 373,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320205288",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SUPERAQUECEDOR DE VAPOR",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 42,
+          "pre_start_days": 268,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320205637",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SISTEMA DE AR SECUNDÁRIO",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 32,
+          "pre_start_days": 198,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320206006",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "INDICADOR E ALARME DE NÍVEL",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 25,
+          "pre_start_days": 160,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320206154",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VÁLVULAS E ACESSÓRIOS",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 30,
+          "pre_start_days": 273,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320206164",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VÁLVULA ROTATIVA",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 27,
+          "pre_start_days": 120,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322136403",
+        "parentSourceKey": "normalized-name:conjunto turbo-gerador",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Conjunto Turbo-Gerador",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 273,
+          "pre_start_days": 100,
+          "contract_delivery_at": "2027-03-15",
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320363802",
+        "parentSourceKey": "normalized-name:cubiculos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Cubículos",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 100,
+          "pre_start_days": 240,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320647050",
+        "parentSourceKey": "normalized-name:eletrocentro se12",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SE 12 - Caldeira de Biomassa",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 228,
+          "pre_start_days": 209,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320652914",
+        "parentSourceKey": "normalized-name:eletrocentro se12",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "SE 11 - Casa de Força",
+          "startup_at": "2027-06-05",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 228,
+          "pre_start_days": 65,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322097972",
+        "parentSourceKey": "normalized-name:eletrocentros - casa de quimicos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Peças de Reposição",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 112,
+          "pre_start_days": 160,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322098144",
+        "parentSourceKey": "normalized-name:eletrocentros - casa de quimicos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Materiais Eletrônicos/Softwares para Automação (Switch, CLPIHM, Softwares, Supervisório e etc)",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 112,
+          "pre_start_days": 160,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322117632",
+        "parentSourceKey": "normalized-name:eletrocentros - casa de quimicos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Sistema HVAC",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 112,
+          "pre_start_days": 160,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322140391",
+        "parentSourceKey": "normalized-name:eletrocentros - casa de quimicos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Interligações Eletrocentro-Supervisório",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 112,
+          "pre_start_days": 160,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322124981",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: linha de alternativos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 160,
+          "pre_start_days": 90,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322143608",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: linha de alternativos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Redler distribuidor",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 160,
+          "pre_start_days": 90,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322158393",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: linha de alternativos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Moega para produtos alternativos",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 160,
+          "pre_start_days": 90,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321338552",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "1.1 - GRADE VIBRATORIA DA TREMONHA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321338944",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "15.1 - DUTO DE DESCARGA Largura 1500 Comp. 4250 Altura 2550 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321339440",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "14 - TRANSPORTADOR DE CORREIA TCD/60 Largura so· Comp. 61100 Altura - Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321339693",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "14.2 - TORRE DE SUSTENTAÇÃO Largura 2200 Comp. - Altura 2850 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321364114",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "15.3 - PLATAFORMA DE SUSTENTAÇÃO E MANUTENÇÃO Largura 4000 Comp. 8000 Altura 9600 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321364478",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "18.4 - SISTEMA DE NEBULIZAÇÃO Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321364602",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "16.4 - SISTEMA DE NEBULIZAÇÃO Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321364662",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "18.2 - PLATAFORMA DE SUSTENTAÇÃO E MANUTENÇÃO Largura 3750 Comp. 4500 Altura 22800 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321364893",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "17 - TRANSPORTADOR DE ARRASTE REDLER TARD/2000 (TAUSCA 2500) Largura 2910 Comp. 20250 Altura 1900 Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321364999",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "16.2 - TORRE DE SUSTENTAÇÃO Largura 3650 Comp. - Altura 12100 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321365054",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "3.3 - PLATAFORMA DE SUSTENTAÇÃO E MANUTENÇÃO Largura 4000 Comp. 6900 Altura 9500 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321365655",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "4.4 - TORRE DE SUSTENTAÇÃO Largura 3780 Comp. - Altura 14850 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321393575",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "15 - PENEIRA CLASSIFICADORA DE DISCOS PCDD/21 Largura 1500 Comp. 4550 Altura 1500 Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321395661",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "1 - TREMONHA DE ELOS COM TALISCAS TETD/100 (CAP. 100rri') Largura 4735 Comp. 11650 Altura 2250 Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321397331",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "10.1 - GUILHOTINA PNEUMATICA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321397793",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "14.1 - SEPARADOR MAGNÉTICO SUSPENSO TIPO GAVETA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321397899",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "14.3 - TORRE DE SUSTENTAÇÃO Largura 2800 Comp. - Altura 6600 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321400425",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "18.3 - PLATAFORMA DE SUSTENTAÇÃO E MANUTENÇÃO Largura 4500 Comp. 7200 Altura 27200 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321400723",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.11 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321400732",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.12 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321400966",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.4 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321401435",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "4.1 - DUTO DE DESCARGA Largura 1000 Comp. 1400 Altura 4350 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321401858",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "7.1 - GUILHOTINA PNEUMATICA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321404141",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "11 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 2350 Altura - Vazão m3/h 30 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321405450",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "10 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 2350 Altura - Vazão m3/h 30 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321412385",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "16.1 - TORRE DE SUSTENTAÇÃO Largura 2950 Comp. - Altura 7450 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321412553",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "17.3 - SISTEMA DE NEBULIZAÇÃO Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321412604",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "15.2 - DUTO DE REJEITO Largura 750 Comp. 700 Altura 5750 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321412879",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "18 - TRANSPORTADOR DE CORREIA TCD/60 Largura so· Comp. 31800 Altura - Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321413390",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.2 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321413477",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "4.6 - TORRE DE SUSTENTAÇÃO Largura 5470 Comp. - Altura 25650 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321414040",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "4.2 - TORRE DE SUSTENTAÇÃO Largura 2300 Comp. - Altura 5600 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321416166",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "13 - TREMONHA DE ARRASTE COM TALISCAS TATD/100 (Comp. 30 ni') Largura 1550 Comp. 9600 Altura 1700 Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321416632",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "17.2 - PLATAFORMA DE SUSTENTAÇÃO E MANUTENÇÃO Largura 6775 Comp. 18000 Altura 8400 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321417562",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "3.2 - DUTO DE REJEITO Largura 750 Comp. 700 Altura 5650 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321421121",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "11.1 - GUILHOTINA PNEUMATICA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321424303",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "16.3 - TORRE DE SUSTENTAÇÃO Largura 5500 Comp. - Altura 23400 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321424758",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "2.2 - SISTEMA DE NEBULIZAÇÃO Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321425768",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "2 - TRANSPORTADOR DE CORREIA TCD/48 Largura 48\" Comp. 54035 Altura - Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321425930",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "17.1 - DUTO DE DESCARGA Largura 1300 Comp. 4100 Altura 3300 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321433207",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "6.1 - GUILHOTINA PNEUMATICA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321433275",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "8.1 - GUILHOTINA PNEUMATICA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321435125",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.9 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321435195",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "3 - PENEIRA CLASSIFICADORA DE DISCOS PCDD/17 Largura 1500 Comp. 3700 Altura 1300 Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321435403",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "3.1 - DUTO DE DESCARGA Largura 1500 Comp. 3450 Altura 2900 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321435716",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "16 - TRANSPORTADOR DE CORREIA TCD/60 Largura 60\" Comp. 68800 Altura - Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321436134",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5 - CONJUNTO DISTRIBUIDOR CDD/500-12R (CAP. 180rri') Largura 9550 Comp. 4365 Altura 8220 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321436531",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "2.3 - SEPARADOR MAGNÉTICO SUSPENSO TIPO GAVETA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321437244",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "4.3 - TORRE DE SUSTENTAÇÃO Largura 2950 Comp. - Altura 9500 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321438078",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.5 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321440119",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "14.4 - SISTEMA DE NEBULIZAÇÃO Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321453606",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "4.7 - SISTEMA DE NEBULIZAÇÃO Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321453934",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "7 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 2350 Altura - Vazão m3/h 30 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321458243",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "6 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 2350 Altura - Vazão m3/h 30 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321460187",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.6 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321460268",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.8 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321460452",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.1 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321464201",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "18.1 - DUTO DE DESCARGA Largura 1300 Comp. 1750 Altura 8900 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321465964",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "4.5 - TORRE DE SUSTENTAÇÃO Largura 4630 Comp. - Altura 20275 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321466516",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "8 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 2350 Altura - Vazão m3/h 30 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321467572",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "9 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 2350 Altura - Vazão m3/h 30 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321471043",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.7 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321474192",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "2.1 - TORRE DE SUSTENTAÇÃO Largura 2350 Comp. - Altura 5030 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321474799",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "4 - TRANSPORTADOR DE CORREIA TCD/48 Largura 48\" Comp. 85535 Altura - Vazão m3/h 500 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321475967",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.3 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321487091",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "9.1 - GUILHOTINA PNEUMATICA Largura - Comp. - Altura - Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321502893",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.10 - ROSCA TRANSPORTADORA RTD/500 Largura 500 Comp. 5900 Altura - Vazão m3/h 15 Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321503228",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "5.13 - PLATAFORMA DE SUSTENTAÇÃO E MANUTENÇÃO Largura 10950 Comp. 8900 Altura 31225 Vazão m3/h - Peso Kg - Quant. 1",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 240,
+          "pre_start_days": 180,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321760786",
+        "parentSourceKey": "normalized-name:estrutura metalica - pipe rack",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Perfis",
+          "startup_at": "2027-10-27",
+          "sector": "PIPE RACK",
+          "lead_time_days": 100,
+          "pre_start_days": 150,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321773782",
+        "parentSourceKey": "normalized-name:estrutura metalica - pipe rack",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Materiais e Parafusos",
+          "startup_at": "2027-10-27",
+          "sector": "PIPE RACK",
+          "lead_time_days": 100,
+          "pre_start_days": 150,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321121943",
+        "parentSourceKey": "normalized-name:estruturas metalicas caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "ESTRUTURAS METÁLICAS CALDEIRA",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 120,
+          "pre_start_days": 200,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321767625",
+        "parentSourceKey": "normalized-name:gerador a diesel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Gerador a Diesel",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 100,
+          "pre_start_days": 180,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321662070",
+        "parentSourceKey": "normalized-name:lm - isolamento termico",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "LM - Isolamento térmico",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 30,
+          "pre_start_days": 60,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320764202",
+        "parentSourceKey": "normalized-name:lubrificacao forcada - unidade de lubrificacao",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Lubrificação Forçada - Unidade de Lubrificação",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 100,
+          "pre_start_days": 90
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321379082",
+        "parentSourceKey": "normalized-name:manometros e termometros",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Manômetros e Termômetros",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 100,
+          "pre_start_days": 100,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320888536",
+        "parentSourceKey": "normalized-name:moto bombas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "MOTO BOMBA CENTR HDA 100/8 (7+1)",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 187,
+          "pre_start_days": 60,
+          "contract_delivery_at": "2027-02-20",
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320915294",
+        "parentSourceKey": "normalized-name:moto bombas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "MOTO BOMBA CENTR HDA 100/8 (7+1)",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 187,
+          "pre_start_days": 60,
+          "contract_delivery_at": "2027-02-20",
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320916171",
+        "parentSourceKey": "normalized-name:moto bombas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "MOTO BOMBA PARTIDA S/ MOTOR HDA 65/11",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 187,
+          "pre_start_days": 60,
+          "contract_delivery_at": "2027-02-20",
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321206314",
+        "parentSourceKey": "normalized-name:motores da caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Motores Da Caldeira",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 220,
+          "pre_start_days": 240,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320435271",
+        "parentSourceKey": "normalized-name:paineis de plc",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Painéis de PLC",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 173,
+          "pre_start_days": 80,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320888030",
+        "parentSourceKey": "normalized-name:paineis qdca/qnbs",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Painéis QDCA/QNBS",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 100,
+          "pre_start_days": 200,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321260051",
+        "parentSourceKey": "normalized-name:painel de acionamento (cilindros) das grelhas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Painel de Acionamento (Cilindros) das Grelhas",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 50,
+          "pre_start_days": 60,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12967942841",
+        "parentSourceKey": "normalized-name:ponte rolante 25 ton",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Ponte Rolante Dupla Viga de Caixa soldada 25 ton",
+          "tag": "A definir",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 140,
+          "pre_start_days": 200,
+          "contract_delivery_at": "2026-05-15",
+          "freight_days": 15
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321666836",
+        "parentSourceKey": "normalized-name:projetores, iluminacao industrial e iluminacao perimetral",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Projetores, Iluminação Industrial E Iluminação Perimetral",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 40,
+          "pre_start_days": 164,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321903792",
+        "parentSourceKey": "normalized-name:remotas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Remotas",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 80,
+          "pre_start_days": 180,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321568799",
+        "parentSourceKey": "normalized-name:retificadores",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Retificadores",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 120,
+          "pre_start_days": 240,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321659952",
+        "parentSourceKey": "normalized-name:sensores eletronicos de alarme e nivel por eletrodo (nivel cald.)",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Sensores Eletrônicos De Alarme E Nível Por Eletrodo (Nível Cald.)",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 91,
+          "pre_start_days": 180,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321685753",
+        "parentSourceKey": "normalized-name:servidor(desktop e tablets)",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Servidor(Desktop e Tablets)",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 130,
+          "pre_start_days": 60,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12946999829",
+        "parentSourceKey": "normalized-name:sistema de requeima de cinzas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Sist. de Requeima de Cinzas",
+          "tag": "A definir",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 120,
+          "pre_start_days": 60,
+          "contract_delivery_at": "2027-08-20",
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321379003",
+        "parentSourceKey": "normalized-name:sopradores de fuligem",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Sopradores de Fuligem",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 200,
+          "pre_start_days": 90,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321826079",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Mola 5160 SV SR 120 F 14",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321838206",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Mola 5160 SV SR 60 F 9",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321847338",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Modelo Suporte Carga Variável SV -30 -F-9",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321850634",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Mola 5160 SV SR 30 F 10",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321855592",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - STM A 36 /A STM A 283 - c/ Mola SA E 5160 7605N SV -30 -F-11",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321857766",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Modelo Suporte Carga Variável SV -60 -F-14",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321865767",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Mola SA E 5160 42480N SV -30 -F-17",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321928779",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Mola SA E 5160 22005N SV -30 -F-15",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321929313",
+        "parentSourceKey": "normalized-name:suporte de mola - modelo carga variavel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Suporte de mola - Mola 5160 SV SR 60 F 12",
+          "startup_at": "2027-10-27",
+          "sector": "CASA DE FORÇA",
+          "lead_time_days": 55,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320866404",
+        "parentSourceKey": "normalized-name:transformadores",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transformadores",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 100,
+          "pre_start_days": 240,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321748780",
+        "parentSourceKey": "normalized-name:transmissores",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transmissores",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 130,
+          "pre_start_days": 140,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321594522",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Transportador de Corrente Aço-Carbono, 2416X14790MM ,C SP RO C KE /TC R-08",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321640441",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Transportador de Corrente Aço-Carbono, 2416X16600MM ,C SP RO C KE /TC R-07",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321673456",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Transportador de Corrente Aço-Carbono , 3034X20200MM ,C SP RO C KE /TC R-03",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321689433",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Transportador de Corrente Aço-Carbono, 3034X20000MM ,C SP RO C KE /TC R-04",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321692639",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Transportador de Corrente Aço-Carbono, 3034X14620MM ,C SP RO C KE /TC R-06",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321699289",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Transportador Helicoidal Aço-Carbono , 355 ,60X355 ,60X38 SP RO C KE /T H-10",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321705066",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Transportador Helicoidal Aço-Carbono, 406 ,40X406 ,40X54 SP RO C KE /T H-01 /T H-02",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321726417",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Elevador de Canecas, 766X13000MM ,C A L SP RO C KE /E L-09",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321726553",
+        "parentSourceKey": "normalized-name:transportadores de cinza",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Transportadores de Cinza - Transportador de Corrente Aço-Carbono, 3034X21950MM ,C SP RO C KE /TC R-05",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 105,
+          "pre_start_days": 150,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322046805",
+        "parentSourceKey": "normalized-name:tubulacao de alta pressao - p22 tg ate caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Tubulação de alta pressão - P22 TG até caldeira",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 45,
+          "pre_start_days": 90,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321277573",
+        "parentSourceKey": "normalized-name:valvula eletrica caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvula elétrica Caldeira",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 160,
+          "pre_start_days": 140,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320668969",
+        "parentSourceKey": "normalized-name:valvulas de alivio/seguranca (alta pressao) caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas De Alívio/Segurança (Alta Pressão) Caldeira",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 180,
+          "pre_start_days": 120,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320917007",
+        "parentSourceKey": "normalized-name:valvulas de alivio/seguranca (baixa pressao) caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas De Alívio/Segurança (Baixa Pressão) Caldeira",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 130,
+          "pre_start_days": 140,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321304571",
+        "parentSourceKey": "normalized-name:valvulas de controle on-off desuper e dumper",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas de Controle On-Off Desuper e Dumper",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 150,
+          "pre_start_days": 180,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322051811",
+        "parentSourceKey": "normalized-name:valvulas manuais (alta pressao)",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas Manuais (Alta Pressão)",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 180,
+          "pre_start_days": 90,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12322101124",
+        "parentSourceKey": "normalized-name:valvulas manuais (alta pressao)",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Válvulas externas à Caldeira (escopo Aplus)",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 180,
+          "pre_start_days": 90,
+          "freight_days": 5
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321143792",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VENTILADOR CJ,ACO LIGA,CALDEIRA,VIBROMAQ/DES VCF-37-1340/L11-S-8",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 255,
+          "pre_start_days": 130,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321144089",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VENTILADOR CENTRIFUGO,797,9KW,1407RPM,DIREITA,SIMP ASP,-524MMCA,VIBROMAQ/VCF-37-3100L11-S-7-CE",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 255,
+          "pre_start_days": 130,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321144501",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VENTILADOR CJ,ACO LIGA,CALDEIRA,VIBROMAQ/DES VCF-37-1340/L11-S-8",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 255,
+          "pre_start_days": 130,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321155919",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VENTILADOR CJ,ACO LIGA,CALDEIRA,VIBROMAQ/DES VCF-37-220/L11-D-7-CE",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 255,
+          "pre_start_days": 130,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321156650",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VENTILADOR CJ,ACO LIGA,CALDEIRA,VIBROMAQ/DES VCF-37-1720/L11-S-7-CE",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 255,
+          "pre_start_days": 130,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321166917",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VENTILADOR CENTRIFUGO,797,9KW,1407RPM,DIREITA,SIMP ASP,-524MMCA,VIBROMAQ/VCF-37-3100L11-S-7-CE",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 255,
+          "pre_start_days": 130,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321189461",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VENTILADOR CJ,ACO LIGA,CALDEIRA,VIBROMAQ/DES VCF-37-1720/L11-S-7-CE",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 255,
+          "pre_start_days": 130,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12321189465",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "VENTILADOR CJ,ACO LIGA,CALDEIRA,VIBROMAQ/DES VCF-37-220/L11-D-7-CE",
+          "startup_at": "2027-10-27",
+          "sector": "Outros/Diversos",
+          "lead_time_days": 255,
+          "pre_start_days": 130,
+          "freight_days": 10
+        },
+        "issues": []
+      },
+      {
+        "kind": "component",
+        "sourceKey": "monday-item-id:12320404180",
+        "parentSourceKey": "normalized-name:visores de nivel",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "name": "Visores de nível",
+          "startup_at": "2027-10-27",
+          "sector": "CALDEIRA",
+          "lead_time_days": 145,
+          "pre_start_days": 75,
+          "freight_days": 5
+        },
+        "issues": []
+      }
+    ],
+    "negotiations": [
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:caldeira de biomassa",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-05-10"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:conjunto turbo-gerador",
+        "parentSourceKey": "normalized-name:conjunto turbo-gerador",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-05-10"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:cubiculos",
+        "parentSourceKey": "normalized-name:cubiculos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-08-01"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-07-31"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:estruturas metalicas caldeira",
+        "parentSourceKey": "normalized-name:estruturas metalicas caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-08-01"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:moto bombas",
+        "parentSourceKey": "normalized-name:moto bombas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-08-15"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:motores da caldeira",
+        "parentSourceKey": "normalized-name:motores da caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-08-01"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:sistema de requeima de cinzas",
+        "parentSourceKey": "normalized-name:sistema de requeima de cinzas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-09-01"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:sopradores de fuligem",
+        "parentSourceKey": "normalized-name:sopradores de fuligem",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-08-15"
+        },
+        "issues": []
+      },
+      {
+        "kind": "negotiation",
+        "sourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "equalized": true,
+          "negotiated_at": "2026-07-20"
+        },
+        "issues": []
+      }
+    ],
+    "legalProcesses": [
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:caldeira de biomassa",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-05-12",
+          "ticket_number": "20260512343453",
+          "draft_prepared": true,
+          "draft_approved": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:conjunto turbo-gerador",
+        "parentSourceKey": "normalized-name:conjunto turbo-gerador",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-05-15",
+          "ticket_number": "20260515347671",
+          "draft_prepared": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:cubiculos",
+        "parentSourceKey": "normalized-name:cubiculos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-08-07",
+          "ticket_number": "20260807445785",
+          "draft_prepared": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-08-10",
+          "ticket_number": "20260810448195",
+          "draft_prepared": true,
+          "draft_approved": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:estruturas metalicas caldeira",
+        "parentSourceKey": "normalized-name:estruturas metalicas caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-08-10",
+          "ticket_number": "20260810447476",
+          "draft_prepared": true,
+          "draft_approved": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:moto bombas",
+        "parentSourceKey": "normalized-name:moto bombas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-08-21",
+          "ticket_number": "20260821462377",
+          "draft_prepared": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:motores da caldeira",
+        "parentSourceKey": "normalized-name:motores da caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-08-05",
+          "ticket_number": "20260805442077",
+          "draft_prepared": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:sistema de requeima de cinzas",
+        "parentSourceKey": "normalized-name:sistema de requeima de cinzas",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-08-20",
+          "ticket_number": "20260820460785",
+          "draft_prepared": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:sopradores de fuligem",
+        "parentSourceKey": "normalized-name:sopradores de fuligem",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-08-17",
+          "ticket_number": "20260817456241",
+          "draft_prepared": true
+        },
+        "issues": []
+      },
+      {
+        "kind": "legal_process",
+        "sourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "opened_at": "2026-07-23",
+          "ticket_number": "20260727431143",
+          "draft_prepared": true,
+          "draft_approved": true
+        },
+        "issues": []
+      }
+    ],
+    "contracts": [
+      {
+        "kind": "contract",
+        "sourceKey": "normalized-name:caldeira de biomassa",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "contract_number": "31192",
+          "executed_at": "2026-06-09"
+        },
+        "issues": []
+      },
+      {
+        "kind": "contract",
+        "sourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "parentSourceKey": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "contract_number": "33532",
+          "executed_at": "2026-08-26",
+          "delivery_at": "2027-08-31"
+        },
+        "issues": []
+      },
+      {
+        "kind": "contract",
+        "sourceKey": "normalized-name:estruturas metalicas caldeira",
+        "parentSourceKey": "normalized-name:estruturas metalicas caldeira",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "contract_number": "33655",
+          "executed_at": "2026-09-01",
+          "delivery_at": "2027-04-30"
+        },
+        "issues": []
+      },
+      {
+        "kind": "contract",
+        "sourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "parentSourceKey": "normalized-name:ventiladores centrifugos - conjuntos",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "contract_number": "32935",
+          "executed_at": "2026-08-05",
+          "delivery_at": "2027-07-15"
+        },
+        "issues": []
+      }
+    ],
+    "purchaseRequests": [
+      {
+        "kind": "purchase_request",
+        "sourceKey": "normalized-name:caldeira de biomassa",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "request_number": "2643239",
+          "requested_at": "2026-06-26"
+        },
+        "issues": []
+      }
+    ],
+    "purchaseOrders": [
+      {
+        "kind": "purchase_order",
+        "sourceKey": "normalized-name:caldeira de biomassa",
+        "parentSourceKey": "normalized-name:caldeira de biomassa",
+        "action": "CREATE",
+        "targetEntityId": null,
+        "payload": {
+          "order_number": "1830248",
+          "ordered_at": "2026-06-26"
+        },
+        "issues": []
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "code": "PURCHASE_REQUEST_KIND_UNRESOLVED",
+      "message": "SC/OCI de 'Caldeira de Biomassa' sem tipo identificável na origem",
+      "detail": {
+        "equipmentSourceKey": "normalized-name:caldeira de biomassa"
+      }
+    }
+  ],
+  "blocked": false,
+  "mapping": {
+    "mappingSha256": "c3675f2ce6ec7de5736c53259b4c2f27217ef3a2670f9a5f33538b9f4f472aa0",
+    "counts": {
+      "responsibles": 4,
+      "areas": 6,
+      "disciplines": 3,
+      "workPackages": 24
+    },
+    "issues": []
+  }
+}

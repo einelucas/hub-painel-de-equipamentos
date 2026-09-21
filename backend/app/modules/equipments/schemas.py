@@ -21,6 +21,14 @@ class UserRefOut(CamelModel):
     email: str
 
 
+def _no_duplicate_work_packages(value: list[str] | None) -> list[str] | None:
+    if value is None:
+        return value
+    if len(set(value)) != len(value):
+        raise ValueError("workPackageIds não pode conter IDs duplicados")
+    return value
+
+
 class EquipmentCreateIn(CamelModel):
     project_context_id: str
     name: str = Field(min_length=1, max_length=200)
@@ -28,7 +36,11 @@ class EquipmentCreateIn(CamelModel):
     startup_at: date | None = None
     discipline_id: str | None = None
     area_id: str | None = None
-    work_package_id: str | None = None
+    # `work_package_ids` é o contrato oficial (0..N, relação N:N via
+    # `equipment_work_package`). O campo legado singular `work_package_id`
+    # não é aceito aqui — ver `Equipment.work_package_id` para o porquê ele
+    # ainda existe na coluna do banco.
+    work_package_ids: list[str] = Field(default_factory=list)
     responsible_user_id: str | None = None
     criticality: str | None = Field(default=None, max_length=40)
     capex_estimated: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
@@ -41,6 +53,11 @@ class EquipmentCreateIn(CamelModel):
             raise ValueError("Nome obrigatório")
         return value
 
+    @field_validator("work_package_ids")
+    @classmethod
+    def work_package_ids_no_duplicates(cls, value: list[str] | None) -> list[str] | None:
+        return _no_duplicate_work_packages(value)
+
 
 class EquipmentUpdateIn(CamelModel):
     project_context_id: str | None = None
@@ -49,10 +66,17 @@ class EquipmentUpdateIn(CamelModel):
     startup_at: date | None = None
     discipline_id: str | None = None
     area_id: str | None = None
-    work_package_id: str | None = None
+    # Ausente no PATCH -> vínculos N:N não são tocados. `[]` explícito ->
+    # remove todos os vínculos. Ver nota acima sobre `work_package_id` legado.
+    work_package_ids: list[str] | None = None
     responsible_user_id: str | None = None
     criticality: str | None = Field(default=None, max_length=40)
     capex_estimated: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
+
+    @field_validator("work_package_ids")
+    @classmethod
+    def work_package_ids_no_duplicates(cls, value: list[str] | None) -> list[str] | None:
+        return _no_duplicate_work_packages(value)
 
     # `current_stage` é intencionalmente ausente: a etapa só muda pelo serviço de
     # workflow (POST /equipments/{id}/transitions).
@@ -88,6 +112,11 @@ class EquipmentOut(CamelModel):
     unit: NamedRefOut
     discipline: NamedRefOut | None
     area: NamedRefOut | None
+    # DEPRECATED: espelho do FK legado `equipment.work_package_id` (0..1).
+    # Não é mais escrito por create/update; só existe porque a migração do
+    # Monday ainda o preenche quando a origem trazia exatamente 1 Work
+    # Package. Novas telas devem ler `work_packages` (N:N), não este campo.
+    # Candidato a remoção quando o CRUD legado que ainda o lê for desligado.
     work_package: NamedRefOut | None
     work_packages: list[NamedRefOut] = Field(default_factory=list)
     responsible_user: UserRefOut | None
