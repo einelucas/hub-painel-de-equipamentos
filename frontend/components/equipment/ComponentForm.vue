@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { reactive, ref } from "vue";
 import type { EquipmentComponent } from "~/types/equipment";
 
 const props = defineProps<{ equipmentId: string; component?: EquipmentComponent | null }>();
@@ -9,6 +10,9 @@ const error = ref("");
 const form = reactive({
   name: props.component?.name ?? "",
   tag: props.component?.tag ?? "",
+  // Startup próprio do subitem — independente de `equipment.startupAt`, e
+  // nunca herdado dele (GAP-009).
+  startupAt: props.component?.startupAt ?? "",
   sector: props.component?.sector ?? "",
   leadTimeDays: props.component?.leadTimeDays?.toString() ?? "",
   preStartDays: props.component?.preStartDays?.toString() ?? "",
@@ -30,6 +34,7 @@ async function submit(): Promise<void> {
   const payload = {
     name: form.name.trim(),
     tag: form.tag || null,
+    startupAt: form.startupAt || null,
     sector: form.sector || null,
     leadTimeDays: optionalNumber(form.leadTimeDays),
     preStartDays: optionalNumber(form.preStartDays),
@@ -55,6 +60,7 @@ async function submit(): Promise<void> {
     <div class="form-grid">
       <label class="field field-wide"><span>Componente *</span><input v-model="form.name" required maxlength="200"></label>
       <label class="field"><span>Tag</span><input v-model="form.tag" maxlength="100"></label>
+      <label class="field"><span>Startup</span><input v-model="form.startupAt" type="date"></label>
       <label class="field"><span>Setor</span><input v-model="form.sector" maxlength="120"></label>
       <label class="field"><span>Lead time (dias)</span><input v-model="form.leadTimeDays" type="number" min="0"></label>
       <label class="field"><span>Pré-start (dias)</span><input v-model="form.preStartDays" type="number" min="0"></label>

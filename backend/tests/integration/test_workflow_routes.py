@@ -316,3 +316,59 @@ async def test_viewer_cannot_transition_or_write_process(client, auth_header) ->
     )
     assert transition.status_code == 403
     assert process.status_code == 403
+
+
+# --- GAP-008: edição de processo independente da etapa atual -----------
+
+
+async def test_process_editable_after_conclusion_without_changing_stage(
+    client, auth_header, db_session
+) -> None:
+    """Equipamento concluído (stage=8): todo dado de processo continua
+    editável via PATCH, e editar nunca muda `current_stage` — só o endpoint
+    de transições faz isso."""
+    equipment_id = await _new_equipment(client, auth_header, "Concluido editavel")
+    for target in range(1, 9):
+        response = await _advance(client, auth_header, equipment_id, target)
+        assert response.status_code == 200, response.text
+    assert response.json()["currentStage"] == 8
+
+    edits = [
+        ("negotiation", {"equalized": True, "negotiatedAt": "2026-05-01"}),
+        ("legal", {"ticketNumber": "TICKET-CORRIGIDO"}),
+        ("contract", {"contractNumber": "CT-CORRIGIDO"}),
+        ("purchase-request", {"kind": "OCI", "requestNumber": "OCI-0002"}),
+        ("purchase-order", {"orderNumber": "OC-CORRIGIDA", "amount": 1500.5}),
+    ]
+    for resource, payload in edits:
+        patched = await client.patch(
+            f"/api/v1/equipments/{equipment_id}/{resource}",
+            json=payload,
+            headers=auth_header("ANALYST"),
+        )
+        assert patched.status_code == 200, patched.text
+
+    detail = await client.get(f"/api/v1/equipments/{equipment_id}", headers=auth_header("VIEWER"))
+    assert detail.json()["equipment"]["currentStage"] == 8
+
+    processes = (
+        await client.get(f"/api/v1/equipments/{equipment_id}/processes", headers=auth_header("VIEWER"))
+    ).json()
+    assert processes["legal"]["ticketNumber"] == "TICKET-CORRIGIDO"
+    assert processes["contract"]["contractNumber"] == "CT-CORRIGIDO"
+    assert processes["purchaseRequest"]["kind"] == "OCI"
+    assert processes["purchaseRequest"]["requestNumber"] == "OCI-0002"
+    assert processes["purchaseOrder"]["orderNumber"] == "OC-CORRIGIDA"
+
+
+async def test_viewer_cannot_write_process_at_stage_8(client, auth_header) -> None:
+    equipment_id = await _new_equipment(client, auth_header, "Viewer concluido")
+    for target in range(1, 9):
+        await _advance(client, auth_header, equipment_id, target)
+
+    blocked = await client.patch(
+        f"/api/v1/equipments/{equipment_id}/purchase-request",
+        json={"kind": "SC"},
+        headers=auth_header("VIEWER"),
+    )
+    assert blocked.status_code == 403

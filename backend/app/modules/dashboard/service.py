@@ -12,9 +12,16 @@ from decimal import Decimal
 
 from sqlalchemy import Select, Subquery, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.auth import CurrentUser
 from app.core.scope import allowed_unit_ids, assert_unit_allowed, restrict_to_units
+from app.domain.equipment_calculations import (
+    WorkNeedStatus,
+    aggregate_component_deadlines,
+    calculate_work_need_status,
+    component_deadline_values,
+)
 from app.models.equipment import STAGES, Equipment, EquipmentComponent, ProjectContext
 from app.models.process import Negotiation, PurchaseOrder
 from app.modules.dashboard.schemas import (
@@ -28,12 +35,17 @@ from app.modules.dashboard.schemas import (
 )
 from app.modules.workflow.stages import FINAL_STAGE
 
-DEADLINE_UNAVAILABLE_REASON = (
-    "Regras oficiais de prazo ainda não formalizadas pelo negócio."
-)
-
 # Estágios em que o equipamento está sob negociação/equalização.
 NEGOTIATION_STAGES = (1, 2)
+
+_WORK_NEED_FIELD_BY_STATUS = {
+    WorkNeedStatus.CHECK_DELIVERY_FUP: "check_delivery_fup",
+    WorkNeedStatus.NEEDED_TODAY: "needed_today",
+    WorkNeedStatus.LT_30_DAYS: "lt_30_days",
+    WorkNeedStatus.LT_60_DAYS: "lt_60_days",
+    WorkNeedStatus.LT_90_DAYS: "lt_90_days",
+    WorkNeedStatus.SAFE: "safe",
+}
 
 
 def _scope(
@@ -106,6 +118,7 @@ async def get_summary(
     ).scalar_one()
 
     startup = await _next_startup(session, scope)
+    deadlines = await _deadlines_summary(session, scope, reference_date=datetime.now(UTC).date())
 
     return DashboardSummaryOut(
         context=DashboardContextOut(unit_id=unit_id, equipment_id=equipment_id),
@@ -127,8 +140,57 @@ async def get_summary(
             completed=negotiations_done,
             in_negotiation=sum(counts.get(stage, 0) for stage in NEGOTIATION_STAGES),
         ),
-        deadlines=DeadlinesSummaryOut(available=False, reason=DEADLINE_UNAVAILABLE_REASON),
+        deadlines=deadlines,
         startup=startup,
+    )
+
+
+async def _deadlines_summary(
+    session: AsyncSession, scope: Subquery, *, reference_date: date
+) -> DeadlinesSummaryOut:
+    """Card "Situação de prazos" (Etapa 6C.1): distribui o recorte atual
+    pelo Status Necessidade da Obra oficial. Mesma função de domínio do
+    detalhe do equipamento (`calculate_work_need_status`) — nada é
+    recalculado ou reclassificado aqui, só agregado por contagem."""
+    equipments = (
+        (
+            await session.execute(
+                select(Equipment)
+                .join(scope, Equipment.id == scope.c.id)
+                .options(selectinload(Equipment.components))
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    counts = dict.fromkeys(_WORK_NEED_FIELD_BY_STATUS.values(), 0)
+    without_deadline = 0
+    for equipment in equipments:
+        aggregates = aggregate_component_deadlines(
+            component_deadline_values(
+                startup_at=component.startup_at,
+                pre_start_days=component.pre_start_days,
+                freight_days=component.freight_days,
+                lead_time_days=component.lead_time_days,
+            )
+            for component in equipment.components
+        )
+        status = calculate_work_need_status(
+            delivery_deadline=aggregates.min_delivery_deadline, reference_date=reference_date
+        )
+        if status is None:
+            without_deadline += 1
+        else:
+            counts[_WORK_NEED_FIELD_BY_STATUS[status]] += 1
+
+    total = len(equipments)
+    return DeadlinesSummaryOut(
+        available=True,
+        total=total,
+        with_deadline=total - without_deadline,
+        without_deadline=without_deadline,
+        **counts,
     )
 
 

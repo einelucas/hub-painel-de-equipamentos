@@ -7,12 +7,13 @@ import pytest
 from app.modules.monday_import.calculations import (
     ComponentDeadlineValues,
     ComponentSchedule,
+    NegotiationStatus,
     aggregate_component_deadlines,
     calculate_component_deadlines,
+    calculate_negotiation_status,
     days_until,
     delivery_adherence_candidate,
     delivery_margin_days,
-    negotiation_status,
 )
 
 
@@ -86,11 +87,27 @@ def test_days_until_requires_explicit_reference_date() -> None:
     assert days_until(date(2026, 10, 16), reference_date=date(2026, 9, 21)) == 25
 
 
-def test_only_confirmed_negotiation_status_boundaries_are_applied() -> None:
-    assert negotiation_status(negotiated_at=date(2026, 8, 1), days_remaining=-67) == "CONCLUIDO"
-    assert negotiation_status(negotiated_at=None, days_remaining=-67) == "ATRASADO"
-    for observed_days in (10, 25, 30, 40):
-        assert negotiation_status(negotiated_at=None, days_remaining=observed_days) == "PENDENTE_THRESHOLDS"
+def test_negotiation_status_uses_the_official_gap_014_formula() -> None:
+    """A fórmula oficial chegou na Etapa 6C — cobertura completa está em
+    `tests/unit/test_negotiation_status.py`; aqui só a smoke-test de que o
+    reexport do importador aponta pra função certa."""
+    reference = date(2026, 9, 21)
+    assert (
+        calculate_negotiation_status(
+            negotiation_deadline=date(2026, 9, 10),
+            negotiated_at=date(2026, 8, 1),
+            reference_date=reference,
+        )
+        == NegotiationStatus.COMPLETED
+    )
+    assert (
+        calculate_negotiation_status(
+            negotiation_deadline=date(2026, 8, 1),
+            negotiated_at=None,
+            reference_date=reference,
+        )
+        == NegotiationStatus.OVERDUE
+    )
 
 
 @pytest.mark.parametrize(("contract_date", "expected"), [(date(2027, 8, 20), 8)])

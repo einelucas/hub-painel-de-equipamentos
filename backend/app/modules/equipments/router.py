@@ -93,7 +93,7 @@ async def get_components(
 ) -> ComponentListOut:
     return ComponentListOut(
         items=[
-            ComponentOut.model_validate(item)
+            service.component_out(item)
             for item in await service.list_components(session, equipment_id, actor)
         ]
     )
@@ -113,7 +113,7 @@ async def post_component(
     item = await service.create_component(
         session, equipment_id=equipment_id, values=body.model_dump(), actor=actor
     )
-    return ComponentOut.model_validate(item)
+    return service.component_out(item)
 
 
 @router.patch("/components/{component_id}", response_model=ComponentOut)
@@ -126,4 +126,4 @@ async def patch_component(
     item = await service.update_component(
         session, component_id=component_id, changes=body.model_dump(exclude_unset=True), actor=actor
     )
-    return ComponentOut.model_validate(item)
+    return service.component_out(item)

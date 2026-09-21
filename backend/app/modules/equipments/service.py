@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -18,6 +18,17 @@ from app.core.scope import (
     restrict_to_units,
     user_can_access_unit,
 )
+from app.domain.equipment_calculations import (
+    ComponentDeadlineValues,
+    ComponentSchedule,
+    aggregate_component_deadlines,
+    calculate_component_deadlines,
+    calculate_negotiation_status,
+    calculate_work_need_status,
+    component_deadline_values,
+    days_until,
+    delivery_margin_days,
+)
 from app.models.equipment import (
     STAGES,
     Area,
@@ -31,7 +42,9 @@ from app.models.equipment import (
 )
 from app.models.user import User
 from app.modules.equipments.schemas import (
+    ComponentCalculatedOut,
     ComponentOut,
+    EquipmentCalculatedOut,
     EquipmentDetailOut,
     EquipmentListOut,
     EquipmentOut,
@@ -58,11 +71,129 @@ def _base_load_options() -> tuple[Any, ...]:
         joinedload(Equipment.work_package),
         selectinload(Equipment.work_package_links).joinedload(EquipmentWorkPackage.work_package),
         joinedload(Equipment.responsible_user),
+        # Necessário para os agregados de FUN-001 (`EquipmentOut.calculated`),
+        # que dependem dos prazos de cada componente. Volume pequeno por
+        # equipamento — não é um N+1, é um único SELECT em lote (selectinload).
+        selectinload(Equipment.components),
+        # GAP-014: `negotiated_at` decide `negotiationStatus` (prioridade 2
+        # da fórmula oficial), então precisa estar carregado junto.
+        joinedload(Equipment.negotiation),
+    )
+
+
+def _reference_date() -> date:
+    """Data-base dos prazos dinâmicos (ex.: dias restantes de negociação).
+    Nunca persistida — recalculada a cada leitura, mesmo padrão já usado em
+    `dashboard/service.py` (`_next_startup`)."""
+    return datetime.now(UTC).date()
+
+
+def _component_deadlines(component: EquipmentComponent) -> ComponentDeadlineValues:
+    return component_deadline_values(
+        startup_at=component.startup_at,
+        pre_start_days=component.pre_start_days,
+        freight_days=component.freight_days,
+        lead_time_days=component.lead_time_days,
+    )
+
+
+def _component_calculated_out(component: EquipmentComponent, *, reference_date: date) -> ComponentCalculatedOut:
+    deadlines = calculate_component_deadlines(
+        ComponentSchedule(
+            startup_at=component.startup_at,
+            pre_start_days=component.pre_start_days,
+            freight_days=component.freight_days,
+            lead_time_days=component.lead_time_days,
+        )
+    )
+    negotiation_days_remaining = (
+        days_until(deadlines.negotiation_deadline, reference_date=reference_date)
+        if deadlines.negotiation_deadline is not None
+        else None
+    )
+    margin = (
+        delivery_margin_days(
+            delivery_deadline=deadlines.delivery_deadline,
+            contract_delivery_at=component.contract_delivery_at,
+        )
+        if deadlines.delivery_deadline is not None and component.contract_delivery_at is not None
+        else None
+    )
+    return ComponentCalculatedOut(
+        delivery_deadline=deadlines.delivery_deadline,
+        available_for_collection=deadlines.collection_available_at,
+        contract_order_deadline=deadlines.contract_or_po_deadline,
+        negotiation_deadline=deadlines.negotiation_deadline,
+        negotiation_days_remaining=negotiation_days_remaining,
+        delivery_margin_days=margin,
+    )
+
+
+def component_out(component: EquipmentComponent, *, reference_date: date | None = None) -> ComponentOut:
+    """Único ponto de montagem de `ComponentOut` — garante que toda resposta
+    (listar, criar, editar) traga `calculated` consistente."""
+    ref = reference_date or _reference_date()
+    return ComponentOut(
+        id=component.id,
+        equipment_id=component.equipment_id,
+        name=component.name,
+        tag=component.tag,
+        startup_at=component.startup_at,
+        sector=component.sector,
+        lead_time_days=component.lead_time_days,
+        pre_start_days=component.pre_start_days,
+        contract_delivery_at=component.contract_delivery_at,
+        freight_days=component.freight_days,
+        calculated=_component_calculated_out(component, reference_date=ref),
+        created_at=component.created_at,
+        updated_at=component.updated_at,
+    )
+
+
+def _equipment_calculated_out(equipment: Equipment, *, reference_date: date) -> EquipmentCalculatedOut:
+    aggregates = aggregate_component_deadlines(
+        _component_deadlines(component) for component in equipment.components
+    )
+    negotiation_days_remaining = (
+        days_until(aggregates.min_negotiation_deadline, reference_date=reference_date)
+        if aggregates.min_negotiation_deadline is not None
+        else None
+    )
+    negotiated_at = equipment.negotiation.negotiated_at if equipment.negotiation else None
+    # `operational_status` fica de fora por enquanto: o Hub ainda não
+    # modela um campo equivalente ao A.Status do Monday (ver GAP-014 em
+    # docs/validation/etapa-06c-dates-negotiation-status.md) — nenhum
+    # equipamento real do C2 hoje passa por essa prioridade da fórmula.
+    negotiation_status = calculate_negotiation_status(
+        negotiation_deadline=aggregates.min_negotiation_deadline,
+        negotiated_at=negotiated_at,
+        reference_date=reference_date,
+    )
+    work_need_days_remaining = (
+        days_until(aggregates.min_delivery_deadline, reference_date=reference_date)
+        if aggregates.min_delivery_deadline is not None
+        else None
+    )
+    work_need_status = calculate_work_need_status(
+        delivery_deadline=aggregates.min_delivery_deadline, reference_date=reference_date
+    )
+    return EquipmentCalculatedOut(
+        max_lead_time_days=aggregates.max_lead_time_days,
+        max_pre_start_days=aggregates.max_pre_start_days,
+        max_freight_days=aggregates.max_freight_days,
+        delivery_deadline=aggregates.min_delivery_deadline,
+        contract_order_deadline=aggregates.min_contract_or_po_deadline,
+        negotiation_deadline=aggregates.min_negotiation_deadline,
+        negotiation_days_remaining=negotiation_days_remaining,
+        work_need_days_remaining=work_need_days_remaining,
+        work_need_status=work_need_status,
+        negotiation_status=negotiation_status,
     )
 
 
 def _equipment_out(equipment: Equipment, components_count: int | None = None) -> EquipmentOut:
     context = equipment.project_context
+    reference_date = _reference_date()
     return EquipmentOut(
         id=equipment.id,
         name=equipment.name,
@@ -107,6 +238,7 @@ def _equipment_out(equipment: Equipment, components_count: int | None = None) ->
             else None
         ),
         components_count=(len(equipment.components) if components_count is None else components_count),
+        calculated=_equipment_calculated_out(equipment, reference_date=reference_date),
         created_at=equipment.created_at,
         updated_at=equipment.updated_at,
     )
@@ -337,7 +469,7 @@ async def get_equipment_detail(
     equipment = await get_equipment_model(session, equipment_id)
     return EquipmentDetailOut(
         equipment=_equipment_out(equipment),
-        components=[ComponentOut.model_validate(item) for item in equipment.components],
+        components=[component_out(item) for item in equipment.components],
         history=[
             TransitionOut(
                 id=item.id,
@@ -420,6 +552,15 @@ async def update_equipment(
             new_data=changed,
         )
     await session.commit()
+    if work_package_ids_provided:
+        # GAP-001: `expire_on_commit=False` + `work_package_links` já carregada
+        # por `get_equipment_model` no início desta função significam que o
+        # SQLAlchemy não recarrega essa coleção sozinho — sem isto, a resposta
+        # deste PATCH devolveria os vínculos de ANTES da sincronização, mesmo
+        # com o banco já correto (confirmado por teste de regressão). Expirar
+        # a coleção força `get_equipment_out` (abaixo) a recarregá-la de fato
+        # via o `selectinload` de `get_equipment_model`.
+        session.expire(equipment, ["work_package_links"])
     return await get_equipment_out(session, equipment.id)
 
 

@@ -39,9 +39,34 @@ def _queue_filters(
     )
 
 
+def _engineering_queue_filters(
+    unit_id: str | None = Query(default=None),
+    equipment_id: str | None = Query(default=None),
+    stage: int | None = Query(default=None, ge=0, le=8),
+    search: str | None = Query(default=None, max_length=200),
+    responsible_user_id: str | None = Query(default=None),
+    # Disciplina é um requisito específico da Engenharia (GAP-011) — não
+    # existe em Jurídico/Suprimentos por decisão de negócio, não por
+    # limitação técnica.
+    discipline_id: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, alias="pageSize", ge=1, le=100),
+) -> QueueFilters:
+    return QueueFilters(
+        unit_id=unit_id,
+        equipment_id=equipment_id,
+        stage=stage,
+        search=search,
+        responsible_user_id=responsible_user_id,
+        discipline_id=discipline_id,
+        page=page,
+        page_size=page_size,
+    )
+
+
 @router.get("/engineering", response_model=EngineeringQueueOut)
 async def get_engineering_queue(
-    filters: QueueFilters = Depends(_queue_filters),
+    filters: QueueFilters = Depends(_engineering_queue_filters),
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> EngineeringQueueOut:

@@ -8,7 +8,7 @@ import type {
   Pagination,
   Responsible,
 } from "~/types/equipment";
-import { formatDate } from "~/utils/format";
+import { formatDateOnly } from "~/utils/format";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 
 definePageMeta({ middleware: "auth" });
@@ -141,7 +141,7 @@ async function exportAll(): Promise<void> {
         Disciplina: item.discipline?.name ?? "",
         Responsável: item.responsibleUser?.name ?? "",
         Etapa: `${item.currentStage} · ${item.stageName}`,
-        Startup: formatDate(item.startupAt),
+        Startup: formatDateOnly(item.startupAt),
         Criticidade: item.criticality ?? "",
         Componentes: item.componentsCount,
       })),

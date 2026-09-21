@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RefreshCw } from "lucide-vue-next";
-import { formatDate } from "~/utils/format";
+import { formatDateTime } from "~/utils/format";
 
 interface Audit {
   id: string;
@@ -83,7 +83,7 @@ onMounted(load);
             </TableCell>
           </TableRow>
           <TableRow v-for="item in items" :key="item.id">
-            <TableCell>{{ formatDate(item.createdAt, true) }}</TableCell>
+            <TableCell>{{ formatDateTime(item.createdAt) }}</TableCell>
             <TableCell>{{ item.user?.name || item.user?.email || "sistema" }}</TableCell>
             <TableCell><Badge>{{ item.action }}</Badge></TableCell>
             <TableCell>{{ item.entity }}</TableCell>

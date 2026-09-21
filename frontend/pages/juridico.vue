@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { LegalRow } from "~/types/equipment";
-import { formatDate } from "~/utils/format";
+import { formatDateOnly } from "~/utils/format";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -72,11 +72,11 @@ onMounted(async () => {
             <TableCell>{{ row.unit.code }}</TableCell>
             <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
             <TableCell>{{ row.ticketNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDate(row.openedAt) }}</TableCell>
+            <TableCell>{{ formatDateOnly(row.openedAt) }}</TableCell>
             <TableCell>{{ flag(row.draftPrepared) }}</TableCell>
             <TableCell>{{ flag(row.draftApproved) }}</TableCell>
             <TableCell>{{ row.contractNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDate(row.executedAt) }}</TableCell>
+            <TableCell>{{ formatDateOnly(row.executedAt) }}</TableCell>
             <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
             <TableCell><NuxtLink class="text-button" :to="`/equipamentos/${row.equipmentId}`">Ver detalhes</NuxtLink></TableCell>
           </TableRow>
