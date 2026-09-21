@@ -31,3 +31,4 @@ openapi.json
 # Ferramentas locais / cache de pacotes
 .pnpm-store/
 .playwright-mcp/
+.claude/

@@ -118,7 +118,6 @@ async def _validate_relations(
     project_context_id: str,
     area_id: str | None,
     discipline_id: str | None,
-    work_package_id: str | None,
     responsible_user_id: str | None,
 ) -> ProjectContext:
     context = await session.get(ProjectContext, project_context_id)
@@ -134,12 +133,6 @@ async def _validate_relations(
         discipline = await session.get(Discipline, discipline_id)
         if discipline is None or not discipline.active:
             raise DomainError("Disciplina inválida ou inativa")
-    if work_package_id:
-        work_package = await session.get(WorkPackage, work_package_id)
-        if work_package is None or not work_package.active:
-            raise DomainError("Pacote de trabalho inválido ou inativo")
-        if work_package.project_context_id != context.id:
-            raise DomainError("O pacote de trabalho deve pertencer ao contexto informado")
     if responsible_user_id:
         user = await session.get(User, responsible_user_id)
         if user is None or not user.active:
@@ -147,6 +140,45 @@ async def _validate_relations(
         if not await user_can_access_unit(session, responsible_user_id, context.unit_id):
             raise DomainError("O responsável não tem acesso à unidade do equipamento")
     return context
+
+
+async def _validate_work_packages(
+    session: AsyncSession, *, project_context_id: str, work_package_ids: list[str]
+) -> None:
+    """Cada ID deve existir, estar ativo e pertencer ao mesmo ProjectContext
+    do Equipment. Duplicatas já são rejeitadas no schema (nível de request);
+    aqui é o nível que só o banco sabe responder."""
+    if not work_package_ids:
+        return
+    rows = (
+        await session.execute(select(WorkPackage).where(WorkPackage.id.in_(work_package_ids)))
+    ).scalars().all()
+    found = {row.id: row for row in rows}
+    for work_package_id in work_package_ids:
+        work_package = found.get(work_package_id)
+        if work_package is None or not work_package.active:
+            raise DomainError(f"Pacote de trabalho inválido ou inativo: {work_package_id}")
+        if work_package.project_context_id != project_context_id:
+            raise DomainError(
+                f"O pacote de trabalho {work_package_id} pertence a outro contexto de projeto"
+            )
+
+
+async def _sync_work_packages(
+    session: AsyncSession, *, equipment: Equipment, work_package_ids: list[str]
+) -> tuple[list[str], list[str]]:
+    """Sincroniza `equipment_work_package` para o conjunto exato informado.
+    Não apaga registros do catálogo `WorkPackage`, só os vínculos. Devolve
+    (ids anteriores, ids novos) ordenados, para auditoria determinística."""
+    existing_links = {link.work_package_id: link for link in equipment.work_package_links}
+    previous_ids = sorted(existing_links)
+    wanted = set(work_package_ids)
+    for work_package_id, link in existing_links.items():
+        if work_package_id not in wanted:
+            await session.delete(link)
+    for work_package_id in wanted - set(existing_links):
+        session.add(EquipmentWorkPackage(equipment_id=equipment.id, work_package_id=work_package_id))
+    return previous_ids, sorted(wanted)
 
 
 def _apply_filters(
@@ -248,16 +280,22 @@ async def create_equipment(
     session: AsyncSession, *, values: dict[str, Any], actor: CurrentUser
 ) -> EquipmentOut:
     await assert_context_allowed(session, actor, values["project_context_id"])
+    work_package_ids = sorted(set(values.pop("work_package_ids", None) or []))
     await _validate_relations(
         session,
         project_context_id=values["project_context_id"],
         area_id=values.get("area_id"),
         discipline_id=values.get("discipline_id"),
-        work_package_id=values.get("work_package_id"),
         responsible_user_id=values.get("responsible_user_id"),
+    )
+    await _validate_work_packages(
+        session, project_context_id=values["project_context_id"], work_package_ids=work_package_ids
     )
     equipment = Equipment(**values, current_stage=0)
     session.add(equipment)
+    await session.flush()
+    for work_package_id in work_package_ids:
+        session.add(EquipmentWorkPackage(equipment_id=equipment.id, work_package_id=work_package_id))
     await session.flush()
     await record_audit(
         session,
@@ -265,7 +303,7 @@ async def create_equipment(
         action="equipment.create",
         entity="Equipment",
         entity_id=equipment.id,
-        new_data=_json_dict({**values, "current_stage": 0}),
+        new_data=_json_dict({**values, "current_stage": 0, "work_package_ids": work_package_ids}),
     )
     await session.commit()
     return await get_equipment_out(session, equipment.id)
@@ -332,14 +370,27 @@ async def update_equipment(
     new_context = changes.get("project_context_id", equipment.project_context_id)
     if new_context != equipment.project_context_id:
         await assert_context_allowed(session, actor, new_context)
+
+    # Ausente no PATCH (chave fora de `changes`) -> vínculos não são tocados.
+    # `[]` explícito -> `work_package_ids_provided` é True e o conjunto some.
+    work_package_ids_provided = "work_package_ids" in changes
+    new_work_package_ids = (
+        sorted(set(changes.pop("work_package_ids", None) or [])) if work_package_ids_provided else None
+    )
+
     await _validate_relations(
         session,
         project_context_id=new_context,
         area_id=changes.get("area_id", equipment.area_id),
         discipline_id=changes.get("discipline_id", equipment.discipline_id),
-        work_package_id=changes.get("work_package_id", equipment.work_package_id),
         responsible_user_id=changes.get("responsible_user_id", equipment.responsible_user_id),
     )
+    if work_package_ids_provided:
+        assert new_work_package_ids is not None
+        await _validate_work_packages(
+            session, project_context_id=new_context, work_package_ids=new_work_package_ids
+        )
+
     previous: dict[str, Any] = {}
     changed: dict[str, Any] = {}
     for field, value in changes.items():
@@ -348,6 +399,16 @@ async def update_equipment(
             previous[field] = _json_value(old_value)
             changed[field] = _json_value(value)
             setattr(equipment, field, value)
+
+    if work_package_ids_provided:
+        assert new_work_package_ids is not None
+        previous_ids, new_ids = await _sync_work_packages(
+            session, equipment=equipment, work_package_ids=new_work_package_ids
+        )
+        if previous_ids != new_ids:
+            previous["work_package_ids"] = previous_ids
+            changed["work_package_ids"] = new_ids
+
     if changed:
         await record_audit(
             session,
