@@ -30,10 +30,10 @@ const width = 760;
 const height = 300;
 
 const pad = {
-  left: 56,
-  right: 26,
+  left: 52,
+  right: 22,
   top: 30,
-  bottom: 58,
+  bottom: 76,
 };
 
 const plotWidth = width - pad.left - pad.right;
@@ -48,6 +48,28 @@ const validValues = computed(() =>
     ),
 );
 
+function niceStep(value: number): number {
+  if (value <= 0) return 1;
+
+  const roughStep = value / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const normalized = roughStep / magnitude;
+
+  let nice = 1;
+
+  if (normalized <= 1) {
+    nice = 1;
+  } else if (normalized <= 2) {
+    nice = 2;
+  } else if (normalized <= 5) {
+    nice = 5;
+  } else {
+    nice = 10;
+  }
+
+  return nice * magnitude;
+}
+
 const max = computed(() => {
   const rawMax = Math.max(1, ...validValues.value, props.target ?? 0);
 
@@ -55,19 +77,16 @@ const max = computed(() => {
     return 100;
   }
 
-  return Math.ceil(rawMax * 1.12);
+  const step = niceStep(rawMax);
+
+  return Math.max(step, Math.ceil(rawMax / step) * step);
 });
 
-const slot = computed(
-  () => plotWidth / Math.max(1, props.points.length),
-);
+const slot = computed(() => plotWidth / Math.max(1, props.points.length));
 
-const barWidth = computed(() =>
-  Math.min(62, Math.max(18, slot.value * 0.56)),
-);
+const barWidth = computed(() => Math.min(54, Math.max(22, slot.value * 0.5)));
 
-const x = (index: number) =>
-  pad.left + index * slot.value + slot.value / 2;
+const x = (index: number) => pad.left + index * slot.value + slot.value / 2;
 
 const barX = (index: number) => x(index) - barWidth.value / 2;
 
@@ -78,16 +97,24 @@ const barHeight = (value: number) =>
   Math.max(0, height - pad.bottom - y(value));
 
 const yTicks = computed(() => {
-  const steps = 4;
-
-  return Array.from({ length: steps + 1 }, (_, index) => {
-    const value = (max.value / steps) * index;
-
-    return {
+  if (props.suffix === "%" && max.value === 100) {
+    return [100, 75, 50, 25, 0].map((value) => ({
       value,
       y: y(value),
-    };
-  }).reverse();
+    }));
+  }
+
+  const step = niceStep(max.value);
+  const ticks: { value: number; y: number }[] = [];
+
+  for (let value = max.value; value >= 0; value -= step) {
+    ticks.push({
+      value,
+      y: y(value),
+    });
+  }
+
+  return ticks;
 });
 
 const targetY = computed(() => {
@@ -114,11 +141,7 @@ const hoveredPoint = computed<HoveredBarPoint | null>(() => {
   const point = props.points[index];
   const value = point?.value;
 
-  if (
-    !point ||
-    typeof value !== "number" ||
-    !Number.isFinite(value)
-  ) {
+  if (!point || typeof value !== "number" || !Number.isFinite(value)) {
     return null;
   }
 
@@ -150,9 +173,7 @@ const showInlineValues = computed(
 );
 
 const legendText = computed(() =>
-  props.suffix
-    ? `${props.seriesLabel} (${props.suffix})`
-    : props.seriesLabel,
+  props.suffix ? `${props.seriesLabel} (${props.suffix})` : props.seriesLabel,
 );
 
 const ariaLabel = computed(() =>
@@ -171,14 +192,78 @@ function formatValue(value: number) {
   }).format(value);
 }
 
-function shortLabel(label: string) {
-  return label.length > 12
-    ? `${label.slice(0, 11)}…`
-    : label;
+function labelLines(label: string): string[] {
+  const clean = label.trim();
+  const maxLength = 14;
+
+  if (clean.length <= maxLength) {
+    return [clean];
+  }
+
+  const words = clean.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+
+    if (candidate.length <= maxLength) {
+      current = candidate;
+      continue;
+    }
+
+    if (current) {
+      lines.push(current);
+    }
+
+    current = word;
+
+    if (lines.length === 1) {
+      break;
+    }
+  }
+
+  if (current && lines.length < 2) {
+    lines.push(current);
+  }
+
+  if (lines.length === 1 && lines[0]!.length > maxLength + 5) {
+    lines[0] = `${lines[0]!.slice(0, maxLength + 2)}…`;
+  }
+
+  return lines.slice(0, 2);
 }
 
-function valueLabelIsInside(value: number) {
-  return y(value) <= pad.top + 22;
+function valueLabelY(value: number): number {
+  if (value === 0) {
+    return height - pad.bottom - 10;
+  }
+
+  return Math.max(pad.top + 13, y(value) - 8);
+}
+
+function roundedTopBarPath(index: number, value: number): string {
+  const bx = barX(index);
+  const by = y(value);
+  const bw = barWidth.value;
+  const bh = barHeight(value);
+
+  if (bh <= 0) {
+    return "";
+  }
+
+  const radius = Math.min(8, bw / 2, bh);
+  const bottom = height - pad.bottom;
+
+  return [
+    `M ${bx} ${bottom}`,
+    `L ${bx} ${by + radius}`,
+    `Q ${bx} ${by} ${bx + radius} ${by}`,
+    `L ${bx + bw - radius} ${by}`,
+    `Q ${bx + bw} ${by} ${bx + bw} ${by + radius}`,
+    `L ${bx + bw} ${bottom}`,
+    "Z",
+  ].join(" ");
 }
 
 function activate(index: number) {
@@ -213,7 +298,7 @@ function deactivate(index: number) {
           />
 
           <text
-            :x="pad.left - 9"
+            :x="pad.left - 10"
             :y="tick.y + 4"
             text-anchor="end"
             class="chart-axis-label"
@@ -228,7 +313,7 @@ function deactivate(index: number) {
           :x2="pad.left"
           :y1="pad.top"
           :y2="height - pad.bottom"
-          class="chart-axis"
+          class="chart-axis chart-axis--vertical"
         />
 
         <line
@@ -259,13 +344,14 @@ function deactivate(index: number) {
           </text>
         </template>
 
-        <!-- Destaque vertical ao passar o mouse -->
+        <!-- Destaque extremamente sutil da categoria em hover -->
         <rect
           v-if="hoveredPoint"
           :x="pad.left + hoveredPoint.index * slot"
           :y="pad.top"
           :width="slot"
           :height="plotHeight"
+          rx="8"
           class="chart-hover-band"
         />
 
@@ -274,24 +360,23 @@ function deactivate(index: number) {
           :key="`${point.label}-${index}`"
         >
           <template v-if="point.value !== null && Number.isFinite(point.value)">
-            <!-- Trilho de fundo deixa as barras mais integradas ao dashboard -->
-            <rect
-              :x="barX(index)"
-              :y="pad.top"
-              :width="barWidth"
-              :height="plotHeight"
-              rx="7"
-              class="chart-bar-track"
-              :class="{ 'chart-bar-track--active': hoveredIndex === index }"
+            <!--
+              Valores zero não recebem uma falsa "barra vazia".
+              Um pequeno marcador na linha de base comunica o zero.
+            -->
+            <circle
+              v-if="point.value === 0"
+              :cx="x(index)"
+              :cy="height - pad.bottom"
+              r="3.5"
+              class="chart-zero"
+              :class="{ 'chart-zero--active': hoveredIndex === index }"
             />
 
-            <!-- Barra -->
-            <rect
-              :x="barX(index)"
-              :y="y(point.value)"
-              :width="barWidth"
-              :height="barHeight(point.value)"
-              rx="7"
+            <!-- Barra somente quando existe valor positivo -->
+            <path
+              v-else
+              :d="roundedTopBarPath(index, point.value)"
               :fill="color"
               class="chart-bar"
               :class="{
@@ -310,77 +395,75 @@ function deactivate(index: number) {
               <title>
                 {{ point.label }}: {{ formatValue(point.value) }}{{ suffix }}
               </title>
-            </rect>
+            </path>
 
-            <!-- Valor sobre a barra -->
+            <!-- Valor -->
             <text
               v-if="showInlineValues || hoveredIndex === index"
               :x="x(index)"
-              :y="Math.max(pad.top + 12, y(point.value) - 8)"
+              :y="valueLabelY(point.value)"
               text-anchor="middle"
               class="chart-value-label"
-              :class="{
-                'chart-value-label--inside': valueLabelIsInside(point.value),
-                'chart-value-label--active': hoveredIndex === index,
-              }"
+              :class="{ 'chart-value-label--active': hoveredIndex === index }"
             >
               {{ formatValue(point.value) }}{{ suffix }}
             </text>
 
-            <!-- Área de hover ampliada -->
+            <!-- Área de interação ampliada -->
             <rect
               :x="pad.left + index * slot"
               :y="pad.top"
               :width="slot"
-              :height="plotHeight + 38"
+              :height="plotHeight + 48"
               fill="transparent"
               class="chart-hit-area"
+              tabindex="0"
+              :aria-label="`${point.label}: ${formatValue(point.value)}${suffix}`"
               @mouseenter="activate(index)"
               @mouseleave="deactivate(index)"
+              @focus="activate(index)"
+              @blur="deactivate(index)"
             />
           </template>
 
-          <!-- Rótulo X -->
+          <!-- Rótulo X em até duas linhas -->
           <text
             :x="x(index)"
-            :y="height - 29"
+            :y="height - 40"
             text-anchor="middle"
             class="chart-x-label"
             :class="{ 'chart-x-label--active': hoveredIndex === index }"
           >
-            {{ shortLabel(point.label) }}
+            <tspan
+              v-for="(line, lineIndex) in labelLines(point.label)"
+              :key="`${line}-${lineIndex}`"
+              :x="x(index)"
+              :dy="lineIndex === 0 ? 0 : 12"
+            >
+              {{ line }}
+            </tspan>
           </text>
         </template>
       </svg>
 
-      <!-- Tooltip no mesmo padrão do LineChart -->
-      <div
-        v-if="hoveredPoint"
-        class="chart-tooltip"
-        :style="tooltipStyle"
-      >
+      <!-- Tooltip -->
+      <div v-if="hoveredPoint" class="chart-tooltip" :style="tooltipStyle">
         <div class="chart-tooltip-title">
           {{ hoveredPoint.label }}
         </div>
 
         <div class="chart-tooltip-row">
-          <span
-            class="chart-tooltip-dot"
-            :style="{ backgroundColor: color }"
-          />
+          <span class="chart-tooltip-dot" :style="{ backgroundColor: color }" />
+
           <span>
             {{ seriesLabel }}:
-            <strong>
-              {{ formatValue(hoveredPoint.value) }}{{ suffix }}
-            </strong>
+            <strong> {{ formatValue(hoveredPoint.value) }}{{ suffix }} </strong>
           </span>
         </div>
 
         <div v-if="target !== null" class="chart-tooltip-row">
-          <span
-            class="chart-tooltip-dot"
-            style="background-color: #eaa239"
-          />
+          <span class="chart-tooltip-dot chart-tooltip-dot--target" />
+
           <span>
             Meta:
             <strong>{{ formatValue(target) }}{{ suffix }}</strong>
@@ -392,10 +475,7 @@ function deactivate(index: number) {
     <!-- Legenda -->
     <div v-if="showLegend" class="chart-legend">
       <span class="chart-legend-item">
-        <span
-          class="chart-legend-square"
-          :style="{ backgroundColor: color }"
-        />
+        <span class="chart-legend-square" :style="{ backgroundColor: color }" />
         <span>{{ legendText }}</span>
       </span>
 
@@ -409,10 +489,9 @@ function deactivate(index: number) {
 
 <style scoped>
 .bar-chart {
+  display: flex;
   width: 100%;
   min-height: 310px;
-
-  display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
@@ -420,36 +499,37 @@ function deactivate(index: number) {
 
 .chart-stage {
   position: relative;
-
   width: 100%;
 }
 
 .chart-svg {
   display: block;
-
   width: 100%;
   height: auto;
-
   overflow: visible;
 }
 
-/* Grade e eixos no mesmo padrão visual do LineChart */
+/* Grade */
+
 .chart-grid-line {
-  stroke: #edf1f5;
+  stroke: #e9eef4;
   stroke-width: 1;
 }
 
 .chart-axis {
-  stroke: #9aa3ad;
-  stroke-width: 1.15;
+  stroke: #a7b1bf;
+  stroke-width: 1;
+}
+
+.chart-axis--vertical {
+  opacity: 0.7;
 }
 
 .chart-axis-label,
 .chart-x-label {
-  fill: #7f8996;
-
-  font-size: 10px;
-  font-weight: 400;
+  fill: #7f8998;
+  font-size: 9.5px;
+  font-weight: 500;
 
   transition:
     fill 0.15s ease,
@@ -457,88 +537,90 @@ function deactivate(index: number) {
 }
 
 .chart-x-label--active {
-  fill: #1f2937;
-  font-weight: 700;
+  fill: #243b5a;
+  font-weight: 750;
 }
 
 /* Meta */
+
 .chart-target {
-  stroke: #eaa239;
+  stroke: #e0a348;
   stroke-width: 1.4;
   stroke-dasharray: 7 6;
-
   pointer-events: none;
 }
 
 .chart-target-label {
-  fill: #aa721e;
-
-  font-size: 10px;
-  font-weight: 600;
-
+  fill: #9a6a25;
+  font-size: 9.5px;
+  font-weight: 650;
   pointer-events: none;
 }
 
-/* Faixa vertical suave para evidenciar a categoria em hover */
+/*
+ * Hover discreto.
+ * Não compete visualmente com as barras.
+ */
 .chart-hover-band {
-  fill: #f7f9fc;
-
+  fill: rgb(47 79 126 / 3%);
   pointer-events: none;
 }
 
-/* Trilho de cada barra */
-.chart-bar-track {
-  fill: #f3f5f8;
+/* Barra */
 
-  transition:
-    fill 0.15s ease,
-    opacity 0.15s ease;
-}
-
-.chart-bar-track--active {
-  fill: #edf1f6;
-}
-
-/* Barra principal */
 .chart-bar {
   cursor: pointer;
-
-  opacity: 0.94;
-
+  opacity: 0.9;
   outline: none;
 
   transform-box: fill-box;
   transform-origin: center bottom;
 
   transition:
-    opacity 0.16s ease,
-    filter 0.16s ease,
-    transform 0.16s ease;
+    opacity 0.18s ease,
+    filter 0.18s ease,
+    transform 0.18s ease;
 }
 
 .chart-bar--active {
   opacity: 1;
 
-  filter: drop-shadow(0 5px 7px rgba(15, 23, 42, 0.14));
+  filter: drop-shadow(0 5px 8px rgb(28 50 82 / 14%));
 
-  transform: scaleX(1.045);
+  transform: scaleX(1.04);
 }
 
 .chart-bar--muted {
-  opacity: 0.38;
+  opacity: 0.55;
 }
 
 .chart-bar:focus-visible {
-  stroke: #1f2937;
+  stroke: #1f3553;
   stroke-width: 2;
 }
 
-/* Valor sobre as barras */
-.chart-value-label {
-  fill: #334155;
+/* Zero */
 
-  font-size: 9px;
-  font-weight: 600;
+.chart-zero {
+  fill: #c7d0dc;
+
+  transition:
+    fill 0.15s ease,
+    r 0.15s ease;
+}
+
+.chart-zero--active {
+  fill: #60758f;
+  r: 4.5px;
+}
+
+/* Valor das barras */
+
+.chart-value-label {
+  fill: #2d425f;
+
+  font-size: 9.5px;
+  font-weight: 700;
 
   pointer-events: none;
 
@@ -547,102 +629,98 @@ function deactivate(index: number) {
     font-weight 0.15s ease;
 }
 
-.chart-value-label--inside {
-  fill: #ffffff;
-  font-weight: 700;
-  paint-order: stroke;
-  stroke: rgba(30, 55, 95, 0.35);
-  stroke-width: 1.5px;
-  stroke-linejoin: round;
-}
-
 .chart-value-label--active {
-  fill: #334155;
+  fill: #17375f;
   font-weight: 800;
-}
-
-.chart-value-label--inside.chart-value-label--active {
-  fill: #ffffff;
-  stroke: rgba(30, 55, 95, 0.45);
 }
 
 .chart-hit-area {
   cursor: pointer;
+  outline: none;
 }
 
-/* Tooltip compartilhando a linguagem visual do LineChart */
+/* Tooltip */
+
 .chart-tooltip {
   position: absolute;
   z-index: 5;
 
-  min-width: 160px;
+  min-width: 150px;
+  padding: 10px 12px;
 
-  padding: 9px 12px;
+  border: 1px solid #e1e6ed;
+  border-radius: 10px;
 
-  background: #f3f4f6;
-  border: 1px solid #d8dde3;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  background: rgb(255 255 255 / 97%);
 
-  color: #1f2937;
+  box-shadow: 0 8px 24px rgb(30 50 80 / 12%);
 
-  font-size: 12px;
+  color: #31435c;
+
+  font-size: 11.5px;
 
   pointer-events: none;
 }
 
 .chart-tooltip-title {
-  margin-bottom: 6px;
+  margin-bottom: 7px;
 
-  color: #344054;
+  color: #263d5b;
 
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 750;
 }
 
 .chart-tooltip-row {
   display: flex;
   align-items: center;
-
   gap: 6px;
 
   padding: 2px 0;
+
+  color: #718096;
+}
+
+.chart-tooltip-row strong {
+  color: #31435c;
 }
 
 .chart-tooltip-dot {
-  width: 8px;
-  height: 8px;
-
+  width: 7px;
+  height: 7px;
   flex-shrink: 0;
 
   border-radius: 50%;
 }
 
-/* Legenda inferior */
-.chart-legend {
-  min-height: 30px;
+.chart-tooltip-dot--target {
+  background: #e0a348;
+}
 
+/* Legenda */
+
+.chart-legend {
   display: flex;
+  min-height: 28px;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-
   gap: 8px 18px;
 
-  color: #62708a;
+  color: #69778c;
 
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .chart-legend-item {
   display: inline-flex;
   align-items: center;
-
   gap: 7px;
 }
 
 .chart-legend-square {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
 
   border-radius: 3px;
 }
@@ -651,34 +729,33 @@ function deactivate(index: number) {
   width: 20px;
   height: 0;
 
-  border-top: 2px dashed #eaa239;
+  border-top: 2px dashed #e0a348;
 }
 
 /* Responsividade */
+
 @media (max-width: 768px) {
   .bar-chart {
-    min-height: 275px;
+    min-height: 285px;
   }
 
   .chart-axis-label,
   .chart-x-label {
-    font-size: 9px;
+    font-size: 8.7px;
   }
 
   .chart-value-label {
-    font-size: 8.5px;
+    font-size: 8.8px;
   }
 
   .chart-tooltip {
-    min-width: 145px;
-
+    min-width: 140px;
     padding: 8px 10px;
-
     font-size: 11px;
   }
 
   .chart-legend {
-    font-size: 11px;
+    font-size: 10.5px;
   }
 }
 </style>

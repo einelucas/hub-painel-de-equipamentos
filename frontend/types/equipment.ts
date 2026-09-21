@@ -164,6 +164,22 @@ export interface DeadlinesSummary {
   safe: number;
 }
 
+/** Widget do Monday "Status dos prazos de negociação" (GAP-014) — mesmo
+ * `NegotiationStatus` calculado no detalhe do equipamento
+ * (`calculated.negotiationStatus`), agregado pelo backend nas 5 categorias
+ * do widget original: Atrasado/Urgente/Próximo/No prazo/Concluído.
+ * `notCalculable` (sem `negotiationDeadline` e sem `negotiatedAt`) nunca é
+ * uma 6ª fatia do donut — mesmo padrão de `DeadlinesSummary.withoutDeadline`. */
+export interface NegotiationDeadlineStatusSummary {
+  total: number;
+  overdue: number;
+  urgent: number;
+  upcoming: number;
+  onTrack: number;
+  completed: number;
+  notCalculable: number;
+}
+
 export interface StartupSummary {
   nextAt: string | null;
   daysRemaining: number | null;
@@ -177,6 +193,7 @@ export interface DashboardSummary {
   workflow: StageDistribution[];
   negotiation: NegotiationSummary;
   deadlines: DeadlinesSummary;
+  negotiationDeadlineStatus: NegotiationDeadlineStatusSummary;
   startup: StartupSummary;
 }
 
