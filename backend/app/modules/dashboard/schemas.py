@@ -56,6 +56,26 @@ class DeadlinesSummaryOut(CamelModel):
     safe: int = 0
 
 
+class NegotiationDeadlineStatusSummaryOut(CamelModel):
+    """Widget do Monday "Status dos prazos de negociação" — distribuição do
+    recorte atual pelo `NegotiationStatus` oficial (GAP-014,
+    `app.domain.equipment_calculations`, mesma função usada no detalhe do
+    equipamento), agregado nas 5 categorias do widget: Atrasado/Urgente/
+    Próximo/No prazo/Concluído. `CRITICAL`/`DUE_TODAY`/`URGENT` (sub-estados
+    mais finos do enum) entram juntos em `urgent` — ver nota em
+    `dashboard/service.py`. `notCalculable` conta equipamentos sem
+    `negotiationDeadline` e sem `negotiatedAt` (nunca uma 6ª fatia do
+    donut), o mesmo padrão de `DeadlinesSummaryOut.withoutDeadline`."""
+
+    total: int = 0
+    overdue: int = 0
+    urgent: int = 0
+    upcoming: int = 0
+    on_track: int = 0
+    completed: int = 0
+    not_calculable: int = 0
+
+
 class StartupSummaryOut(CamelModel):
     next_at: date | None
     days_remaining: int | None
@@ -69,4 +89,5 @@ class DashboardSummaryOut(CamelModel):
     workflow: list[StageDistributionOut]
     negotiation: NegotiationSummaryOut
     deadlines: DeadlinesSummaryOut
+    negotiation_deadline_status: NegotiationDeadlineStatusSummaryOut
     startup: StartupSummaryOut

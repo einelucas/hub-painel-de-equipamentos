@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { DashboardSummary, StageDistribution } from "~/types/equipment";
-import { negotiationProgress, situationDonut, stageChartPoints, startupLabel } from "~/utils/dashboard";
+import {
+  negotiationDeadlineStatusDonut,
+  negotiationProgress,
+  negotiationProgressBars,
+  situationDonut,
+  stageChartPoints,
+  startupLabel,
+} from "~/utils/dashboard";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 
 function workflow(counts: Partial<Record<number, number>>): StageDistribution[] {
@@ -33,6 +40,15 @@ function summary(overrides: Partial<DashboardSummary> = {}): DashboardSummary {
       lt60Days: 0,
       lt90Days: 0,
       safe: 0,
+    },
+    negotiationDeadlineStatus: {
+      total: 0,
+      overdue: 0,
+      urgent: 0,
+      upcoming: 0,
+      onTrack: 0,
+      completed: 0,
+      notCalculable: 0,
     },
     startup: { nextAt: null, daysRemaining: null, equipmentId: null, equipmentName: null },
     ...overrides,
@@ -71,6 +87,55 @@ describe("negotiationProgress", () => {
 
   it("devolve null quando não há base para calcular", () => {
     expect(negotiationProgress(summary())).toBeNull();
+  });
+});
+
+describe("negotiationProgressBars", () => {
+  it("calcula as 3 barras sobre o mesmo denominador de negotiationProgress (open + completed)", () => {
+    const items = negotiationProgressBars({ open: 31, completed: 10, inNegotiation: 3 });
+    expect(items).toEqual([
+      { label: "Negociações concluídas", value: (10 / 41) * 100 },
+      { label: "Em aberto", value: (31 / 41) * 100 },
+      { label: "Em negociação/equalização", value: (3 / 41) * 100 },
+    ]);
+  });
+
+  it("devolve lista vazia quando não há base para calcular (mesmo critério da barra única)", () => {
+    expect(negotiationProgressBars({ open: 0, completed: 0, inNegotiation: 0 })).toEqual([]);
+  });
+});
+
+describe("negotiationDeadlineStatusDonut", () => {
+  it("traduz a agregação da API nas 5 fatias do widget, sem recalcular nada", () => {
+    const items = negotiationDeadlineStatusDonut({
+      total: 41,
+      overdue: 1,
+      urgent: 1,
+      upcoming: 2,
+      onTrack: 27,
+      completed: 10,
+      notCalculable: 0,
+    });
+    expect(items.map((item) => [item.label, item.value])).toEqual([
+      ["Atrasado", 1],
+      ["Urgente", 1],
+      ["Próximo", 2],
+      ["No prazo", 27],
+      ["Concluído", 10],
+    ]);
+  });
+
+  it("não inventa uma 6ª fatia para notCalculable", () => {
+    const items = negotiationDeadlineStatusDonut({
+      total: 3,
+      overdue: 0,
+      urgent: 0,
+      upcoming: 0,
+      onTrack: 0,
+      completed: 0,
+      notCalculable: 3,
+    });
+    expect(items).toHaveLength(5);
   });
 });
 

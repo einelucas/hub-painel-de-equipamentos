@@ -42,6 +42,50 @@ export function negotiationProgress(summary: DashboardSummary): number | null {
   return (completed / total) * 100;
 }
 
+export interface NegotiationProgressItem {
+  label: string;
+  value: number;
+}
+
+/**
+ * As 3 barras do card de Negociação (Concluídas/Em aberto/Em negociação),
+ * todas sobre o mesmo denominador já usado por `negotiationProgress`
+ * (`open + completed` — nenhuma regra nova). Lista vazia quando não há base
+ * para calcular, mesmo critério de "sem dados" da barra única anterior.
+ */
+export function negotiationProgressBars(negotiation: DashboardSummary["negotiation"]): NegotiationProgressItem[] {
+  const { open, completed, inNegotiation } = negotiation;
+  const total = open + completed;
+  if (total === 0) return [];
+  return [
+    { label: "Negociações concluídas", value: (completed / total) * 100 },
+    { label: "Em aberto", value: (open / total) * 100 },
+    { label: "Em negociação/equalização", value: (inNegotiation / total) * 100 },
+  ];
+}
+
+/**
+ * Widget do Monday "Status dos prazos de negociação": traduz a agregação já
+ * pronta do backend (`NegotiationDeadlineStatusSummary`, GAP-014) em fatias
+ * de donut — nenhum threshold é recalculado aqui, só rótulo/cor por
+ * categoria já contada pela API. Ordem do mais urgente ao mais seguro,
+ * mesmo critério de prioridade visual do card "Situação de prazos". Cores
+ * reaproveitadas do design system existente (vermelho/laranja de risco já
+ * usados nos badges de status, azul institucional de "Em processo", verde
+ * de "Concluído" — nenhuma cor nova).
+ */
+export function negotiationDeadlineStatusDonut(
+  summary: DashboardSummary["negotiationDeadlineStatus"],
+): DonutItem[] {
+  return [
+    { label: "Atrasado", value: summary.overdue, color: "#a53f3f" },
+    { label: "Urgente", value: summary.urgent, color: "#cc5121" },
+    { label: "Próximo", value: summary.upcoming, color: "#d3a24d" },
+    { label: "No prazo", value: summary.onTrack, color: "#304f7e" },
+    { label: "Concluído", value: summary.completed, color: "#609346" },
+  ];
+}
+
 export function startupLabel(summary: DashboardSummary): string {
   const { daysRemaining } = summary.startup;
   if (daysRemaining === null) return "Sem startup futura no recorte";
