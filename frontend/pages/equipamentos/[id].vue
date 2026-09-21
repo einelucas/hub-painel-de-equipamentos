@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ArrowLeft, ArrowRight, Pencil, Plus, RotateCcw } from "lucide-vue-next";
 import type { Equipment, EquipmentComponent, EquipmentDetail } from "~/types/equipment";
-import { formatCurrency, formatDate } from "~/utils/format";
+import { formatCurrency, formatDateOnly, formatDateTime } from "~/utils/format";
+import { negotiationStatusLabel, negotiationStatusTone } from "~/utils/negotiationStatus";
+import { workNeedStatusLabel, workNeedStatusTone } from "~/utils/workNeedStatus";
 import { stageTone } from "~/utils/stages";
 import { type ProcessResource, advanceLabel as buildAdvanceLabel } from "~/utils/workflow";
 
@@ -17,6 +19,11 @@ const showComponent = ref(false);
 const showReopen = ref(false);
 const reopenReason = ref("");
 const editingComponent = ref<EquipmentComponent | null>(null);
+const expandedComponentId = ref<string | null>(null);
+
+function toggleComponentDeadlines(componentId: string): void {
+  expandedComponentId.value = expandedComponentId.value === componentId ? null : componentId;
+}
 const tab = ref<"process" | "components" | "suppliers" | "history">("process");
 const equipmentId = computed(() => String(route.params.id));
 const workflow = useEquipmentWorkflow(equipmentId);
@@ -112,11 +119,51 @@ onMounted(load);
           </div>
           <div class="detail-field"><span>Responsável</span><strong>{{ detail.equipment.responsibleUser?.name ?? "—" }}</strong></div>
           <div class="detail-field"><span>Etapa atual</span><strong><span class="stage-badge" :class="stageTone(currentStage)" data-testid="current-stage">{{ currentStage }} · {{ currentStageLabel }}</span></strong></div>
-          <div class="detail-field"><span>Startup</span><strong>{{ formatDate(detail.equipment.startupAt) }}</strong></div>
+          <div class="detail-field"><span>Startup</span><strong>{{ formatDateOnly(detail.equipment.startupAt) }}</strong></div>
           <div class="detail-field"><span>Criticidade</span><strong>{{ detail.equipment.criticality ?? "—" }}</strong></div>
           <div class="detail-field"><span>CAPEX estimado</span><strong>{{ formatCurrency(detail.equipment.capexEstimated) }}</strong></div>
         </div>
         <EquipmentWorkflowStepper :current-stage="currentStage" :next-stage-blocked="Boolean(workflow.advance.value?.missingRequirements.length)" />
+      </section>
+
+      <section class="surface">
+        <div class="surface-header"><div><h2>Prazos e planejamento</h2><p>Derivado dos componentes (FUN-001) — só leitura; recalculado a cada mudança nos componentes.</p></div></div>
+        <div class="surface-body detail-grid">
+          <div class="detail-field"><span>Lead time máximo</span><strong>{{ detail.equipment.calculated.maxLeadTimeDays === null ? "—" : `${detail.equipment.calculated.maxLeadTimeDays} dias` }}</strong></div>
+          <div class="detail-field"><span>Dias antes do startup (máx.)</span><strong>{{ detail.equipment.calculated.maxPreStartDays === null ? "—" : `${detail.equipment.calculated.maxPreStartDays} dias` }}</strong></div>
+          <div class="detail-field"><span>Frete máximo</span><strong>{{ detail.equipment.calculated.maxFreightDays === null ? "—" : `${detail.equipment.calculated.maxFreightDays} dias` }}</strong></div>
+          <div class="detail-field"><span>Limite entrega em obra</span><strong>{{ formatDateOnly(detail.equipment.calculated.deliveryDeadline) }}</strong></div>
+          <div class="detail-field">
+            <span>Status necessidade da obra</span>
+            <strong>
+              <span
+                class="negotiation-badge"
+                :class="workNeedStatusTone(detail.equipment.calculated.workNeedStatus)"
+                data-testid="work-need-status-badge"
+              >{{ workNeedStatusLabel(detail.equipment.calculated.workNeedStatus) }}</span>
+            </strong>
+          </div>
+          <div class="detail-field"><span>Limite contrato/OC</span><strong>{{ formatDateOnly(detail.equipment.calculated.contractOrderDeadline) }}</strong></div>
+          <div class="detail-field">
+            <span>Limite negociação</span>
+            <strong>
+              {{ formatDateOnly(detail.equipment.calculated.negotiationDeadline) }}
+              <template v-if="detail.equipment.calculated.negotiationDaysRemaining !== null">
+                ({{ detail.equipment.calculated.negotiationDaysRemaining >= 0 ? `${detail.equipment.calculated.negotiationDaysRemaining} dias restantes` : `${Math.abs(detail.equipment.calculated.negotiationDaysRemaining)} dias em atraso` }})
+              </template>
+            </strong>
+          </div>
+          <div class="detail-field">
+            <span>Status negociação</span>
+            <strong>
+              <span
+                class="negotiation-badge"
+                :class="negotiationStatusTone(detail.equipment.calculated.negotiationStatus)"
+                data-testid="negotiation-status-badge"
+              >{{ negotiationStatusLabel(detail.equipment.calculated.negotiationStatus) }}</span>
+            </strong>
+          </div>
+        </div>
       </section>
 
       <div class="detail-tabs" role="tablist">
@@ -155,8 +202,15 @@ onMounted(load);
           </div>
 
           <section class="surface">
-            <div class="surface-header"><div><h2>Processo completo</h2><p>Dados de todas as etapas, em modo leitura.</p></div></div>
-            <div class="surface-body"><ProcessSummary :processes="workflow.processes.value" /></div>
+            <div class="surface-header"><div><h2>Processo completo</h2><p>Dados de todas as etapas. Editar aqui não muda a etapa atual — isso é feito no painel "Avanço do processo".</p></div></div>
+            <div class="surface-body">
+              <ProcessSummary
+                :processes="workflow.processes.value"
+                :editable="canWriteProcess"
+                :saving="workflow.saving.value"
+                @save="saveProcess"
+              />
+            </div>
           </section>
         </template>
       </template>
@@ -164,7 +218,53 @@ onMounted(load);
       <section v-else-if="tab === 'components'" class="surface">
         <div class="surface-header"><div><h2>Componentes</h2><p>{{ detail.components.length }} subitem(ns) cadastrado(s).</p></div><button v-if="auth.can('equipments:write')" class="btn primary" @click="showComponent = true"><Plus :size="15" /> Adicionar componente</button></div>
         <div v-if="detail.components.length === 0" class="empty-state table-empty"><h2>Nenhum componente cadastrado</h2><p>Os componentes deste equipamento aparecerão aqui.</p></div>
-        <div v-else class="table-wrap"><Table><TableHeader><TableRow><TableHead>Componente</TableHead><TableHead>Tag</TableHead><TableHead>Setor</TableHead><TableHead>Lead time</TableHead><TableHead>Pré-start</TableHead><TableHead>Entrega contratual</TableHead><TableHead>Frete</TableHead><TableHead /></TableRow></TableHeader><TableBody><TableRow v-for="component in detail.components" :key="component.id"><TableCell class="font-semibold">{{ component.name }}</TableCell><TableCell>{{ component.tag ?? "—" }}</TableCell><TableCell>{{ component.sector ?? "—" }}</TableCell><TableCell>{{ component.leadTimeDays === null ? "—" : `${component.leadTimeDays} dias` }}</TableCell><TableCell>{{ component.preStartDays === null ? "—" : `${component.preStartDays} dias` }}</TableCell><TableCell>{{ formatDate(component.contractDeliveryAt) }}</TableCell><TableCell>{{ component.freightDays === null ? "—" : `${component.freightDays} dias` }}</TableCell><TableCell><button v-if="auth.can('equipments:write')" class="text-button" @click="editComponent(component)">Editar</button></TableCell></TableRow></TableBody></Table></div>
+        <div v-else class="table-wrap">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Componente</TableHead>
+                <TableHead>Tag</TableHead>
+                <TableHead>Startup</TableHead>
+                <TableHead>Setor</TableHead>
+                <TableHead>Lead time</TableHead>
+                <TableHead>Pré-start</TableHead>
+                <TableHead>Entrega contratual</TableHead>
+                <TableHead>Frete</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <template v-for="component in detail.components" :key="component.id">
+                <TableRow>
+                  <TableCell class="font-semibold">{{ component.name }}</TableCell>
+                  <TableCell>{{ component.tag ?? "—" }}</TableCell>
+                  <TableCell>{{ formatDateOnly(component.startupAt) }}</TableCell>
+                  <TableCell>{{ component.sector ?? "—" }}</TableCell>
+                  <TableCell>{{ component.leadTimeDays === null ? "—" : `${component.leadTimeDays} dias` }}</TableCell>
+                  <TableCell>{{ component.preStartDays === null ? "—" : `${component.preStartDays} dias` }}</TableCell>
+                  <TableCell>{{ formatDateOnly(component.contractDeliveryAt) }}</TableCell>
+                  <TableCell>{{ component.freightDays === null ? "—" : `${component.freightDays} dias` }}</TableCell>
+                  <TableCell class="component-actions">
+                    <button class="text-button" :data-testid="`toggle-deadlines-${component.id}`" @click="toggleComponentDeadlines(component.id)">
+                      {{ expandedComponentId === component.id ? "Ocultar prazos" : "Prazos calculados" }}
+                    </button>
+                    <button v-if="auth.can('equipments:write')" class="text-button" @click="editComponent(component)">Editar</button>
+                  </TableCell>
+                </TableRow>
+                <TableRow v-if="expandedComponentId === component.id" class="deadlines-row">
+                  <TableCell colspan="9">
+                    <div class="deadlines-grid" :data-testid="`deadlines-${component.id}`">
+                      <div class="detail-field"><span>Limite entrega em obra</span><strong>{{ formatDateOnly(component.calculated.deliveryDeadline) }}</strong></div>
+                      <div class="detail-field"><span>Disponível coleta</span><strong>{{ formatDateOnly(component.calculated.availableForCollection) }}</strong></div>
+                      <div class="detail-field"><span>Limite contrato/OC</span><strong>{{ formatDateOnly(component.calculated.contractOrderDeadline) }}</strong></div>
+                      <div class="detail-field"><span>Limite negociação</span><strong>{{ formatDateOnly(component.calculated.negotiationDeadline) }}</strong></div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </template>
+            </TableBody>
+          </Table>
+        </div>
       </section>
 
       <EquipmentSuppliers v-else-if="tab === 'suppliers'" :equipment-id="equipmentId" />
@@ -178,7 +278,7 @@ onMounted(load);
             <div>
               <strong>{{ entry.title }}</strong>
               <p v-if="entry.reason">{{ entry.reason }}</p>
-              <small>{{ formatDate(entry.occurredAt, true) }} · {{ entry.actor?.name ?? "Usuário removido" }}</small>
+              <small>{{ formatDateTime(entry.occurredAt) }} · {{ entry.actor?.name ?? "Usuário removido" }}</small>
             </div>
           </article>
         </div>
@@ -227,8 +327,18 @@ onMounted(load);
 .stage-badge--progress { background: #fff3df; color: #9b6418; }
 .stage-badge--advanced { background: #e8f1fc; color: #2f5f9c; }
 .stage-badge--complete { background: #eaf4e5; color: #477a32; }
+.negotiation-badge { display: inline-flex; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 750; }
+.negotiation-badge--neutral { background: #eef2f7; color: #53647a; }
+.negotiation-badge--complete { background: #eaf4e5; color: #477a32; }
+.negotiation-badge--ok { background: #e8f1fc; color: #2f5f9c; }
+.negotiation-badge--warning { background: #fff3df; color: #9b6418; }
+.negotiation-badge--danger { background: #fbe8e8; color: #a53f3f; }
 .wp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .wp-chip { display: inline-flex; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 700; background: #eef2f7; color: #2b3e58; }
+.component-actions { display: flex; gap: 12px; white-space: nowrap; }
+.deadlines-row { background: #fafbfc; }
+.deadlines-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 18px; padding: 6px 4px; }
+@media (max-width: 900px) { .deadlines-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .text-button { border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
 .timeline { display: grid; padding: 4px 20px 22px; }
 .timeline-item { position: relative; display: grid; grid-template-columns: 20px 1fr; gap: 10px; padding: 14px 0; border-bottom: 1px solid #edf1f5; }

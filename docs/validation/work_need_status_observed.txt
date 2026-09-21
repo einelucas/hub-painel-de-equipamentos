@@ -1,0 +1,3 @@
+Total de registros de equipamento no staging: 41
+  '5. PRAZO SEGURO 🟢': 40x (ex. equipment_id=f5bdf279-bc93-4fcf-8275-9ea971071536)
+  '2. < 30 DIAS 🔥': 1x (ex. equipment_id=a0dad271-03c3-432b-84af-794e5a475e5a)

@@ -26,6 +26,64 @@ export interface UserRef {
   email: string;
 }
 
+/**
+ * Prazos e agregações derivados dos componentes (FUN-001). Somente leitura
+ * — nunca enviados em create/update, sempre recalculados pelo backend a
+ * partir dos campos-base. `null` quando faltar dado-base obrigatório ou
+ * não houver componente com o dado preenchido.
+ */
+/** GAP-014 (Etapa 6C) — enum estável da API; nunca os rótulos/emoji do
+ * Monday. `NOT_APPLICABLE` fica pronto para quando o Hub modelar um campo
+ * equivalente ao A.Status (CANCELADO/Em Saneamento/Não se Aplica) — nenhum
+ * equipamento do C2 usa esse valor hoje. */
+export type NegotiationStatus =
+  | "NOT_APPLICABLE"
+  | "COMPLETED"
+  | "OVERDUE"
+  | "DUE_TODAY"
+  | "CRITICAL"
+  | "URGENT"
+  | "UPCOMING"
+  | "ON_TRACK";
+
+/** Etapa 6C.1 — enum estável da API para "Status Necessidade da Obra";
+ * nunca os rótulos/emoji do Monday (ex.: "2. < 30 DIAS 🔥"). */
+export type WorkNeedStatus =
+  | "CHECK_DELIVERY_FUP"
+  | "NEEDED_TODAY"
+  | "LT_30_DAYS"
+  | "LT_60_DAYS"
+  | "LT_90_DAYS"
+  | "SAFE";
+
+export interface EquipmentCalculated {
+  maxLeadTimeDays: number | null;
+  maxPreStartDays: number | null;
+  maxFreightDays: number | null;
+  deliveryDeadline: string | null;
+  contractOrderDeadline: string | null;
+  negotiationDeadline: string | null;
+  /** Dinâmico (hoje UTC no momento da consulta) — nunca persistido. */
+  negotiationDaysRemaining: number | null;
+  /** `null` quando não há `negotiationDeadline` nem `negotiatedAt`. */
+  negotiationStatus: NegotiationStatus | null;
+  /** Dinâmico, mesma data-base de `deliveryDeadline` — nunca persistido. */
+  workNeedDaysRemaining: number | null;
+  /** `null` quando não há `deliveryDeadline`. */
+  workNeedStatus: WorkNeedStatus | null;
+}
+
+/** Prazos derivados do componente (FUN-001). Depende só do startup PRÓPRIO
+ * do componente — nunca herda `equipment.startupAt`. */
+export interface ComponentCalculated {
+  deliveryDeadline: string | null;
+  availableForCollection: string | null;
+  contractOrderDeadline: string | null;
+  negotiationDeadline: string | null;
+  negotiationDaysRemaining: number | null;
+  deliveryMarginDays: number | null;
+}
+
 export interface Equipment {
   id: string;
   name: string;
@@ -50,6 +108,7 @@ export interface Equipment {
   workPackages: NamedRef[];
   responsibleUser: UserRef | null;
   componentsCount: number;
+  calculated: EquipmentCalculated;
   createdAt: string;
   updatedAt: string;
 }
@@ -88,9 +147,21 @@ export interface NegotiationSummary {
   inNegotiation: number;
 }
 
+/** Etapa 6C.1 — card "Situação de prazos": distribuição do recorte atual
+ * pelo Status Necessidade da Obra oficial (mesma fonte do detalhe do
+ * equipamento). `available=false` fica reservado a um cenário técnico. */
 export interface DeadlinesSummary {
   available: boolean;
   reason: string | null;
+  total: number;
+  withDeadline: number;
+  withoutDeadline: number;
+  checkDeliveryFup: number;
+  neededToday: number;
+  lt30Days: number;
+  lt60Days: number;
+  lt90Days: number;
+  safe: number;
 }
 
 export interface StartupSummary {
@@ -121,6 +192,7 @@ export interface EquipmentComponent {
   preStartDays: number | null;
   contractDeliveryAt: string | null;
   freightDays: number | null;
+  calculated: ComponentCalculated;
   createdAt: string;
   updatedAt: string;
 }

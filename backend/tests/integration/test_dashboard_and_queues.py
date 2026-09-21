@@ -155,16 +155,218 @@ async def test_summary_purchase_order_and_negotiation_metrics(client, auth_heade
     assert body["negotiation"]["open"] == 0
 
 
-async def test_summary_deadlines_are_not_calculated(client, auth_header) -> None:
+# --- Etapa 6C.1: card "Situação de prazos" (Status Necessidade da Obra) ---
+
+
+async def test_summary_deadlines_card_is_active_with_real_distribution(client, auth_header) -> None:
+    """Substitui o antigo placeholder `available=False`: a partir da Etapa
+    6C.1 o card fica sempre ativo, com a distribuição real do recorte."""
     ids = await _unit_with_context(client, auth_header, "PRZ")
-    await _create(client, auth_header, ids["context"], "Sem prazo")
+    equipment_id = await _create(client, auth_header, ids["context"], "Sem componente ainda")
+
     body = (
         await client.get(
             f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
         )
     ).json()
-    assert body["deadlines"]["available"] is False
-    assert body["deadlines"]["reason"]
+    deadlines = body["deadlines"]
+    assert deadlines["available"] is True
+    assert deadlines["reason"] is None
+    assert deadlines["total"] == 1
+    assert deadlines["withoutDeadline"] == 1
+    assert deadlines["withDeadline"] == 0
+    assert deadlines["safe"] == 0
+
+    today = date.today()
+    # Startup bem distante -> componente cai em SAFE (>=90 dias).
+    await client.post(
+        f"/api/v1/equipments/{equipment_id}/components",
+        json={
+            "name": "C",
+            "startupAt": (today + timedelta(days=200)).isoformat(),
+            "preStartDays": 0,
+            "freightDays": 0,
+            "leadTimeDays": 0,
+        },
+        headers=auth_header("ANALYST"),
+    )
+    after = (
+        await client.get(
+            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
+        )
+    ).json()["deadlines"]
+    assert after["withoutDeadline"] == 0
+    assert after["withDeadline"] == 1
+    assert after["safe"] == 1
+
+
+async def test_summary_deadlines_categories_sum_to_with_deadline_and_total(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "PRZSUM")
+    today = date.today()
+    # Um equipamento por faixa: CHECK_DELIVERY_FUP, LT_30_DAYS, SAFE, e um sem componente.
+    offsets = {"Atrasado": -5, "Menos30": 10, "Seguro": 200}
+    for name, offset in offsets.items():
+        equipment_id = await _create(client, auth_header, ids["context"], name)
+        await client.post(
+            f"/api/v1/equipments/{equipment_id}/components",
+            json={
+                "name": "C",
+                "startupAt": (today + timedelta(days=offset)).isoformat(),
+                "preStartDays": 0,
+                "freightDays": 0,
+                "leadTimeDays": 0,
+            },
+            headers=auth_header("ANALYST"),
+        )
+    await _create(client, auth_header, ids["context"], "Sem componente")
+
+    deadlines = (
+        await client.get(
+            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
+        )
+    ).json()["deadlines"]
+
+    assert deadlines["total"] == 4
+    assert deadlines["withDeadline"] + deadlines["withoutDeadline"] == deadlines["total"]
+    category_sum = (
+        deadlines["checkDeliveryFup"]
+        + deadlines["neededToday"]
+        + deadlines["lt30Days"]
+        + deadlines["lt60Days"]
+        + deadlines["lt90Days"]
+        + deadlines["safe"]
+    )
+    assert category_sum == deadlines["withDeadline"]
+    assert deadlines["checkDeliveryFup"] == 1
+    assert deadlines["lt30Days"] == 1
+    assert deadlines["safe"] == 1
+    assert deadlines["withoutDeadline"] == 1
+
+
+async def test_summary_deadlines_without_deadline_is_never_classified_as_safe(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "PRZNULL")
+    await _create(client, auth_header, ids["context"], "Sem startup no componente")
+    equipment_id = await _create(client, auth_header, ids["context"], "Com componente sem startup")
+    await client.post(
+        f"/api/v1/equipments/{equipment_id}/components",
+        json={"name": "C", "preStartDays": 10, "freightDays": 0, "leadTimeDays": 0},
+        headers=auth_header("ANALYST"),
+    )
+    deadlines = (
+        await client.get(
+            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
+        )
+    ).json()["deadlines"]
+    assert deadlines["total"] == 2
+    assert deadlines["withoutDeadline"] == 2
+    assert deadlines["safe"] == 0
+    assert deadlines["withDeadline"] == 0
+
+
+async def test_summary_deadlines_respects_equipment_filter(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "PRZEQ")
+    today = date.today()
+    target = await _create(client, auth_header, ids["context"], "Alvo do filtro")
+    await client.post(
+        f"/api/v1/equipments/{target}/components",
+        json={
+            "name": "C",
+            "startupAt": (today + timedelta(days=200)).isoformat(),
+            "preStartDays": 0,
+            "freightDays": 0,
+            "leadTimeDays": 0,
+        },
+        headers=auth_header("ANALYST"),
+    )
+    other = await _create(client, auth_header, ids["context"], "Outro equipamento")
+    await client.post(
+        f"/api/v1/equipments/{other}/components",
+        json={
+            "name": "C",
+            "startupAt": (today - timedelta(days=5)).isoformat(),
+            "preStartDays": 0,
+            "freightDays": 0,
+            "leadTimeDays": 0,
+        },
+        headers=auth_header("ANALYST"),
+    )
+
+    deadlines = (
+        await client.get(
+            f"/api/v1/dashboard/summary?unit_id={ids['unit']}&equipment_id={target}",
+            headers=auth_header("VIEWER"),
+        )
+    ).json()["deadlines"]
+    assert deadlines["total"] == 1
+    assert deadlines["safe"] == 1
+    assert deadlines["checkDeliveryFup"] == 0
+
+
+async def test_summary_deadlines_respects_unit_scoping_and_permissions(client, auth_header) -> None:
+    """Mesmo recorte já usado pelo restante do dashboard: só unidades
+    autorizadas para o ator entram na distribuição. `first` é liberado ao
+    VIEWER via `_unit_with_context` (que chama `grant_unit`); `second` é
+    criada sem conceder acesso, para provar que fica de fora."""
+    first = await _unit_with_context(client, auth_header, "PRZU1")
+    admin = auth_header("ADMIN")
+    second_unit = (
+        await client.post(
+            "/api/v1/units",
+            json={"code": "U-PRZU2", "name": "Unidade PRZU2"},
+            headers=admin,
+        )
+    ).json()
+    second_context = (
+        await client.post(
+            f"/api/v1/units/{second_unit['id']}/project-contexts",
+            json={"code": "CTX-PRZU2", "name": "Contexto PRZU2"},
+            headers=admin,
+        )
+    ).json()
+
+    today = date.today()
+    # ANALYST/VIEWER só têm acesso à unidade `first` (concedido por
+    # `_unit_with_context`); o equipamento de `second` precisa ser criado
+    # como ADMIN (acesso global por perfil, sem depender de vínculo).
+    for context_id, name, headers in [
+        (first["context"], "Da unidade 1", auth_header("ANALYST")),
+        (second_context["id"], "Da unidade 2", admin),
+    ]:
+        equipment = await client.post(
+            "/api/v1/equipments",
+            json={"projectContextId": context_id, "name": name},
+            headers=headers,
+        )
+        assert equipment.status_code == 201, equipment.text
+        equipment_id = equipment.json()["id"]
+        await client.post(
+            f"/api/v1/equipments/{equipment_id}/components",
+            json={
+                "name": "C",
+                "startupAt": (today + timedelta(days=200)).isoformat(),
+                "preStartDays": 0,
+                "freightDays": 0,
+                "leadTimeDays": 0,
+            },
+            headers=headers,
+        )
+
+    scoped = (
+        await client.get(
+            f"/api/v1/dashboard/summary?unit_id={first['unit']}", headers=auth_header("VIEWER")
+        )
+    ).json()["deadlines"]
+    assert scoped["total"] == 1
+
+    forbidden = await client.get(
+        f"/api/v1/dashboard/summary?unit_id={second_unit['id']}", headers=auth_header("VIEWER")
+    )
+    assert forbidden.status_code == 404
+
+    unscoped = (
+        await client.get("/api/v1/dashboard/summary", headers=auth_header("VIEWER"))
+    ).json()["deadlines"]
+    assert unscoped["safe"] >= scoped["safe"]
 
 
 async def test_summary_next_startup_ignores_past_dates(client, auth_header) -> None:
@@ -304,6 +506,132 @@ async def test_queues_filter_by_unit_and_paginate(client, auth_header) -> None:
 async def test_queues_require_authentication(client) -> None:
     for queue in ("engineering", "legal", "procurement"):
         assert (await client.get(f"/api/v1/queues/{queue}")).status_code == 401
+
+
+async def _responsible_id(client, auth_header, unit_id: str, name: str, email: str) -> str:
+    admin = auth_header("ADMIN")
+    created = (
+        await client.post(
+            "/api/v1/usuarios",
+            json={"name": name, "email": email, "role": "ANALYST"},
+            headers=admin,
+        )
+    ).json()
+    user_id = created["user"]["id"]
+    updated = await client.put(
+        f"/api/v1/usuarios/{user_id}/units", json={"unitIds": [unit_id]}, headers=admin
+    )
+    assert updated.status_code == 200, updated.text
+    return str(user_id)
+
+
+# --- GAP-011: Engenharia por Disciplina + Responsável -------------------
+
+
+async def test_engineering_queue_filters_by_discipline_id(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "ENGDISC")
+    metal_mec = (
+        await client.post(
+            "/api/v1/disciplines",
+            json={"code": "MM-ENG", "name": "Metal Mec."},
+            headers=auth_header("ADMIN"),
+        )
+    ).json()
+    other = (
+        await client.post(
+            "/api/v1/disciplines",
+            json={"code": "EI-ENG", "name": "E&I"},
+            headers=auth_header("ADMIN"),
+        )
+    ).json()
+    metal_equipment = await _create(
+        client, auth_header, ids["context"], "Equipamento Metal Mec.", disciplineId=metal_mec["id"]
+    )
+    await _create(client, auth_header, ids["context"], "Equipamento E&I", disciplineId=other["id"])
+
+    filtered = (
+        await client.get(
+            f"/api/v1/queues/engineering?unit_id={ids['unit']}&discipline_id={metal_mec['id']}",
+            headers=auth_header("VIEWER"),
+        )
+    ).json()
+    assert [item["equipmentId"] for item in filtered["items"]] == [metal_equipment]
+
+
+async def test_engineering_queue_filters_by_responsible_user_id(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "ENGRESP")
+    responsible_id = await _responsible_id(
+        client, auth_header, ids["unit"], "Ana Teste", "ana.teste@example.com"
+    )
+    with_responsible = await _create(
+        client, auth_header, ids["context"], "Com responsável", responsibleUserId=responsible_id
+    )
+    await _create(client, auth_header, ids["context"], "Sem responsável")
+
+    filtered = (
+        await client.get(
+            f"/api/v1/queues/engineering?unit_id={ids['unit']}&responsible_user_id={responsible_id}",
+            headers=auth_header("VIEWER"),
+        )
+    ).json()
+    assert [item["equipmentId"] for item in filtered["items"]] == [with_responsible]
+
+
+async def test_engineering_queue_combines_discipline_and_responsible_filters(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "ENGCOMBO")
+    metal_mec = (
+        await client.post(
+            "/api/v1/disciplines",
+            json={"code": "MM-COMBO", "name": "Metal Mec. combo"},
+            headers=auth_header("ADMIN"),
+        )
+    ).json()
+    ana = await _responsible_id(client, auth_header, ids["unit"], "Ana Combo", "ana.combo@example.com")
+    uilson = await _responsible_id(
+        client, auth_header, ids["unit"], "Uilson Combo", "uilson.combo@example.com"
+    )
+    match = await _create(
+        client,
+        auth_header,
+        ids["context"],
+        "Metal Mec. da Ana",
+        disciplineId=metal_mec["id"],
+        responsibleUserId=ana,
+    )
+    await _create(
+        client,
+        auth_header,
+        ids["context"],
+        "Metal Mec. do Uilson",
+        disciplineId=metal_mec["id"],
+        responsibleUserId=uilson,
+    )
+    await _create(client, auth_header, ids["context"], "Outra disciplina da Ana", responsibleUserId=ana)
+
+    filtered = (
+        await client.get(
+            "/api/v1/queues/engineering"
+            f"?unit_id={ids['unit']}&discipline_id={metal_mec['id']}&responsible_user_id={ana}",
+            headers=auth_header("VIEWER"),
+        )
+    ).json()
+    assert [item["equipmentId"] for item in filtered["items"]] == [match]
+
+
+async def test_legal_and_procurement_queues_do_not_accept_discipline_filter(client, auth_header) -> None:
+    """GAP-011 é só da Engenharia: `discipline_id` não é um param reconhecido
+    em Jurídico/Suprimentos — mandá-lo não deve quebrar nem filtrar nada."""
+    ids = await _unit_with_context(client, auth_header, "NODISC")
+    legal_equipment = await _create(client, auth_header, ids["context"], "Jurídico sem filtro disciplina")
+    await _advance_to(client, auth_header, legal_equipment, QUEUE_STAGES["legal"][0])
+
+    fake_discipline_id = "00000000-0000-0000-0000-000000000000"
+    response = await client.get(
+        f"/api/v1/queues/legal?unit_id={ids['unit']}&discipline_id={fake_discipline_id}",
+        headers=auth_header("VIEWER"),
+    )
+    assert response.status_code == 200
+    assert [item["equipmentId"] for item in response.json()["items"]] == [legal_equipment]
 
 
 async def test_equipments_list_filters_by_discipline(client, auth_header) -> None:

@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import EquipmentStageForm from "~/components/equipment/EquipmentStageForm.vue";
 import EquipmentWorkflowStepper from "~/components/equipment/EquipmentWorkflowStepper.vue";
+import ProcessSummary from "~/components/equipment/ProcessSummary.vue";
 import WorkflowRequirements from "~/components/equipment/WorkflowRequirements.vue";
 import type { EquipmentProcesses, TransitionOption } from "~/types/equipment";
 
@@ -142,5 +143,50 @@ describe("EquipmentStageForm", () => {
     });
     expect(start.get("[data-testid='stage-form-intro']").text()).toContain("Inicie a negociação");
     expect(done.get("[data-testid='stage-form-done']").text()).toContain("Processo concluído");
+  });
+});
+
+describe("ProcessSummary (GAP-008: edição independente da etapa atual)", () => {
+  it("não mostra nenhum botão Editar para quem não tem process:write", () => {
+    const wrapper = mount(ProcessSummary, {
+      props: { processes, editable: false, saving: false },
+    });
+    expect(wrapper.findAll("button").filter((btn) => btn.text() === "Editar")).toHaveLength(0);
+  });
+
+  it("mostra Editar nos 5 blocos quando editable, independente de etapa (sem prop stage)", () => {
+    const wrapper = mount(ProcessSummary, {
+      props: { processes, editable: true, saving: false },
+    });
+    expect(wrapper.findAll("button").filter((btn) => btn.text() === "Editar")).toHaveLength(5);
+  });
+
+  it("editar e salvar o bloco SC/OCI emite só esse recurso, sem tocar em current_stage", async () => {
+    const wrapper = mount(ProcessSummary, {
+      props: { processes, editable: true, saving: false },
+    });
+    await wrapper.get("[data-testid='edit-purchase-request']").trigger("click");
+    const form = wrapper.get("[data-testid='form-purchase-request']");
+    await form.get("select").setValue("OCI");
+    await form.get("input[maxlength='80']").setValue("OCI-9999");
+    await form.trigger("submit");
+
+    const emitted = wrapper.emitted("save");
+    expect(emitted).toHaveLength(1);
+    expect(emitted![0]).toEqual([
+      "purchase-request",
+      { kind: "OCI", requestNumber: "OCI-9999", requestedAt: null },
+    ]);
+  });
+
+  it("cancelar a edição não emite nada e volta ao modo leitura", async () => {
+    const wrapper = mount(ProcessSummary, {
+      props: { processes, editable: true, saving: false },
+    });
+    await wrapper.get("[data-testid='edit-contract']").trigger("click");
+    expect(wrapper.find("[data-testid='form-contract']").exists()).toBe(true);
+    await wrapper.get("[data-testid='form-contract'] button[type='button']").trigger("click");
+    expect(wrapper.emitted("save")).toBeUndefined();
+    expect(wrapper.find("[data-testid='form-contract']").exists()).toBe(false);
   });
 });

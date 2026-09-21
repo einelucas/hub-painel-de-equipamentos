@@ -13,6 +13,10 @@ export function useQueue<T>(endpoint: QueueEndpoint) {
   const loading = ref(true);
   const refreshing = ref(false);
   const error = ref("");
+  // Filtros específicos da fila (ex.: `discipline_id` na Engenharia),
+  // opcionais e fora dos globais de Unidade/Equipamento. Chaves em
+  // snake_case, como o restante da query desta store.
+  const filters = reactive<Record<string, string>>({});
   let requestVersion = 0;
 
   async function load(): Promise<void> {
@@ -26,6 +30,9 @@ export function useQueue<T>(endpoint: QueueEndpoint) {
         pageSize: 25,
       };
       if (search.value.trim()) query.search = search.value.trim();
+      for (const [key, value] of Object.entries(filters)) {
+        if (value) query[key] = value;
+      }
       const result = await api.get<QueueList<T>>(`/queues/${endpoint}`, query);
       if (version !== requestVersion) return;
       items.value = result.items;
@@ -64,6 +71,7 @@ export function useQueue<T>(endpoint: QueueEndpoint) {
     pagination,
     search,
     page,
+    filters,
     loading,
     refreshing,
     error,

@@ -36,10 +36,24 @@ class NegotiationSummaryOut(CamelModel):
 
 
 class DeadlinesSummaryOut(CamelModel):
-    """As fórmulas oficiais de prazo não foram formalizadas; nada é estimado aqui."""
+    """Etapa 6C.1: card "Situação de prazos" — distribuição do recorte atual
+    pelo Status Necessidade da Obra oficial (`app.domain.equipment_calculations`,
+    mesma função usada no detalhe do equipamento). `available=False` só
+    sobra para um cenário técnico (nunca deveria acontecer em produção,
+    mas o schema permanece pronto caso uma regra futura precise voltar a
+    desligar o card)."""
 
     available: bool
     reason: str | None = None
+    total: int = 0
+    with_deadline: int = 0
+    without_deadline: int = 0
+    check_delivery_fup: int = 0
+    needed_today: int = 0
+    lt_30_days: int = 0
+    lt_60_days: int = 0
+    lt_90_days: int = 0
+    safe: int = 0
 
 
 class StartupSummaryOut(CamelModel):

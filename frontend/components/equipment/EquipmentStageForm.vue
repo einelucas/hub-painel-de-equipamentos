@@ -92,7 +92,7 @@ function submit(): void {
     </p>
   </div>
   <div v-else-if="stage === 8" class="stage-intro" data-testid="stage-form-done">
-    <p>Processo concluído. Os dados permanecem disponíveis para consulta no resumo e no histórico.</p>
+    <p>Processo concluído. Para corrigir algum dado de uma etapa já passada, use "Editar" no bloco correspondente em "Processo completo", abaixo.</p>
   </div>
   <form v-else-if="resource" class="stage-form" data-testid="stage-form" @submit.prevent="submit">
     <fieldset :disabled="!editable">

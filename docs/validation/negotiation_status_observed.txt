@@ -1,0 +1,6 @@
+Total de registros de equipamento no staging: 41
+  '✅NO PRAZO✅': 27x (ex. equipment_id=7f3f4dd1-85f0-47b6-b8ac-13f801209d4a)
+  '🎯CONCLUÍDO🎯': 10x (ex. equipment_id=f5bdf279-bc93-4fcf-8275-9ea971071536)
+  '👀PRÓXIMO👀': 2x (ex. equipment_id=b11c1517-9744-421e-91fa-b79e6d3689a5)
+  '💥ATRASADO💥': 1x (ex. equipment_id=deb4d693-e365-4ba5-9573-5fa75d3b081f)
+  '❗URGENTE❗': 1x (ex. equipment_id=0d69d74b-46fc-4a27-a631-20a3fb1938ec)

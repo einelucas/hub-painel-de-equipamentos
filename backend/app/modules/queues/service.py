@@ -61,6 +61,11 @@ class QueueFilters:
     stage: int | None = None
     search: str | None = None
     responsible_user_id: str | None = None
+    # Só exposto como query param em GET /queues/engineering — disciplina é
+    # um requisito específico da fila de Engenharia (GAP-011), não das
+    # demais. `_filtered` aplica sempre que vier preenchido, mas Jurídico e
+    # Suprimentos nunca preenchem este campo (ver router.py).
+    discipline_id: str | None = None
     page: int = 1
     page_size: int = 25
 
@@ -75,6 +80,8 @@ def _filtered(
     stmt = restrict_to_units(stmt, allowed_units)
     if filters.responsible_user_id:
         stmt = stmt.where(Equipment.responsible_user_id == filters.responsible_user_id)
+    if filters.discipline_id:
+        stmt = stmt.where(Equipment.discipline_id == filters.discipline_id)
     if filters.unit_id:
         stmt = stmt.where(ProjectContext.unit_id == filters.unit_id)
     if filters.equipment_id:

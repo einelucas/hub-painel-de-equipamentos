@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Boxes, CalendarClock, CheckCircle2, Clock, Layers, Receipt } from "lucide-vue-next";
-import type { DashboardSummary } from "~/types/equipment";
+import type { DashboardSummary, WorkNeedStatus } from "~/types/equipment";
 import { negotiationProgress, situationDonut, stageChartPoints, startupLabel } from "~/utils/dashboard";
-import { formatCurrency, formatDate, formatNumber } from "~/utils/format";
+import { formatCurrency, formatDateOnly, formatNumber } from "~/utils/format";
+import { workNeedStatusLabel, workNeedStatusTone } from "~/utils/workNeedStatus";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -22,6 +23,26 @@ const chartPoints = computed(() => stageChartPoints(summary.value?.workflow ?? [
 const donutItems = computed(() => situationDonut(summary.value?.workflow ?? []));
 const progress = computed(() => (summary.value ? negotiationProgress(summary.value) : null));
 const isEmpty = computed(() => (summary.value?.totals.equipments ?? 0) === 0);
+
+// Ordem de prioridade visual explícita (Etapa 6C.1): mais urgente primeiro.
+const DEADLINE_ROWS: { status: WorkNeedStatus; field: keyof DashboardSummary["deadlines"] }[] = [
+  { status: "CHECK_DELIVERY_FUP", field: "checkDeliveryFup" },
+  { status: "NEEDED_TODAY", field: "neededToday" },
+  { status: "LT_30_DAYS", field: "lt30Days" },
+  { status: "LT_60_DAYS", field: "lt60Days" },
+  { status: "LT_90_DAYS", field: "lt90Days" },
+  { status: "SAFE", field: "safe" },
+];
+const deadlinesRows = computed(() => {
+  const deadlines = summary.value?.deadlines;
+  if (!deadlines) return [];
+  return DEADLINE_ROWS.map(({ status, field }) => ({
+    key: status,
+    label: workNeedStatusLabel(status),
+    tone: workNeedStatusTone(status),
+    count: deadlines[field] as number,
+  }));
+});
 
 async function syncQuery(): Promise<void> {
   const query: Record<string, string> = { ...(route.query as Record<string, string>) };
@@ -133,19 +154,31 @@ onMounted(async () => {
           </section>
 
           <section class="surface info-card">
-            <div class="surface-header"><div><h2><Clock :size="15" /> Situação de prazos</h2><p>Indicador dependente de regra oficial.</p></div></div>
+            <div class="surface-header"><div><h2><Clock :size="15" /> Situação de prazos</h2><p>Status necessidade da obra (limite de entrega em obra).</p></div></div>
             <div class="surface-body">
               <p v-if="!summary.deadlines.available" class="not-calculated" data-testid="deadlines-unavailable">
                 Indicador aguardando definição da regra de prazo.
                 <small>{{ summary.deadlines.reason }}</small>
               </p>
+              <div v-else class="deadlines-body" data-testid="deadlines-summary">
+                <ul class="deadlines-list">
+                  <li v-for="row in deadlinesRows" :key="row.key" class="deadlines-row" :class="row.tone">
+                    <span>{{ row.label }}</span>
+                    <strong>{{ formatNumber(row.count, 0) }}</strong>
+                  </li>
+                </ul>
+                <div class="deadlines-footer">
+                  <span>Sem prazo calculável</span>
+                  <strong>{{ formatNumber(summary.deadlines.withoutDeadline, 0) }}</strong>
+                </div>
+              </div>
             </div>
           </section>
 
           <section class="surface info-card">
             <div class="surface-header"><div><h2><CalendarClock :size="15" /> Próxima startup</h2><p>Menor data futura no recorte.</p></div></div>
             <div class="surface-body startup-body">
-              <strong class="startup-date">{{ formatDate(summary.startup.nextAt) }}</strong>
+              <strong class="startup-date">{{ formatDateOnly(summary.startup.nextAt) }}</strong>
               <span class="startup-detail">{{ startupLabel(summary) }}</span>
               <NuxtLink v-if="summary.startup.equipmentId" class="startup-link" :to="`/equipamentos/${summary.startup.equipmentId}`">
                 <Receipt :size="13" /> {{ summary.startup.equipmentName }}
@@ -180,6 +213,13 @@ onMounted(async () => {
 .detail-field strong { color: #2b3e58; font-size: 18px; font-weight: 750; }
 .not-calculated { display: grid; gap: 7px; margin: 0; color: #9b6418; font-size: 12.5px; font-weight: 700; }
 .not-calculated small { color: #8b96a5; font-size: 11px; font-weight: 500; }
+.deadlines-body { display: grid; gap: 10px; }
+.deadlines-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.deadlines-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 9px; border-radius: 8px; font-size: 12.5px; font-weight: 600; border-left: 3px solid transparent; }
+.deadlines-row.negotiation-badge--danger { background: #fbe8e8; color: #a53f3f; border-left-color: #c96a6a; }
+.deadlines-row.negotiation-badge--warning { background: #fff3df; color: #9b6418; border-left-color: #d3a24d; }
+.deadlines-row.negotiation-badge--ok { background: #e8f1fc; color: #2f5f9c; border-left-color: #5c8fc9; }
+.deadlines-footer { display: flex; align-items: center; justify-content: space-between; padding: 5px 9px; color: #8b96a5; font-size: 11.5px; font-weight: 600; border-top: 1px solid #edf0f4; padding-top: 8px; }
 .startup-body { display: grid; gap: 7px; }
 .startup-date { color: #2b3e58; font-size: 22px; font-weight: 750; }
 .startup-detail { color: #65748a; font-size: 12.5px; }

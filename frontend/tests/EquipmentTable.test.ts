@@ -20,6 +20,18 @@ const equipment = {
   workPackages: [],
   responsibleUser: null,
   componentsCount: 2,
+  calculated: {
+    maxLeadTimeDays: null,
+    maxPreStartDays: null,
+    maxFreightDays: null,
+    deliveryDeadline: null,
+    contractOrderDeadline: null,
+    negotiationDeadline: null,
+    negotiationDaysRemaining: null,
+    negotiationStatus: null,
+    workNeedDaysRemaining: null,
+    workNeedStatus: null,
+  },
   createdAt: "2026-09-20T00:00:00",
   updatedAt: "2026-09-20T00:00:00",
 } satisfies Equipment;

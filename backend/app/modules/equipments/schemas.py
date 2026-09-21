@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import Field, field_validator, model_validator
 
+from app.domain.equipment_calculations import NegotiationStatus, WorkNeedStatus
 from app.shared.schema import CamelModel
 
 
@@ -27,6 +28,57 @@ def _no_duplicate_work_packages(value: list[str] | None) -> list[str] | None:
     if len(set(value)) != len(value):
         raise ValueError("workPackageIds não pode conter IDs duplicados")
     return value
+
+
+# FUN-001 — nenhum destes é aceito em Create/Update: são sempre consequência
+# dos campos-base (startup, prazos dos componentes), nunca informados
+# manualmente. Ver `_reject_calculated_fields`.
+_EQUIPMENT_CALCULATED_FIELDS = {
+    "maxLeadTimeDays",
+    "max_lead_time_days",
+    "maxPreStartDays",
+    "max_pre_start_days",
+    "maxFreightDays",
+    "max_freight_days",
+    "deliveryDeadline",
+    "delivery_deadline",
+    "contractOrderDeadline",
+    "contract_order_deadline",
+    "negotiationDeadline",
+    "negotiation_deadline",
+    "negotiationDaysRemaining",
+    "negotiation_days_remaining",
+    "negotiationStatus",
+    "negotiation_status",
+    "workNeedDaysRemaining",
+    "work_need_days_remaining",
+    "workNeedStatus",
+    "work_need_status",
+}
+_COMPONENT_CALCULATED_FIELDS = {
+    "deliveryDeadline",
+    "delivery_deadline",
+    "availableForCollection",
+    "available_for_collection",
+    "contractOrderDeadline",
+    "contract_order_deadline",
+    "negotiationDeadline",
+    "negotiation_deadline",
+    "negotiationDaysRemaining",
+    "negotiation_days_remaining",
+    "deliveryMarginDays",
+    "delivery_margin_days",
+}
+
+
+def _reject_calculated_fields(data: Any, forbidden: set[str]) -> Any:
+    if isinstance(data, dict):
+        present = forbidden & set(data)
+        if present:
+            raise ValueError(
+                f"Campo(s) calculado(s) não podem ser informados diretamente: {sorted(present)}"
+            )
+    return data
 
 
 class EquipmentCreateIn(CamelModel):
@@ -57,6 +109,11 @@ class EquipmentCreateIn(CamelModel):
     @classmethod
     def work_package_ids_no_duplicates(cls, value: list[str] | None) -> list[str] | None:
         return _no_duplicate_work_packages(value)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_calculated_fields(cls, data: Any) -> Any:
+        return _reject_calculated_fields(data, _EQUIPMENT_CALCULATED_FIELDS)
 
 
 class EquipmentUpdateIn(CamelModel):
@@ -90,6 +147,11 @@ class EquipmentUpdateIn(CamelModel):
             )
         return data
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_calculated_fields(cls, data: Any) -> Any:
+        return _reject_calculated_fields(data, _EQUIPMENT_CALCULATED_FIELDS)
+
     @model_validator(mode="after")
     def has_update(self) -> EquipmentUpdateIn:
         if not self.model_fields_set:
@@ -97,6 +159,32 @@ class EquipmentUpdateIn(CamelModel):
         if self.name is not None and not self.name.strip():
             raise ValueError("Nome obrigatório")
         return self
+
+
+class EquipmentCalculatedOut(CamelModel):
+    """Prazos e agregações derivadas dos componentes (FUN-001). Somente
+    leitura — nunca aceitos em Create/Update, sempre recalculados a partir
+    dos campos-base. `None` quando faltar dado-base obrigatório ou não
+    houver componente com o dado preenchido; nunca um zero/data inventada."""
+
+    max_lead_time_days: int | None
+    max_pre_start_days: int | None
+    max_freight_days: int | None
+    delivery_deadline: date | None
+    contract_order_deadline: date | None
+    negotiation_deadline: date | None
+    # Dinâmico: depende da data de referência (hoje, UTC) usada no momento
+    # da consulta — nunca persistido, recalculado a cada leitura.
+    negotiation_days_remaining: int | None
+    # GAP-014 (Etapa 6C): enum estável, nunca os rótulos/emoji do Monday.
+    # `None` quando não há `negotiationDeadline` nem `negotiatedAt` (nada
+    # para classificar ainda).
+    negotiation_status: NegotiationStatus | None
+    # Etapa 6C.1 — "Status Necessidade da Obra": mesma data-base
+    # (`delivery_deadline` acima), dinâmico, nunca persistido. `None`
+    # quando `delivery_deadline` é `None`.
+    work_need_days_remaining: int | None
+    work_need_status: WorkNeedStatus | None
 
 
 class EquipmentOut(CamelModel):
@@ -121,6 +209,7 @@ class EquipmentOut(CamelModel):
     work_packages: list[NamedRefOut] = Field(default_factory=list)
     responsible_user: UserRefOut | None
     components_count: int
+    calculated: EquipmentCalculatedOut
     created_at: datetime
     updated_at: datetime
 
@@ -147,6 +236,11 @@ class ComponentCreateIn(CamelModel):
     contract_delivery_at: date | None = None
     freight_days: int | None = Field(default=None, ge=0)
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_calculated_fields(cls, data: Any) -> Any:
+        return _reject_calculated_fields(data, _COMPONENT_CALCULATED_FIELDS)
+
 
 class ComponentUpdateIn(CamelModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
@@ -158,11 +252,31 @@ class ComponentUpdateIn(CamelModel):
     contract_delivery_at: date | None = None
     freight_days: int | None = Field(default=None, ge=0)
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_calculated_fields(cls, data: Any) -> Any:
+        return _reject_calculated_fields(data, _COMPONENT_CALCULATED_FIELDS)
+
     @model_validator(mode="after")
     def has_update(self) -> ComponentUpdateIn:
         if not self.model_fields_set:
             raise ValueError("Informe ao menos um campo para atualizar")
         return self
+
+
+class ComponentCalculatedOut(CamelModel):
+    """Prazos derivados do componente (FUN-001). Depende só do startup
+    PRÓPRIO do componente — nunca herda `equipment.startup_at`. `None`
+    quando faltar startup/pré-start/lead time (frete em branco vale 0 dias,
+    comportamento já confirmado na migração — ver
+    `app/domain/equipment_calculations.py`)."""
+
+    delivery_deadline: date | None
+    available_for_collection: date | None
+    contract_order_deadline: date | None
+    negotiation_deadline: date | None
+    negotiation_days_remaining: int | None
+    delivery_margin_days: int | None
 
 
 class ComponentOut(CamelModel):
@@ -176,6 +290,7 @@ class ComponentOut(CamelModel):
     pre_start_days: int | None
     contract_delivery_at: date | None
     freight_days: int | None
+    calculated: ComponentCalculatedOut
     created_at: datetime
     updated_at: datetime
 

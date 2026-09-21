@@ -33,6 +33,7 @@ const term = ref("");
             <button class="btn" type="submit"><Search :size="16" /> Buscar</button>
           </div>
         </form>
+        <slot name="filters" />
         <template #actions><slot name="actions" /></template>
       </ModuleFilters>
 

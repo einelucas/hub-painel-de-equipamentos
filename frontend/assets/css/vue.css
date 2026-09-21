@@ -77,9 +77,13 @@ button:disabled {
   opacity: 0.58;
 }
 
+/* UI-001: largura útil do módulo. Único ponto de controle — TabsNav
+   (.app-toolbar-shell) e o conteúdo de todas as páginas (.nuxt-app-main,
+   via ModuleWorkspace) compartilham a mesma regra, então qualquer ajuste
+   futuro de largura só precisa mudar aqui. */
 .app-toolbar-shell,
 .nuxt-app-main {
-  width: min(calc(100% - 40px), 1320px);
+  width: min(calc(100% - 48px), 1680px);
   margin-inline: auto;
 }
 
@@ -552,7 +556,14 @@ button:disabled {
 @media (max-width: 900px) {
   .app-toolbar-shell,
   .nuxt-app-main {
-    width: min(calc(100% - 28px), 1320px);
+    width: min(calc(100% - 28px), 1680px);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-toolbar-shell,
+  .nuxt-app-main {
+    width: min(calc(100% - 20px), 1680px);
   }
 }
 

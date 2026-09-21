@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { SlidersHorizontal } from "lucide-vue-next";
 import type { ProcurementRow } from "~/types/equipment";
-import { formatCurrency, formatDate } from "~/utils/format";
+import { formatCurrency, formatDateOnly } from "~/utils/format";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -84,9 +84,9 @@ onMounted(async () => {
             <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
             <TableCell>{{ row.kind ?? "—" }}</TableCell>
             <TableCell>{{ row.requestNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDate(row.requestedAt) }}</TableCell>
+            <TableCell>{{ formatDateOnly(row.requestedAt) }}</TableCell>
             <TableCell>{{ row.orderNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDate(row.orderedAt) }}</TableCell>
+            <TableCell>{{ formatDateOnly(row.orderedAt) }}</TableCell>
             <TableCell>{{ formatCurrency(row.amount) }}</TableCell>
             <TableCell>{{ row.primarySupplier?.legalName ?? "—" }}</TableCell>
             <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
