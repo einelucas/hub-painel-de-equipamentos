@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,10 @@ async def list_auditoria(
     page_size: int = Query(default=50, alias="pageSize"),
     entity: str | None = Query(default=None),
     action: str | None = Query(default=None),
+    equipment_id: str | None = Query(default=None),
+    user_id: str | None = Query(default=None),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(require_permission(Permission.AUDIT_READ)),
 ) -> AuditListOut:
@@ -32,7 +37,15 @@ async def list_auditoria(
     page_size = min(_MAX_PAGE_SIZE, max(1, page_size))
 
     logs, total, users = await service.list_audit_logs(
-        session, page=page, page_size=page_size, entity=entity, action=action
+        session,
+        page=page,
+        page_size=page_size,
+        entity=entity,
+        action=action,
+        equipment_id=equipment_id,
+        user_id=user_id,
+        date_from=date_from,
+        date_to=date_to,
     )
 
     items = [

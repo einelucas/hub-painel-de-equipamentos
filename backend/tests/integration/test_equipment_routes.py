@@ -133,6 +133,98 @@ async def test_equipment_defaults_filters_search_and_pagination(client, auth_hea
     assert searched.json()["items"][0]["name"] == "Ventilador auxiliar"
 
 
+async def test_equipment_filters_by_area_id(client, auth_header) -> None:
+    """GAP-010 (Etapa 6D): `Equipment.area_id == area_id`, direto."""
+    first = await _catalogs(client, auth_header, "AR1")
+    second = await _catalogs(client, auth_header, "AR2")
+    await _equipment(client, auth_header, first, "Na área 1")
+    await client.post(
+        "/api/v1/equipments",
+        json={"projectContextId": second["context"], "name": "Na área 2", "areaId": second["area"]},
+        headers=auth_header("ANALYST"),
+    )
+
+    response = await client.get(
+        f"/api/v1/equipments?area_id={first['area']}", headers=auth_header("VIEWER")
+    )
+    items = response.json()["items"]
+    assert len(items) == 1
+    assert items[0]["name"] == "Na área 1"
+
+
+async def test_equipment_filters_by_work_package_id(client, auth_header) -> None:
+    """GAP-010: filtra pela relação N:N (`equipment_work_package`), nunca
+    pelo `workPackage` singular legado."""
+    ids = await _catalogs(client, auth_header, "WPF")
+    target = await _equipment(client, auth_header, ids, "Alvo do WP")
+    await client.post(
+        "/api/v1/equipments",
+        json={
+            "projectContextId": ids["context"],
+            "name": "Sem esse WP",
+            "workPackageIds": [ids["work_package_2"]],
+        },
+        headers=auth_header("ANALYST"),
+    )
+
+    response = await client.get(
+        f"/api/v1/equipments?work_package_id={ids['work_package']}", headers=auth_header("VIEWER")
+    )
+    items = response.json()["items"]
+    assert [item["id"] for item in items] == [target.json()["id"]]
+
+
+async def test_equipment_with_multiple_work_packages_appears_once_and_count_matches(
+    client, auth_header
+) -> None:
+    """GAP-010: EXISTS em vez de JOIN — um equipamento com vários Work
+    Packages nunca duplica nem na listagem nem na contagem/paginação."""
+    ids = await _catalogs(client, auth_header, "WPM")
+    multi = await client.post(
+        "/api/v1/equipments",
+        json={
+            "projectContextId": ids["context"],
+            "name": "Multi WP",
+            "workPackageIds": [ids["work_package"], ids["work_package_2"]],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert multi.status_code == 201
+
+    by_first_wp = await client.get(
+        f"/api/v1/equipments?work_package_id={ids['work_package']}", headers=auth_header("VIEWER")
+    )
+    by_second_wp = await client.get(
+        f"/api/v1/equipments?work_package_id={ids['work_package_2']}", headers=auth_header("VIEWER")
+    )
+    assert [item["id"] for item in by_first_wp.json()["items"]] == [multi.json()["id"]]
+    assert [item["id"] for item in by_second_wp.json()["items"]] == [multi.json()["id"]]
+    assert by_first_wp.json()["pagination"]["total"] == 1
+    assert by_second_wp.json()["pagination"]["total"] == 1
+
+
+async def test_equipment_filters_combine_area_and_work_package(client, auth_header) -> None:
+    ids = await _catalogs(client, auth_header, "COMB")
+    match = await _equipment(client, auth_header, ids, "Combinação certa")
+    await client.post(
+        "/api/v1/equipments",
+        json={
+            "projectContextId": ids["context"],
+            "name": "Área certa, WP errado",
+            "areaId": ids["area"],
+            "workPackageIds": [ids["work_package_2"]],
+        },
+        headers=auth_header("ANALYST"),
+    )
+
+    response = await client.get(
+        f"/api/v1/equipments?area_id={ids['area']}&work_package_id={ids['work_package']}",
+        headers=auth_header("VIEWER"),
+    )
+    items = response.json()["items"]
+    assert [item["id"] for item in items] == [match.json()["id"]]
+
+
 async def test_cross_catalog_relations_are_validated(client, auth_header) -> None:
     first = await _catalogs(client, auth_header, "A")
     second = await _catalogs(client, auth_header, "B")

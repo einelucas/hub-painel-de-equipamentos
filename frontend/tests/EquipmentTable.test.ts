@@ -62,5 +62,38 @@ describe("EquipmentTable", () => {
     expect(wrapper.text()).toContain("Bomba principal");
     expect(wrapper.text()).toContain("1 · Negociação");
     expect(wrapper.get("a").attributes("href")).toBe("/equipamentos/eq-1");
+    expect(wrapper.text()).toContain("—"); // sem work packages
+  });
+
+  it("exibe Work Packages em chips compactos, com +N para o excedente (GAP-010, Etapa 6D)", () => {
+    const withPackages: Equipment = {
+      ...equipment,
+      id: "eq-2",
+      workPackages: [
+        { id: "wp1", name: "Pacote 1", code: "CAL001" },
+        { id: "wp2", name: "Pacote 2", code: "CAL002" },
+        { id: "wp3", name: "Pacote 3", code: "CAL003" },
+        { id: "wp4", name: "Pacote 4", code: "CAL004" },
+      ],
+    };
+    const wrapper = mount(EquipmentTable, {
+      props: { equipments: [withPackages] },
+      global: {
+        stubs: {
+          Table: passthrough,
+          TableHeader: passthrough,
+          TableRow: passthrough,
+          TableHead: passthrough,
+          TableBody: passthrough,
+          TableCell: passthrough,
+          NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+        },
+      },
+    });
+    expect(wrapper.text()).toContain("CAL001");
+    expect(wrapper.text()).toContain("CAL002");
+    expect(wrapper.text()).toContain("CAL003");
+    expect(wrapper.text()).not.toContain("CAL004");
+    expect(wrapper.text()).toContain("+1");
   });
 });

@@ -40,6 +40,19 @@ etapa (somente leitura) ficam em `docs/validation/`.
 > real do recorte. **41/41 MATCH exato** contra o Status Necessidade da
 > Obra real observado no Monday. Detalhes em
 > [`etapa-06c1-work-need-dashboard.md`](etapa-06c1-work-need-dashboard.md).
+>
+> **Atualização — Etapa 6D (2026-09-22)**: completude operacional e
+> auditoria — GAP-002 (sub-processos migrados agora aparecem no Histórico,
+> resolvido por relacionamento via `equipment_audit_conditions`, sem
+> reescrever dado nem reexecutar migração), GAP-003 (título amigável
+> "Importado do Monday"), GAP-010 (filtros `area_id`/`work_package_id` em
+> `/equipments`, EXISTS sem duplicar linha), GAP-012a/b (coluna Responsável
+> em Jurídico/Suprimentos, Entrega contratual em Jurídico), GAP-016
+> (`auth.can()` do frontend passa a usar só `user.permissions` do backend,
+> matriz local removida) e GAP-019 (filtros de Equipamento/Usuário/período
+> na Auditoria, mesma lógica do GAP-002). Todos confirmados contra os 41
+> equipamentos reais do C2. Detalhes em
+> [`etapa-06d-operational-completeness.md`](etapa-06d-operational-completeness.md).
 
 Critério usado em cada item: **"Se o Monday fosse desligado hoje, o usuário
 conseguiria executar esta parte do processo somente pelo Hub?"**
@@ -359,12 +372,16 @@ ordenação (`sortBy`) — todos **server-side reais**, sem hardcode de nome
 API (`exportAll`, teto de segurança 20 páginas). Permissão por unidade
 respeitada (`allowed_unit_ids`/`restrict_to_units`). — **OK** no geral.
 
-**GAP-010 — INCOMPLETO — P2.**
-Não existe filtro por Área nem por Work Package em `/equipments` (nem no
-backend — `get_equipments` só aceita `unit_id, project_context_id,
-equipment_id, search, stage, discipline_id, responsible_user_id` — nem na
-tela). A tabela (`EquipmentTable.vue`) e a exportação (`exportAll`) também
-não incluem coluna de Work Packages.
+**GAP-010 — RESOLVIDO NA ETAPA 6D.** `GET /equipments` ganhou `area_id`
+(`Equipment.area_id == area_id`) e `work_package_id` (EXISTS sobre a
+relação N:N `equipment_work_package` — nunca o `workPackage` singular
+legado; confirmado sem duplicar linha nem contagem, inclusive para
+equipamentos com vários Work Packages). Filtros expostos em
+`pages/equipamentos/index.vue` (Área respeita Unidade; Work Package
+respeita os ProjectContext da Unidade). `EquipmentTable.vue` ganhou coluna
+"Pacotes de trabalho" (chips compactos, máx. 3 + "+N"); a exportação ganhou
+a coluna "Pacotes de Trabalho" e já respeita os novos filtros (usa
+`currentQuery`, compartilhada com a listagem).
 
 ---
 
@@ -403,9 +420,10 @@ Critério de entrada (etapas 3-5), colunas (chamado, abertura, minuta
 elaborada/aprovada, contrato), filtros (busca + Unidade/Equipamento
 globais, server-side), link para detalhe — **OK** estruturalmente.
 
-**GAP-012a — INCOMPLETO — P2.** `LegalRow.responsibleUser` vem da API mas
-não é renderizado na tabela de Jurídico (`pages/juridico.vue`). Mesmo para
-`LegalRow.deliveryAt` (entrega contratual).
+**GAP-012a — RESOLVIDO NA ETAPA 6D.** `pages/juridico.vue` ganhou as
+colunas "Responsável" (`LegalRow.responsibleUser`) e "Entrega contratual"
+(`LegalRow.deliveryAt`) — ambas já vinham prontas da API, só não eram
+exibidas. Nenhuma regra nova.
 
 Filtro por Disciplina não se aplica aqui (Jurídico não é segmentado por
 disciplina) — **OK**, não é gap.
@@ -418,8 +436,9 @@ Critério de entrada (etapas 6-7), colunas (tipo SC/OCI, número/data SC-OCI,
 número/data OC, valor, fornecedor principal) — **OK**, campos batendo 1:1
 com `ProcurementRow`. Botão exclusivo "Administração" (fornecedores) — **OK**.
 
-**GAP-012b — INCOMPLETO — P2.** `ProcurementRow.responsibleUser` também não
-é renderizado na tabela de Suprimentos.
+**GAP-012b — RESOLVIDO NA ETAPA 6D.** `pages/suprimentos.vue` ganhou a
+coluna "Responsável" (`ProcurementRow.responsibleUser`). Critérios da fila
+inalterados.
 
 Nenhum campo do Monday relativo a suprimentos ficou de fora do schema —
 todos os campos mapeados como MIGRAR nessa área existem.
@@ -479,14 +498,14 @@ frontend some com botões de escrita). ANALYST: criação/edição/processo/
 transição/fornecedores — **OK**. ADMIN: tudo + catálogos/usuários/
 reabertura/auditoria — **OK**.
 
-**GAP-016 — INCOMPLETO — P2.**
-O frontend deriva `auth.can()` de uma matriz **local, hardcoded**
-(`stores/auth.ts`) que espelha manualmente `app/core/permissions.py`, em vez
-de consumir o array `permissions` que `/auth/me` já devolve (campo existe no
-tipo `CurrentUser`, não é usado). Risco: se a matriz do backend mudar (ex.
-nova permissão departamental) sem replicar a mudança no frontend, a UI passa
-a mentir sobre o que o usuário pode fazer (o backend continuaria correto,
-mas a UI esconderia/mostraria botões errados).
+**GAP-016 — RESOLVIDO NA ETAPA 6D.** `stores/auth.ts` não replica mais a
+matriz — `can(permission)` agora delega a `hasPermission(user, permission)`
+(`utils/permissions.ts`), que só olha `user.permissions` (o array que
+`/auth/me` já devolve). Zero matriz local; `permissions` ausente nega tudo
+em vez de assumir acesso. 5 testes novos (`tests/permissions.test.ts`)
+comprovam VIEWER/ANALYST/ADMIN continuam exatamente com o mesmo
+comportamento — construindo o usuário só a partir do array de permissões,
+nunca do papel.
 
 **GAP-018 — INCOMPLETO — P3.** Itens de menu (exceto Auditoria) não são
 filtrados por permissão — aparecem para qualquer usuário autenticado; o
@@ -520,29 +539,29 @@ esse segundo caminho **é usado de propósito** pelas edições normais de
 processo (`app/modules/processes/service.py:115`: `metadata={"equipmentId":
 equipment_id}`).
 
-**GAP-002 — BUG — P2 — confirmado empiricamente.**
-Os registros de `AuditLog` criados pela migração para os **sub-processos**
-(`Negotiation`, `LegalProcess`, `Contract`, `PurchaseRequest`,
-`PurchaseOrder`, `EquipmentComponent`) têm `entityId` = ID do próprio
-sub-registro (não do equipamento) e `metadata` **sem** a chave
-`equipmentId` (`monday_import/apply.py:_plan_metadata`, linhas 77-86, só
-tem `sourceSystem/migrationRunId/batchIds/sourceKey/identityStrategy`) —
-diferente do padrão usado pelas edições em tempo real. Resultado:
-esses registros **não aparecem** na aba Histórico do equipamento.
-Confirmado rodando o endpoint real para "Caldeira de Biomassa" (que tem
-Negotiation + LegalProcess + Contract + PurchaseRequest + PurchaseOrder,
-todos criados pela migração): a timeline devolve **1 único item** (a
-criação do próprio `Equipment`), quando deveria mostrar pelo menos 6.
+**GAP-002 — RESOLVIDO NA ETAPA 6D.** Nem migração reexecutada nem dado
+histórico reescrito — o histórico passou a resolver por relacionamento:
+`app/shared/audit.py:equipment_audit_conditions` monta, além dos dois
+critérios já existentes (`entityId == equipment_id` /
+`metadata.equipmentId == equipment_id`), condições para os
+`EquipmentComponent` e sub-entidades 1:1 (`Negotiation`/`LegalProcess`/
+`Contract`/`PurchaseRequest`/`PurchaseOrder`) reais daquele equipamento
+(FK, não suposição). Confirmado rodando o endpoint real para "Caldeira de
+Biomassa": a timeline foi de **1 item** (só a criação do `Equipment`) para
+**30 itens** — todos os `AuditLog` de migração dos seus componentes e
+sub-processos.
 
-**GAP-003 — INCOMPLETO — P3.** O único item que aparece tem título cru
-`"migration.import"` (sem tradução amigável em `_AUDIT_TITLES`).
+**GAP-003 — RESOLVIDO NA ETAPA 6D.** `_AUDIT_TITLES["migration.import"] =
+"Importado do Monday"` — só tradução de apresentação, `action` continua
+`"migration.import"` no banco.
 
-**GAP-019 — INCOMPLETO — P2.** `AuditViewer.vue` (`/dashboard/auditoria`)
-só filtra por Entidade e Ação (texto livre); não tem filtro por
-equipamento/`entityId`, usuário, nem intervalo de data. Não há como isolar
-rapidamente "tudo que aconteceu com o equipamento X" por essa tela (é
-preciso usar a aba Histórico do próprio equipamento, que por sua vez tem o
-GAP-002).
+**GAP-019 — RESOLVIDO NA ETAPA 6D.** `GET /auditoria` ganhou
+`equipment_id` (mesma `equipment_audit_conditions` do GAP-002 — nunca uma
+segunda lógica), `user_id`, `date_from` e `date_to`. `AuditViewer.vue`
+ganhou os 4 filtros correspondentes (Equipamento/Usuário como `<select>`
+com IDs reais, período como `<input type="date">`) — sem busca avançada,
+sem query builder. Confirmado: filtrar Auditoria por "Caldeira de Biomassa"
+devolve os mesmos 30 itens que a aba Histórico do próprio equipamento.
 
 **GAP-020 — REGRA AINDA NÃO VALIDADA — P3.** Auditoria e Histórico
 continuam sendo duas telas/fontes totalmente separadas, sem rótulo
@@ -621,24 +640,24 @@ Etapa 6A**, junto com GAP-001 e GAP-009. Ver
 | ID | Área | Gap | Status | Prioridade | Bloqueia substituição do Monday? |
 |---|---|---|---|---|---|
 | GAP-001 | Work Packages / API | PATCH de equipamento pode devolver `workPackages` desatualizado na resposta imediata (banco correto) | **RESOLVIDO NA ETAPA 6A** | P1 | Não (impacto contido hoje) |
-| GAP-002 | Histórico/Auditoria | Sub-processos criados pela migração não aparecem na aba Histórico do equipamento | BUG | P2 | Não |
-| GAP-003 | Histórico/Auditoria | Título cru "migration.import" na timeline | INCOMPLETO | P3 | Não |
+| GAP-002 | Histórico/Auditoria | Sub-processos criados pela migração não aparecem na aba Histórico do equipamento | **RESOLVIDO NA ETAPA 6D** | ~~P2~~ | Não |
+| GAP-003 | Histórico/Auditoria | Título cru "migration.import" na timeline | **RESOLVIDO NA ETAPA 6D** | ~~P3~~ | Não |
 | GAP-004 | Workflow | Shortcut 2→4 não implementado | NÃO IMPLEMENTADO | P1/P2 | Depende de decisão de negócio |
 | GAP-005 | Workflow | Bypass de suprimentos não implementado | NÃO IMPLEMENTADO | P2 | Depende de decisão de negócio |
 | GAP-006 | Workflow | Reabertura genérica (sempre → etapa 1) | REGRA AINDA NÃO VALIDADA | P2 | Talvez |
 | GAP-007 | Workflow | Só uma forma de concluir 7→8 | REGRA AINDA NÃO VALIDADA | P3 | Não |
 | GAP-008 | Processo / UI | Dado de processo de equipamento concluído (etapa 8) não é editável pela UI | **RESOLVIDO NA ETAPA 6A** | ~~P0~~ | ~~Sim~~ |
 | GAP-009 | Componentes | Startup do componente ausente no frontend (listagem e formulário) | **RESOLVIDO NA ETAPA 6A** | P1 | Parcial |
-| GAP-010 | Listagem | Sem filtro de Área/Work Package e sem coluna de WP na listagem/exportação | INCOMPLETO | P2 | Não |
+| GAP-010 | Listagem | Sem filtro de Área/Work Package e sem coluna de WP na listagem/exportação | **RESOLVIDO NA ETAPA 6D** | ~~P2~~ | Não |
 | GAP-011 | Engenharia | Filtro por Disciplina + agrupamento por Responsável impossível hoje | **RESOLVIDO NA ETAPA 6A** | ~~P0~~ | ~~Sim~~ |
-| GAP-012a/b | Jurídico/Suprimentos | Coluna Responsável não exibida nas filas | INCOMPLETO | P2 | Não |
+| GAP-012a/b | Jurídico/Suprimentos | Coluna Responsável não exibida nas filas | **RESOLVIDO NA ETAPA 6D** | ~~P2~~ | Não |
 | GAP-013 | Fórmulas | Nenhuma fórmula/derivado implementado na aplicação viva | **RESOLVIDO NA ETAPA 6B** | ~~P1~~ | ~~Parcial~~ |
 | GAP-014 | Fórmulas | Status Negociação sem threshold (correto, registrar) | **REGRA CONFIRMADA / IMPLEMENTADA — ETAPA 6C** | ~~P2~~ | Não |
 | GAP-015 | Dashboard | Indicador de prazos hardcoded como indisponível | **REGRA CONFIRMADA / IMPLEMENTADA — ETAPA 6C.1** | ~~P2~~ | Não |
-| GAP-016 | Permissões | Frontend usa matriz local hardcoded em vez do array do backend | INCOMPLETO | P2 | Não |
+| GAP-016 | Permissões | Frontend usa matriz local hardcoded em vez do array do backend | **RESOLVIDO NA ETAPA 6D** | ~~P2~~ | Não |
 | GAP-017 | Permissões | Sem permissão departamental (esperado, registrar) | NÃO IMPLEMENTADO | P2 | Não |
 | GAP-018 | Permissões | Menu não filtra por permissão de leitura | INCOMPLETO | P3 | Não |
-| GAP-019 | Auditoria | Tela de Auditoria sem filtro por equipamento/usuário/data | INCOMPLETO | P2 | Não |
+| GAP-019 | Auditoria | Tela de Auditoria sem filtro por equipamento/usuário/data | **RESOLVIDO NA ETAPA 6D** | ~~P2~~ | Não |
 | GAP-020 | Auditoria | Auditoria e Histórico continuam separados, sem rótulo de migração | REGRA AINDA NÃO VALIDADA | P3 | Não |
 | GAP-021 | Geral | Botão de notificações decorativo | NÃO IMPLEMENTADO | P3 | Não |
 | UI-001 | Layout | Largura útil do módulo (1320px → 1680px) | **MELHORIA ESTRUTURAL CONCLUÍDA — ETAPA 6B** | — | Não (não era gap, era melhoria de UX) |
@@ -647,8 +666,8 @@ Etapa 6A**, junto com GAP-001 e GAP-009. Ver
 
 - **P0 (0, era 2)**: GAP-008 e GAP-011 resolvidos na Etapa 6A.
 - **P1 (1, era 4)**: GAP-004 (GAP-001/GAP-009 resolvidos na Etapa 6A; GAP-013 resolvido na Etapa 6B)
-- **P2 (9, era 11)**: GAP-002, GAP-005, GAP-006, GAP-010, GAP-012a, GAP-012b, GAP-016, GAP-017, GAP-019 (GAP-014 resolvido na Etapa 6C; GAP-015 resolvido na Etapa 6C.1)
-- **P3 (5)**: GAP-003, GAP-007, GAP-018, GAP-020, GAP-021
+- **P2 (3, era 11)**: GAP-005, GAP-006, GAP-017 (GAP-014 resolvido na Etapa 6C; GAP-015 resolvido na Etapa 6C.1; GAP-002/GAP-010/GAP-012a/GAP-012b/GAP-016/GAP-019 resolvidos na Etapa 6D)
+- **P3 (4, era 5)**: GAP-007, GAP-018, GAP-020, GAP-021 (GAP-003 resolvido na Etapa 6D)
 
 ---
 
@@ -669,8 +688,12 @@ datas DATE-ONLY — ver [`etapa-06c-dates-negotiation-status.md`](etapa-06c-date
 "Situação de prazos" do Dashboard) — ver
 [`etapa-06c1-work-need-dashboard.md`](etapa-06c1-work-need-dashboard.md).
 
+**Feito na Etapa 6D**: ~~GAP-002~~, ~~GAP-003~~, ~~GAP-010~~, ~~GAP-012a~~,
+~~GAP-012b~~, ~~GAP-016~~, ~~GAP-019~~ (completude operacional e auditoria)
+— ver
+[`etapa-06d-operational-completeness.md`](etapa-06d-operational-completeness.md).
+
 Próximos, em ordem sugerida:
 
-1. **GAP-002** — incluir `metadata={"equipmentId": ...}` nos audits de sub-entidade do `apply.py` (mudança pequena, sem tocar na MIG-001.1 histórica — é aditivo).
-2. **GAP-004/005/006/007** — decisão de negócio primeiro (confirmar se essas regras do Monday ainda se aplicam) antes de qualquer código.
-3. Demais P2/P3 — agrupar em uma leva de "completude de interface" (GAP-010, GAP-012a/b, GAP-016, GAP-019) após os itens acima.
+1. **GAP-004/005/006/007** — decisão de negócio primeiro (confirmar se essas regras do Monday ainda se aplicam) antes de qualquer código.
+2. Demais P2/P3 (GAP-017, GAP-018, GAP-020, GAP-021) — dependem de decisão de negócio (permissão departamental) ou são baixo impacto (menu, notificações, rótulo de migração).

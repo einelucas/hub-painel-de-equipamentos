@@ -324,6 +324,8 @@ def _apply_filters(
     stage: int | None,
     discipline_id: str | None,
     responsible_user_id: str | None,
+    area_id: str | None = None,
+    work_package_id: str | None = None,
 ) -> Select[Any]:
     # O join com o contexto é sempre necessário: é por ele que se chega à unidade.
     stmt = stmt.join(Equipment.project_context)
@@ -342,6 +344,21 @@ def _apply_filters(
         stmt = stmt.where(Equipment.discipline_id == discipline_id)
     if responsible_user_id:
         stmt = stmt.where(Equipment.responsible_user_id == responsible_user_id)
+    if area_id:
+        stmt = stmt.where(Equipment.area_id == area_id)
+    if work_package_id:
+        # GAP-010 (Etapa 6D): filtra pela relação N:N oficial
+        # (equipment_work_package), nunca pelo work_package_id singular
+        # legado. EXISTS em vez de JOIN — um equipamento com vários Work
+        # Packages nunca duplica linha na contagem/listagem.
+        stmt = stmt.where(
+            select(EquipmentWorkPackage.id)
+            .where(
+                EquipmentWorkPackage.equipment_id == Equipment.id,
+                EquipmentWorkPackage.work_package_id == work_package_id,
+            )
+            .exists()
+        )
     return stmt
 
 
@@ -360,6 +377,8 @@ async def list_equipments(
     page_size: int,
     sort_by: str,
     sort_dir: str,
+    area_id: str | None = None,
+    work_package_id: str | None = None,
 ) -> EquipmentListOut:
     page = max(1, page)
     page_size = min(100, max(1, page_size))
@@ -374,6 +393,8 @@ async def list_equipments(
         stage=stage,
         discipline_id=discipline_id,
         responsible_user_id=responsible_user_id,
+        area_id=area_id,
+        work_package_id=work_package_id,
     )
     total = (await session.execute(count_stmt)).scalar_one()
     component_count = (
@@ -392,6 +413,8 @@ async def list_equipments(
         stage=stage,
         discipline_id=discipline_id,
         responsible_user_id=responsible_user_id,
+        area_id=area_id,
+        work_package_id=work_package_id,
     ).options(*_base_load_options())
     sort_column = _SORT_COLUMNS.get(sort_by, Equipment.name)
     stmt = stmt.order_by(desc(sort_column) if sort_dir == "desc" else asc(sort_column), Equipment.id.asc())

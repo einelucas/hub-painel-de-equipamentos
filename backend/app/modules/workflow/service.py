@@ -41,7 +41,7 @@ from app.modules.workflow.stages import (
     ProcessState,
     requirements_for,
 )
-from app.shared.audit import record_audit
+from app.shared.audit import equipment_audit_conditions, record_audit
 
 _AUDIT_TITLES: dict[str, str] = {
     "equipment.create": "Equipamento cadastrado",
@@ -53,6 +53,9 @@ _AUDIT_TITLES: dict[str, str] = {
     "contract.update": "Contrato atualizado",
     "purchaserequest.update": "SC/OCI atualizada",
     "purchaseorder.update": "Ordem de compra atualizada",
+    # GAP-003 (Etapa 6D): só rótulo de apresentação — `action` continua
+    # "migration.import" no banco, nada é reescrito.
+    "migration.import": "Importado do Monday",
 }
 
 # A transição já entra no histórico pelo próprio workflow_transition.
@@ -245,17 +248,9 @@ async def history(session: AsyncSession, equipment_id: str, actor: CurrentUser) 
         .scalars()
         .all()
     )
+    conditions = await equipment_audit_conditions(session, equipment_id)
     audits = (
-        (
-            await session.execute(
-                select(AuditLog).where(
-                    or_(
-                        AuditLog.entityId == equipment_id,
-                        AuditLog.metadata_["equipmentId"].astext == equipment_id,
-                    )
-                )
-            )
-        )
+        (await session.execute(select(AuditLog).where(or_(*conditions))))
         .scalars()
         .all()
     )

@@ -65,6 +65,7 @@ onMounted(async () => {
           <TableRow>
             <TableHead>Equipamento</TableHead>
             <TableHead>Unidade</TableHead>
+            <TableHead>Responsável</TableHead>
             <TableHead>Etapa</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Número SC/OCI</TableHead>
@@ -81,6 +82,7 @@ onMounted(async () => {
           <TableRow v-for="row in queue.items.value" :key="row.equipmentId">
             <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
             <TableCell>{{ row.unit.code }}</TableCell>
+            <TableCell>{{ row.responsibleUser?.name ?? "—" }}</TableCell>
             <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
             <TableCell>{{ row.kind ?? "—" }}</TableCell>
             <TableCell>{{ row.requestNumber ?? "—" }}</TableCell>
