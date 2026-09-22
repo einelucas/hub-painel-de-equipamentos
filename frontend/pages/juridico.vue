@@ -55,6 +55,7 @@ onMounted(async () => {
           <TableRow>
             <TableHead>Equipamento</TableHead>
             <TableHead>Unidade</TableHead>
+            <TableHead>Responsável</TableHead>
             <TableHead>Etapa</TableHead>
             <TableHead>Chamado</TableHead>
             <TableHead>Abertura</TableHead>
@@ -62,6 +63,7 @@ onMounted(async () => {
             <TableHead>Minuta aprovada</TableHead>
             <TableHead>Contrato</TableHead>
             <TableHead>Escrituração</TableHead>
+            <TableHead>Entrega contratual</TableHead>
             <TableHead>Pendência</TableHead>
             <TableHead />
           </TableRow>
@@ -70,6 +72,7 @@ onMounted(async () => {
           <TableRow v-for="row in queue.items.value" :key="row.equipmentId">
             <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
             <TableCell>{{ row.unit.code }}</TableCell>
+            <TableCell>{{ row.responsibleUser?.name ?? "—" }}</TableCell>
             <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
             <TableCell>{{ row.ticketNumber ?? "—" }}</TableCell>
             <TableCell>{{ formatDateOnly(row.openedAt) }}</TableCell>
@@ -77,6 +80,7 @@ onMounted(async () => {
             <TableCell>{{ flag(row.draftApproved) }}</TableCell>
             <TableCell>{{ row.contractNumber ?? "—" }}</TableCell>
             <TableCell>{{ formatDateOnly(row.executedAt) }}</TableCell>
+            <TableCell>{{ formatDateOnly(row.deliveryAt) }}</TableCell>
             <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
             <TableCell><NuxtLink class="text-button" :to="`/equipamentos/${row.equipmentId}`">Ver detalhes</NuxtLink></TableCell>
           </TableRow>

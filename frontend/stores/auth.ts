@@ -1,21 +1,6 @@
 import { defineStore } from "pinia";
 import type { CurrentUser, Permission, Role } from "~/types/api";
-
-// Espelha app/core/permissions.py no backend, que continua sendo a fonte de verdade.
-const READ: Permission[] = ["equipments:read", "catalogs:read", "workflow:read", "suppliers:read"];
-const WRITE: Permission[] = [
-  ...READ,
-  "equipments:write",
-  "process:write",
-  "workflow:transition",
-  "suppliers:write",
-];
-
-const MATRIX: Record<Role, Permission[]> = {
-  VIEWER: READ,
-  ANALYST: WRITE,
-  ADMIN: [...WRITE, "users:manage", "audit:read", "catalogs:manage", "workflow:reopen"],
-};
+import { hasPermission } from "~/utils/permissions";
 
 export const useAuthStore = defineStore("auth", () => {
   const token = useCookie<string | null>("painel_equipamentos_access_token", { sameSite: "lax" });
@@ -24,7 +9,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const authenticated = computed(() => Boolean(token.value && user.value));
   const isAdmin = computed(() => user.value?.role === "ADMIN");
-  const can = (permission: Permission) => Boolean(user.value && MATRIX[user.value.role].includes(permission));
+  const can = (permission: Permission) => hasPermission(user.value, permission);
 
   async function loadUser(): Promise<boolean> {
     if (!token.value) {

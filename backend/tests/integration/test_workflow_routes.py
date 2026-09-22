@@ -6,8 +6,9 @@ import pytest
 from sqlalchemy import func, select
 
 from app.models.audit import AuditLog
-from app.models.equipment import WorkflowTransition
-from app.models.process import Negotiation
+from app.models.equipment import EquipmentComponent, WorkflowTransition
+from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
+from app.shared.audit import record_audit
 from tests.helpers import grant_unit
 
 # Requisito de cada transição `target - 1 -> target`.
@@ -272,6 +273,66 @@ async def test_history_consolidates_transitions_and_data_changes(client, auth_he
     assert any(item["action"] == "equipment.create" for item in items)
     timestamps = [item["occurredAt"] for item in items]
     assert timestamps == sorted(timestamps, reverse=True)
+
+
+async def test_history_surfaces_migration_style_subentity_audits(
+    client, auth_header, db_session
+) -> None:
+    """GAP-002 (Etapa 6D): AuditLogs de sub-entidade no formato exato da
+    migração (`entityId` da própria sub-entidade, sem `metadata.equipmentId`
+    — ver `monday_import/apply.py`) devem aparecer no histórico do
+    equipamento, resolvidos por relacionamento. Nenhum dado histórico é
+    reescrito e nenhuma WorkflowTransition é fabricada."""
+    equipment_id = await _new_equipment(client, auth_header, "Migração legada")
+
+    component = EquipmentComponent(equipment_id=equipment_id, name="Motor legado")
+    negotiation = Negotiation(equipment_id=equipment_id)
+    legal = LegalProcess(equipment_id=equipment_id)
+    contract = Contract(equipment_id=equipment_id)
+    purchase_request = PurchaseRequest(equipment_id=equipment_id)
+    purchase_order = PurchaseOrder(equipment_id=equipment_id)
+    db_session.add_all([component, negotiation, legal, contract, purchase_request, purchase_order])
+    await db_session.flush()
+
+    for model_name, entity_id in [
+        ("EquipmentComponent", component.id),
+        ("Negotiation", negotiation.id),
+        ("LegalProcess", legal.id),
+        ("Contract", contract.id),
+        ("PurchaseRequest", purchase_request.id),
+        ("PurchaseOrder", purchase_order.id),
+    ]:
+        await record_audit(
+            db_session,
+            action="migration.import",
+            entity=model_name,
+            entity_id=entity_id,
+            new_data={"migrated": True},
+            # Sem `equipmentId` no metadata — exatamente como a migração real grava.
+            metadata={"sourceSystem": "monday"},
+        )
+    await db_session.commit()
+
+    response = await client.get(
+        f"/api/v1/equipments/{equipment_id}/history", headers=auth_header("VIEWER")
+    )
+    assert response.status_code == 200
+    items = response.json()["items"]
+
+    migration_entries = [item for item in items if item["action"] == "migration.import"]
+    # component + Negotiation + LegalProcess + Contract + PurchaseRequest + PurchaseOrder.
+    assert len(migration_entries) == 6
+    assert all(item["title"] == "Importado do Monday" for item in migration_entries)
+    assert all(item["kind"] == "change" for item in migration_entries)
+
+    transition_count = (
+        await db_session.execute(
+            select(func.count(WorkflowTransition.id)).where(
+                WorkflowTransition.equipment_id == equipment_id
+            )
+        )
+    ).scalar_one()
+    assert transition_count == 0
 
 
 async def test_reopen_is_audited(client, auth_header, db_session) -> None:

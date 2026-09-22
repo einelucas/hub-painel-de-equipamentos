@@ -22,10 +22,14 @@ const equipments = ref<Equipment[]>([]);
 const pagination = ref<Pagination | null>(null);
 const disciplines = ref<CatalogItem[]>([]);
 const responsibles = ref<Responsible[]>([]);
+const areas = ref<CatalogItem[]>([]);
+const workPackages = ref<CatalogItem[]>([]);
 const search = ref("");
 const stage = ref<string>("");
 const disciplineId = ref("");
 const responsibleUserId = ref("");
+const areaId = ref("");
+const workPackageId = ref("");
 const exporting = ref(false);
 const page = ref(1);
 const loading = ref(true);
@@ -42,6 +46,37 @@ const canCreate = computed(() => auth.can("equipments:write") && Boolean(context
 // Administração contextual: só aparece para quem realmente pode administrar.
 const canAdminister = computed(() => auth.can("catalogs:manage") || auth.can("users:manage"));
 
+/**
+ * Área respeita a Unidade; Work Package respeita o(s) ProjectContext(s) da
+ * Unidade (a API exige `project_context_id`, nunca lista sem esse escopo —
+ * nunca usa o `workPackage` singular legado). Uma seleção que deixou de
+ * existir na nova lista (ex.: trocou de unidade) é limpa; uma que continua
+ * válida (ex.: catálogo administrado) permanece.
+ */
+async function loadAreaAndWorkPackageOptions(): Promise<void> {
+  if (!context.selectedUnit) {
+    areas.value = [];
+    workPackages.value = [];
+    areaId.value = "";
+    workPackageId.value = "";
+    return;
+  }
+  areas.value = (
+    await api.get<CatalogList<CatalogItem>>("/areas", { unit_id: context.selectedUnit })
+  ).items;
+  const contexts = (
+    await api.get<CatalogList<CatalogItem>>(`/units/${context.selectedUnit}/project-contexts`)
+  ).items;
+  const perContext = await Promise.all(
+    contexts.map((item) =>
+      api.get<CatalogList<CatalogItem>>("/work-packages", { project_context_id: item.id }),
+    ),
+  );
+  workPackages.value = perContext.flatMap((result) => result.items);
+  if (!areas.value.some((item) => item.id === areaId.value)) areaId.value = "";
+  if (!workPackages.value.some((item) => item.id === workPackageId.value)) workPackageId.value = "";
+}
+
 /** Catálogos mudaram: recarrega o que a tela usa para refletir na hora. */
 async function adminChanged(): Promise<void> {
   disciplines.value = (await api.get<CatalogList<CatalogItem>>("/disciplines")).items;
@@ -51,6 +86,7 @@ async function adminChanged(): Promise<void> {
       await api.get<CatalogList<Responsible>>("/responsibles", { unit_id: context.selectedUnit })
     ).items;
   }
+  await loadAreaAndWorkPackageOptions();
   await load();
 }
 
@@ -78,6 +114,8 @@ async function load(): Promise<void> {
     if (stage.value !== "") query.stage = Number(stage.value);
     if (disciplineId.value) query.discipline_id = disciplineId.value;
     if (responsibleUserId.value) query.responsible_user_id = responsibleUserId.value;
+    if (areaId.value) query.area_id = areaId.value;
+    if (workPackageId.value) query.work_package_id = workPackageId.value;
     const result = await api.get<EquipmentList>("/equipments", query);
     if (version !== requestVersion) return;
     equipments.value = result.items;
@@ -101,6 +139,14 @@ async function reload(): Promise<void> {
   await load();
 }
 
+/** Unidade/Equipamento globais mudaram: recarrega Área/WP antes da lista,
+ * para nunca filtrar por uma seleção que já deixou de existir na unidade
+ * nova. */
+async function onGlobalFilterChange(): Promise<void> {
+  await loadAreaAndWorkPackageOptions();
+  await reload();
+}
+
 /** Monta a consulta do recorte atual; `pageSize` alto traz o conjunto filtrado. */
 function currentQuery(pageSize: number, page: number): Record<string, unknown> {
   const query: Record<string, unknown> = {
@@ -113,6 +159,8 @@ function currentQuery(pageSize: number, page: number): Record<string, unknown> {
   if (stage.value !== "") query.stage = Number(stage.value);
   if (disciplineId.value) query.discipline_id = disciplineId.value;
   if (responsibleUserId.value) query.responsible_user_id = responsibleUserId.value;
+  if (areaId.value) query.area_id = areaId.value;
+  if (workPackageId.value) query.work_package_id = workPackageId.value;
   return query;
 }
 
@@ -139,6 +187,7 @@ async function exportAll(): Promise<void> {
         Contexto: item.projectContext.code,
         Área: item.area?.name ?? "",
         Disciplina: item.discipline?.name ?? "",
+        "Pacotes de Trabalho": item.workPackages.map((wp) => wp.code ?? wp.name).join(", "),
         Responsável: item.responsibleUser?.name ?? "",
         Etapa: `${item.currentStage} · ${item.stageName}`,
         Startup: formatDateOnly(item.startupAt),
@@ -174,6 +223,7 @@ onMounted(async () => {
       await api.get<CatalogList<Responsible>>("/responsibles", { unit_id: context.selectedUnit })
     ).items;
   }
+  await loadAreaAndWorkPackageOptions();
   await syncQuery();
   await load();
 });
@@ -189,7 +239,7 @@ onMounted(async () => {
       <h2>Sem permissão</h2><p>Seu perfil não tem acesso à leitura de equipamentos.</p>
     </div>
     <div v-else class="stack">
-      <ModuleFilters :refreshing="refreshing" @change="reload">
+      <ModuleFilters :refreshing="refreshing" @change="onGlobalFilterChange">
         <form class="field" @submit.prevent="reload">
           <span>Busca</span>
           <div class="search-control">
@@ -256,6 +306,32 @@ onMounted(async () => {
             >
               <option value="">Todos</option>
               <option v-for="item in responsibles" :key="item.id" :value="item.id">{{ item.name }}</option>
+            </select>
+          </label>
+          <label class="inline-field">
+            <span>Área</span>
+            <select
+              v-model="areaId"
+              :disabled="!context.selectedUnit"
+              :title="!context.selectedUnit ? 'Selecione uma unidade para filtrar por área' : undefined"
+              data-testid="area-filter"
+              @change="reload"
+            >
+              <option value="">Todas</option>
+              <option v-for="item in areas" :key="item.id" :value="item.id">{{ item.name }}</option>
+            </select>
+          </label>
+          <label class="inline-field">
+            <span>Pacote de trabalho</span>
+            <select
+              v-model="workPackageId"
+              :disabled="!context.selectedUnit"
+              :title="!context.selectedUnit ? 'Selecione uma unidade para filtrar por pacote de trabalho' : undefined"
+              data-testid="work-package-filter"
+              @change="reload"
+            >
+              <option value="">Todos</option>
+              <option v-for="item in workPackages" :key="item.id" :value="item.id">{{ item.code ?? item.name }}</option>
             </select>
           </label>
         </div>
