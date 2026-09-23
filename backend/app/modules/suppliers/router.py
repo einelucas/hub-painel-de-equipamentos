@@ -102,6 +102,24 @@ async def post_equipment_supplier(
     )
 
 
+@router.put("/equipments/{equipment_id}/suppliers", response_model=EquipmentSupplierOut)
+async def put_equipment_supplier(
+    equipment_id: str,
+    body: EquipmentSupplierLinkIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_write),
+) -> EquipmentSupplierOut:
+    """Etapa 7A: substituição explícita do fornecedor único do equipamento
+    — remove o vínculo atual (se houver) e cria o novo, na mesma transação."""
+    return await service.replace_supplier(
+        session,
+        equipment_id=equipment_id,
+        supplier_id=body.supplier_id,
+        role=body.role,
+        actor=actor,
+    )
+
+
 @router.patch(
     "/equipments/{equipment_id}/suppliers/{supplier_id}", response_model=EquipmentSupplierOut
 )

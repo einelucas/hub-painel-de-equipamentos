@@ -17,6 +17,7 @@ from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.permissions import Permission, assert_can
 from app.core.scope import assert_equipment_allowed
 from app.models.audit import AuditLog
+from app.models.common import utcnow
 from app.models.equipment import STAGES, Equipment, WorkflowTransition
 from app.models.process import (
     Contract,
@@ -25,8 +26,11 @@ from app.models.process import (
     PurchaseOrder,
     PurchaseRequest,
 )
+from app.models.supplier import EquipmentSupplier
 from app.models.user import User
+from app.models.workflow_extras import OperationalStatusEvent, WorkflowException
 from app.modules.equipments.schemas import UserRefOut
+from app.modules.notifications.service import trigger_for_transition
 from app.modules.workflow.schemas import (
     AvailableTransitionsOut,
     HistoryEntryOut,
@@ -36,9 +40,8 @@ from app.modules.workflow.schemas import (
 )
 from app.modules.workflow.stages import (
     FINAL_STAGE,
-    MIN_REOPEN_SOURCE_STAGE,
-    REOPEN_STAGE,
     ProcessState,
+    dispensed_codes,
     requirements_for,
 )
 from app.shared.audit import equipment_audit_conditions, record_audit
@@ -56,33 +59,86 @@ _AUDIT_TITLES: dict[str, str] = {
     # GAP-003 (Etapa 6D): só rótulo de apresentação — `action` continua
     # "migration.import" no banco, nada é reescrito.
     "migration.import": "Importado do Monday",
+    "workflowexception.create": "Exceção de fluxo aberta",
+    "workflowexception.cancel": "Exceção de fluxo cancelada",
+    "reopenrequest.create": "Reabertura solicitada",
+    "reopenrequest.approve": "Reabertura aprovada",
+    "reopenrequest.reject": "Reabertura rejeitada",
 }
 
-# A transição já entra no histórico pelo próprio workflow_transition.
-_AUDIT_SKIP = {"equipment.stage_changed"}
+_OPERATIONAL_EVENT_TITLES: dict[str, str] = {
+    "STANDBY_ENTERED": "Standby ativado",
+    "STANDBY_LIFTED": "Standby removido",
+    "CANCELLED": "Equipamento cancelado",
+    "SANITATION_ENTERED": "Em Saneamento (retorna à Nova Demanda)",
+    "SANITATION_ENDED": "Saneamento concluído",
+}
+
+_AUDIT_ACTIONS_FOR_EVENT: dict[str, str] = {
+    "STANDBY_ENTERED": "equipment.standby_entered",
+    "STANDBY_LIFTED": "equipment.standby_lifted",
+    "CANCELLED": "equipment.cancelled",
+    "SANITATION_ENTERED": "equipment.sanitation_entered",
+    "SANITATION_ENDED": "equipment.sanitation_ended",
+}
+
+# A transição já entra no histórico pelo próprio workflow_transition; o
+# estado operacional já entra pelo próprio operational_status_event — o
+# AuditLog é um registro auxiliar, não precisa aparecer duplicado aqui.
+_AUDIT_SKIP = {
+    "equipment.stage_changed",
+    "equipment.standby_entered",
+    "equipment.standby_lifted",
+    "equipment.cancelled",
+    "equipment.sanitation_entered",
+    "equipment.sanitation_ended",
+}
 
 
-async def _load_state(session: AsyncSession, equipment_id: str) -> ProcessState:
-    async def fetch(model: Any) -> Any:
+async def _load_state(session: AsyncSession, equipment_id: str, equipment: Equipment) -> ProcessState:
+    async def fetch_one(model: Any) -> Any:
         stmt = select(model).where(model.equipment_id == equipment_id)
         return (await session.execute(stmt)).scalar_one_or_none()
 
+    async def fetch_many(model: Any) -> list[Any]:
+        stmt = select(model).where(model.equipment_id == equipment_id).order_by(model.created_at)
+        return list((await session.execute(stmt)).scalars().all())
+
+    has_supplier = (
+        await session.execute(
+            select(EquipmentSupplier.id).where(EquipmentSupplier.equipment_id == equipment_id)
+        )
+    ).scalar_one_or_none() is not None
+
     return ProcessState(
-        negotiation=await fetch(Negotiation),
-        legal=await fetch(LegalProcess),
-        contract=await fetch(Contract),
-        purchase_request=await fetch(PurchaseRequest),
-        purchase_order=await fetch(PurchaseOrder),
+        negotiation=await fetch_one(Negotiation),
+        legal=await fetch_one(LegalProcess),
+        contracts=await fetch_many(Contract),
+        purchase_requests=await fetch_many(PurchaseRequest),
+        purchase_orders=await fetch_many(PurchaseOrder),
+        equipment=equipment,
+        has_supplier=has_supplier,
     )
 
 
-def _evaluate(from_stage: int, state: ProcessState) -> list[RequirementOut]:
+async def _active_exception(session: AsyncSession, equipment_id: str) -> WorkflowException | None:
+    stmt = select(WorkflowException).where(
+        WorkflowException.equipment_id == equipment_id,
+        WorkflowException.status == "ACTIVE",
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+def _evaluate(
+    from_stage: int, state: ProcessState, exception_type: str | None = None
+) -> list[RequirementOut]:
+    dispensed = dispensed_codes(exception_type)
     return [
         RequirementOut(
             code=spec.code,
             field=spec.field,
             message=spec.message,
-            satisfied=spec.check(state),
+            satisfied=True if spec.code in dispensed else spec.check(state),
         )
         for spec in requirements_for(from_stage)
     ]
@@ -106,14 +162,18 @@ async def available_transitions(
     session: AsyncSession, equipment_id: str, actor: CurrentUser
 ) -> AvailableTransitionsOut:
     equipment = await _get_equipment(session, equipment_id, lock=False, actor=actor)
-    state = await _load_state(session, equipment_id)
+    state = await _load_state(session, equipment_id, equipment)
     current = equipment.current_stage
     options: list[TransitionOptionOut] = []
+    exception = await _active_exception(session, equipment_id)
 
     if current < FINAL_STAGE:
-        requirements = _evaluate(current, state)
+        requirements = _evaluate(current, state, exception.type if exception else None)
         missing = [item for item in requirements if not item.satisfied]
-        allowed = actor_can(actor, Permission.WORKFLOW_TRANSITION)
+        allowed = (
+            actor_can(actor, Permission.WORKFLOW_TRANSITION)
+            and equipment.operational_status == "ACTIVE"
+        )
         options.append(
             TransitionOptionOut(
                 target_stage=current + 1,
@@ -124,7 +184,12 @@ async def available_transitions(
                 blocked_reason=(
                     None
                     if allowed
-                    else "Seu perfil não tem permissão para avançar etapas."
+                    else (
+                        "O equipamento não está ativo (Standby/Cancelado/Em Saneamento) — "
+                        "normalize o estado operacional antes de avançar."
+                        if equipment.operational_status != "ACTIVE"
+                        else "Seu perfil não tem permissão para avançar etapas."
+                    )
                 ),
                 requirements=requirements,
                 satisfied_requirements=[item for item in requirements if item.satisfied],
@@ -132,24 +197,9 @@ async def available_transitions(
             )
         )
 
-    if current >= MIN_REOPEN_SOURCE_STAGE:
-        allowed = actor_can(actor, Permission.WORKFLOW_REOPEN)
-        options.append(
-            TransitionOptionOut(
-                target_stage=REOPEN_STAGE,
-                target_stage_label=STAGES[REOPEN_STAGE],
-                kind="reopen",
-                can_execute=allowed,
-                requires_reason=True,
-                blocked_reason=(
-                    None if allowed else "A reabertura é restrita ao perfil administrativo."
-                ),
-                requirements=[],
-                satisfied_requirements=[],
-                missing_requirements=[],
-            )
-        )
-
+    # Etapa 7C: reabertura deixou de ser uma opção imediata aqui — agora
+    # passa por `ReopenRequest` (solicitação + aprovação por permissão
+    # superior). Ver `app.modules.workflow.reopen`.
     return AvailableTransitionsOut(
         current_stage=current,
         current_stage_label=STAGES[current],
@@ -165,15 +215,18 @@ def actor_can(actor: CurrentUser, permission: Permission) -> bool:
     return True
 
 
-def _classify(current: int, target: int) -> Literal["advance", "reopen"]:
-    if target == REOPEN_STAGE and current >= MIN_REOPEN_SOURCE_STAGE:
-        return "reopen"
+def _classify(current: int, target: int) -> Literal["advance"]:
     if target == current + 1 and target <= FINAL_STAGE:
         return "advance"
-    if target <= current:
+    if target == current:
         raise ConflictError(
             f"O equipamento já está na etapa {current} · {STAGES[current]}. "
             "Recarregue a página antes de tentar novamente."
+        )
+    if target < current:
+        raise DomainError(
+            "Reabertura não é feita por aqui — solicite reabertura com aprovação "
+            "(endpoint de solicitação de reabertura)."
         )
     raise DomainError(
         "Não é possível pular etapas. Avance uma etapa por vez a partir da etapa atual."
@@ -192,17 +245,22 @@ async def execute_transition(
     from_stage = equipment.current_stage
     kind = _classify(from_stage, target_stage)
     clean_reason = reason.strip() if reason else None
+    exception = await _active_exception(session, equipment_id)
 
-    if kind == "reopen":
-        assert_can(actor.role, Permission.WORKFLOW_REOPEN)
-        if not clean_reason:
-            raise DomainError("Informe o motivo da reabertura.")
-    else:
-        state = await _load_state(session, equipment_id)
-        missing = [item for item in _evaluate(from_stage, state) if not item.satisfied]
-        if missing:
-            pending = " ".join(item.message for item in missing)
-            raise DomainError(f"Requisitos pendentes para avançar: {pending}")
+    if equipment.operational_status != "ACTIVE":
+        raise DomainError(
+            "O equipamento não está ativo (Standby/Cancelado/Em Saneamento) — "
+            "normalize o estado operacional antes de avançar."
+        )
+    state = await _load_state(session, equipment_id, equipment)
+    missing = [
+        item
+        for item in _evaluate(from_stage, state, exception.type if exception else None)
+        if not item.satisfied
+    ]
+    if missing:
+        pending = " ".join(item.message for item in missing)
+        raise DomainError(f"Requisitos pendentes para avançar: {pending}")
 
     stored_stage = (
         await session.execute(select(Equipment.current_stage).where(Equipment.id == equipment_id))
@@ -212,16 +270,18 @@ async def execute_transition(
             "A etapa do equipamento foi alterada por outro usuário. Recarregue a página."
         )
 
-    session.add(
-        WorkflowTransition(
-            equipment_id=equipment.id,
-            from_stage=from_stage,
-            to_stage=target_stage,
-            reason=clean_reason,
-            actor_id=actor.id,
-        )
+    transition = WorkflowTransition(
+        equipment_id=equipment.id,
+        from_stage=from_stage,
+        to_stage=target_stage,
+        reason=clean_reason,
+        actor_id=actor.id,
     )
+    session.add(transition)
     equipment.current_stage = target_stage
+    if kind == "advance" and exception is not None and target_stage >= exception.intended_target_stage:
+        exception.status = "COMPLETED"
+        exception.completed_at = utcnow()
     await session.flush()
     await record_audit(
         session,
@@ -234,6 +294,13 @@ async def execute_transition(
         metadata={"equipmentId": equipment.id, "kind": kind},
     )
     await session.commit()
+
+    # Etapa 7F: Kickoff (conclusão da fase 5) / FUP (conclusão da fase 7).
+    # Roda DEPOIS do commit da fase — falha de notificação nunca desfaz nem
+    # bloqueia a transição real.
+    if kind == "advance":
+        await trigger_for_transition(session, equipment=equipment, transition=transition)
+
     return await available_transitions(session, equipment_id, actor)
 
 
@@ -254,9 +321,21 @@ async def history(session: AsyncSession, equipment_id: str, actor: CurrentUser) 
         .scalars()
         .all()
     )
+    operational_events = (
+        (
+            await session.execute(
+                select(OperationalStatusEvent).where(
+                    OperationalStatusEvent.equipment_id == equipment_id
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     actor_ids = {item.actor_id for item in transitions if item.actor_id}
     actor_ids |= {item.userId for item in audits if item.userId}
+    actor_ids |= {item.actor_id for item in operational_events if item.actor_id}
     actors: dict[str, UserRefOut] = {}
     if actor_ids:
         rows = (
@@ -295,6 +374,20 @@ async def history(session: AsyncSession, equipment_id: str, actor: CurrentUser) 
         )
         for item in audits
         if item.action not in _AUDIT_SKIP
+    )
+    entries.extend(
+        HistoryEntryOut(
+            id=item.id,
+            kind="operational_status",
+            action=_AUDIT_ACTIONS_FOR_EVENT.get(item.kind, item.kind),
+            title=_OPERATIONAL_EVENT_TITLES.get(item.kind, item.kind),
+            from_stage=item.stage_at_event,
+            from_stage_label=STAGES.get(item.stage_at_event),
+            justification=item.justification or None,
+            actor=actors.get(item.actor_id) if item.actor_id else None,
+            occurred_at=item.occurred_at,
+        )
+        for item in operational_events
     )
     entries.sort(key=lambda entry: entry.occurred_at, reverse=True)
     return HistoryOut(items=entries)

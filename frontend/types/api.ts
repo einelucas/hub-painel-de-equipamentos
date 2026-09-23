@@ -10,6 +10,8 @@ export type Permission =
   | "workflow:read"
   | "workflow:transition"
   | "workflow:reopen"
+  | "workflow:reopen_request"
+  | "workflow:reopen_approve"
   | "process:write"
   | "suppliers:read"
   | "suppliers:write";

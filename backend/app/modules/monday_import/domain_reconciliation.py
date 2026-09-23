@@ -160,9 +160,9 @@ async def reconcile_domain(
                 selectinload(Equipment.work_package_links),
                 joinedload(Equipment.negotiation),
                 joinedload(Equipment.legal_process),
-                joinedload(Equipment.contract),
-                joinedload(Equipment.purchase_request),
-                joinedload(Equipment.purchase_order),
+                selectinload(Equipment.contracts),
+                selectinload(Equipment.purchase_requests),
+                selectinload(Equipment.purchase_orders),
                 selectinload(Equipment.components),
             )
         )
@@ -293,10 +293,10 @@ async def reconcile_domain(
             FieldComparison(
                 "contract_number",
                 _compare(
-                    equipment.contract.contract_number if equipment.contract else None,
+                    (equipment.contracts[0].contract_number if equipment.contracts else None),
                     normalized.get("contract_number"),
                 ),
-                equipment.contract.contract_number if equipment.contract else None,
+                (equipment.contracts[0].contract_number if equipment.contracts else None),
                 normalized.get("contract_number"),
             )
         )
@@ -304,10 +304,10 @@ async def reconcile_domain(
             FieldComparison(
                 "purchase_request_number",
                 _compare(
-                    equipment.purchase_request.request_number if equipment.purchase_request else None,
+                    (equipment.purchase_requests[0].request_number if equipment.purchase_requests else None),
                     normalized.get("purchase_request_number"),
                 ),
-                equipment.purchase_request.request_number if equipment.purchase_request else None,
+                (equipment.purchase_requests[0].request_number if equipment.purchase_requests else None),
                 normalized.get("purchase_request_number"),
             )
         )
@@ -316,10 +316,10 @@ async def reconcile_domain(
             FieldComparison(
                 "purchase_order_number",
                 _compare(
-                    equipment.purchase_order.order_number if equipment.purchase_order else None,
+                    (equipment.purchase_orders[0].order_number if equipment.purchase_orders else None),
                     normalized.get("purchase_order_number"),
                 ),
-                equipment.purchase_order.order_number if equipment.purchase_order else None,
+                (equipment.purchase_orders[0].order_number if equipment.purchase_orders else None),
                 normalized.get("purchase_order_number"),
             )
         )

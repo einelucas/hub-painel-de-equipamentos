@@ -49,6 +49,13 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
+    # Etapa 7A, seção I — storage de arquivo de contrato. `local` é seguro
+    # para DEV/teste (filesystem do processo); produção precisa de um
+    # provider real (S3/Azure Blob/etc.) ainda não definido — ver
+    # `app.core.storage`. Nunca inventamos credenciais de nuvem aqui.
+    storage_provider: Literal["local"] = Field(default="local", alias="STORAGE_PROVIDER")
+    storage_local_dir: str = Field(default="./var/contract-files", alias="STORAGE_LOCAL_DIR")
+
     @field_validator("database_url", "migration_database_url")
     @classmethod
     def _require_asyncpg_scheme_for_app_url(cls, value: str | None) -> str | None:

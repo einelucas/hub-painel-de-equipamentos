@@ -6,11 +6,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.workflow import service
+from app.modules.workflow import exceptions as exceptions_service
+from app.modules.workflow import operational_status, service
+from app.modules.workflow import reopen as reopen_service
 from app.modules.workflow.schemas import (
     AvailableTransitionsOut,
+    EquipmentOperationalStatusOut,
     HistoryOut,
+    JustificationIn,
+    OptionalJustificationIn,
+    ReopenDecisionIn,
+    ReopenRequestCreateIn,
+    ReopenRequestListOut,
+    ReopenRequestOut,
     TransitionRequestIn,
+    WorkflowExceptionCreateIn,
+    WorkflowExceptionListOut,
+    WorkflowExceptionOut,
 )
 
 router = APIRouter(tags=["workflow"])
@@ -50,3 +62,196 @@ async def get_history(
     actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
 ) -> HistoryOut:
     return await service.history(session, equipment_id, actor)
+
+
+# --- Etapa 7B: estado operacional (Standby / Cancelado / Em Saneamento) ---
+
+
+@router.get(
+    "/equipments/{equipment_id}/operational-status",
+    response_model=EquipmentOperationalStatusOut,
+)
+async def get_operational_status(
+    equipment_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
+) -> EquipmentOperationalStatusOut:
+    return await operational_status.get_operational_status(session, equipment_id, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/standby",
+    response_model=EquipmentOperationalStatusOut,
+)
+async def post_standby(
+    equipment_id: str,
+    body: JustificationIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
+) -> EquipmentOperationalStatusOut:
+    return await operational_status.enter_standby(session, equipment_id, body.justification, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/standby/lift",
+    response_model=EquipmentOperationalStatusOut,
+)
+async def post_lift_standby(
+    equipment_id: str,
+    body: OptionalJustificationIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
+) -> EquipmentOperationalStatusOut:
+    return await operational_status.lift_standby(session, equipment_id, body.justification, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/cancel",
+    response_model=EquipmentOperationalStatusOut,
+)
+async def post_cancel(
+    equipment_id: str,
+    body: JustificationIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
+) -> EquipmentOperationalStatusOut:
+    return await operational_status.cancel_equipment(session, equipment_id, body.justification, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/sanitation",
+    response_model=EquipmentOperationalStatusOut,
+)
+async def post_sanitation(
+    equipment_id: str,
+    body: JustificationIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
+) -> EquipmentOperationalStatusOut:
+    return await operational_status.enter_sanitation(session, equipment_id, body.justification, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/sanitation/end",
+    response_model=EquipmentOperationalStatusOut,
+)
+async def post_end_sanitation(
+    equipment_id: str,
+    body: OptionalJustificationIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
+) -> EquipmentOperationalStatusOut:
+    return await operational_status.end_sanitation(session, equipment_id, body.justification, actor)
+
+
+# --- Etapa 7B: exceções de workflow (fornecedor fixo / importação) ---
+
+
+@router.get(
+    "/equipments/{equipment_id}/workflow-exceptions",
+    response_model=WorkflowExceptionListOut,
+)
+async def get_workflow_exceptions(
+    equipment_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
+) -> WorkflowExceptionListOut:
+    return await exceptions_service.list_exceptions(session, equipment_id, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/workflow-exceptions",
+    response_model=WorkflowExceptionOut,
+)
+async def post_workflow_exception(
+    equipment_id: str,
+    body: WorkflowExceptionCreateIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
+) -> WorkflowExceptionOut:
+    return await exceptions_service.create_exception(
+        session,
+        equipment_id,
+        exception_type=body.type,
+        justification=body.justification,
+        actor=actor,
+    )
+
+
+@router.post(
+    "/equipments/{equipment_id}/workflow-exceptions/{exception_id}/cancel",
+    response_model=WorkflowExceptionOut,
+)
+async def post_cancel_workflow_exception(
+    equipment_id: str,
+    exception_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
+) -> WorkflowExceptionOut:
+    return await exceptions_service.cancel_exception(session, equipment_id, exception_id, actor)
+
+
+# --- Etapa 7C: reabertura com aprovação ---
+
+
+@router.get(
+    "/equipments/{equipment_id}/reopen-requests",
+    response_model=ReopenRequestListOut,
+)
+async def get_reopen_requests(
+    equipment_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
+) -> ReopenRequestListOut:
+    return await reopen_service.list_reopen_requests(session, equipment_id, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/reopen-requests",
+    response_model=ReopenRequestOut,
+)
+async def post_reopen_request(
+    equipment_id: str,
+    body: ReopenRequestCreateIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_REOPEN_REQUEST)),
+) -> ReopenRequestOut:
+    return await reopen_service.request_reopen(
+        session,
+        equipment_id,
+        target_stage=body.target_stage,
+        justification=body.justification,
+        actor=actor,
+    )
+
+
+@router.post(
+    "/equipments/{equipment_id}/reopen-requests/{request_id}/approve",
+    response_model=ReopenRequestOut,
+)
+async def post_approve_reopen_request(
+    equipment_id: str,
+    request_id: str,
+    body: ReopenDecisionIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_REOPEN_APPROVE)),
+) -> ReopenRequestOut:
+    return await reopen_service.approve_reopen(
+        session, equipment_id, request_id, note=body.note, actor=actor
+    )
+
+
+@router.post(
+    "/equipments/{equipment_id}/reopen-requests/{request_id}/reject",
+    response_model=ReopenRequestOut,
+)
+async def post_reject_reopen_request(
+    equipment_id: str,
+    request_id: str,
+    body: ReopenDecisionIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_REOPEN_APPROVE)),
+) -> ReopenRequestOut:
+    return await reopen_service.reject_reopen(
+        session, equipment_id, request_id, note=body.note, actor=actor
+    )

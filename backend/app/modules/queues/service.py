@@ -28,6 +28,7 @@ from app.models.process import (
     PurchaseOrder,
     PurchaseRequest,
 )
+from app.models.supplier import EquipmentSupplier
 from app.modules.equipments.schemas import NamedRefOut, PaginationOut, UserRefOut
 from app.modules.queues.schemas import (
     EngineeringQueueOut,
@@ -156,21 +157,59 @@ async def _bulk(
     return {row.equipment_id: row for row in rows}
 
 
+async def _bulk_many(
+    session: AsyncSession, model: type[ProcessModel], equipment_ids: list[str]
+) -> dict[str, list[ProcessModel]]:
+    """Como `_bulk`, mas para os processos 1:N (Etapa 7A)."""
+    if not equipment_ids:
+        return {}
+    rows = (
+        (
+            await session.execute(
+                select(model)
+                .where(model.equipment_id.in_(equipment_ids))
+                .order_by(model.equipment_id, model.created_at)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    result: dict[str, list[ProcessModel]] = {equipment_id: [] for equipment_id in equipment_ids}
+    for row in rows:
+        result[row.equipment_id].append(row)
+    return result
+
+
 async def _process_states(
-    session: AsyncSession, equipment_ids: list[str]
+    session: AsyncSession,
+    equipment_ids: list[str],
+    equipments: dict[str, Equipment] | None = None,
 ) -> dict[str, ProcessState]:
     negotiations = await _bulk(session, Negotiation, equipment_ids)
     legals = await _bulk(session, LegalProcess, equipment_ids)
-    contracts = await _bulk(session, Contract, equipment_ids)
-    requests = await _bulk(session, PurchaseRequest, equipment_ids)
-    orders = await _bulk(session, PurchaseOrder, equipment_ids)
+    contracts = await _bulk_many(session, Contract, equipment_ids)
+    requests = await _bulk_many(session, PurchaseRequest, equipment_ids)
+    orders = await _bulk_many(session, PurchaseOrder, equipment_ids)
+    supplier_equipment_ids = {
+        row[0]
+        for row in (
+            await session.execute(
+                select(EquipmentSupplier.equipment_id).where(
+                    EquipmentSupplier.equipment_id.in_(equipment_ids)
+                )
+            )
+        ).all()
+    }
+    equipments = equipments or {}
     return {
         equipment_id: ProcessState(
             negotiation=negotiations.get(equipment_id),
             legal=legals.get(equipment_id),
-            contract=contracts.get(equipment_id),
-            purchase_request=requests.get(equipment_id),
-            purchase_order=orders.get(equipment_id),
+            contracts=contracts.get(equipment_id, []),
+            purchase_requests=requests.get(equipment_id, []),
+            purchase_orders=orders.get(equipment_id, []),
+            equipment=equipments.get(equipment_id),
+            has_supplier=equipment_id in supplier_equipment_ids,
         )
         for equipment_id in equipment_ids
     }
@@ -227,7 +266,7 @@ async def engineering_queue(
 ) -> EngineeringQueueOut:
     equipments, pagination = await _load_page(session, "engineering", filters, actor)
     ids = [item.id for item in equipments]
-    states = await _process_states(session, ids)
+    states = await _process_states(session, ids, {item.id: item for item in equipments})
     counts = await _component_counts(session, ids)
     return EngineeringQueueOut(
         items=[
@@ -263,12 +302,14 @@ async def _component_counts(session: AsyncSession, equipment_ids: list[str]) -> 
 async def legal_queue(session: AsyncSession, filters: QueueFilters, actor: CurrentUser) -> LegalQueueOut:
     equipments, pagination = await _load_page(session, "legal", filters, actor)
     ids = [item.id for item in equipments]
-    states = await _process_states(session, ids)
+    states = await _process_states(session, ids, {item.id: item for item in equipments})
     items: list[LegalRowOut] = []
     for equipment in equipments:
         state = states[equipment.id]
         legal = state.legal
-        contract = state.contract
+        # Etapa 7A: contrato 1:N — a fila mostra o mais recente; a lista
+        # completa vem de GET /equipments/{id}/contracts.
+        contract = state.contracts[-1] if state.contracts else None
         items.append(
             LegalRowOut(
                 **_base_fields(equipment, state),
@@ -279,7 +320,8 @@ async def legal_queue(session: AsyncSession, filters: QueueFilters, actor: Curre
                 draft_approved=bool(legal and legal.draft_approved),
                 contract_number=contract.contract_number if contract else None,
                 executed_at=contract.executed_at if contract else None,
-                delivery_at=contract.delivery_at if contract else None,
+                contractual_delivery_start=equipment.contractual_delivery_start,
+                contractual_delivery_end=equipment.contractual_delivery_end,
             )
         )
     return LegalQueueOut(items=items, pagination=pagination)
@@ -290,13 +332,14 @@ async def procurement_queue(
 ) -> ProcurementQueueOut:
     equipments, pagination = await _load_page(session, "procurement", filters, actor)
     ids = [item.id for item in equipments]
-    states = await _process_states(session, ids)
+    states = await _process_states(session, ids, {item.id: item for item in equipments})
     suppliers = await primary_suppliers(session, ids)
     items: list[ProcurementRowOut] = []
     for equipment in equipments:
         state = states[equipment.id]
-        request = state.purchase_request
-        order = state.purchase_order
+        # Etapa 7A: SC/OCI e OC 1:N — a fila mostra a mais recente de cada.
+        request = state.purchase_requests[-1] if state.purchase_requests else None
+        order = state.purchase_orders[-1] if state.purchase_orders else None
         supplier = suppliers.get(equipment.id)
         items.append(
             ProcurementRowOut(

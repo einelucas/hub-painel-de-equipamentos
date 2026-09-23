@@ -163,20 +163,23 @@ async def link_supplier(
     is_primary: bool,
     actor: CurrentUser,
 ) -> EquipmentSupplierOut:
+    """Etapa 7A: um equipamento tem no máximo UM fornecedor — um segundo
+    vínculo (com este ou outro fornecedor) é sempre rejeitado. Substituir o
+    fornecedor é uma operação explícita: `replace_supplier`."""
     await assert_equipment_allowed(session, actor, equipment_id)
     supplier = await get_supplier(session, supplier_id)
     if not supplier.active:
         raise DomainError("Fornecedor inativo não pode ser vinculado")
     existing = (
         await session.execute(
-            select(EquipmentSupplier).where(
-                EquipmentSupplier.equipment_id == equipment_id,
-                EquipmentSupplier.supplier_id == supplier_id,
-            )
+            select(EquipmentSupplier.id).where(EquipmentSupplier.equipment_id == equipment_id)
         )
     ).scalar_one_or_none()
     if existing is not None:
-        raise ConflictError("Este fornecedor já está vinculado ao equipamento")
+        raise ConflictError(
+            "Este equipamento já tem um fornecedor vinculado. "
+            "Use a substituição explícita para trocar."
+        )
 
     if is_primary:
         await _clear_primary(session, equipment_id, keep_id=None)
@@ -255,6 +258,55 @@ async def update_link(
     return _link_out(link)
 
 
+async def replace_supplier(
+    session: AsyncSession,
+    *,
+    equipment_id: str,
+    supplier_id: str,
+    role: str | None,
+    actor: CurrentUser,
+) -> EquipmentSupplierOut:
+    """Substituição explícita (Etapa 7A): remove o vínculo atual (se
+    houver) e cria o novo, na mesma transação — nunca um segundo INSERT
+    acumulando fornecedores."""
+    await assert_equipment_allowed(session, actor, equipment_id)
+    supplier = await get_supplier(session, supplier_id)
+    if not supplier.active:
+        raise DomainError("Fornecedor inativo não pode ser vinculado")
+
+    current = (
+        await session.execute(
+            select(EquipmentSupplier).where(EquipmentSupplier.equipment_id == equipment_id)
+        )
+    ).scalar_one_or_none()
+    previous_supplier_id = current.supplier_id if current else None
+    if current is not None:
+        await session.delete(current)
+        await session.flush()
+
+    link = EquipmentSupplier(
+        equipment_id=equipment_id,
+        supplier_id=supplier_id,
+        role=_clean(role),
+        is_primary=True,
+    )
+    session.add(link)
+    await session.flush()
+    await record_audit(
+        session,
+        user_id=actor.id,
+        action="equipment_supplier.replace",
+        entity="EquipmentSupplier",
+        entity_id=link.id,
+        previous_data={"supplier_id": previous_supplier_id},
+        new_data={"supplier_id": supplier_id, "role": link.role},
+        metadata={"equipmentId": equipment_id},
+    )
+    await session.commit()
+    await session.refresh(link, ["supplier"])
+    return _link_out(link)
+
+
 async def unlink_supplier(
     session: AsyncSession, *, equipment_id: str, supplier_id: str, actor: CurrentUser
 ) -> None:
@@ -279,17 +331,18 @@ async def unlink_supplier(
 async def primary_suppliers(
     session: AsyncSession, equipment_ids: list[str]
 ) -> dict[str, Supplier]:
-    """Fornecedor principal por equipamento, em lote (usado pelas filas)."""
+    """Fornecedor do equipamento, em lote (usado pelas filas).
+
+    Etapa 7A: no máximo 1 vínculo por equipamento — não filtra mais por
+    `is_primary` (a coluna fica sem função nova, ver `app.models.supplier`).
+    """
     if not equipment_ids:
         return {}
     links = (
         (
             await session.execute(
                 select(EquipmentSupplier)
-                .where(
-                    EquipmentSupplier.equipment_id.in_(equipment_ids),
-                    EquipmentSupplier.is_primary.is_(True),
-                )
+                .where(EquipmentSupplier.equipment_id.in_(equipment_ids))
                 .options(joinedload(EquipmentSupplier.supplier))
             )
         )

@@ -13,20 +13,15 @@ from tests.helpers import grant_unit
 
 # Requisito de cada transição `target - 1 -> target`.
 # Dados fictícios de teste: nenhum número/contrato real do processo.
+# Etapa 7A: Contract/PurchaseRequest/PurchaseOrder são 1:N — a etapa 6, 7 e a
+# conclusão (8) criam um registro via POST em vez de fazer PATCH num único
+# processo. A conclusão (8) usa a regra nova (seção 6): fornecedor + OC +
+# Valor Total do Projeto, não mais os requisitos de fases anteriores.
 _ADVANCE_PAYLOAD: dict[int, tuple[str, dict[str, object]]] = {
     2: ("negotiation", {"equalized": True}),
     3: ("negotiation", {"negotiatedAt": "2026-02-10"}),
     4: ("legal", {"openedAt": "2026-02-12", "ticketNumber": "TICKET-0001"}),
     5: ("legal", {"draftPrepared": True, "draftApproved": True}),
-    6: ("contract", {"contractNumber": "CT-0001", "executedAt": "2026-03-01"}),
-    7: (
-        "purchase-request",
-        {"kind": "SC", "requestNumber": "SC-0001", "requestedAt": "2026-03-05"},
-    ),
-    8: (
-        "purchase-order",
-        {"orderNumber": "OC-0001", "orderedAt": "2026-03-10"},
-    ),
 }
 
 
@@ -70,17 +65,56 @@ async def _advance(client, auth_header, equipment_id: str, target_stage: int):
             headers=auth_header("ANALYST"),
         )
         assert patched.status_code == 200, patched.text
-    if target_stage == 8:
-        await client.patch(
-            f"/api/v1/equipments/{equipment_id}/contract",
-            json={"deliveryAt": "2026-08-01"},
+    if target_stage == 6:
+        created = await client.post(
+            f"/api/v1/equipments/{equipment_id}/contracts",
+            json={"contractNumber": "CT-0001", "executedAt": "2026-03-01"},
             headers=auth_header("ANALYST"),
         )
+        assert created.status_code == 201, created.text
+    if target_stage == 7:
+        created = await client.post(
+            f"/api/v1/equipments/{equipment_id}/purchase-requests",
+            json={"kind": "SC", "requestNumber": "SC-0001", "requestedAt": "2026-03-05"},
+            headers=auth_header("ANALYST"),
+        )
+        assert created.status_code == 201, created.text
+    if target_stage == 8:
+        await _make_completable(client, auth_header, equipment_id)
     return await client.post(
         f"/api/v1/equipments/{equipment_id}/transitions",
         json={"targetStage": target_stage},
         headers=auth_header("ANALYST"),
     )
+
+
+async def _make_completable(client, auth_header, equipment_id: str) -> None:
+    """Satisfaz a regra de conclusão (Etapa 7, seção 6): fornecedor + pelo
+    menos uma OC + Valor Total do Projeto preenchido."""
+    order = await client.post(
+        f"/api/v1/equipments/{equipment_id}/purchase-orders",
+        json={"orderNumber": "OC-0001", "orderedAt": "2026-03-10", "amount": "1000.00"},
+        headers=auth_header("ANALYST"),
+    )
+    assert order.status_code == 201, order.text
+    supplier = await client.post(
+        "/api/v1/suppliers",
+        json={"legalName": f"Fornecedor {equipment_id[:8]}"},
+        headers=auth_header("ANALYST"),
+    )
+    assert supplier.status_code == 201, supplier.text
+    linked = await client.post(
+        f"/api/v1/equipments/{equipment_id}/suppliers",
+        json={"supplierId": supplier.json()["id"]},
+        headers=auth_header("ANALYST"),
+    )
+    assert linked.status_code == 201, linked.text
+    valued = await client.patch(
+        f"/api/v1/equipments/{equipment_id}",
+        json={"projectTotalValue": "150000.00"},
+        headers=auth_header("ANALYST"),
+    )
+    assert valued.status_code == 200, valued.text
 
 
 async def test_process_entities_are_created_once_per_equipment(
@@ -151,7 +185,9 @@ async def test_full_workflow_zero_to_eight(client, auth_header, db_session) -> N
     concluded = await client.get(
         f"/api/v1/equipments/{equipment_id}/available-transitions", headers=auth_header("VIEWER")
     )
-    assert [item["kind"] for item in concluded.json()["transitions"]] == ["reopen"]
+    # Etapa 7C: reabertura não aparece mais aqui — é feita via
+    # /reopen-requests (solicitação + aprovação), e a fase 8 já é final.
+    assert concluded.json()["transitions"] == []
 
 
 async def test_advance_blocked_without_requirements(client, auth_header, db_session) -> None:
@@ -219,31 +255,122 @@ async def test_current_stage_cannot_be_changed_by_patch(client, auth_header) -> 
     assert detail.json()["equipment"]["name"] == "Patch bloqueado"
 
 
+async def test_reopen_request_requires_permission_and_justification(client, auth_header) -> None:
+    # Etapa 7C: reabertura não é mais imediata via /transitions — é uma
+    # solicitação (`ReopenRequest`) que só muda a fase depois de aprovada.
+    equipment_id = await _new_equipment(client, auth_header, "Reabertura solicitação")
+    await _advance(client, auth_header, equipment_id, 1)
+    await _advance(client, auth_header, equipment_id, 2)
+
+    missing_justification = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 1},
+        headers=auth_header("ANALYST"),
+    )
+    assert missing_justification.status_code == 422
+
+    blocked = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 1, "justification": "Fornecedor revisou a proposta"},
+        headers=auth_header("VIEWER"),
+    )
+    assert blocked.status_code == 403
+
+    response = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 1, "justification": "Fornecedor revisou a proposta"},
+        headers=auth_header("ANALYST"),
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["status"] == "PENDING"
+    assert body["targetStage"] == 1
+
+    # A fase não muda enquanto a solicitação está pendente.
+    unchanged = await client.get(
+        f"/api/v1/equipments/{equipment_id}/available-transitions", headers=auth_header("VIEWER")
+    )
+    assert unchanged.json()["currentStage"] == 2
+
+
 @pytest.mark.parametrize(
     ("role", "expected"),
     [("VIEWER", 403), ("ANALYST", 403), ("ADMIN", 200)],
 )
-async def test_reopen_requires_admin_and_reason(client, auth_header, role, expected) -> None:
-    equipment_id = await _new_equipment(client, auth_header, f"Reabertura {role}")
+async def test_reopen_approval_requires_permission(client, auth_header, role, expected) -> None:
+    equipment_id = await _new_equipment(client, auth_header, f"Aprovação reabertura {role}")
     await _advance(client, auth_header, equipment_id, 1)
     await _advance(client, auth_header, equipment_id, 2)
 
-    without_reason = await client.post(
-        f"/api/v1/equipments/{equipment_id}/transitions",
-        json={"targetStage": 1},
-        headers=auth_header("ADMIN"),
+    request = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 1, "justification": "Fornecedor revisou a proposta"},
+        headers=auth_header("ANALYST"),
     )
-    assert without_reason.status_code == 422
-    assert "motivo" in without_reason.json()["error"].lower()
+    assert request.status_code == 201
+    request_id = request.json()["id"]
 
-    response = await client.post(
-        f"/api/v1/equipments/{equipment_id}/transitions",
-        json={"targetStage": 1, "reason": "Fornecedor revisou a proposta"},
+    decision = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests/{request_id}/approve",
+        json={},
         headers=auth_header(role),
     )
-    assert response.status_code == expected
+    assert decision.status_code == expected
     if expected == 200:
-        assert response.json()["currentStage"] == 1
+        assert decision.json()["status"] == "APPROVED"
+        after = await client.get(
+            f"/api/v1/equipments/{equipment_id}/available-transitions", headers=auth_header("VIEWER")
+        )
+        assert after.json()["currentStage"] == 1
+
+
+async def test_reopen_target_must_be_prior_stage(client, auth_header) -> None:
+    equipment_id = await _new_equipment(client, auth_header, "Reabertura alvo inválido")
+    await _advance(client, auth_header, equipment_id, 1)
+    await _advance(client, auth_header, equipment_id, 2)
+
+    future_or_equal = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 2, "justification": "Fase igual à atual"},
+        headers=auth_header("ANALYST"),
+    )
+    assert future_or_equal.status_code == 422
+
+    prior = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 1, "justification": "Fase anterior válida"},
+        headers=auth_header("ANALYST"),
+    )
+    assert prior.status_code == 201
+
+
+async def test_reopen_requester_cannot_approve_own_request(client, auth_header) -> None:
+    equipment_id = await _new_equipment(client, auth_header, "Reabertura auto-aprovação")
+    await _advance(client, auth_header, equipment_id, 1)
+    await _advance(client, auth_header, equipment_id, 2)
+
+    request = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 1, "justification": "Necessário revisar"},
+        headers=auth_header("ANALYST"),
+    )
+    assert request.status_code == 201
+    request_id = request.json()["id"]
+
+    reject = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests/{request_id}/reject",
+        json={"note": "Fora do escopo"},
+        headers=auth_header("ADMIN"),
+    )
+    assert reject.status_code == 200
+    assert reject.json()["status"] == "REJECTED"
+
+    still_pending_actions = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests/{request_id}/approve",
+        json={},
+        headers=auth_header("ADMIN"),
+    )
+    assert still_pending_actions.status_code == 422
 
 
 async def test_history_consolidates_transitions_and_data_changes(client, auth_header) -> None:
@@ -339,28 +466,50 @@ async def test_reopen_is_audited(client, auth_header, db_session) -> None:
     equipment_id = await _new_equipment(client, auth_header, "Auditoria reabertura")
     await _advance(client, auth_header, equipment_id, 1)
     await _advance(client, auth_header, equipment_id, 2)
-    await client.post(
-        f"/api/v1/equipments/{equipment_id}/transitions",
-        json={"targetStage": 1, "reason": "Revalidar proposta"},
+
+    request = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 1, "justification": "Revalidar proposta"},
+        headers=auth_header("ANALYST"),
+    )
+    assert request.status_code == 201
+    request_id = request.json()["id"]
+
+    approved = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests/{request_id}/approve",
+        json={"note": "Confirmado com o solicitante"},
         headers=auth_header("ADMIN"),
     )
+    assert approved.status_code == 200
 
     audits = (
         (
             await db_session.execute(
                 select(AuditLog).where(
-                    AuditLog.entityId == equipment_id,
-                    AuditLog.action == "equipment.stage_changed",
+                    AuditLog.entityId == request_id,
+                    AuditLog.action == "reopenrequest.approve",
                 )
             )
         )
         .scalars()
         .all()
     )
-    reopen = [item for item in audits if (item.metadata_ or {}).get("kind") == "reopen"]
-    assert len(reopen) == 1
-    assert reopen[0].newData["reason"] == "Revalidar proposta"
-    assert reopen[0].previousData["current_stage"] == 2
+    assert len(audits) == 1
+    assert audits[0].newData["current_stage"] == 1
+    assert audits[0].previousData["current_stage"] == 2
+
+    transitions = (
+        (
+            await db_session.execute(
+                select(WorkflowTransition).where(WorkflowTransition.equipment_id == equipment_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    reopen_transition = [item for item in transitions if item.to_stage == 1 and item.from_stage == 2]
+    assert len(reopen_transition) == 1
+    assert reopen_transition[0].reason == "Revalidar proposta"
 
 
 async def test_viewer_cannot_transition_or_write_process(client, auth_header) -> None:
@@ -394,12 +543,19 @@ async def test_process_editable_after_conclusion_without_changing_stage(
         assert response.status_code == 200, response.text
     assert response.json()["currentStage"] == 8
 
+    before = (
+        await client.get(f"/api/v1/equipments/{equipment_id}/processes", headers=auth_header("VIEWER"))
+    ).json()
+    contract_id = before["contracts"][0]["id"]
+    request_id = before["purchaseRequests"][0]["id"]
+    order_id = before["purchaseOrders"][0]["id"]
+
     edits = [
         ("negotiation", {"equalized": True, "negotiatedAt": "2026-05-01"}),
         ("legal", {"ticketNumber": "TICKET-CORRIGIDO"}),
-        ("contract", {"contractNumber": "CT-CORRIGIDO"}),
-        ("purchase-request", {"kind": "OCI", "requestNumber": "OCI-0002"}),
-        ("purchase-order", {"orderNumber": "OC-CORRIGIDA", "amount": 1500.5}),
+        (f"contracts/{contract_id}", {"contractNumber": "CT-CORRIGIDO"}),
+        (f"purchase-requests/{request_id}", {"kind": "OCI", "requestNumber": "OCI-0002"}),
+        (f"purchase-orders/{order_id}", {"orderNumber": "OC-CORRIGIDA", "amount": 1500.5}),
     ]
     for resource, payload in edits:
         patched = await client.patch(
@@ -416,10 +572,10 @@ async def test_process_editable_after_conclusion_without_changing_stage(
         await client.get(f"/api/v1/equipments/{equipment_id}/processes", headers=auth_header("VIEWER"))
     ).json()
     assert processes["legal"]["ticketNumber"] == "TICKET-CORRIGIDO"
-    assert processes["contract"]["contractNumber"] == "CT-CORRIGIDO"
-    assert processes["purchaseRequest"]["kind"] == "OCI"
-    assert processes["purchaseRequest"]["requestNumber"] == "OCI-0002"
-    assert processes["purchaseOrder"]["orderNumber"] == "OC-CORRIGIDA"
+    assert processes["contracts"][0]["contractNumber"] == "CT-CORRIGIDO"
+    assert processes["purchaseRequests"][0]["kind"] == "OCI"
+    assert processes["purchaseRequests"][0]["requestNumber"] == "OCI-0002"
+    assert processes["purchaseOrders"][0]["orderNumber"] == "OC-CORRIGIDA"
 
 
 async def test_viewer_cannot_write_process_at_stage_8(client, auth_header) -> None:
@@ -427,8 +583,8 @@ async def test_viewer_cannot_write_process_at_stage_8(client, auth_header) -> No
     for target in range(1, 9):
         await _advance(client, auth_header, equipment_id, target)
 
-    blocked = await client.patch(
-        f"/api/v1/equipments/{equipment_id}/purchase-request",
+    blocked = await client.post(
+        f"/api/v1/equipments/{equipment_id}/purchase-requests",
         json={"kind": "SC"},
         headers=auth_header("VIEWER"),
     )

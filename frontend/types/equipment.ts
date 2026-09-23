@@ -84,6 +84,11 @@ export interface ComponentCalculated {
   deliveryMarginDays: number | null;
 }
 
+/** Etapa 7A: separação entre FASE do processo (`currentStage`, 0-8) e
+ * ESTADO OPERACIONAL — um equipamento pode estar ativo, em Standby,
+ * cancelado ou em Saneamento independentemente da fase em que parou. */
+export type OperationalStatus = "ACTIVE" | "STANDBY" | "CANCELLED" | "IN_SANITATION";
+
 export interface Equipment {
   id: string;
   name: string;
@@ -97,6 +102,15 @@ export interface Equipment {
   unit: NamedRef;
   discipline: NamedRef | null;
   area: NamedRef | null;
+  /** Etapa 7A: um equipamento tem no máximo um fornecedor vinculado. */
+  supplier: NamedRef | null;
+  operationalStatus: OperationalStatus;
+  /** Informado manualmente — nunca somado automaticamente a partir das OCs. */
+  projectTotalValue: string | number | null;
+  /** Janela de entrega contratual (De/Até) — o fornecedor pode entregar em
+   * lotes até a data final. */
+  contractualDeliveryStart: string | null;
+  contractualDeliveryEnd: string | null;
   /**
    * @deprecated Espelho do FK legado singular (0..1). Não é mais escrito por
    * create/update — use `workPackages` (0..N, fonte oficial). Só existe
@@ -247,38 +261,129 @@ export interface LegalProcess {
   draftApproved: boolean;
 }
 
+/** Etapa 7A: Contrato deixou de ser 1:1 — um equipamento pode ter vários.
+ * Cada contrato tem seu próprio arquivo (opcional até o upload). */
+export interface ContractFile {
+  fileName: string;
+  fileContentType: string | null;
+  fileSizeBytes: number | null;
+  fileUploadedBy: UserRef | null;
+  fileUploadedAt: string | null;
+}
+
 export interface Contract {
-  id: string | null;
+  id: string;
   equipmentId: string;
   contractNumber: string | null;
   executedAt: string | null;
-  deliveryAt: string | null;
+  file: ContractFile | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type PurchaseRequestKind = "SC" | "OCI";
 
+/** Etapa 7A: SC/OCI deixou de ser 1:1 — um equipamento pode ter várias. */
 export interface PurchaseRequest {
-  id: string | null;
+  id: string;
   equipmentId: string;
   kind: PurchaseRequestKind | null;
   requestNumber: string | null;
   requestedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
+/** Etapa 7A: Ordem de compra deixou de ser 1:1 — um equipamento pode ter
+ * várias. O Valor Total do Projeto NÃO é a soma automática das OCs. */
 export interface PurchaseOrder {
-  id: string | null;
+  id: string;
   equipmentId: string;
   orderNumber: string | null;
   orderedAt: string | null;
   amount: string | number | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface EquipmentProcesses {
   negotiation: Negotiation;
   legal: LegalProcess;
-  contract: Contract;
-  purchaseRequest: PurchaseRequest;
-  purchaseOrder: PurchaseOrder;
+  contracts: Contract[];
+  purchaseRequests: PurchaseRequest[];
+  purchaseOrders: PurchaseOrder[];
+}
+
+/** Etapa 7B: eventos de mudança de estado operacional — sempre com
+ * justificativa, usuário, data/hora e a fase em que ocorreram. */
+export type OperationalStatusEventKind =
+  | "STANDBY_ENTERED"
+  | "STANDBY_LIFTED"
+  | "CANCELLED"
+  | "SANITATION_ENTERED"
+  | "SANITATION_ENDED";
+
+export interface OperationalStatusEvent {
+  id: string;
+  kind: OperationalStatusEventKind;
+  resultingStatus: OperationalStatus;
+  stageAtEvent: number;
+  justification: string;
+  actor: UserRef | null;
+  occurredAt: string;
+}
+
+export interface EquipmentOperationalStatus {
+  operationalStatus: OperationalStatus;
+  events: OperationalStatusEvent[];
+}
+
+/** Etapa 7B: exceções de fluxo — nunca um "force" genérico, sempre tipo +
+ * justificativa + destino pretendido conhecidos e auditáveis. */
+export type WorkflowExceptionType = "FIXED_SUPPLIER" | "IMPORTATION";
+export type WorkflowExceptionStatus = "ACTIVE" | "COMPLETED" | "CANCELLED";
+
+export interface WorkflowException {
+  id: string;
+  equipmentId: string;
+  type: WorkflowExceptionType;
+  status: WorkflowExceptionStatus;
+  sourceStage: number;
+  intendedTargetStage: number;
+  justification: string;
+  createdBy: UserRef | null;
+  createdAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+}
+
+/** Etapa 7C: reabertura com aprovação — a fase só muda quando `APPROVED`. */
+export type ReopenRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface ReopenRequest {
+  id: string;
+  equipmentId: string;
+  sourceStage: number;
+  sourceStageLabel: string;
+  targetStage: number;
+  targetStageLabel: string;
+  justification: string;
+  status: ReopenRequestStatus;
+  requestedBy: UserRef | null;
+  requestedAt: string;
+  decidedBy: UserRef | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+}
+
+/** Etapa 7E: comentário do equipamento — sem anexos, texto puro. */
+export interface EquipmentComment {
+  id: string;
+  equipmentId: string;
+  text: string;
+  author: UserRef | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TransitionRequirement {
@@ -291,7 +396,9 @@ export interface TransitionRequirement {
 export interface TransitionOption {
   targetStage: number;
   targetStageLabel: string;
-  kind: "advance" | "reopen";
+  /** Etapa 7C: "reopen" não é mais produzido aqui — reabertura passou a ser
+   * `ReopenRequest` (solicitação + aprovação). */
+  kind: "advance";
   canExecute: boolean;
   requiresReason: boolean;
   blockedReason: string | null;
@@ -308,7 +415,7 @@ export interface AvailableTransitions {
 
 export interface HistoryEntry {
   id: string;
-  kind: "transition" | "change";
+  kind: "transition" | "change" | "operational_status";
   action: string;
   title: string;
   fromStage: number | null;
@@ -316,6 +423,8 @@ export interface HistoryEntry {
   toStage: number | null;
   toStageLabel: string | null;
   reason: string | null;
+  /** Etapa 7B: justificativa de Standby/Cancelado/Saneamento. */
+  justification: string | null;
   actor: UserRef | null;
   occurredAt: string;
   previousData: Record<string, unknown> | null;

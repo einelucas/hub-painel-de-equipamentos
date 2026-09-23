@@ -42,6 +42,9 @@ const form = reactive({
   criticality: props.equipment?.criticality ?? "",
   capexEstimated: props.equipment?.capexEstimated?.toString() ?? "",
   responsibleUserId: props.equipment?.responsibleUser?.id ?? "",
+  projectTotalValue: props.equipment?.projectTotalValue?.toString() ?? "",
+  contractualDeliveryStart: props.equipment?.contractualDeliveryStart ?? "",
+  contractualDeliveryEnd: props.equipment?.contractualDeliveryEnd ?? "",
 });
 
 const workPackageSearch = ref("");
@@ -69,18 +72,6 @@ const filteredWorkPackages = computed(() => {
 
 function removeWorkPackage(id: string): void {
   form.workPackageIds = form.workPackageIds.filter((item) => item !== id);
-}
-
-function workPackageLabel(item: CatalogItem): string {
-  if (!item.code) {
-    return item.name;
-  }
-
-  if (item.name.trim().toLowerCase() === item.code.trim().toLowerCase()) {
-    return item.code;
-  }
-
-  return `${item.code} · ${item.name}`;
 }
 
 async function loadWorkPackages(): Promise<void> {
@@ -170,6 +161,10 @@ async function submit(): Promise<void> {
     capexEstimated:
       form.capexEstimated === "" ? null : Number(form.capexEstimated),
     responsibleUserId: form.responsibleUserId || null,
+    projectTotalValue:
+      form.projectTotalValue === "" ? null : Number(form.projectTotalValue),
+    contractualDeliveryStart: form.contractualDeliveryStart || null,
+    contractualDeliveryEnd: form.contractualDeliveryEnd || null,
   };
 
   try {
@@ -436,6 +431,29 @@ onMounted(loadCatalogs);
             {{ item.name }}
           </option>
         </select>
+      </label>
+
+      <label class="field">
+        <span>Valor total do projeto</span>
+
+        <input
+          v-model="form.projectTotalValue"
+          type="number"
+          min="0"
+          step="0.01"
+        />
+      </label>
+
+      <label class="field">
+        <span>Entrega contratual · de</span>
+
+        <input v-model="form.contractualDeliveryStart" type="date" />
+      </label>
+
+      <label class="field">
+        <span>Entrega contratual · até</span>
+
+        <input v-model="form.contractualDeliveryEnd" type="date" />
       </label>
 
       <p v-if="equipment" class="stage-note field-wide">

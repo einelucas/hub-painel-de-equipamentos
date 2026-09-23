@@ -22,6 +22,15 @@ if TYPE_CHECKING:
         PurchaseRequest,
     )
     from app.models.supplier import EquipmentSupplier
+    from app.models.workflow_extras import (
+        Comment,
+        OperationalStatusEvent,
+        ReopenRequest,
+        WorkflowException,
+    )
+
+# Etapa 7 — estado operacional, separado da fase do processo (`current_stage`).
+OPERATIONAL_STATUSES = ("ACTIVE", "STANDBY", "CANCELLED", "IN_SANITATION")
 
 
 class Unit(Base):
@@ -160,6 +169,18 @@ class Equipment(Base):
     criticality: Mapped[str | None] = mapped_column(String(40), nullable=True)
     current_stage: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     capex_estimated: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    # Etapa 7 — estado operacional (ACTIVE/STANDBY/CANCELLED/IN_SANITATION),
+    # sempre derivado do OperationalStatusEvent mais recente. Nunca editado
+    # direto: só pelo serviço de workflow, que sempre grava o evento junto.
+    operational_status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")
+    # Preenchido manualmente; nunca calculado a partir da soma das OCs
+    # (Etapa 7A, seção D).
+    project_total_value: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    # Janela de entrega contratual (De/Até) — pertence ao processo do
+    # equipamento, não a um contrato individual, porque o fornecedor pode
+    # entregar em partes ao longo de vários contratos (Etapa 7A, seção F).
+    contractual_delivery_start: Mapped[date | None] = mapped_column(Date, nullable=True)
+    contractual_delivery_end: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow, onupdate=utcnow)
 
@@ -180,13 +201,16 @@ class Equipment(Base):
     legal_process: Mapped[LegalProcess | None] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
-    contract: Mapped[Contract | None] = relationship(
+    # Etapa 7A: Contract/PurchaseRequest/PurchaseOrder passam de 1:1 (escalar)
+    # para 1:N (lista) — um equipamento pode ter vários contratos, várias
+    # SC/OCI e várias OCs.
+    contracts: Mapped[list[Contract]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
-    purchase_request: Mapped[PurchaseRequest | None] = relationship(
+    purchase_requests: Mapped[list[PurchaseRequest]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
-    purchase_order: Mapped[PurchaseOrder | None] = relationship(
+    purchase_orders: Mapped[list[PurchaseOrder]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
     supplier_links: Mapped[list[EquipmentSupplier]] = relationship(
@@ -195,13 +219,39 @@ class Equipment(Base):
     work_package_links: Mapped[list[EquipmentWorkPackage]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
+    operational_status_events: Mapped[list[OperationalStatusEvent]] = relationship(
+        back_populates="equipment", cascade="all, delete-orphan"
+    )
+    workflow_exceptions: Mapped[list[WorkflowException]] = relationship(
+        back_populates="equipment", cascade="all, delete-orphan"
+    )
+    reopen_requests: Mapped[list[ReopenRequest]] = relationship(
+        back_populates="equipment", cascade="all, delete-orphan"
+    )
+    comments: Mapped[list[Comment]] = relationship(
+        back_populates="equipment", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         CheckConstraint("current_stage BETWEEN 0 AND 8", name="equipment_current_stage_check"),
         CheckConstraint("capex_estimated IS NULL OR capex_estimated >= 0", name="equipment_capex_check"),
+        CheckConstraint(
+            "operational_status IN ('ACTIVE','STANDBY','CANCELLED','IN_SANITATION')",
+            name="equipment_operational_status_check",
+        ),
+        CheckConstraint(
+            "project_total_value IS NULL OR project_total_value >= 0",
+            name="equipment_project_total_value_check",
+        ),
+        CheckConstraint(
+            "contractual_delivery_start IS NULL OR contractual_delivery_end IS NULL "
+            "OR contractual_delivery_start <= contractual_delivery_end",
+            name="equipment_delivery_window_order_check",
+        ),
         Index("equipment_project_context_id_idx", "project_context_id"),
         Index("equipment_current_stage_idx", "current_stage"),
         Index("equipment_name_idx", "name"),
+        Index("equipment_operational_status_idx", "operational_status"),
     )
 
 
