@@ -41,6 +41,10 @@ WORKFLOW_EXCEPTION_STATUSES = ("ACTIVE", "COMPLETED", "CANCELLED")
 
 REOPEN_REQUEST_STATUSES = ("PENDING", "APPROVED", "REJECTED")
 
+# Etapa 7.1 — substitui WorkflowException/EXCEPTION_DISPENSED_REQUIREMENT_CODES.
+REQUIREMENT_WAIVER_STATUSES = ("ACTIVE", "REVOKED")
+REQUIREMENT_WAIVER_REASON_CODES = ("IMPORTATION", "FIXED_SUPPLIER", "EXCEPTIONAL_PROCESS", "OTHER")
+
 
 class OperationalStatusEvent(Base):
     """Um evento por mudança de `Equipment.operational_status` (entrada ou
@@ -184,6 +188,67 @@ class ReopenRequest(Base):
             postgresql_where=status.is_("PENDING"),
         ),
         Index("reopen_request_equipment_id_idx", "equipment_id"),
+    )
+
+
+class RequirementWaiver(Base):
+    """Etapa 7.1 — dispensa de um GRUPO de requisitos de uma fase
+    específica (ex.: "não possui contrato"). Substitui o mecanismo rígido
+    de `WorkflowException`/`EXCEPTION_DISPENSED_REQUIREMENT_CODES`: aqui
+    `reason_code` é só classificação para auditoria — quem decide QUAIS
+    grupos existem e quais são dispensáveis é o backend
+    (`app.modules.workflow.stages`), nunca o motivo escolhido pelo usuário.
+    Nunca apagado: revogar é um novo estado (`REVOKED`), auditável — o
+    registro original (quem, quando, por quê) fica preservado."""
+
+    __tablename__ = "requirement_waiver"
+
+    id: Mapped[str] = uuid_pk()
+    equipment_id: Mapped[str] = mapped_column(
+        ForeignKey("equipment.id", ondelete="CASCADE"), nullable=False
+    )
+    stage: Mapped[int] = mapped_column(nullable=False)
+    requirement_group_code: Mapped[str] = mapped_column(String(40), nullable=False)
+    reason_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    justification: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False, default="ACTIVE")
+    created_by_id: Mapped[str | None] = mapped_column(
+        ForeignKey("User.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+    revoked_by_id: Mapped[str | None] = mapped_column(
+        ForeignKey("User.id", ondelete="SET NULL"), nullable=True
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(Timestamp3, nullable=True)
+    revoke_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    equipment: Mapped[Equipment] = relationship(back_populates="requirement_waivers")
+    created_by: Mapped[User | None] = relationship("User", foreign_keys=[created_by_id])
+    revoked_by: Mapped[User | None] = relationship("User", foreign_keys=[revoked_by_id])
+
+    __table_args__ = (
+        CheckConstraint("stage BETWEEN 0 AND 8", name="requirement_waiver_stage_check"),
+        CheckConstraint(
+            "status IN ('ACTIVE','REVOKED')", name="requirement_waiver_status_check"
+        ),
+        CheckConstraint(
+            "reason_code IN ('IMPORTATION','FIXED_SUPPLIER','EXCEPTIONAL_PROCESS','OTHER')",
+            name="requirement_waiver_reason_code_check",
+        ),
+        CheckConstraint(
+            "length(trim(justification)) > 0", name="requirement_waiver_justification_check"
+        ),
+        # Só uma dispensa ativa por equipamento+fase+grupo — evita duas
+        # justificativas concorrentes cobrindo o mesmo requisito.
+        Index(
+            "requirement_waiver_one_active_key",
+            "equipment_id",
+            "stage",
+            "requirement_group_code",
+            unique=True,
+            postgresql_where=status.is_("ACTIVE"),
+        ),
+        Index("requirement_waiver_equipment_id_idx", "equipment_id"),
     )
 
 

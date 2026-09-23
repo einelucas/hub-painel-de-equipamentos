@@ -34,6 +34,7 @@ from app.models.workflow_extras import (
     Comment,
     OperationalStatusEvent,
     ReopenRequest,
+    RequirementWaiver,
     WorkflowException,
 )
 
@@ -60,6 +61,7 @@ __all__ = [
     "PurchaseOrder",
     "PurchaseRequest",
     "ReopenRequest",
+    "RequirementWaiver",
     "Supplier",
     "Unit",
     "UserUnitAccess",

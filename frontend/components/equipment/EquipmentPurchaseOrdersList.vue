@@ -51,7 +51,7 @@ async function submit(): Promise<void> {
   const payload = {
     orderNumber: blankToNull(form.orderNumber),
     orderedAt: blankToNull(form.orderedAt),
-    amount: form.amount.trim() === "" ? null : Number(form.amount),
+    amount: form.amount === "" ? null : Number(form.amount),
   };
   try {
     if (editing.value) {

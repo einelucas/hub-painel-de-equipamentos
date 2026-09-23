@@ -338,23 +338,31 @@ export interface EquipmentOperationalStatus {
   events: OperationalStatusEvent[];
 }
 
-/** Etapa 7B: exceções de fluxo — nunca um "force" genérico, sempre tipo +
- * justificativa + destino pretendido conhecidos e auditáveis. */
-export type WorkflowExceptionType = "FIXED_SUPPLIER" | "IMPORTATION";
-export type WorkflowExceptionStatus = "ACTIVE" | "COMPLETED" | "CANCELLED";
+/** Etapa 7.1: dispensa de requisitos por GRUPO — substitui as exceções de
+ * fluxo rígidas da Etapa 7B (FIXED_SUPPLIER/IMPORTATION). O motivo é só
+ * classificação/auditoria; quais grupos existem e são dispensáveis é
+ * decidido pelo backend, nunca reconstruído no frontend. */
+export type RequirementWaiverReasonCode =
+  | "IMPORTATION"
+  | "FIXED_SUPPLIER"
+  | "EXCEPTIONAL_PROCESS"
+  | "OTHER";
+export type RequirementWaiverStatus = "ACTIVE" | "REVOKED";
 
-export interface WorkflowException {
+export interface RequirementWaiver {
   id: string;
   equipmentId: string;
-  type: WorkflowExceptionType;
-  status: WorkflowExceptionStatus;
-  sourceStage: number;
-  intendedTargetStage: number;
+  stage: number;
+  requirementGroupCode: string;
+  requirementGroupLabel: string;
+  reasonCode: RequirementWaiverReasonCode;
   justification: string;
+  status: RequirementWaiverStatus;
   createdBy: UserRef | null;
   createdAt: string;
-  completedAt: string | null;
-  cancelledAt: string | null;
+  revokedBy: UserRef | null;
+  revokedAt: string | null;
+  revokeReason: string | null;
 }
 
 /** Etapa 7C: reabertura com aprovação — a fase só muda quando `APPROVED`. */
@@ -386,11 +394,18 @@ export interface EquipmentComment {
   updatedAt: string;
 }
 
-export interface TransitionRequirement {
+/** Etapa 7.1: status por GRUPO de requisitos — a UI só reflete o que o
+ * backend calculou, nunca reconstrói a regra localmente. */
+export type RequirementGroupStatus = "SATISFIED" | "WAIVED" | "MISSING";
+
+export interface RequirementGroup {
   code: string;
-  field: string;
+  label: string;
+  status: RequirementGroupStatus;
+  waivable: boolean;
+  fields: string[];
   message: string;
-  satisfied: boolean;
+  waiver: RequirementWaiver | null;
 }
 
 export interface TransitionOption {
@@ -402,9 +417,7 @@ export interface TransitionOption {
   canExecute: boolean;
   requiresReason: boolean;
   blockedReason: string | null;
-  requirements: TransitionRequirement[];
-  satisfiedRequirements: TransitionRequirement[];
-  missingRequirements: TransitionRequirement[];
+  requirementGroups: RequirementGroup[];
 }
 
 export interface AvailableTransitions {

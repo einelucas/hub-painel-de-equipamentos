@@ -72,6 +72,14 @@ async def _advance(client, auth_header, equipment_id: str, target_stage: int):
             headers=auth_header("ANALYST"),
         )
         assert created.status_code == 201, created.text
+        # Etapa 7.1: o grupo CONTRACT exige número + data + arquivo no
+        # MESMO registro — sem waiver, o fluxo normal precisa do arquivo.
+        uploaded = await client.put(
+            f"/api/v1/equipments/{equipment_id}/contracts/{created.json()['id']}/file",
+            files={"file": ("contrato.pdf", b"conteudo fake de teste", "application/pdf")},
+            headers=auth_header("ANALYST"),
+        )
+        assert uploaded.status_code == 200, uploaded.text
     if target_stage == 7:
         created = await client.post(
             f"/api/v1/equipments/{equipment_id}/purchase-requests",
@@ -117,14 +125,10 @@ async def _make_completable(client, auth_header, equipment_id: str) -> None:
     assert valued.status_code == 200, valued.text
 
 
-async def test_process_entities_are_created_once_per_equipment(
-    client, auth_header, db_session
-) -> None:
+async def test_process_entities_are_created_once_per_equipment(client, auth_header, db_session) -> None:
     equipment_id = await _new_equipment(client, auth_header, "Bomba processo")
 
-    empty = await client.get(
-        f"/api/v1/equipments/{equipment_id}/negotiation", headers=auth_header("VIEWER")
-    )
+    empty = await client.get(f"/api/v1/equipments/{equipment_id}/negotiation", headers=auth_header("VIEWER"))
     assert empty.status_code == 200
     assert empty.json()["id"] is None
     assert empty.json()["equalized"] is False
@@ -152,9 +156,9 @@ async def test_process_entities_are_created_once_per_equipment(
     assert set(processes.json()) == {
         "negotiation",
         "legal",
-        "contract",
-        "purchaseRequest",
-        "purchaseOrder",
+        "contracts",
+        "purchaseRequests",
+        "purchaseOrders",
     }
 
 
@@ -201,9 +205,8 @@ async def test_advance_blocked_without_requirements(client, auth_header, db_sess
     advance = available.json()["transitions"][0]
     assert advance["targetStage"] == 2
     assert advance["canExecute"] is False
-    assert [item["code"] for item in advance["missingRequirements"]] == [
-        "negotiation_equalized_required"
-    ]
+    missing = [item["code"] for item in advance["requirementGroups"] if item["status"] == "MISSING"]
+    assert missing == ["NEGOTIATION_EQUALIZATION"]
 
     blocked = await client.post(
         f"/api/v1/equipments/{equipment_id}/transitions",
@@ -215,9 +218,7 @@ async def test_advance_blocked_without_requirements(client, auth_header, db_sess
 
     assert (
         await db_session.execute(
-            select(func.count(WorkflowTransition.id)).where(
-                WorkflowTransition.equipment_id == equipment_id
-            )
+            select(func.count(WorkflowTransition.id)).where(WorkflowTransition.equipment_id == equipment_id)
         )
     ).scalar_one() == 1
 
@@ -388,9 +389,7 @@ async def test_history_consolidates_transitions_and_data_changes(client, auth_he
         headers=auth_header("ADMIN"),
     )
 
-    history = await client.get(
-        f"/api/v1/equipments/{equipment_id}/history", headers=auth_header("VIEWER")
-    )
+    history = await client.get(f"/api/v1/equipments/{equipment_id}/history", headers=auth_header("VIEWER"))
     assert history.status_code == 200
     items = history.json()["items"]
     kinds = {item["kind"] for item in items}
@@ -402,9 +401,7 @@ async def test_history_consolidates_transitions_and_data_changes(client, auth_he
     assert timestamps == sorted(timestamps, reverse=True)
 
 
-async def test_history_surfaces_migration_style_subentity_audits(
-    client, auth_header, db_session
-) -> None:
+async def test_history_surfaces_migration_style_subentity_audits(client, auth_header, db_session) -> None:
     """GAP-002 (Etapa 6D): AuditLogs de sub-entidade no formato exato da
     migração (`entityId` da própria sub-entidade, sem `metadata.equipmentId`
     — ver `monday_import/apply.py`) devem aparecer no histórico do
@@ -440,9 +437,7 @@ async def test_history_surfaces_migration_style_subentity_audits(
         )
     await db_session.commit()
 
-    response = await client.get(
-        f"/api/v1/equipments/{equipment_id}/history", headers=auth_header("VIEWER")
-    )
+    response = await client.get(f"/api/v1/equipments/{equipment_id}/history", headers=auth_header("VIEWER"))
     assert response.status_code == 200
     items = response.json()["items"]
 
@@ -454,9 +449,7 @@ async def test_history_surfaces_migration_style_subentity_audits(
 
     transition_count = (
         await db_session.execute(
-            select(func.count(WorkflowTransition.id)).where(
-                WorkflowTransition.equipment_id == equipment_id
-            )
+            select(func.count(WorkflowTransition.id)).where(WorkflowTransition.equipment_id == equipment_id)
         )
     ).scalar_one()
     assert transition_count == 0

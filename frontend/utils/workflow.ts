@@ -1,4 +1,4 @@
-import type { OperationalStatus, TransitionOption, WorkflowExceptionType } from "~/types/equipment";
+import type { OperationalStatus, RequirementWaiverReasonCode, TransitionOption } from "~/types/equipment";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 
 /** Etapa 7A: só negociação e jurídico continuam com forma 1:1 editável
@@ -39,9 +39,13 @@ export const OPERATIONAL_STATUS_LABELS: Record<OperationalStatus, string> = {
   IN_SANITATION: "Em Saneamento",
 };
 
-export const WORKFLOW_EXCEPTION_LABELS: Record<WorkflowExceptionType, string> = {
-  FIXED_SUPPLIER: "Fornecedor fixo",
+/** Etapa 7.1: motivo da dispensa — só classificação/auditoria, nunca
+ * determina quais grupos são dispensáveis (isso é decidido pelo backend). */
+export const REQUIREMENT_WAIVER_REASON_LABELS: Record<RequirementWaiverReasonCode, string> = {
   IMPORTATION: "Importação",
+  FIXED_SUPPLIER: "Fornecedor fixo",
+  EXCEPTIONAL_PROCESS: "Processo excepcional",
+  OTHER: "Outro",
 };
 
 export function stepStates(currentStage: number, nextStageBlocked = false): WorkflowStep[] {

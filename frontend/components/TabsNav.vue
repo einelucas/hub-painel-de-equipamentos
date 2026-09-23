@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Boxes, History, LayoutDashboard, Scale, ShoppingCart, Wrench } from "lucide-vue-next";
+import { Boxes, Kanban, LayoutDashboard, Scale, ShoppingCart, Wrench } from "lucide-vue-next";
 import type { NavIcon } from "~/utils/navigation";
 import { NAV_ITEMS, activeNavPath, visibleNavItems } from "~/utils/navigation";
 
@@ -13,7 +13,7 @@ const ICONS = {
   engineering: Wrench,
   legal: Scale,
   procurement: ShoppingCart,
-  audit: History,
+  kanban: Kanban,
 } satisfies Record<NavIcon, unknown>;
 
 const items = computed(() => visibleNavItems(NAV_ITEMS, auth.can));

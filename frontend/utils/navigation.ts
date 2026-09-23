@@ -6,7 +6,7 @@ export type NavIcon =
   | "engineering"
   | "legal"
   | "procurement"
-  | "audit";
+  | "kanban";
 
 export interface NavItem {
   label: string;
@@ -22,7 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Engenharia", to: "/engenharia", icon: "engineering" },
   { label: "Jurídico", to: "/juridico", icon: "legal" },
   { label: "Suprimentos", to: "/suprimentos", icon: "procurement" },
-  { label: "Auditoria", to: "/dashboard/auditoria", icon: "audit", permission: "audit:read" },
+  { label: "Kanban", to: "/equipamentos/kanban", icon: "kanban", permission: "equipments:read" },
 ];
 
 export function visibleNavItems(

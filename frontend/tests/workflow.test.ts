@@ -10,9 +10,7 @@ function option(overrides: Partial<TransitionOption> = {}): TransitionOption {
     canExecute: false,
     requiresReason: false,
     blockedReason: null,
-    requirements: [],
-    satisfiedRequirements: [],
-    missingRequirements: [],
+    requirementGroups: [],
     ...overrides,
   };
 }

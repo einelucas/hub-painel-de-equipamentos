@@ -8,12 +8,48 @@ from pydantic import Field
 from app.modules.equipments.schemas import UserRefOut
 from app.shared.schema import CamelModel
 
+# --- Etapa 7.1: requisitos agrupados + dispensa (RequirementWaiver) ---
 
-class RequirementOut(CamelModel):
+
+class RequirementWaiverOut(CamelModel):
+    id: str
+    equipment_id: str
+    stage: int
+    requirement_group_code: str
+    requirement_group_label: str
+    reason_code: Literal["IMPORTATION", "FIXED_SUPPLIER", "EXCEPTIONAL_PROCESS", "OTHER"]
+    justification: str
+    status: Literal["ACTIVE", "REVOKED"]
+    created_by: UserRefOut | None = None
+    created_at: datetime
+    revoked_by: UserRefOut | None = None
+    revoked_at: datetime | None = None
+    revoke_reason: str | None = None
+
+
+class RequirementWaiverListOut(CamelModel):
+    items: list[RequirementWaiverOut]
+
+
+class RequirementWaiverCreateIn(CamelModel):
+    stage: int = Field(ge=0, le=8)
+    requirement_group_code: str = Field(min_length=1, max_length=40)
+    reason_code: Literal["IMPORTATION", "FIXED_SUPPLIER", "EXCEPTIONAL_PROCESS", "OTHER"]
+    justification: str = Field(min_length=1, max_length=1000)
+
+
+class RequirementWaiverRevokeIn(CamelModel):
+    revoke_reason: str | None = Field(default=None, max_length=1000)
+
+
+class RequirementGroupOut(CamelModel):
     code: str
-    field: str
+    label: str
+    status: Literal["SATISFIED", "WAIVED", "MISSING"]
+    waivable: bool
+    fields: list[str]
     message: str
-    satisfied: bool
+    waiver: RequirementWaiverOut | None = None
 
 
 class TransitionOptionOut(CamelModel):
@@ -26,9 +62,10 @@ class TransitionOptionOut(CamelModel):
     can_execute: bool
     requires_reason: bool
     blocked_reason: str | None = None
-    requirements: list[RequirementOut]
-    satisfied_requirements: list[RequirementOut]
-    missing_requirements: list[RequirementOut]
+    # Etapa 7.1: substitui `requirements`/`satisfied_requirements`/
+    # `missing_requirements` (por campo) — a UI não reconstrói a regra
+    # localmente, só reflete o que o backend calculou por grupo.
+    requirement_groups: list[RequirementGroupOut]
 
 
 class AvailableTransitionsOut(CamelModel):
@@ -91,30 +128,12 @@ class EquipmentOperationalStatusOut(CamelModel):
     events: list[OperationalStatusEventOut]
 
 
-# --- Etapa 7B: exceções de workflow (fornecedor fixo / importação) ---
-
-
-class WorkflowExceptionCreateIn(CamelModel):
-    type: Literal["FIXED_SUPPLIER", "IMPORTATION"]
-    justification: str = Field(min_length=1, max_length=1000)
-
-
-class WorkflowExceptionOut(CamelModel):
-    id: str
-    equipment_id: str
-    type: Literal["FIXED_SUPPLIER", "IMPORTATION"]
-    status: Literal["ACTIVE", "COMPLETED", "CANCELLED"]
-    source_stage: int
-    intended_target_stage: int
-    justification: str
-    created_by: UserRefOut | None = None
-    created_at: datetime
-    completed_at: datetime | None = None
-    cancelled_at: datetime | None = None
-
-
-class WorkflowExceptionListOut(CamelModel):
-    items: list[WorkflowExceptionOut]
+# Etapa 7B introduziu `WorkflowException` (FIXED_SUPPLIER/IMPORTATION) como
+# exceção de fluxo rígida. Etapa 7.1 substitui esse mecanismo por
+# `RequirementWaiver` (dispensa por grupo, ver acima) — os schemas
+# `WorkflowException*` foram removidos daqui; o modelo/tabela seguem
+# existindo só por compatibilidade (nenhum registro real em produção, ver
+# docs/validation/etapa-07-1-requirement-waivers.md).
 
 
 # --- Etapa 7C: reabertura com aprovação ---

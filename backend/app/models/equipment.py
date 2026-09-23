@@ -26,6 +26,7 @@ if TYPE_CHECKING:
         Comment,
         OperationalStatusEvent,
         ReopenRequest,
+        RequirementWaiver,
         WorkflowException,
     )
 
@@ -222,10 +223,15 @@ class Equipment(Base):
     operational_status_events: Mapped[list[OperationalStatusEvent]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
+    # Etapa 7.1 substitui este mecanismo por RequirementWaiver — mantido só
+    # por compatibilidade de schema (nenhum registro real em produção).
     workflow_exceptions: Mapped[list[WorkflowException]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
     reopen_requests: Mapped[list[ReopenRequest]] = relationship(
+        back_populates="equipment", cascade="all, delete-orphan"
+    )
+    requirement_waivers: Mapped[list[RequirementWaiver]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
     comments: Mapped[list[Comment]] = relationship(

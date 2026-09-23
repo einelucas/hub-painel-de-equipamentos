@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight, Ban, Pencil, PlayCircle, Plus, RotateCcw, ShieldAlert, Wrench } from "lucide-vue-next";
-import type { Equipment, EquipmentComponent, EquipmentDetail, WorkflowExceptionType } from "~/types/equipment";
+import { ArrowLeft, ArrowRight, Ban, Pencil, PlayCircle, Plus, RotateCcw, Wrench } from "lucide-vue-next";
+import type { Equipment, EquipmentComponent, EquipmentDetail } from "~/types/equipment";
 import { formatCurrency, formatDateOnly, formatDateTime } from "~/utils/format";
 import { negotiationStatusLabel, negotiationStatusTone } from "~/utils/negotiationStatus";
 import { workNeedStatusLabel, workNeedStatusTone } from "~/utils/workNeedStatus";
 import { EQUIPMENT_STAGES, stageTone } from "~/utils/stages";
 import {
   OPERATIONAL_STATUS_LABELS,
-  WORKFLOW_EXCEPTION_LABELS,
   type ProcessResource,
   advanceLabel as buildAdvanceLabel,
 } from "~/utils/workflow";
@@ -48,6 +47,17 @@ const operationalStatus = computed(
 );
 const isActive = computed(() => operationalStatus.value === "ACTIVE");
 const lastOperationalEvent = computed(() => workflow.operationalStatus.value?.events[0] ?? null);
+
+/** Etapa 7.1: grupo de requisito (SATISFIED/WAIVED/MISSING) da fase atual,
+ * por código — usado para colocar o "Não possui X" junto de onde o dado é
+ * registrado (Negociação/Jurídico no formulário da etapa; Contrato/SC-OCI
+ * nas listas correspondentes). */
+function requirementGroupByCode(code: string) {
+  return workflow.advance.value?.requirementGroups.find((group) => group.code === code) ?? null;
+}
+const stageRequirementGroup = computed(() => workflow.advance.value?.requirementGroups[0] ?? null);
+const contractRequirementGroup = computed(() => requirementGroupByCode("CONTRACT"));
+const purchaseRequestRequirementGroup = computed(() => requirementGroupByCode("PURCHASE_REQUEST"));
 
 async function loadEquipment(): Promise<void> {
   loading.value = true;
@@ -117,27 +127,6 @@ async function confirmSanitation(text: string): Promise<void> {
 }
 async function confirmEndSanitation(text: string): Promise<void> {
   if ((await workflow.endSanitation(text)) !== null) showEndSanitation.value = false;
-}
-
-// --- Etapa 7B: exceções de workflow ---
-const showException = ref(false);
-const exceptionType = ref<WorkflowExceptionType>("FIXED_SUPPLIER");
-const exceptionJustification = ref("");
-
-function openException(): void {
-  exceptionType.value = "FIXED_SUPPLIER";
-  exceptionJustification.value = "";
-  showException.value = true;
-}
-async function confirmException(): Promise<void> {
-  if (!exceptionJustification.value.trim()) return;
-  if (await workflow.createException(exceptionType.value, exceptionJustification.value.trim())) {
-    showException.value = false;
-  }
-}
-async function cancelException(): Promise<void> {
-  const active = workflow.activeException.value;
-  if (active) await workflow.cancelException(active.id);
 }
 
 // --- Etapa 7C: reabertura com aprovação ---
@@ -227,7 +216,7 @@ onMounted(load);
             </strong>
           </div>
         </div>
-        <EquipmentWorkflowStepper :current-stage="currentStage" :next-stage-blocked="Boolean(workflow.advance.value?.missingRequirements.length)" />
+        <EquipmentWorkflowStepper :current-stage="currentStage" :next-stage-blocked="Boolean(workflow.advance.value?.requirementGroups.some((group) => group.status === 'MISSING'))" />
         <p v-if="!isActive && lastOperationalEvent" class="operational-note" data-testid="operational-note">
           <strong>{{ OPERATIONAL_STATUS_LABELS[operationalStatus] }}</strong> desde {{ formatDateTime(lastOperationalEvent.occurredAt) }}
           por {{ lastOperationalEvent.actor?.name ?? "usuário removido" }} — {{ lastOperationalEvent.justification }}
@@ -235,25 +224,16 @@ onMounted(load);
       </section>
 
       <section v-if="canOperate" class="surface">
-        <div class="surface-header"><div><h2>Ações do processo</h2><p>Standby, cancelamento, saneamento e exceções de fluxo — sempre com justificativa e auditadas.</p></div></div>
+        <div class="surface-header"><div><h2>Ações do processo</h2><p>Standby, cancelamento e saneamento — sempre com justificativa e auditados. Dispensa de requisitos ("Não possui") fica junto de cada requisito, na aba Processo.</p></div></div>
         <div class="surface-body operational-actions">
           <template v-if="isActive">
             <button class="btn" data-testid="standby-button" @click="showStandby = true"><PlayCircle :size="15" /> Colocar em Standby</button>
             <button class="btn" data-testid="sanitation-button" @click="showSanitation = true"><Wrench :size="15" /> Colocar em Saneamento</button>
             <button class="btn danger" data-testid="cancel-button" @click="showCancel = true"><Ban :size="15" /> Cancelar equipamento</button>
-            <button v-if="!workflow.activeException.value" class="btn" data-testid="exception-button" @click="openException"><ShieldAlert :size="15" /> Abrir exceção de fluxo</button>
           </template>
           <button v-else-if="operationalStatus === 'STANDBY'" class="btn primary" data-testid="lift-standby-button" @click="showLiftStandby = true">Remover Standby</button>
           <button v-else-if="operationalStatus === 'IN_SANITATION'" class="btn primary" data-testid="end-sanitation-button" @click="showEndSanitation = true">Encerrar Saneamento</button>
           <p v-else-if="operationalStatus === 'CANCELLED'" class="operational-hint">Cancelamento é definitivo — não é possível retomar o fluxo normal a partir daqui.</p>
-        </div>
-
-        <div v-if="workflow.activeException.value" class="surface-body exception-panel" data-testid="active-exception">
-          <div class="exception-info">
-            <span class="exception-badge">{{ WORKFLOW_EXCEPTION_LABELS[workflow.activeException.value.type] }}</span>
-            <p>Alvo: fase {{ workflow.activeException.value.intendedTargetStage }} · {{ EQUIPMENT_STAGES[workflow.activeException.value.intendedTargetStage] }} — {{ workflow.activeException.value.justification }}</p>
-          </div>
-          <button v-if="isActive" class="text-button danger" @click="cancelException">Cancelar exceção</button>
         </div>
       </section>
 
@@ -337,7 +317,16 @@ onMounted(load);
               <div class="surface-body">
                 <p v-if="workflow.actionError.value" class="notice error" role="alert" data-testid="action-error">{{ workflow.actionError.value }}</p>
                 <p v-else-if="workflow.actionSuccess.value" class="notice" data-testid="action-success">{{ workflow.actionSuccess.value }}</p>
-                <EquipmentStageForm :stage="currentStage" :processes="workflow.processes.value" :editable="canWriteProcess" :saving="workflow.saving.value" @save="saveProcess" />
+                <EquipmentStageForm
+                  :stage="currentStage"
+                  :processes="workflow.processes.value"
+                  :editable="canWriteProcess"
+                  :saving="workflow.saving.value"
+                  :equipment-id="equipmentId"
+                  :requirement-group="stageRequirementGroup"
+                  @save="saveProcess"
+                  @changed="workflow.load()"
+                />
               </div>
             </section>
 
@@ -369,12 +358,18 @@ onMounted(load);
             :equipment-id="equipmentId"
             :contracts="workflow.processes.value.contracts"
             :editable="canWriteProcess"
+            :requirement-group="contractRequirementGroup"
+            :requirement-stage="currentStage"
+            :requirement-waiver="workflow.activeWaiverFor('CONTRACT')"
             @changed="workflow.load()"
           />
           <EquipmentPurchaseRequestsList
             :equipment-id="equipmentId"
             :items="workflow.processes.value.purchaseRequests"
             :editable="canWriteProcess"
+            :requirement-group="purchaseRequestRequirementGroup"
+            :requirement-stage="currentStage"
+            :requirement-waiver="workflow.activeWaiverFor('PURCHASE_REQUEST')"
             @changed="workflow.load()"
           />
           <EquipmentPurchaseOrdersList
@@ -442,21 +437,7 @@ onMounted(load);
 
       <EquipmentComments v-else-if="tab === 'comments'" :equipment-id="equipmentId" />
 
-      <section v-else class="surface">
-        <div class="surface-header"><div><h2>Histórico</h2><p>Transições de etapa, estados especiais e alterações relevantes do processo.</p></div></div>
-        <div v-if="workflow.history.value.length === 0" class="empty-state table-empty"><h2>Sem registros</h2><p>As ações realizadas neste equipamento aparecerão aqui.</p></div>
-        <div v-else class="timeline" data-testid="history-timeline">
-          <article v-for="entry in workflow.history.value" :key="entry.id" class="timeline-item">
-            <span class="timeline-dot" :class="{ 'timeline-dot--change': entry.kind === 'change', 'timeline-dot--status': entry.kind === 'operational_status' }" />
-            <div>
-              <strong>{{ entry.title }}</strong>
-              <p v-if="entry.reason">{{ entry.reason }}</p>
-              <p v-if="entry.justification" class="timeline-justification">{{ entry.justification }}</p>
-              <small>{{ formatDateTime(entry.occurredAt) }} · {{ entry.actor?.name ?? "Usuário removido" }}</small>
-            </div>
-          </article>
-        </div>
-      </section>
+      <EquipmentHistory v-else :equipment-id="equipmentId" />
     </div>
 
     <AppModal :open="showEdit" title="Editar equipamento" @close="showEdit = false"><EquipmentForm v-if="showEdit && detail" :unit-id="detail.equipment.unit.id" :equipment="detail.equipment" @saved="equipmentSaved" @cancel="showEdit = false" /></AppModal>
@@ -515,30 +496,6 @@ onMounted(load);
       @confirm="confirmEndSanitation"
       @close="showEndSanitation = false"
     />
-
-    <AppModal :open="showException" title="Abrir exceção de fluxo" @close="showException = false">
-      <form class="exception-form" @submit.prevent="confirmException">
-        <label class="field">
-          <span>Tipo *</span>
-          <select v-model="exceptionType">
-            <option value="FIXED_SUPPLIER">Fornecedor fixo (até a fase 5)</option>
-            <option value="IMPORTATION">Importação (até a fase 7)</option>
-          </select>
-        </label>
-        <p class="exception-hint">
-          O avanço continua manual, fase por fase — a exceção só dispensa as validações específicas do tipo escolhido, sem pular etapas automaticamente.
-        </p>
-        <label class="field">
-          <span>Justificativa *</span>
-          <textarea v-model="exceptionJustification" maxlength="1000" required rows="3" />
-        </label>
-        <p v-if="workflow.actionError.value" class="notice error" role="alert">{{ workflow.actionError.value }}</p>
-        <div class="form-actions">
-          <button type="button" class="btn" @click="showException = false">Cancelar</button>
-          <button type="submit" class="btn primary" :disabled="!exceptionJustification.trim() || workflow.busy.value">Abrir exceção</button>
-        </div>
-      </form>
-    </AppModal>
 
     <AppModal :open="showReopenRequest" title="Solicitar reabertura" @close="showReopenRequest = false">
       <form class="exception-form" @submit.prevent="confirmReopenRequest">
@@ -614,10 +571,6 @@ onMounted(load);
 .operational-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .operational-hint { margin: 0; color: #8b96a5; font-size: 12px; }
 .btn.danger { border-color: #e8c3bc; color: #a4453a; }
-.exception-panel { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 0; border-top: 1px solid #edf1f5; }
-.exception-info { display: grid; gap: 4px; }
-.exception-badge { display: inline-flex; width: fit-content; border-radius: 999px; padding: 3px 9px; background: #eef2f7; color: #2b3e58; font-size: 11px; font-weight: 750; }
-.exception-info p { margin: 0; color: #65748a; font-size: 12px; }
 .exception-form { display: grid; gap: 14px; }
 .exception-hint { margin: -6px 0 0; color: #8b96a5; font-size: 11.5px; }
 .reopen-pending { margin: 0 0 12px; color: #65748a; font-size: 12px; }
@@ -630,16 +583,6 @@ onMounted(load);
 @media (max-width: 900px) { .deadlines-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .text-button { border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
 .text-button.danger { color: #a4453a; }
-.timeline { display: grid; padding: 4px 20px 22px; }
-.timeline-item { position: relative; display: grid; grid-template-columns: 20px 1fr; gap: 10px; padding: 14px 0; border-bottom: 1px solid #edf1f5; }
-.timeline-item:last-child { border-bottom: 0; }
-.timeline-dot { width: 10px; height: 10px; margin-top: 4px; border: 2px solid #304f7e; border-radius: 50%; background: #fff; }
-.timeline-dot--change { border-color: #b8c3d1; }
-.timeline-dot--status { border-color: #9b6418; background: #fff3df; }
-.timeline-item strong { color: #2b3e58; font-size: 13px; }
-.timeline-item p { margin: 4px 0; color: #65748a; font-size: 12px; }
-.timeline-justification { font-style: italic; }
-.timeline-item small { color: #8b96a5; font-size: 10px; }
 @media (max-width: 1100px) { .process-layout { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .detail-grid { grid-template-columns: 1fr; } }
