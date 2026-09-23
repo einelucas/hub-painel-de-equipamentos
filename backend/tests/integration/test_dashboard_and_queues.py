@@ -8,17 +8,13 @@ from app.modules.queues.service import QUEUE_STAGES
 from tests.helpers import grant_unit
 
 # Dados fictícios de teste: nenhum número/contrato real do processo.
+# Etapa 7A: Contract/PurchaseRequest/PurchaseOrder são 1:N — ver
+# `test_workflow_routes.py` para a mesma adaptação.
 _ADVANCE_PAYLOAD: dict[int, tuple[str, dict[str, object]]] = {
     2: ("negotiation", {"equalized": True}),
     3: ("negotiation", {"negotiatedAt": "2026-02-10"}),
     4: ("legal", {"openedAt": "2026-02-12", "ticketNumber": "TICKET-0001"}),
     5: ("legal", {"draftPrepared": True, "draftApproved": True}),
-    6: ("contract", {"contractNumber": "CT-0001", "executedAt": "2026-03-01"}),
-    7: (
-        "purchase-request",
-        {"kind": "SC", "requestNumber": "SC-0001", "requestedAt": "2026-03-05"},
-    ),
-    8: ("purchase-order", {"orderNumber": "OC-0001", "orderedAt": "2026-03-10"}),
 }
 
 
@@ -63,18 +59,57 @@ async def _advance_to(client, auth_header, equipment_id: str, target: int) -> No
                 headers=auth_header("ANALYST"),
             )
             assert patched.status_code == 200, patched.text
-        if stage == 8:
-            await client.patch(
-                f"/api/v1/equipments/{equipment_id}/contract",
-                json={"deliveryAt": "2026-08-01"},
+        if stage == 6:
+            created = await client.post(
+                f"/api/v1/equipments/{equipment_id}/contracts",
+                json={"contractNumber": "CT-0001", "executedAt": "2026-03-01"},
                 headers=auth_header("ANALYST"),
             )
+            assert created.status_code == 201, created.text
+        if stage == 7:
+            created = await client.post(
+                f"/api/v1/equipments/{equipment_id}/purchase-requests",
+                json={"kind": "SC", "requestNumber": "SC-0001", "requestedAt": "2026-03-05"},
+                headers=auth_header("ANALYST"),
+            )
+            assert created.status_code == 201, created.text
+        if stage == 8:
+            await _make_completable(client, auth_header, equipment_id)
         moved = await client.post(
             f"/api/v1/equipments/{equipment_id}/transitions",
             json={"targetStage": stage},
             headers=auth_header("ANALYST"),
         )
         assert moved.status_code == 200, moved.text
+
+
+async def _make_completable(client, auth_header, equipment_id: str) -> None:
+    """Satisfaz a regra de conclusão (Etapa 7, seção 6): fornecedor + pelo
+    menos uma OC + Valor Total do Projeto preenchido."""
+    order = await client.post(
+        f"/api/v1/equipments/{equipment_id}/purchase-orders",
+        json={"orderNumber": "OC-0001", "orderedAt": "2026-03-10", "amount": "1000.00"},
+        headers=auth_header("ANALYST"),
+    )
+    assert order.status_code == 201, order.text
+    supplier = await client.post(
+        "/api/v1/suppliers",
+        json={"legalName": f"Fornecedor {equipment_id[:8]}"},
+        headers=auth_header("ANALYST"),
+    )
+    assert supplier.status_code == 201, supplier.text
+    linked = await client.post(
+        f"/api/v1/equipments/{equipment_id}/suppliers",
+        json={"supplierId": supplier.json()["id"]},
+        headers=auth_header("ANALYST"),
+    )
+    assert linked.status_code == 201, linked.text
+    valued = await client.patch(
+        f"/api/v1/equipments/{equipment_id}",
+        json={"projectTotalValue": "150000.00"},
+        headers=auth_header("ANALYST"),
+    )
+    assert valued.status_code == 200, valued.text
 
 
 async def test_summary_totals_and_workflow_distribution(client, auth_header) -> None:
@@ -136,11 +171,12 @@ async def test_summary_purchase_order_and_negotiation_metrics(client, auth_heade
     ids = await _unit_with_context(client, auth_header, "OC")
     equipment_id = await _create(client, auth_header, ids["context"], "Com OC")
     await _advance_to(client, auth_header, equipment_id, 7)
-    await client.patch(
-        f"/api/v1/equipments/{equipment_id}/purchase-order",
+    created = await client.post(
+        f"/api/v1/equipments/{equipment_id}/purchase-orders",
         json={"orderNumber": "OC-9001", "orderedAt": "2026-04-01", "amount": 2500.50},
         headers=auth_header("ANALYST"),
     )
+    assert created.status_code == 201, created.text
 
     body = (
         await client.get(
@@ -467,11 +503,12 @@ async def test_procurement_queue_returns_order_data(client, auth_header) -> None
     ids = await _unit_with_context(client, auth_header, "SUP")
     equipment_id = await _create(client, auth_header, ids["context"], "Em suprimentos")
     await _advance_to(client, auth_header, equipment_id, 7)
-    await client.patch(
-        f"/api/v1/equipments/{equipment_id}/purchase-order",
+    created = await client.post(
+        f"/api/v1/equipments/{equipment_id}/purchase-orders",
         json={"orderNumber": "OC-7001", "amount": 100},
         headers=auth_header("ANALYST"),
     )
+    assert created.status_code == 201, created.text
 
     row = (
         await client.get(

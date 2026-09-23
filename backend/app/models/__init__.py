@@ -20,6 +20,7 @@ from app.models.monday_import import (
     MondayImportRecord,
     MondayMigrationRun,
 )
+from app.models.notification import NotificationEvent
 from app.models.process import (
     Contract,
     LegalProcess,
@@ -29,10 +30,17 @@ from app.models.process import (
 )
 from app.models.supplier import EquipmentSupplier, Supplier
 from app.models.user import Account, Role, Session, User, Verification
+from app.models.workflow_extras import (
+    Comment,
+    OperationalStatusEvent,
+    ReopenRequest,
+    WorkflowException,
+)
 
 __all__ = [
     "AuditLog",
     "Area",
+    "Comment",
     "Contract",
     "Discipline",
     "Equipment",
@@ -46,12 +54,16 @@ __all__ = [
     "MondayImportRecord",
     "MondayMigrationRun",
     "Negotiation",
+    "NotificationEvent",
+    "OperationalStatusEvent",
     "ProjectContext",
     "PurchaseOrder",
     "PurchaseRequest",
+    "ReopenRequest",
     "Supplier",
     "Unit",
     "UserUnitAccess",
+    "WorkflowException",
     "WorkflowTransition",
     "WorkPackage",
     "Account",

@@ -20,7 +20,13 @@ class Permission(str, Enum):
     CATALOGS_MANAGE = "catalogs:manage"
     WORKFLOW_READ = "workflow:read"
     WORKFLOW_TRANSITION = "workflow:transition"
+    # Etapa 7C: reabertura passou a exigir solicitação + aprovação por
+    # permissão superior — substitui o antigo `WORKFLOW_REOPEN` (reabertura
+    # imediata via /transitions), que não fica mais acessível por nenhuma
+    # rota. Mantido só como marcador histórico até uma limpeza futura.
     WORKFLOW_REOPEN = "workflow:reopen"
+    WORKFLOW_REOPEN_REQUEST = "workflow:reopen_request"
+    WORKFLOW_REOPEN_APPROVE = "workflow:reopen_approve"
     PROCESS_WRITE = "process:write"
     SUPPLIERS_READ = "suppliers:read"
     SUPPLIERS_WRITE = "suppliers:write"
@@ -37,6 +43,9 @@ _WRITE = _READ | {
     Permission.PROCESS_WRITE,
     Permission.WORKFLOW_TRANSITION,
     Permission.SUPPLIERS_WRITE,
+    # Etapa 7C: solicitar reabertura é uma alteração operacional normal —
+    # mesmo perfil (Engenharia/Planejamento) que já avança fases.
+    Permission.WORKFLOW_REOPEN_REQUEST,
 }
 
 _MATRIX: dict[Role, set[Permission]] = {
@@ -48,6 +57,11 @@ _MATRIX: dict[Role, set[Permission]] = {
         Permission.AUDIT_READ,
         Permission.CATALOGS_MANAGE,
         Permission.WORKFLOW_REOPEN,
+        # Etapa 7C: aprovação exige permissão "superior" — hierarquia
+        # corporativa real (Microsoft/Automação) ainda não definida; no
+        # DEV atual, o perfil mais alto da matriz existente (ADMIN) é quem
+        # aprova, do jeito menos invasivo possível.
+        Permission.WORKFLOW_REOPEN_APPROVE,
     },
 }
 

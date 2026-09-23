@@ -22,34 +22,16 @@ const form = reactive({
   ticketNumber: "",
   draftPrepared: false,
   draftApproved: false,
-  contractNumber: "",
-  executedAt: "",
-  deliveryAt: "",
-  kind: "" as "" | "SC" | "OCI",
-  requestNumber: "",
-  requestedAt: "",
-  orderNumber: "",
-  orderedAt: "",
-  amount: "",
 });
 
 function syncFromProcesses(): void {
-  const { negotiation, legal, contract, purchaseRequest, purchaseOrder } = props.processes;
+  const { negotiation, legal } = props.processes;
   form.equalized = negotiation.equalized;
   form.negotiatedAt = negotiation.negotiatedAt ?? "";
   form.openedAt = legal.openedAt ?? "";
   form.ticketNumber = legal.ticketNumber ?? "";
   form.draftPrepared = legal.draftPrepared;
   form.draftApproved = legal.draftApproved;
-  form.contractNumber = contract.contractNumber ?? "";
-  form.executedAt = contract.executedAt ?? "";
-  form.deliveryAt = contract.deliveryAt ?? "";
-  form.kind = purchaseRequest.kind ?? "";
-  form.requestNumber = purchaseRequest.requestNumber ?? "";
-  form.requestedAt = purchaseRequest.requestedAt ?? "";
-  form.orderNumber = purchaseOrder.orderNumber ?? "";
-  form.orderedAt = purchaseOrder.orderedAt ?? "";
-  form.amount = purchaseOrder.amount === null ? "" : String(purchaseOrder.amount);
 }
 
 watch(() => props.processes, syncFromProcesses, { immediate: true, deep: true });
@@ -61,21 +43,6 @@ const PAYLOAD_BY_RESOURCE: Record<ProcessResource, () => Record<string, unknown>
     ticketNumber: blankToNull(form.ticketNumber),
     draftPrepared: form.draftPrepared,
     draftApproved: form.draftApproved,
-  }),
-  contract: () => ({
-    contractNumber: blankToNull(form.contractNumber),
-    executedAt: blankToNull(form.executedAt),
-    deliveryAt: blankToNull(form.deliveryAt),
-  }),
-  "purchase-request": () => ({
-    kind: form.kind === "" ? null : form.kind,
-    requestNumber: blankToNull(form.requestNumber),
-    requestedAt: blankToNull(form.requestedAt),
-  }),
-  "purchase-order": () => ({
-    orderNumber: blankToNull(form.orderNumber),
-    orderedAt: blankToNull(form.orderedAt),
-    amount: form.amount.trim() === "" ? null : Number(form.amount),
   }),
 };
 
@@ -94,7 +61,10 @@ function submit(): void {
   <div v-else-if="stage === 8" class="stage-intro" data-testid="stage-form-done">
     <p>Processo concluído. Para corrigir algum dado de uma etapa já passada, use "Editar" no bloco correspondente em "Processo completo", abaixo.</p>
   </div>
-  <form v-else-if="resource" class="stage-form" data-testid="stage-form" @submit.prevent="submit">
+  <div v-else-if="!resource" class="stage-intro" data-testid="stage-form-list">
+    <p>Esta etapa é preenchida nas listas abaixo (Contratos, SC/OCI ou Ordens de Compra) — use "+ Adicionar" para criar um registro ou edite um já existente.</p>
+  </div>
+  <form v-else class="stage-form" data-testid="stage-form" @submit.prevent="submit">
     <fieldset :disabled="!editable">
       <div v-if="resource === 'negotiation'" class="form-grid">
         <label class="field field-check">
@@ -107,36 +77,11 @@ function submit(): void {
         </label>
       </div>
 
-      <div v-else-if="resource === 'legal'" class="form-grid">
+      <div v-else class="form-grid">
         <label class="field"><span>Data de abertura</span><input v-model="form.openedAt" type="date"></label>
         <label class="field"><span>Número do chamado</span><input v-model="form.ticketNumber" maxlength="80"></label>
         <label class="field field-check"><input v-model="form.draftPrepared" type="checkbox"><span>Minuta elaborada</span></label>
         <label class="field field-check"><input v-model="form.draftApproved" type="checkbox"><span>Minuta aprovada</span></label>
-      </div>
-
-      <div v-else-if="resource === 'contract'" class="form-grid">
-        <label class="field"><span>Número do contrato</span><input v-model="form.contractNumber" maxlength="80"></label>
-        <label class="field"><span>Data de escrituração</span><input v-model="form.executedAt" type="date"></label>
-        <label class="field"><span>Entrega prevista no contrato</span><input v-model="form.deliveryAt" type="date"></label>
-      </div>
-
-      <div v-else-if="resource === 'purchase-request'" class="form-grid">
-        <label class="field">
-          <span>Tipo</span>
-          <select v-model="form.kind">
-            <option value="">Não informado</option>
-            <option value="SC">SC</option>
-            <option value="OCI">OCI</option>
-          </select>
-        </label>
-        <label class="field"><span>Número</span><input v-model="form.requestNumber" maxlength="80"></label>
-        <label class="field"><span>Data</span><input v-model="form.requestedAt" type="date"></label>
-      </div>
-
-      <div v-else class="form-grid">
-        <label class="field"><span>Número da OC</span><input v-model="form.orderNumber" maxlength="80"></label>
-        <label class="field"><span>Data da OC</span><input v-model="form.orderedAt" type="date"></label>
-        <label class="field"><span>Valor</span><input v-model="form.amount" type="number" min="0" step="0.01"></label>
       </div>
     </fieldset>
     <div v-if="editable" class="form-actions">

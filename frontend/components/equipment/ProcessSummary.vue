@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from "vue";
 import type { EquipmentProcesses } from "~/types/equipment";
-import { formatCurrency, formatDateOnly } from "~/utils/format";
+import { formatDateOnly } from "~/utils/format";
 import { type ProcessResource, blankToNull } from "~/utils/workflow";
 
 /**
@@ -11,6 +11,10 @@ import { type ProcessResource, blankToNull } from "~/utils/workflow";
  * (stage=8). Salvar um bloco nunca altera `current_stage` — quem faz isso é
  * o fluxo de transição (`EquipmentStageForm` + botão "Avançar"), que
  * continua sendo o único caminho para mudar de etapa.
+ *
+ * Etapa 7A: Contrato/SC-OCI/OC viraram listas 1:N — saíram daqui e têm
+ * componentes próprios (`EquipmentContractsList` etc.), com o padrão
+ * "lista compacta + Adicionar".
  */
 const props = defineProps<{
   processes: EquipmentProcesses;
@@ -32,41 +36,23 @@ function text(value: string | null): string {
 const editing = reactive<Record<ProcessResource, boolean>>({
   negotiation: false,
   legal: false,
-  contract: false,
-  "purchase-request": false,
-  "purchase-order": false,
 });
 
 const forms = reactive({
   negotiation: { equalized: false, negotiatedAt: "" },
   legal: { openedAt: "", ticketNumber: "", draftPrepared: false, draftApproved: false },
-  contract: { contractNumber: "", executedAt: "", deliveryAt: "" },
-  "purchase-request": { kind: "" as "" | "SC" | "OCI", requestNumber: "", requestedAt: "" },
-  "purchase-order": { orderNumber: "", orderedAt: "", amount: "" },
 });
 
 function startEdit(resource: ProcessResource): void {
-  const { negotiation, legal, contract, purchaseRequest, purchaseOrder } = props.processes;
+  const { negotiation, legal } = props.processes;
   if (resource === "negotiation") {
     forms.negotiation.equalized = negotiation.equalized;
     forms.negotiation.negotiatedAt = negotiation.negotiatedAt ?? "";
-  } else if (resource === "legal") {
+  } else {
     forms.legal.openedAt = legal.openedAt ?? "";
     forms.legal.ticketNumber = legal.ticketNumber ?? "";
     forms.legal.draftPrepared = legal.draftPrepared;
     forms.legal.draftApproved = legal.draftApproved;
-  } else if (resource === "contract") {
-    forms.contract.contractNumber = contract.contractNumber ?? "";
-    forms.contract.executedAt = contract.executedAt ?? "";
-    forms.contract.deliveryAt = contract.deliveryAt ?? "";
-  } else if (resource === "purchase-request") {
-    forms["purchase-request"].kind = purchaseRequest.kind ?? "";
-    forms["purchase-request"].requestNumber = purchaseRequest.requestNumber ?? "";
-    forms["purchase-request"].requestedAt = purchaseRequest.requestedAt ?? "";
-  } else {
-    forms["purchase-order"].orderNumber = purchaseOrder.orderNumber ?? "";
-    forms["purchase-order"].orderedAt = purchaseOrder.orderedAt ?? "";
-    forms["purchase-order"].amount = purchaseOrder.amount === null ? "" : String(purchaseOrder.amount);
   }
   editing[resource] = true;
 }
@@ -85,21 +71,6 @@ const PAYLOAD_BY_RESOURCE: Record<ProcessResource, () => Record<string, unknown>
     ticketNumber: blankToNull(forms.legal.ticketNumber),
     draftPrepared: forms.legal.draftPrepared,
     draftApproved: forms.legal.draftApproved,
-  }),
-  contract: () => ({
-    contractNumber: blankToNull(forms.contract.contractNumber),
-    executedAt: blankToNull(forms.contract.executedAt),
-    deliveryAt: blankToNull(forms.contract.deliveryAt),
-  }),
-  "purchase-request": () => ({
-    kind: forms["purchase-request"].kind === "" ? null : forms["purchase-request"].kind,
-    requestNumber: blankToNull(forms["purchase-request"].requestNumber),
-    requestedAt: blankToNull(forms["purchase-request"].requestedAt),
-  }),
-  "purchase-order": () => ({
-    orderNumber: blankToNull(forms["purchase-order"].orderNumber),
-    orderedAt: blankToNull(forms["purchase-order"].orderedAt),
-    amount: forms["purchase-order"].amount.trim() === "" ? null : Number(forms["purchase-order"].amount),
   }),
 };
 
@@ -125,33 +96,6 @@ const groups = computed(() => [
       { label: "Chamado", value: text(props.processes.legal.ticketNumber) },
       { label: "Minuta elaborada", value: bool(props.processes.legal.draftPrepared) },
       { label: "Minuta aprovada", value: bool(props.processes.legal.draftApproved) },
-    ],
-  },
-  {
-    resource: "contract" as ProcessResource,
-    title: "Contrato",
-    fields: [
-      { label: "Número", value: text(props.processes.contract.contractNumber) },
-      { label: "Escrituração", value: formatDateOnly(props.processes.contract.executedAt) },
-      { label: "Entrega contratual", value: formatDateOnly(props.processes.contract.deliveryAt) },
-    ],
-  },
-  {
-    resource: "purchase-request" as ProcessResource,
-    title: "SC / OCI",
-    fields: [
-      { label: "Tipo", value: text(props.processes.purchaseRequest.kind) },
-      { label: "Número", value: text(props.processes.purchaseRequest.requestNumber) },
-      { label: "Data", value: formatDateOnly(props.processes.purchaseRequest.requestedAt) },
-    ],
-  },
-  {
-    resource: "purchase-order" as ProcessResource,
-    title: "Ordem de compra",
-    fields: [
-      { label: "Número", value: text(props.processes.purchaseOrder.orderNumber) },
-      { label: "Data", value: formatDateOnly(props.processes.purchaseOrder.orderedAt) },
-      { label: "Valor", value: formatCurrency(props.processes.purchaseOrder.amount) },
     ],
   },
 ]);
@@ -188,36 +132,11 @@ const groups = computed(() => [
           <label class="field"><span>Data da negociação</span><input v-model="forms.negotiation.negotiatedAt" type="date"></label>
         </div>
 
-        <div v-else-if="group.resource === 'legal'" class="edit-grid">
+        <div v-else class="edit-grid">
           <label class="field"><span>Data de abertura</span><input v-model="forms.legal.openedAt" type="date"></label>
           <label class="field"><span>Número do chamado</span><input v-model="forms.legal.ticketNumber" maxlength="80"></label>
           <label class="field field-check"><input v-model="forms.legal.draftPrepared" type="checkbox"><span>Minuta elaborada</span></label>
           <label class="field field-check"><input v-model="forms.legal.draftApproved" type="checkbox"><span>Minuta aprovada</span></label>
-        </div>
-
-        <div v-else-if="group.resource === 'contract'" class="edit-grid">
-          <label class="field"><span>Número do contrato</span><input v-model="forms.contract.contractNumber" maxlength="80"></label>
-          <label class="field"><span>Data de escrituração</span><input v-model="forms.contract.executedAt" type="date"></label>
-          <label class="field"><span>Entrega prevista no contrato</span><input v-model="forms.contract.deliveryAt" type="date"></label>
-        </div>
-
-        <div v-else-if="group.resource === 'purchase-request'" class="edit-grid">
-          <label class="field">
-            <span>Tipo</span>
-            <select v-model="forms['purchase-request'].kind">
-              <option value="">Não informado</option>
-              <option value="SC">SC</option>
-              <option value="OCI">OCI</option>
-            </select>
-          </label>
-          <label class="field"><span>Número</span><input v-model="forms['purchase-request'].requestNumber" maxlength="80"></label>
-          <label class="field"><span>Data</span><input v-model="forms['purchase-request'].requestedAt" type="date"></label>
-        </div>
-
-        <div v-else class="edit-grid">
-          <label class="field"><span>Número da OC</span><input v-model="forms['purchase-order'].orderNumber" maxlength="80"></label>
-          <label class="field"><span>Data da OC</span><input v-model="forms['purchase-order'].orderedAt" type="date"></label>
-          <label class="field"><span>Valor</span><input v-model="forms['purchase-order'].amount" type="number" min="0" step="0.01"></label>
         </div>
 
         <div class="edit-actions">

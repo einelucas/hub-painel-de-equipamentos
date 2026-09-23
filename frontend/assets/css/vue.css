@@ -129,7 +129,6 @@ button:disabled {
   box-shadow: 0 8px 28px rgba(35, 55, 86, 0.055);
 }
 
-
 .surface-header {
   display: flex;
   flex-wrap: wrap;
@@ -283,7 +282,6 @@ button:disabled {
   line-height: 1.55;
 }
 
-
 .admin-back {
   display: inline-flex;
   margin: 8px 0 16px;
@@ -380,9 +378,10 @@ button:disabled {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
-
 
 .modal-backdrop {
   position: fixed;
@@ -444,7 +443,10 @@ button:disabled {
   background: var(--card, #fff);
   color: inherit;
   text-decoration: none;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .admin-hub-card:hover {
@@ -475,27 +477,6 @@ button:disabled {
   overflow: hidden;
   padding: 16px;
   background: var(--azul-escuro);
-}
-
-.login-page::before {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(48, 79, 126, 0.88), rgba(33, 55, 88, 0.93));
-  content: "";
-}
-
-.login-page::after {
-  position: absolute;
-  z-index: 1;
-  top: -80px;
-  right: -80px;
-  width: 320px;
-  height: 160px;
-  background: var(--laranja);
-  content: "";
-  opacity: 0.18;
-  transform: rotate(35deg);
 }
 
 .login-background {

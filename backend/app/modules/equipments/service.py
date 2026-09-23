@@ -40,6 +40,7 @@ from app.models.equipment import (
     WorkflowTransition,
     WorkPackage,
 )
+from app.models.supplier import EquipmentSupplier
 from app.models.user import User
 from app.modules.equipments.schemas import (
     ComponentCalculatedOut,
@@ -78,6 +79,8 @@ def _base_load_options() -> tuple[Any, ...]:
         # GAP-014: `negotiated_at` decide `negotiationStatus` (prioridade 2
         # da fórmula oficial), então precisa estar carregado junto.
         joinedload(Equipment.negotiation),
+        # Etapa 7A: fornecedor único do equipamento.
+        selectinload(Equipment.supplier_links).joinedload(EquipmentSupplier.supplier),
     )
 
 
@@ -97,7 +100,9 @@ def _component_deadlines(component: EquipmentComponent) -> ComponentDeadlineValu
     )
 
 
-def _component_calculated_out(component: EquipmentComponent, *, reference_date: date) -> ComponentCalculatedOut:
+def _component_calculated_out(
+    component: EquipmentComponent, *, reference_date: date
+) -> ComponentCalculatedOut:
     deadlines = calculate_component_deadlines(
         ComponentSchedule(
             startup_at=component.startup_at,
@@ -237,6 +242,18 @@ def _equipment_out(equipment: Equipment, components_count: int | None = None) ->
             if equipment.responsible_user
             else None
         ),
+        supplier=(
+            NamedRefOut(
+                id=equipment.supplier_links[0].supplier.id,
+                name=equipment.supplier_links[0].supplier.legal_name,
+            )
+            if equipment.supplier_links
+            else None
+        ),
+        operational_status=equipment.operational_status,
+        project_total_value=equipment.project_total_value,
+        contractual_delivery_start=equipment.contractual_delivery_start,
+        contractual_delivery_end=equipment.contractual_delivery_end,
         components_count=(len(equipment.components) if components_count is None else components_count),
         calculated=_equipment_calculated_out(equipment, reference_date=reference_date),
         created_at=equipment.created_at,

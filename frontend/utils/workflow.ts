@@ -1,12 +1,10 @@
-import type { TransitionOption } from "~/types/equipment";
+import type { OperationalStatus, TransitionOption, WorkflowExceptionType } from "~/types/equipment";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 
-export type ProcessResource =
-  | "negotiation"
-  | "legal"
-  | "contract"
-  | "purchase-request"
-  | "purchase-order";
+/** Etapa 7A: só negociação e jurídico continuam com forma 1:1 editável
+ * "na etapa atual" — Contrato/SC-OCI/OC viraram listas 1:N (seção
+ * "Processo completo", componentes dedicados de lista). */
+export type ProcessResource = "negotiation" | "legal";
 
 export type StepState = "done" | "current" | "blocked" | "future";
 
@@ -22,16 +20,29 @@ const RESOURCE_BY_STAGE: Record<number, ProcessResource | null> = {
   2: "negotiation",
   3: "legal",
   4: "legal",
-  5: "contract",
-  6: "purchase-request",
-  7: "purchase-order",
+  5: null,
+  6: null,
+  7: null,
   8: null,
 };
 
-/** Formulário que o usuário opera na etapa informada. `null` = etapa sem edição. */
+/** Formulário que o usuário opera na etapa informada. `null` = etapa sem edição
+ * inline (fases 5/6/7 usam as listas de Contratos/SC-OCI/OC abaixo). */
 export function resourceForStage(stage: number): ProcessResource | null {
   return RESOURCE_BY_STAGE[stage] ?? null;
 }
+
+export const OPERATIONAL_STATUS_LABELS: Record<OperationalStatus, string> = {
+  ACTIVE: "Ativo",
+  STANDBY: "Standby",
+  CANCELLED: "Cancelado",
+  IN_SANITATION: "Em Saneamento",
+};
+
+export const WORKFLOW_EXCEPTION_LABELS: Record<WorkflowExceptionType, string> = {
+  FIXED_SUPPLIER: "Fornecedor fixo",
+  IMPORTATION: "Importação",
+};
 
 export function stepStates(currentStage: number, nextStageBlocked = false): WorkflowStep[] {
   return EQUIPMENT_STAGES.map((label, index) => {

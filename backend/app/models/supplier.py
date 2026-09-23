@@ -1,7 +1,17 @@
-"""Fornecedores e o vínculo N:N com equipamentos.
+"""Fornecedores e o vínculo com equipamentos.
 
 `role` é texto livre: o catálogo oficial de papéis do fornecedor ainda não foi
 validado pelo negócio, então nenhum enum fechado é assumido aqui.
+
+Etapa 7A: a tabela de vínculo (`EquipmentSupplier`) continua N:N na
+estrutura — evita migração destrutiva desnecessária — mas a regra de
+negócio nova é "um equipamento tem no máximo um fornecedor". Isso é
+garantido no banco por um índice único em `equipment_id` sozinho (não mais
+só no par `equipment_id, supplier_id`): um segundo vínculo é sempre
+rejeitado; substituir o fornecedor é sempre uma operação explícita
+(remover o vínculo atual, criar o novo), nunca um segundo INSERT.
+`is_primary` fica sem função nova (sempre verdadeiro, já que só existe uma
+linha) — mantido para não descartar dado/índice existente sem necessidade.
 """
 
 from __future__ import annotations
@@ -56,13 +66,10 @@ class EquipmentSupplier(Base):
     supplier: Mapped[Supplier] = relationship(back_populates="equipment_links")
 
     __table_args__ = (
+        # Etapa 7A: no máximo UM vínculo por equipamento, ponto — garantido
+        # pelo banco. Substitui a regra antiga (múltiplos fornecedores,
+        # só um `is_primary`).
+        Index("equipment_supplier_single_key", "equipment_id", unique=True),
         Index("equipment_supplier_pair_key", "equipment_id", "supplier_id", unique=True),
-        # No máximo um principal por equipamento, garantido pelo banco.
-        Index(
-            "equipment_supplier_primary_key",
-            "equipment_id",
-            unique=True,
-            postgresql_where=is_primary.is_(True),
-        ),
         Index("equipment_supplier_equipment_id_idx", "equipment_id"),
     )

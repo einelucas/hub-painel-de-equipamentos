@@ -19,6 +19,11 @@ const equipment = {
   workPackage: null,
   workPackages: [],
   responsibleUser: null,
+  supplier: null,
+  operationalStatus: "ACTIVE",
+  projectTotalValue: null,
+  contractualDeliveryStart: null,
+  contractualDeliveryEnd: null,
   componentsCount: 2,
   calculated: {
     maxLeadTimeDays: null,

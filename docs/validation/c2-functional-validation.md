@@ -642,10 +642,10 @@ Etapa 6A**, junto com GAP-001 e GAP-009. Ver
 | GAP-001 | Work Packages / API | PATCH de equipamento pode devolver `workPackages` desatualizado na resposta imediata (banco correto) | **RESOLVIDO NA ETAPA 6A** | P1 | Não (impacto contido hoje) |
 | GAP-002 | Histórico/Auditoria | Sub-processos criados pela migração não aparecem na aba Histórico do equipamento | **RESOLVIDO NA ETAPA 6D** | ~~P2~~ | Não |
 | GAP-003 | Histórico/Auditoria | Título cru "migration.import" na timeline | **RESOLVIDO NA ETAPA 6D** | ~~P3~~ | Não |
-| GAP-004 | Workflow | Shortcut 2→4 não implementado | NÃO IMPLEMENTADO | P1/P2 | Depende de decisão de negócio |
-| GAP-005 | Workflow | Bypass de suprimentos não implementado | NÃO IMPLEMENTADO | P2 | Depende de decisão de negócio |
-| GAP-006 | Workflow | Reabertura genérica (sempre → etapa 1) | REGRA AINDA NÃO VALIDADA | P2 | Talvez |
-| GAP-007 | Workflow | Só uma forma de concluir 7→8 | REGRA AINDA NÃO VALIDADA | P3 | Não |
+| GAP-004 | Workflow | Shortcut 2→4 não implementado | **SUBSTITUÍDO NA ETAPA 7** — negócio decidiu não ter salto automático nenhum; casos de fornecedor pré-definido usam a exceção `FIXED_SUPPLIER` (avanço manual, fase por fase, com validações dispensadas) | ~~P1/P2~~ | Não |
+| GAP-005 | Workflow | Bypass de suprimentos não implementado | **SUBSTITUÍDO NA ETAPA 7** — casos de importação usam a exceção `IMPORTATION` (chega à fase 7 sem contrato/SC-OCI obrigatórios, sempre manual) | ~~P2~~ | Não |
+| GAP-006 | Workflow | Reabertura genérica (sempre → etapa 1) | **RESOLVIDO NA ETAPA 7** — `ReopenRequest`: escolhe qualquer fase anterior, exige aprovação por permissão superior, equipamento só muda de fase após aprovação | ~~P2~~ | Não |
+| GAP-007 | Workflow | Só uma forma de concluir 7→8 | **RESOLVIDO NA ETAPA 7** — regra explícita: fornecedor + ao menos 1 OC + Valor Total do Projeto, sem reexecutar requisitos de fases anteriores | ~~P3~~ | Não |
 | GAP-008 | Processo / UI | Dado de processo de equipamento concluído (etapa 8) não é editável pela UI | **RESOLVIDO NA ETAPA 6A** | ~~P0~~ | ~~Sim~~ |
 | GAP-009 | Componentes | Startup do componente ausente no frontend (listagem e formulário) | **RESOLVIDO NA ETAPA 6A** | P1 | Parcial |
 | GAP-010 | Listagem | Sem filtro de Área/Work Package e sem coluna de WP na listagem/exportação | **RESOLVIDO NA ETAPA 6D** | ~~P2~~ | Não |
@@ -665,9 +665,9 @@ Etapa 6A**, junto com GAP-001 e GAP-009. Ver
 ### Por prioridade
 
 - **P0 (0, era 2)**: GAP-008 e GAP-011 resolvidos na Etapa 6A.
-- **P1 (1, era 4)**: GAP-004 (GAP-001/GAP-009 resolvidos na Etapa 6A; GAP-013 resolvido na Etapa 6B)
-- **P2 (3, era 11)**: GAP-005, GAP-006, GAP-017 (GAP-014 resolvido na Etapa 6C; GAP-015 resolvido na Etapa 6C.1; GAP-002/GAP-010/GAP-012a/GAP-012b/GAP-016/GAP-019 resolvidos na Etapa 6D)
-- **P3 (4, era 5)**: GAP-007, GAP-018, GAP-020, GAP-021 (GAP-003 resolvido na Etapa 6D)
+- **P1 (0, era 4)**: GAP-004 substituído na Etapa 7 (GAP-001/GAP-009 resolvidos na Etapa 6A; GAP-013 resolvido na Etapa 6B)
+- **P2 (1, era 11)**: GAP-017 (GAP-005/GAP-006 resolvidos/substituídos na Etapa 7; GAP-014 resolvido na Etapa 6C; GAP-015 resolvido na Etapa 6C.1; GAP-002/GAP-010/GAP-012a/GAP-012b/GAP-016/GAP-019 resolvidos na Etapa 6D)
+- **P3 (3, era 5)**: GAP-018, GAP-020, GAP-021 (GAP-003 resolvido na Etapa 6D; GAP-007 resolvido na Etapa 7)
 
 ---
 
@@ -693,7 +693,15 @@ datas DATE-ONLY — ver [`etapa-06c-dates-negotiation-status.md`](etapa-06c-date
 — ver
 [`etapa-06d-operational-completeness.md`](etapa-06d-operational-completeness.md).
 
+**Feito na Etapa 7**: ~~GAP-004~~, ~~GAP-005~~ (substituídos pelo mecanismo
+de exceções de fluxo `FIXED_SUPPLIER`/`IMPORTATION`), ~~GAP-006~~
+(reabertura com aprovação), ~~GAP-007~~ (regra explícita de conclusão
+7→8) — mais contratos/SC-OCI/OC 1:N, fornecedor único, Standby/Cancelado/
+Em Saneamento, comentários, Kickoff/FUP e Kanban (não eram GAPs
+catalogados aqui, vieram direto da especificação da etapa) — ver
+[`etapa-07-operational-business-rules.md`](etapa-07-operational-business-rules.md).
+
 Próximos, em ordem sugerida:
 
-1. **GAP-004/005/006/007** — decisão de negócio primeiro (confirmar se essas regras do Monday ainda se aplicam) antes de qualquer código.
-2. Demais P2/P3 (GAP-017, GAP-018, GAP-020, GAP-021) — dependem de decisão de negócio (permissão departamental) ou são baixo impacto (menu, notificações, rótulo de migração).
+1. Demais P2/P3 (GAP-017, GAP-018, GAP-020, GAP-021) — dependem de decisão de negócio (permissão departamental) ou são baixo impacto (menu, notificações, rótulo de migração).
+2. Hierarquia corporativa real (Microsoft/Automação) para `workflow:reopen_approve` e para os destinatários de Kickoff/FUP — pendência registrada na Etapa 7, não um GAP novo.

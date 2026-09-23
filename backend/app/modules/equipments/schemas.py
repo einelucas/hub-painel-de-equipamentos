@@ -81,6 +81,11 @@ def _reject_calculated_fields(data: Any, forbidden: set[str]) -> Any:
     return data
 
 
+def _validate_delivery_window(start: date | None, end: date | None) -> None:
+    if start is not None and end is not None and start > end:
+        raise ValueError("A data inicial da janela de entrega não pode ser depois da final")
+
+
 class EquipmentCreateIn(CamelModel):
     project_context_id: str
     name: str = Field(min_length=1, max_length=200)
@@ -96,6 +101,11 @@ class EquipmentCreateIn(CamelModel):
     responsible_user_id: str | None = None
     criticality: str | None = Field(default=None, max_length=40)
     capex_estimated: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
+    # Etapa 7A: preenchidos manualmente — nunca calculados a partir da soma
+    # das OCs nem de fórmula alguma.
+    project_total_value: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
+    contractual_delivery_start: date | None = None
+    contractual_delivery_end: date | None = None
 
     @field_validator("name")
     @classmethod
@@ -110,10 +120,20 @@ class EquipmentCreateIn(CamelModel):
     def work_package_ids_no_duplicates(cls, value: list[str] | None) -> list[str] | None:
         return _no_duplicate_work_packages(value)
 
+    @model_validator(mode="after")
+    def delivery_window_order(self) -> EquipmentCreateIn:
+        _validate_delivery_window(self.contractual_delivery_start, self.contractual_delivery_end)
+        return self
+
     @model_validator(mode="before")
     @classmethod
     def reject_calculated_fields(cls, data: Any) -> Any:
         return _reject_calculated_fields(data, _EQUIPMENT_CALCULATED_FIELDS)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_operational_status(cls, data: Any) -> Any:
+        return _reject_calculated_fields(data, {"operationalStatus", "operational_status"})
 
 
 class EquipmentUpdateIn(CamelModel):
@@ -129,6 +149,9 @@ class EquipmentUpdateIn(CamelModel):
     responsible_user_id: str | None = None
     criticality: str | None = Field(default=None, max_length=40)
     capex_estimated: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
+    project_total_value: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
+    contractual_delivery_start: date | None = None
+    contractual_delivery_end: date | None = None
 
     @field_validator("work_package_ids")
     @classmethod
@@ -152,12 +175,21 @@ class EquipmentUpdateIn(CamelModel):
     def reject_calculated_fields(cls, data: Any) -> Any:
         return _reject_calculated_fields(data, _EQUIPMENT_CALCULATED_FIELDS)
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_operational_status(cls, data: Any) -> Any:
+        # Etapa 7B: `operational_status` só muda pelos serviços dedicados
+        # (Standby/Cancelado/Saneamento), nunca por este PATCH genérico —
+        # cada mudança precisa de justificativa auditável.
+        return _reject_calculated_fields(data, {"operationalStatus", "operational_status"})
+
     @model_validator(mode="after")
     def has_update(self) -> EquipmentUpdateIn:
         if not self.model_fields_set:
             raise ValueError("Informe ao menos um campo para atualizar")
         if self.name is not None and not self.name.strip():
             raise ValueError("Nome obrigatório")
+        _validate_delivery_window(self.contractual_delivery_start, self.contractual_delivery_end)
         return self
 
 
@@ -208,6 +240,18 @@ class EquipmentOut(CamelModel):
     work_package: NamedRefOut | None
     work_packages: list[NamedRefOut] = Field(default_factory=list)
     responsible_user: UserRefOut | None
+    # Etapa 7A: fornecedor único do equipamento (no máximo 1 vínculo ativo
+    # — ver `app.models.supplier`). `None` quando ainda não há fornecedor.
+    supplier: NamedRefOut | None = None
+    # Etapa 7 — estado operacional, separado da fase (`current_stage`).
+    # Só muda pelos serviços dedicados de Standby/Cancelado/Saneamento.
+    operational_status: str = "ACTIVE"
+    # Preenchido manualmente; nunca calculado a partir da soma das OCs.
+    project_total_value: Decimal | None = None
+    # Janela de entrega contratual (De/Até) — pertence ao equipamento, não a
+    # um contrato individual.
+    contractual_delivery_start: date | None = None
+    contractual_delivery_end: date | None = None
     components_count: int
     calculated: EquipmentCalculatedOut
     created_at: datetime

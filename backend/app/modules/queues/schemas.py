@@ -44,9 +44,14 @@ class LegalRowOut(QueueRowOut):
     ticket_number: str | None
     draft_prepared: bool
     draft_approved: bool
+    # Etapa 7A: "o contrato" vira "o mais recente" para exibição de fila —
+    # a fonte de verdade é a lista em GET /equipments/{id}/contracts.
     contract_number: str | None
     executed_at: date | None
-    delivery_at: date | None
+    # Etapa 7A: a janela de entrega contratual passou a ser do equipamento,
+    # não de um contrato individual (Contract.delivery_at foi removido).
+    contractual_delivery_start: date | None
+    contractual_delivery_end: date | None
 
 
 class SupplierRefOut(CamelModel):

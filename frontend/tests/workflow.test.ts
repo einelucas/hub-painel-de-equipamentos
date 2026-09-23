@@ -39,15 +39,15 @@ describe("stepStates", () => {
 });
 
 describe("resourceForStage", () => {
-  it("mapeia cada etapa ao formulário que o usuário opera", () => {
+  it("mapeia cada etapa ao formulário que o usuário opera — Etapa 7A: 5/6/7 viraram listas 1:N, sem formulário inline", () => {
     expect(resourceForStage(0)).toBeNull();
     expect(resourceForStage(1)).toBe("negotiation");
     expect(resourceForStage(2)).toBe("negotiation");
     expect(resourceForStage(3)).toBe("legal");
     expect(resourceForStage(4)).toBe("legal");
-    expect(resourceForStage(5)).toBe("contract");
-    expect(resourceForStage(6)).toBe("purchase-request");
-    expect(resourceForStage(7)).toBe("purchase-order");
+    expect(resourceForStage(5)).toBeNull();
+    expect(resourceForStage(6)).toBeNull();
+    expect(resourceForStage(7)).toBeNull();
     expect(resourceForStage(8)).toBeNull();
   });
 });

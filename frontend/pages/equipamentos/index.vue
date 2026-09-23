@@ -248,6 +248,7 @@ onMounted(async () => {
           </div>
         </form>
         <template #actions>
+          <NuxtLink class="btn" to="/equipamentos/kanban" data-testid="kanban-link">Kanban</NuxtLink>
           <button
             v-if="canAdminister"
             class="btn"

@@ -302,7 +302,12 @@ async def test_viewer_cannot_write_supplier(client, auth_header) -> None:
     assert response.status_code == 403
 
 
-async def test_equipment_supplier_link_keeps_single_primary(client, auth_header, db_session) -> None:
+async def test_equipment_supplier_is_limited_to_one_and_replaceable(
+    client, auth_header, db_session
+) -> None:
+    """Etapa 7A: um equipamento tem no máximo UM fornecedor. Um segundo
+    vínculo (mesmo ou outro fornecedor) é sempre rejeitado; a troca é uma
+    substituição explícita (`PUT`), nunca um segundo `POST`."""
     ids = await _unit(client, auth_header, "SUP")
     await grant_unit(client, auth_header, ids["unit"])
     equipment_id = await _equipment(client, auth_header, ids["context"], "Com fornecedores")
@@ -332,25 +337,27 @@ async def test_equipment_supplier_link_keeps_single_primary(client, auth_header,
     )
     assert repeated.status_code == 409
 
-    await client.post(
+    second_rejected = await client.post(
         f"/api/v1/equipments/{equipment_id}/suppliers",
         json={"supplierId": second},
         headers=auth_header("ANALYST"),
     )
-    promoted = await client.patch(
-        f"/api/v1/equipments/{equipment_id}/suppliers/{second}",
-        json={"isPrimary": True},
+    assert second_rejected.status_code == 409
+
+    replaced = await client.put(
+        f"/api/v1/equipments/{equipment_id}/suppliers",
+        json={"supplierId": second},
         headers=auth_header("ANALYST"),
     )
-    assert promoted.status_code == 200
+    assert replaced.status_code == 200
+    assert replaced.json()["supplier"]["id"] == second
 
     links = (
         await db_session.execute(
             select(EquipmentSupplier).where(EquipmentSupplier.equipment_id == equipment_id)
         )
     ).scalars().all()
-    primaries = [link.supplier_id for link in links if link.is_primary]
-    assert primaries == [second]
+    assert [link.supplier_id for link in links] == [second]
 
 
 async def test_unlink_supplier_keeps_master_record(client, auth_header, db_session) -> None:

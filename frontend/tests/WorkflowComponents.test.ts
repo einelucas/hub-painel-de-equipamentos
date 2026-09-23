@@ -16,27 +16,19 @@ const processes = {
     draftPrepared: false,
     draftApproved: false,
   },
-  contract: {
-    id: null,
-    equipmentId: "eq-1",
-    contractNumber: "CT-0001",
-    executedAt: "2026-03-01",
-    deliveryAt: null,
-  },
-  purchaseRequest: {
-    id: null,
-    equipmentId: "eq-1",
-    kind: null,
-    requestNumber: null,
-    requestedAt: null,
-  },
-  purchaseOrder: {
-    id: null,
-    equipmentId: "eq-1",
-    orderNumber: null,
-    orderedAt: null,
-    amount: null,
-  },
+  contracts: [
+    {
+      id: "ct-1",
+      equipmentId: "eq-1",
+      contractNumber: "CT-0001",
+      executedAt: "2026-03-01",
+      file: null,
+      createdAt: "2026-03-01T00:00:00",
+      updatedAt: "2026-03-01T00:00:00",
+    },
+  ],
+  purchaseRequests: [],
+  purchaseOrders: [],
 } satisfies EquipmentProcesses;
 
 const blockedOption = {
@@ -105,11 +97,9 @@ describe("WorkflowRequirements", () => {
 describe("EquipmentStageForm", () => {
   it("apresenta o formulário da etapa atual preenchido com os dados do processo", () => {
     const wrapper = mount(EquipmentStageForm, {
-      props: { stage: 5, processes, editable: true, saving: false },
+      props: { stage: 1, processes, editable: true, saving: false },
     });
-    const inputs = wrapper.findAll("input");
-    expect((inputs[0]!.element as HTMLInputElement).value).toBe("CT-0001");
-    expect((inputs[1]!.element as HTMLInputElement).value).toBe("2026-03-01");
+    expect(wrapper.find("input[type='checkbox']").exists()).toBe(true);
   });
 
   it("emite apenas o salvamento do processo, sem pedir avanço de etapa", async () => {
@@ -144,6 +134,14 @@ describe("EquipmentStageForm", () => {
     expect(start.get("[data-testid='stage-form-intro']").text()).toContain("Inicie a negociação");
     expect(done.get("[data-testid='stage-form-done']").text()).toContain("Processo concluído");
   });
+
+  it("etapas 5-7 apontam para as listas dedicadas (Contratos/SC-OCI/OC), sem formulário inline", () => {
+    const wrapper = mount(EquipmentStageForm, {
+      props: { stage: 5, processes, editable: true, saving: false },
+    });
+    expect(wrapper.get("[data-testid='stage-form-list']").text()).toContain("Contratos");
+    expect(wrapper.find("form").exists()).toBe(false);
+  });
 });
 
 describe("ProcessSummary (GAP-008: edição independente da etapa atual)", () => {
@@ -154,28 +152,27 @@ describe("ProcessSummary (GAP-008: edição independente da etapa atual)", () =>
     expect(wrapper.findAll("button").filter((btn) => btn.text() === "Editar")).toHaveLength(0);
   });
 
-  it("mostra Editar nos 5 blocos quando editable, independente de etapa (sem prop stage)", () => {
+  it("mostra Editar nos 2 blocos (negociação/jurídico) quando editable — contrato/SC-OCI/OC viraram listas próprias", () => {
     const wrapper = mount(ProcessSummary, {
       props: { processes, editable: true, saving: false },
     });
-    expect(wrapper.findAll("button").filter((btn) => btn.text() === "Editar")).toHaveLength(5);
+    expect(wrapper.findAll("button").filter((btn) => btn.text() === "Editar")).toHaveLength(2);
   });
 
-  it("editar e salvar o bloco SC/OCI emite só esse recurso, sem tocar em current_stage", async () => {
+  it("editar e salvar o bloco jurídico emite só esse recurso, sem tocar em current_stage", async () => {
     const wrapper = mount(ProcessSummary, {
       props: { processes, editable: true, saving: false },
     });
-    await wrapper.get("[data-testid='edit-purchase-request']").trigger("click");
-    const form = wrapper.get("[data-testid='form-purchase-request']");
-    await form.get("select").setValue("OCI");
-    await form.get("input[maxlength='80']").setValue("OCI-9999");
+    await wrapper.get("[data-testid='edit-legal']").trigger("click");
+    const form = wrapper.get("[data-testid='form-legal']");
+    await form.get("input[maxlength='80']").setValue("TICKET-9999");
     await form.trigger("submit");
 
     const emitted = wrapper.emitted("save");
     expect(emitted).toHaveLength(1);
     expect(emitted![0]).toEqual([
-      "purchase-request",
-      { kind: "OCI", requestNumber: "OCI-9999", requestedAt: null },
+      "legal",
+      { openedAt: null, ticketNumber: "TICKET-9999", draftPrepared: false, draftApproved: false },
     ]);
   });
 
@@ -183,10 +180,10 @@ describe("ProcessSummary (GAP-008: edição independente da etapa atual)", () =>
     const wrapper = mount(ProcessSummary, {
       props: { processes, editable: true, saving: false },
     });
-    await wrapper.get("[data-testid='edit-contract']").trigger("click");
-    expect(wrapper.find("[data-testid='form-contract']").exists()).toBe(true);
-    await wrapper.get("[data-testid='form-contract'] button[type='button']").trigger("click");
+    await wrapper.get("[data-testid='edit-negotiation']").trigger("click");
+    expect(wrapper.find("[data-testid='form-negotiation']").exists()).toBe(true);
+    await wrapper.get("[data-testid='form-negotiation'] button[type='button']").trigger("click");
     expect(wrapper.emitted("save")).toBeUndefined();
-    expect(wrapper.find("[data-testid='form-contract']").exists()).toBe(false);
+    expect(wrapper.find("[data-testid='form-negotiation']").exists()).toBe(false);
   });
 });

@@ -5,7 +5,8 @@
   "by_stage": {
     "4": 6,
     "8": 1,
-    "6": 3,
+    "7": 1,
+    "6": 2,
     "0": 31
   },
   "stage_0_sample": {
@@ -153,19 +154,19 @@
   "equipment_supplier_links_c2": 0,
   "audit_actions": {
     "user.units_changed": 4,
-    "purchaserequest.update": 1,
+    "purchaserequest.update": 2,
     "purchaseorder.update": 1,
     "user.create": 4,
     "contract.update": 1,
     "catalog.create": 17,
     "supplier.create": 3,
     "negotiation.update": 4,
-    "equipment.stage_changed": 10,
+    "equipment.stage_changed": 11,
     "migration.import": 231,
     "equipment.create": 8,
     "legalprocess.update": 2
   },
-  "workflow_transitions_c2": 0,
+  "workflow_transitions_c2": 1,
   "component_sample": {
     "name": "Analisador de gás da Caldeira",
     "tag": null,
