@@ -6,9 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.workflow import exceptions as exceptions_service
 from app.modules.workflow import operational_status, service
 from app.modules.workflow import reopen as reopen_service
+from app.modules.workflow import waivers as waivers_service
 from app.modules.workflow.schemas import (
     AvailableTransitionsOut,
     EquipmentOperationalStatusOut,
@@ -19,10 +19,11 @@ from app.modules.workflow.schemas import (
     ReopenRequestCreateIn,
     ReopenRequestListOut,
     ReopenRequestOut,
+    RequirementWaiverCreateIn,
+    RequirementWaiverListOut,
+    RequirementWaiverOut,
+    RequirementWaiverRevokeIn,
     TransitionRequestIn,
-    WorkflowExceptionCreateIn,
-    WorkflowExceptionListOut,
-    WorkflowExceptionOut,
 )
 
 router = APIRouter(tags=["workflow"])
@@ -144,51 +145,58 @@ async def post_end_sanitation(
     return await operational_status.end_sanitation(session, equipment_id, body.justification, actor)
 
 
-# --- Etapa 7B: exceções de workflow (fornecedor fixo / importação) ---
+# --- Etapa 7.1: dispensa de requisitos por grupo (RequirementWaiver) ---
+# Substitui as exceções de workflow rígidas da Etapa 7B (FIXED_SUPPLIER/
+# IMPORTATION) — ver docs/validation/etapa-07-1-requirement-waivers.md.
 
 
 @router.get(
-    "/equipments/{equipment_id}/workflow-exceptions",
-    response_model=WorkflowExceptionListOut,
+    "/equipments/{equipment_id}/requirement-waivers",
+    response_model=RequirementWaiverListOut,
 )
-async def get_workflow_exceptions(
+async def get_requirement_waivers(
     equipment_id: str,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
-) -> WorkflowExceptionListOut:
-    return await exceptions_service.list_exceptions(session, equipment_id, actor)
+) -> RequirementWaiverListOut:
+    return await waivers_service.list_waivers(session, equipment_id, actor)
 
 
 @router.post(
-    "/equipments/{equipment_id}/workflow-exceptions",
-    response_model=WorkflowExceptionOut,
+    "/equipments/{equipment_id}/requirement-waivers",
+    response_model=RequirementWaiverOut,
 )
-async def post_workflow_exception(
+async def post_requirement_waiver(
     equipment_id: str,
-    body: WorkflowExceptionCreateIn,
+    body: RequirementWaiverCreateIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
-) -> WorkflowExceptionOut:
-    return await exceptions_service.create_exception(
+) -> RequirementWaiverOut:
+    return await waivers_service.create_waiver(
         session,
         equipment_id,
-        exception_type=body.type,
+        stage=body.stage,
+        requirement_group_code=body.requirement_group_code,
+        reason_code=body.reason_code,
         justification=body.justification,
         actor=actor,
     )
 
 
 @router.post(
-    "/equipments/{equipment_id}/workflow-exceptions/{exception_id}/cancel",
-    response_model=WorkflowExceptionOut,
+    "/equipments/{equipment_id}/requirement-waivers/{waiver_id}/revoke",
+    response_model=RequirementWaiverOut,
 )
-async def post_cancel_workflow_exception(
+async def post_revoke_requirement_waiver(
     equipment_id: str,
-    exception_id: str,
+    waiver_id: str,
+    body: RequirementWaiverRevokeIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
-) -> WorkflowExceptionOut:
-    return await exceptions_service.cancel_exception(session, equipment_id, exception_id, actor)
+) -> RequirementWaiverOut:
+    return await waivers_service.revoke_waiver(
+        session, equipment_id, waiver_id, revoke_reason=body.revoke_reason, actor=actor
+    )
 
 
 # --- Etapa 7C: reabertura com aprovação ---

@@ -1,10 +1,19 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import EquipmentStageForm from "~/components/equipment/EquipmentStageForm.vue";
 import EquipmentWorkflowStepper from "~/components/equipment/EquipmentWorkflowStepper.vue";
 import ProcessSummary from "~/components/equipment/ProcessSummary.vue";
 import WorkflowRequirements from "~/components/equipment/WorkflowRequirements.vue";
 import type { EquipmentProcesses, TransitionOption } from "~/types/equipment";
+
+vi.stubGlobal("useAuthStore", () => ({ can: () => true }));
+vi.stubGlobal("useApi", () => ({
+  post: vi.fn().mockResolvedValue({}),
+  get: vi.fn().mockResolvedValue({}),
+  patch: vi.fn().mockResolvedValue({}),
+  delete: vi.fn().mockResolvedValue({}),
+}));
+vi.stubGlobal("useRoute", () => ({ params: { id: "eq-1" } }));
 
 const processes = {
   negotiation: { id: null, equipmentId: "eq-1", equalized: false, negotiatedAt: null },
@@ -38,22 +47,26 @@ const blockedOption = {
   canExecute: false,
   requiresReason: false,
   blockedReason: null,
-  requirements: [
+  requirementGroups: [
     {
-      code: "contract_number_required",
-      field: "contract.contractNumber",
-      message: "Informe o número do contrato.",
-      satisfied: true,
+      code: "NEGOTIATION_EQUALIZATION",
+      label: "Equalização da negociação",
+      status: "SATISFIED",
+      waivable: true,
+      fields: ["negotiation.equalized"],
+      message: "Confirme a equalização da negociação.",
+      waiver: null,
     },
     {
-      code: "contract_executed_at_required",
-      field: "contract.executedAt",
+      code: "CONTRACT",
+      label: "Contrato",
+      status: "MISSING",
+      waivable: true,
+      fields: ["contract.contractNumber", "contract.executedAt", "contract.file"],
       message: "Informe a data de escrituração do contrato.",
-      satisfied: false,
+      waiver: null,
     },
   ],
-  satisfiedRequirements: [],
-  missingRequirements: [],
 } satisfies TransitionOption;
 
 describe("EquipmentWorkflowStepper", () => {
@@ -75,13 +88,17 @@ describe("EquipmentWorkflowStepper", () => {
 });
 
 describe("WorkflowRequirements", () => {
-  it("lista requisitos atendidos e pendentes vindos do backend", () => {
+  it("lista requisitos atendidos e pendentes por grupo, vindos do backend", () => {
     const wrapper = mount(WorkflowRequirements, { props: { option: blockedOption } });
     expect(wrapper.text()).toContain("6 · SC ou OCI");
-    const pending = wrapper.get("[data-testid='requirement-contract_executed_at_required']");
-    const done = wrapper.get("[data-testid='requirement-contract_number_required']");
+    const pending = wrapper.get("[data-testid='requirement-CONTRACT']");
+    const done = wrapper.get("[data-testid='requirement-NEGOTIATION_EQUALIZATION']");
     expect(pending.classes()).not.toContain("requirement--done");
     expect(done.classes()).toContain("requirement--done");
+    // Etapa 7.1: a ação "Não possui" fica junto de onde o dado é
+    // registrado (RequirementWaiverBanner, nas listas/formulário da fase),
+    // não neste painel — aqui só um aviso apontando para lá.
+    expect(wrapper.text()).toContain("Não possui");
   });
 
   it("mostra o motivo do bloqueio quando o perfil não pode avançar", () => {
@@ -97,14 +114,14 @@ describe("WorkflowRequirements", () => {
 describe("EquipmentStageForm", () => {
   it("apresenta o formulário da etapa atual preenchido com os dados do processo", () => {
     const wrapper = mount(EquipmentStageForm, {
-      props: { stage: 1, processes, editable: true, saving: false },
+      props: { stage: 1, processes, editable: true, saving: false, equipmentId: "eq-1" },
     });
     expect(wrapper.find("input[type='checkbox']").exists()).toBe(true);
   });
 
   it("emite apenas o salvamento do processo, sem pedir avanço de etapa", async () => {
     const wrapper = mount(EquipmentStageForm, {
-      props: { stage: 1, processes, editable: true, saving: false },
+      props: { stage: 1, processes, editable: true, saving: false, equipmentId: "eq-1" },
     });
     await wrapper.get("input[type='checkbox']").setValue(true);
     await wrapper.get("form").trigger("submit");
@@ -118,7 +135,7 @@ describe("EquipmentStageForm", () => {
 
   it("bloqueia a edição de quem não tem permissão de escrita", () => {
     const wrapper = mount(EquipmentStageForm, {
-      props: { stage: 1, processes, editable: false, saving: false },
+      props: { stage: 1, processes, editable: false, saving: false, equipmentId: "eq-1" },
     });
     expect(wrapper.get("fieldset").attributes("disabled")).toBeDefined();
     expect(wrapper.find("[data-testid='save-process']").exists()).toBe(false);
@@ -126,10 +143,10 @@ describe("EquipmentStageForm", () => {
 
   it("mostra a chamada para iniciar a negociação na etapa 0 e leitura na etapa 8", () => {
     const start = mount(EquipmentStageForm, {
-      props: { stage: 0, processes, editable: true, saving: false },
+      props: { stage: 0, processes, editable: true, saving: false, equipmentId: "eq-1" },
     });
     const done = mount(EquipmentStageForm, {
-      props: { stage: 8, processes, editable: true, saving: false },
+      props: { stage: 8, processes, editable: true, saving: false, equipmentId: "eq-1" },
     });
     expect(start.get("[data-testid='stage-form-intro']").text()).toContain("Inicie a negociação");
     expect(done.get("[data-testid='stage-form-done']").text()).toContain("Processo concluído");
@@ -137,7 +154,7 @@ describe("EquipmentStageForm", () => {
 
   it("etapas 5-7 apontam para as listas dedicadas (Contratos/SC-OCI/OC), sem formulário inline", () => {
     const wrapper = mount(EquipmentStageForm, {
-      props: { stage: 5, processes, editable: true, saving: false },
+      props: { stage: 5, processes, editable: true, saving: false, equipmentId: "eq-1" },
     });
     expect(wrapper.get("[data-testid='stage-form-list']").text()).toContain("Contratos");
     expect(wrapper.find("form").exists()).toBe(false);

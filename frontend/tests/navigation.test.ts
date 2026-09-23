@@ -14,7 +14,7 @@ describe("NAV_ITEMS", () => {
       "/engenharia",
       "/juridico",
       "/suprimentos",
-      "/dashboard/auditoria",
+      "/equipamentos/kanban",
     ]);
   });
 
@@ -25,15 +25,15 @@ describe("NAV_ITEMS", () => {
 });
 
 describe("visibleNavItems", () => {
-  it("esconde a auditoria de quem não tem a permissão", () => {
+  it("esconde o kanban de quem não tem a permissão", () => {
     const visible = visibleNavItems(NAV_ITEMS, allowNone);
-    expect(visible.map((item) => item.to)).not.toContain("/dashboard/auditoria");
+    expect(visible.map((item) => item.to)).not.toContain("/equipamentos/kanban");
     expect(visible).toHaveLength(NAV_ITEMS.length - 1);
   });
 
-  it("mostra a auditoria para quem tem audit:read", () => {
-    const can = (permission: Permission) => permission === "audit:read";
-    expect(visibleNavItems(NAV_ITEMS, can).map((item) => item.to)).toContain("/dashboard/auditoria");
+  it("mostra o kanban para quem tem equipments:read", () => {
+    const can = (permission: Permission) => permission === "equipments:read";
+    expect(visibleNavItems(NAV_ITEMS, can).map((item) => item.to)).toContain("/equipamentos/kanban");
   });
 
   it("mantém todos os itens sem permissão exigida", () => {
@@ -51,8 +51,8 @@ describe("activeNavPath", () => {
   });
 
   it("prefere o prefixo mais específico em rotas aninhadas", () => {
-    expect(activeNavPath(NAV_ITEMS, "/dashboard/auditoria")).toBe("/dashboard/auditoria");
-    expect(activeNavPath(NAV_ITEMS, "/dashboard")).toBe("/dashboard");
+    expect(activeNavPath(NAV_ITEMS, "/equipamentos/kanban")).toBe("/equipamentos/kanban");
+    expect(activeNavPath(NAV_ITEMS, "/equipamentos")).toBe("/equipamentos");
   });
 
   it("ignora barra final e não ativa nada fora do módulo", () => {

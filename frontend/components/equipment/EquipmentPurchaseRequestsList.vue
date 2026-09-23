@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 import { Pencil, Plus, Trash2 } from "lucide-vue-next";
-import type { PurchaseRequest } from "~/types/equipment";
+import type { PurchaseRequest, RequirementGroup, RequirementWaiver } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 import { blankToNull } from "~/utils/workflow";
 
@@ -9,6 +9,13 @@ const props = defineProps<{
   equipmentId: string;
   items: PurchaseRequest[];
   editable: boolean;
+  /** Etapa 7.1: grupo PURCHASE_REQUEST da fase atual, quando ela exigir
+   * isso para avançar — permite marcar "Não possui SC/OCI" direto aqui. */
+  requirementGroup?: RequirementGroup | null;
+  requirementStage?: number;
+  /** Dispensa ACTIVE do grupo PURCHASE_REQUEST, independente da fase
+   * atual — para continuar visível depois que o processo avança de fase. */
+  requirementWaiver?: RequirementWaiver | null;
 }>();
 const emit = defineEmits<{ changed: [] }>();
 
@@ -95,6 +102,15 @@ async function removeItem(item: PurchaseRequest): Promise<void> {
     </div>
 
     <p v-if="actionError" class="notice error list-notice" role="alert">{{ actionError }}</p>
+
+    <RequirementWaiverBanner
+      v-if="requirementWaiver || (requirementGroup && requirementStage !== undefined)"
+      :equipment-id="equipmentId"
+      :stage="requirementStage ?? requirementWaiver!.stage"
+      :group="requirementGroup"
+      :waiver="requirementWaiver"
+      @changed="emit('changed')"
+    />
 
     <div v-if="sorted.length === 0" class="empty-state table-empty" data-testid="purchase-requests-empty">
       <h2>Nenhuma SC/OCI cadastrada</h2>

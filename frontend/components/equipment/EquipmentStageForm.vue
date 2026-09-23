@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
-import type { EquipmentProcesses } from "~/types/equipment";
+import type { EquipmentProcesses, RequirementGroup } from "~/types/equipment";
 import { type ProcessResource, blankToNull, resourceForStage } from "~/utils/workflow";
 
 const props = defineProps<{
@@ -8,9 +8,14 @@ const props = defineProps<{
   processes: EquipmentProcesses;
   editable: boolean;
   saving: boolean;
+  equipmentId: string;
+  /** Etapa 7.1: grupo de requisito da fase atual (negociação/jurídico),
+   * quando ela exigir isso para avançar — "Não possui X" direto aqui. */
+  requirementGroup?: RequirementGroup | null;
 }>();
 const emit = defineEmits<{
   save: [resource: ProcessResource, payload: Record<string, unknown>];
+  changed: [];
 }>();
 
 const resource = computed(() => resourceForStage(props.stage));
@@ -64,7 +69,15 @@ function submit(): void {
   <div v-else-if="!resource" class="stage-intro" data-testid="stage-form-list">
     <p>Esta etapa é preenchida nas listas abaixo (Contratos, SC/OCI ou Ordens de Compra) — use "+ Adicionar" para criar um registro ou edite um já existente.</p>
   </div>
-  <form v-else class="stage-form" data-testid="stage-form" @submit.prevent="submit">
+  <template v-else>
+    <RequirementWaiverBanner
+      v-if="requirementGroup"
+      :equipment-id="equipmentId"
+      :stage="stage"
+      :group="requirementGroup"
+      @changed="emit('changed')"
+    />
+    <form class="stage-form" data-testid="stage-form" @submit.prevent="submit">
     <fieldset :disabled="!editable">
       <div v-if="resource === 'negotiation'" class="form-grid">
         <label class="field field-check">
@@ -89,7 +102,8 @@ function submit(): void {
         {{ saving ? "Salvando..." : "Salvar alterações" }}
       </button>
     </div>
-  </form>
+    </form>
+  </template>
 </template>
 
 <style scoped>

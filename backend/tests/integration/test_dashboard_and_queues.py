@@ -66,6 +66,14 @@ async def _advance_to(client, auth_header, equipment_id: str, target: int) -> No
                 headers=auth_header("ANALYST"),
             )
             assert created.status_code == 201, created.text
+            # Etapa 7.1: o grupo CONTRACT exige número + data + arquivo no
+            # MESMO registro — sem waiver, o fluxo normal precisa do arquivo.
+            uploaded = await client.put(
+                f"/api/v1/equipments/{equipment_id}/contracts/{created.json()['id']}/file",
+                files={"file": ("contrato.pdf", b"conteudo fake de teste", "application/pdf")},
+                headers=auth_header("ANALYST"),
+            )
+            assert uploaded.status_code == 200, uploaded.text
         if stage == 7:
             created = await client.post(
                 f"/api/v1/equipments/{equipment_id}/purchase-requests",
@@ -151,9 +159,7 @@ async def test_summary_respects_unit_and_equipment_filters(client, auth_header) 
     await _create(client, auth_header, second["context"], "De outra unidade")
 
     by_unit = (
-        await client.get(
-            f"/api/v1/dashboard/summary?unit_id={first['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/dashboard/summary?unit_id={first['unit']}", headers=auth_header("VIEWER"))
     ).json()
     by_equipment = (
         await client.get(
@@ -179,9 +185,7 @@ async def test_summary_purchase_order_and_negotiation_metrics(client, auth_heade
     assert created.status_code == 201, created.text
 
     body = (
-        await client.get(
-            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()
 
     assert body["totals"]["purchaseOrders"] == 1
@@ -201,9 +205,7 @@ async def test_summary_deadlines_card_is_active_with_real_distribution(client, a
     equipment_id = await _create(client, auth_header, ids["context"], "Sem componente ainda")
 
     body = (
-        await client.get(
-            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()
     deadlines = body["deadlines"]
     assert deadlines["available"] is True
@@ -227,9 +229,7 @@ async def test_summary_deadlines_card_is_active_with_real_distribution(client, a
         headers=auth_header("ANALYST"),
     )
     after = (
-        await client.get(
-            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()["deadlines"]
     assert after["withoutDeadline"] == 0
     assert after["withDeadline"] == 1
@@ -257,9 +257,7 @@ async def test_summary_deadlines_categories_sum_to_with_deadline_and_total(clien
     await _create(client, auth_header, ids["context"], "Sem componente")
 
     deadlines = (
-        await client.get(
-            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()["deadlines"]
 
     assert deadlines["total"] == 4
@@ -289,9 +287,7 @@ async def test_summary_deadlines_without_deadline_is_never_classified_as_safe(cl
         headers=auth_header("ANALYST"),
     )
     deadlines = (
-        await client.get(
-            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()["deadlines"]
     assert deadlines["total"] == 2
     assert deadlines["withoutDeadline"] == 2
@@ -388,9 +384,7 @@ async def test_summary_deadlines_respects_unit_scoping_and_permissions(client, a
         )
 
     scoped = (
-        await client.get(
-            f"/api/v1/dashboard/summary?unit_id={first['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/dashboard/summary?unit_id={first['unit']}", headers=auth_header("VIEWER"))
     ).json()["deadlines"]
     assert scoped["total"] == 1
 
@@ -399,9 +393,9 @@ async def test_summary_deadlines_respects_unit_scoping_and_permissions(client, a
     )
     assert forbidden.status_code == 404
 
-    unscoped = (
-        await client.get("/api/v1/dashboard/summary", headers=auth_header("VIEWER"))
-    ).json()["deadlines"]
+    unscoped = (await client.get("/api/v1/dashboard/summary", headers=auth_header("VIEWER"))).json()[
+        "deadlines"
+    ]
     assert unscoped["safe"] >= scoped["safe"]
 
 
@@ -431,9 +425,7 @@ async def test_summary_next_startup_ignores_past_dates(client, auth_header) -> N
     )
 
     startup = (
-        await client.get(
-            f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()["startup"]
 
     assert startup["equipmentId"] == future
@@ -471,15 +463,13 @@ async def test_engineering_queue_exposes_pending_requirement(client, auth_header
     await _advance_to(client, auth_header, equipment_id, 1)
 
     row = (
-        await client.get(
-            f"/api/v1/queues/engineering?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/queues/engineering?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()["items"][0]
 
     assert row["currentStage"] == 1
     assert row["nextStage"] == 2
     assert row["nextStageName"] == "Equalização"
-    assert [item["code"] for item in row["pending"]] == ["negotiation_equalized_required"]
+    assert [item["code"] for item in row["pending"]] == ["NEGOTIATION_EQUALIZATION"]
 
 
 async def test_legal_queue_returns_process_data(client, auth_header) -> None:
@@ -489,9 +479,7 @@ async def test_legal_queue_returns_process_data(client, auth_header) -> None:
     await _advance_to(client, auth_header, equipment_id, 4)
 
     row = (
-        await client.get(
-            f"/api/v1/queues/legal?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/queues/legal?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()["items"][0]
 
     assert row["ticketNumber"] == "TICKET-0001"
@@ -511,9 +499,7 @@ async def test_procurement_queue_returns_order_data(client, auth_header) -> None
     assert created.status_code == 201, created.text
 
     row = (
-        await client.get(
-            f"/api/v1/queues/procurement?unit_id={ids['unit']}", headers=auth_header("VIEWER")
-        )
+        await client.get(f"/api/v1/queues/procurement?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()["items"][0]
 
     assert row["kind"] == "SC"

@@ -288,12 +288,17 @@ Regras de transição hoje implementadas (`app/modules/workflow/stages.py`,
 | **Bypass de suprimentos** | **NÃO IMPLEMENTADO** | nenhuma menção no código |
 | **Mais de uma forma de concluir (7→8)** | **NÃO IMPLEMENTADO** | só existe o avanço normal revalidando tudo |
 
-**GAP-004 — NÃO IMPLEMENTADO — P1/P2 (decisão de negócio necessária antes de priorizar).**
-Shortcut 2→4 do Monday não existe no Hub. Precisa confirmação: essa regra
-ainda é necessária operacionalmente, ou foi superada pelo workflow atual?
+**GAP-004 — SUBSTITUÍDO NA ETAPA 7.1.** Shortcut 2→4 do Monday não existe
+no Hub — e a decisão de negócio confirmada foi que ele nunca vai existir
+como salto automático. Em vez disso, casos de fornecedor pré-definido
+usam dispensa (`RequirementWaiver`) dos grupos de negociação, com avanço
+manual fase por fase preservado. Ver
+[`etapa-07-1-requirement-waivers.md`](etapa-07-1-requirement-waivers.md).
 
-**GAP-005 — NÃO IMPLEMENTADO — P2 (decisão de negócio necessária).**
-Bypass de suprimentos do Monday não existe no Hub.
+**GAP-005 — SUBSTITUÍDO NA ETAPA 7.1.** Bypass de suprimentos do Monday
+não existe no Hub — substituído por dispensa dos grupos `CONTRACT`/
+`PURCHASE_REQUEST` para casos de importação, sempre com avanço manual.
+Ver [`etapa-07-1-requirement-waivers.md`](etapa-07-1-requirement-waivers.md).
 
 **GAP-006 — REGRA AINDA NÃO VALIDADA — P2.**
 Reabertura sempre volta para etapa 1 e não distingue "reabrir negociação"
@@ -642,8 +647,8 @@ Etapa 6A**, junto com GAP-001 e GAP-009. Ver
 | GAP-001 | Work Packages / API | PATCH de equipamento pode devolver `workPackages` desatualizado na resposta imediata (banco correto) | **RESOLVIDO NA ETAPA 6A** | P1 | Não (impacto contido hoje) |
 | GAP-002 | Histórico/Auditoria | Sub-processos criados pela migração não aparecem na aba Histórico do equipamento | **RESOLVIDO NA ETAPA 6D** | ~~P2~~ | Não |
 | GAP-003 | Histórico/Auditoria | Título cru "migration.import" na timeline | **RESOLVIDO NA ETAPA 6D** | ~~P3~~ | Não |
-| GAP-004 | Workflow | Shortcut 2→4 não implementado | **SUBSTITUÍDO NA ETAPA 7** — negócio decidiu não ter salto automático nenhum; casos de fornecedor pré-definido usam a exceção `FIXED_SUPPLIER` (avanço manual, fase por fase, com validações dispensadas) | ~~P1/P2~~ | Não |
-| GAP-005 | Workflow | Bypass de suprimentos não implementado | **SUBSTITUÍDO NA ETAPA 7** — casos de importação usam a exceção `IMPORTATION` (chega à fase 7 sem contrato/SC-OCI obrigatórios, sempre manual) | ~~P2~~ | Não |
+| GAP-004 | Workflow | Shortcut 2→4 não implementado | **SUBSTITUÍDO NA ETAPA 7.1** — negócio decidiu não ter salto automático nenhum; casos de fornecedor pré-definido usam dispensa (`RequirementWaiver`) do grupo `NEGOTIATION_EQUALIZATION`/`COMMERCIAL_NEGOTIATION`, com motivo `FIXED_SUPPLIER` (avanço manual, fase por fase) | ~~P1/P2~~ | Não |
+| GAP-005 | Workflow | Bypass de suprimentos não implementado | **SUBSTITUÍDO NA ETAPA 7.1** — casos de importação usam dispensa dos grupos `CONTRACT`/`PURCHASE_REQUEST` (motivo `IMPORTATION`), chegando à fase 7 sem contrato/SC-OCI obrigatórios, sempre manual | ~~P2~~ | Não |
 | GAP-006 | Workflow | Reabertura genérica (sempre → etapa 1) | **RESOLVIDO NA ETAPA 7** — `ReopenRequest`: escolhe qualquer fase anterior, exige aprovação por permissão superior, equipamento só muda de fase após aprovação | ~~P2~~ | Não |
 | GAP-007 | Workflow | Só uma forma de concluir 7→8 | **RESOLVIDO NA ETAPA 7** — regra explícita: fornecedor + ao menos 1 OC + Valor Total do Projeto, sem reexecutar requisitos de fases anteriores | ~~P3~~ | Não |
 | GAP-008 | Processo / UI | Dado de processo de equipamento concluído (etapa 8) não é editável pela UI | **RESOLVIDO NA ETAPA 6A** | ~~P0~~ | ~~Sim~~ |
@@ -693,13 +698,18 @@ datas DATE-ONLY — ver [`etapa-06c-dates-negotiation-status.md`](etapa-06c-date
 — ver
 [`etapa-06d-operational-completeness.md`](etapa-06d-operational-completeness.md).
 
-**Feito na Etapa 7**: ~~GAP-004~~, ~~GAP-005~~ (substituídos pelo mecanismo
-de exceções de fluxo `FIXED_SUPPLIER`/`IMPORTATION`), ~~GAP-006~~
-(reabertura com aprovação), ~~GAP-007~~ (regra explícita de conclusão
-7→8) — mais contratos/SC-OCI/OC 1:N, fornecedor único, Standby/Cancelado/
-Em Saneamento, comentários, Kickoff/FUP e Kanban (não eram GAPs
-catalogados aqui, vieram direto da especificação da etapa) — ver
+**Feito na Etapa 7**: ~~GAP-006~~ (reabertura com aprovação), ~~GAP-007~~
+(regra explícita de conclusão 7→8) — mais contratos/SC-OCI/OC 1:N,
+fornecedor único, Standby/Cancelado/Em Saneamento, comentários,
+Kickoff/FUP e Kanban (não eram GAPs catalogados aqui, vieram direto da
+especificação da etapa) — ver
 [`etapa-07-operational-business-rules.md`](etapa-07-operational-business-rules.md).
+
+**Feito na Etapa 7.1**: ~~GAP-004~~, ~~GAP-005~~ — o mecanismo de exceções
+de fluxo rígidas (`FIXED_SUPPLIER`/`IMPORTATION`, Etapa 7B) foi substituído
+por dispensa flexível por grupo de requisitos (`RequirementWaiver`, motivo
++ justificativa auditáveis, sem tabela rígida tipo→requisitos) — ver
+[`etapa-07-1-requirement-waivers.md`](etapa-07-1-requirement-waivers.md).
 
 Próximos, em ordem sugerida:
 

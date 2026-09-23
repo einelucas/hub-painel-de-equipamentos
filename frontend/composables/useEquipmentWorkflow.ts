@@ -2,28 +2,31 @@ import type {
   AvailableTransitions,
   EquipmentOperationalStatus,
   EquipmentProcesses,
-  HistoryList,
   ReopenRequest,
+  RequirementWaiver,
+  RequirementWaiverReasonCode,
   TransitionOption,
-  WorkflowException,
 } from "~/types/equipment";
 import type { ProcessResource } from "~/utils/workflow";
 
 interface ReopenRequestList {
   items: ReopenRequest[];
 }
-interface WorkflowExceptionList {
-  items: WorkflowException[];
+
+interface RequirementWaiverList {
+  items: RequirementWaiver[];
 }
 
 export function useEquipmentWorkflow(equipmentId: Ref<string>) {
   const api = useApi();
   const processes = ref<EquipmentProcesses | null>(null);
   const transitions = ref<AvailableTransitions | null>(null);
-  const history = ref<HistoryList["items"]>([]);
   const operationalStatus = ref<EquipmentOperationalStatus | null>(null);
-  const exceptions = ref<WorkflowException[]>([]);
   const reopenRequests = ref<ReopenRequest[]>([]);
+  /** Etapa 7.1: TODAS as dispensas do equipamento (não só as da fase atual)
+   * — para o "Não possui" continuar visível nas listas mesmo após a fase
+   * seguir em frente (ver bug reportado: justificativa "sumia" ao avançar). */
+  const waivers = ref<RequirementWaiver[]>([]);
   const loading = ref(true);
   const saving = ref(false);
   const advancing = ref(false);
@@ -36,33 +39,37 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
     () => transitions.value?.transitions.find((item) => item.kind === "advance") ?? null,
   );
 
-  const activeException = computed<WorkflowException | null>(
-    () => exceptions.value.find((item) => item.status === "ACTIVE") ?? null,
-  );
-
   const pendingReopenRequest = computed<ReopenRequest | null>(
     () => reopenRequests.value.find((item) => item.status === "PENDING") ?? null,
   );
+
+  /** Etapa 7.1: dispensa ACTIVE de um grupo, independente da fase atual —
+   * usado para manter a justificativa visível mesmo depois de avançar. */
+  function activeWaiverFor(requirementGroupCode: string): RequirementWaiver | null {
+    return (
+      waivers.value.find(
+        (item) => item.requirementGroupCode === requirementGroupCode && item.status === "ACTIVE",
+      ) ?? null
+    );
+  }
 
   async function load(): Promise<void> {
     loading.value = true;
     error.value = "";
     try {
-      const [processResult, transitionResult, historyResult, statusResult, exceptionResult, reopenResult] =
+      const [processResult, transitionResult, statusResult, reopenResult, waiverResult] =
         await Promise.all([
           api.get<EquipmentProcesses>(`/equipments/${equipmentId.value}/processes`),
           api.get<AvailableTransitions>(`/equipments/${equipmentId.value}/available-transitions`),
-          api.get<HistoryList>(`/equipments/${equipmentId.value}/history`),
           api.get<EquipmentOperationalStatus>(`/equipments/${equipmentId.value}/operational-status`),
-          api.get<WorkflowExceptionList>(`/equipments/${equipmentId.value}/workflow-exceptions`),
           api.get<ReopenRequestList>(`/equipments/${equipmentId.value}/reopen-requests`),
+          api.get<RequirementWaiverList>(`/equipments/${equipmentId.value}/requirement-waivers`),
         ]);
       processes.value = processResult;
       transitions.value = transitionResult;
-      history.value = historyResult.items;
       operationalStatus.value = statusResult;
-      exceptions.value = exceptionResult.items;
       reopenRequests.value = reopenResult.items;
+      waivers.value = waiverResult.items;
     } catch (caught) {
       error.value =
         caught instanceof Error ? caught.message : "Não foi possível carregar o processo.";
@@ -166,19 +173,33 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
     );
   }
 
-  // --- Etapa 7B: exceções de workflow ---
+  // --- Etapa 7.1: dispensa de requisitos por grupo (RequirementWaiver) ---
 
-  function createException(type: string, justification: string): Promise<unknown> {
+  function createWaiver(
+    stage: number,
+    requirementGroupCode: string,
+    reasonCode: RequirementWaiverReasonCode,
+    justification: string,
+  ): Promise<unknown> {
     return run(
-      () => api.post(`/equipments/${equipmentId.value}/workflow-exceptions`, { type, justification }),
-      "Não foi possível abrir a exceção de fluxo.",
+      () =>
+        api.post(`/equipments/${equipmentId.value}/requirement-waivers`, {
+          stage,
+          requirementGroupCode,
+          reasonCode,
+          justification,
+        }),
+      "Não foi possível registrar a dispensa deste requisito.",
     );
   }
 
-  function cancelException(exceptionId: string): Promise<unknown> {
+  function revokeWaiver(waiverId: string, revokeReason: string): Promise<unknown> {
     return run(
-      () => api.post(`/equipments/${equipmentId.value}/workflow-exceptions/${exceptionId}/cancel`, {}),
-      "Não foi possível cancelar a exceção de fluxo.",
+      () =>
+        api.post(`/equipments/${equipmentId.value}/requirement-waivers/${waiverId}/revoke`, {
+          revokeReason: revokeReason || null,
+        }),
+      "Não foi possível revogar a dispensa.",
     );
   }
 
@@ -214,12 +235,11 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
   return {
     processes,
     transitions,
-    history,
     operationalStatus,
-    exceptions,
     reopenRequests,
-    activeException,
     pendingReopenRequest,
+    waivers,
+    activeWaiverFor,
     loading,
     saving,
     advancing,
@@ -236,8 +256,8 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
     cancelEquipment,
     enterSanitation,
     endSanitation,
-    createException,
-    cancelException,
+    createWaiver,
+    revokeWaiver,
     requestReopen,
     approveReopen,
     rejectReopen,

@@ -29,6 +29,7 @@ from app.models.process import (
     PurchaseRequest,
 )
 from app.models.supplier import EquipmentSupplier
+from app.models.workflow_extras import RequirementWaiver
 from app.modules.equipments.schemas import NamedRefOut, PaginationOut, UserRefOut
 from app.modules.queues.schemas import (
     EngineeringQueueOut,
@@ -41,7 +42,7 @@ from app.modules.queues.schemas import (
     SupplierRefOut,
 )
 from app.modules.suppliers.service import primary_suppliers
-from app.modules.workflow.stages import FINAL_STAGE, ProcessState, requirements_for
+from app.modules.workflow.stages import FINAL_STAGE, ProcessState, groups_for
 
 # Recorte de etapas por área. Cada intervalo é inclusivo.
 QUEUE_STAGES: dict[str, tuple[int, int]] = {
@@ -215,13 +216,41 @@ async def _process_states(
     }
 
 
-def _pending(stage: int, state: ProcessState) -> list[PendingRequirementOut]:
+async def _bulk_waived_groups(
+    session: AsyncSession, equipment_ids: list[str]
+) -> dict[str, set[tuple[int, str]]]:
+    """Etapa 7.1: grupos dispensados (waiver ACTIVE) por equipamento, para a
+    fila nunca mostrar como "pendente" algo que já foi marcado como "Não
+    possui" no detalhe do equipamento."""
+    if not equipment_ids:
+        return {}
+    rows = (
+        await session.execute(
+            select(
+                RequirementWaiver.equipment_id,
+                RequirementWaiver.stage,
+                RequirementWaiver.requirement_group_code,
+            ).where(
+                RequirementWaiver.equipment_id.in_(equipment_ids),
+                RequirementWaiver.status == "ACTIVE",
+            )
+        )
+    ).all()
+    result: dict[str, set[tuple[int, str]]] = {}
+    for equipment_id, stage, code in rows:
+        result.setdefault(equipment_id, set()).add((stage, code))
+    return result
+
+
+def _pending(
+    stage: int, state: ProcessState, waived: set[tuple[int, str]]
+) -> list[PendingRequirementOut]:
     if stage >= FINAL_STAGE:
         return []
     return [
-        PendingRequirementOut(code=spec.code, field=spec.field, message=spec.message)
-        for spec in requirements_for(stage)
-        if not spec.check(state)
+        PendingRequirementOut(code=spec.code, field=", ".join(spec.fields), message=spec.message)
+        for spec in groups_for(stage)
+        if not spec.check(state) and (stage, spec.code) not in waived
     ]
 
 
@@ -244,7 +273,9 @@ def _user(item: Any) -> UserRefOut | None:
     return UserRefOut(id=item.id, name=item.name, email=item.email)
 
 
-def _base_fields(equipment: Equipment, state: ProcessState) -> dict[str, Any]:
+def _base_fields(
+    equipment: Equipment, state: ProcessState, waived: set[tuple[int, str]]
+) -> dict[str, Any]:
     stage = equipment.current_stage
     next_stage = stage + 1 if stage < FINAL_STAGE else None
     context = equipment.project_context
@@ -257,7 +288,7 @@ def _base_fields(equipment: Equipment, state: ProcessState) -> dict[str, Any]:
         "current_stage_name": STAGES[stage],
         "next_stage": next_stage,
         "next_stage_name": STAGES[next_stage] if next_stage is not None else None,
-        "pending": _pending(stage, state),
+        "pending": _pending(stage, state, waived),
     }
 
 
@@ -268,10 +299,11 @@ async def engineering_queue(
     ids = [item.id for item in equipments]
     states = await _process_states(session, ids, {item.id: item for item in equipments})
     counts = await _component_counts(session, ids)
+    waived = await _bulk_waived_groups(session, ids)
     return EngineeringQueueOut(
         items=[
             EngineeringRowOut(
-                **_base_fields(equipment, states[equipment.id]),
+                **_base_fields(equipment, states[equipment.id], waived.get(equipment.id, set())),
                 discipline=_named(equipment.discipline),
                 area=_named(equipment.area),
                 work_packages=_named_work_packages(equipment.work_package_links),
@@ -303,6 +335,7 @@ async def legal_queue(session: AsyncSession, filters: QueueFilters, actor: Curre
     equipments, pagination = await _load_page(session, "legal", filters, actor)
     ids = [item.id for item in equipments]
     states = await _process_states(session, ids, {item.id: item for item in equipments})
+    waived = await _bulk_waived_groups(session, ids)
     items: list[LegalRowOut] = []
     for equipment in equipments:
         state = states[equipment.id]
@@ -312,7 +345,7 @@ async def legal_queue(session: AsyncSession, filters: QueueFilters, actor: Curre
         contract = state.contracts[-1] if state.contracts else None
         items.append(
             LegalRowOut(
-                **_base_fields(equipment, state),
+                **_base_fields(equipment, state, waived.get(equipment.id, set())),
                 responsible_user=_user(equipment.responsible_user),
                 opened_at=legal.opened_at if legal else None,
                 ticket_number=legal.ticket_number if legal else None,
@@ -334,6 +367,7 @@ async def procurement_queue(
     ids = [item.id for item in equipments]
     states = await _process_states(session, ids, {item.id: item for item in equipments})
     suppliers = await primary_suppliers(session, ids)
+    waived = await _bulk_waived_groups(session, ids)
     items: list[ProcurementRowOut] = []
     for equipment in equipments:
         state = states[equipment.id]
@@ -343,7 +377,7 @@ async def procurement_queue(
         supplier = suppliers.get(equipment.id)
         items.append(
             ProcurementRowOut(
-                **_base_fields(equipment, state),
+                **_base_fields(equipment, state, waived.get(equipment.id, set())),
                 responsible_user=_user(equipment.responsible_user),
                 primary_supplier=(
                     SupplierRefOut(

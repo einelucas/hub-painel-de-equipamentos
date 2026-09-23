@@ -17,7 +17,6 @@ from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.permissions import Permission, assert_can
 from app.core.scope import assert_equipment_allowed
 from app.models.audit import AuditLog
-from app.models.common import utcnow
 from app.models.equipment import STAGES, Equipment, WorkflowTransition
 from app.models.process import (
     Contract,
@@ -28,21 +27,22 @@ from app.models.process import (
 )
 from app.models.supplier import EquipmentSupplier
 from app.models.user import User
-from app.models.workflow_extras import OperationalStatusEvent, WorkflowException
+from app.models.workflow_extras import OperationalStatusEvent, RequirementWaiver
 from app.modules.equipments.schemas import UserRefOut
 from app.modules.notifications.service import trigger_for_transition
 from app.modules.workflow.schemas import (
     AvailableTransitionsOut,
     HistoryEntryOut,
     HistoryOut,
-    RequirementOut,
+    RequirementGroupOut,
+    RequirementWaiverOut,
     TransitionOptionOut,
 )
 from app.modules.workflow.stages import (
     FINAL_STAGE,
     ProcessState,
-    dispensed_codes,
-    requirements_for,
+    group_spec,
+    groups_for,
 )
 from app.shared.audit import equipment_audit_conditions, record_audit
 
@@ -59,11 +59,15 @@ _AUDIT_TITLES: dict[str, str] = {
     # GAP-003 (Etapa 6D): só rótulo de apresentação — `action` continua
     # "migration.import" no banco, nada é reescrito.
     "migration.import": "Importado do Monday",
+    # Etapa 7B, substituído pela Etapa 7.1 — mantido só para exibir
+    # corretamente eventuais registros históricos (não há nenhum em DEV).
     "workflowexception.create": "Exceção de fluxo aberta",
     "workflowexception.cancel": "Exceção de fluxo cancelada",
     "reopenrequest.create": "Reabertura solicitada",
     "reopenrequest.approve": "Reabertura aprovada",
     "reopenrequest.reject": "Reabertura rejeitada",
+    "requirementwaiver.create": "Requisito marcado como dispensado",
+    "requirementwaiver.revoke": "Dispensa de requisito revogada",
 }
 
 _OPERATIONAL_EVENT_TITLES: dict[str, str] = {
@@ -121,27 +125,75 @@ async def _load_state(session: AsyncSession, equipment_id: str, equipment: Equip
     )
 
 
-async def _active_exception(session: AsyncSession, equipment_id: str) -> WorkflowException | None:
-    stmt = select(WorkflowException).where(
-        WorkflowException.equipment_id == equipment_id,
-        WorkflowException.status == "ACTIVE",
+async def _active_waivers(
+    session: AsyncSession, equipment_id: str, stage: int
+) -> dict[str, RequirementWaiver]:
+    stmt = select(RequirementWaiver).where(
+        RequirementWaiver.equipment_id == equipment_id,
+        RequirementWaiver.stage == stage,
+        RequirementWaiver.status == "ACTIVE",
     )
-    return (await session.execute(stmt)).scalar_one_or_none()
+    rows = (await session.execute(stmt)).scalars().all()
+    return {row.requirement_group_code: row for row in rows}
 
 
-def _evaluate(
-    from_stage: int, state: ProcessState, exception_type: str | None = None
-) -> list[RequirementOut]:
-    dispensed = dispensed_codes(exception_type)
-    return [
-        RequirementOut(
-            code=spec.code,
-            field=spec.field,
-            message=spec.message,
-            satisfied=True if spec.code in dispensed else spec.check(state),
+async def _waiver_out(session: AsyncSession, waiver: RequirementWaiver) -> RequirementWaiverOut:
+    creator = None
+    if waiver.created_by_id:
+        row = (
+            await session.execute(select(User).where(User.id == waiver.created_by_id))
+        ).scalar_one_or_none()
+        if row:
+            creator = UserRefOut(id=row.id, name=row.name, email=row.email)
+    spec = group_spec(waiver.requirement_group_code)
+    return RequirementWaiverOut(
+        id=waiver.id,
+        equipment_id=waiver.equipment_id,
+        stage=waiver.stage,
+        requirement_group_code=waiver.requirement_group_code,
+        requirement_group_label=spec.label if spec is not None else waiver.requirement_group_code,
+        reason_code=waiver.reason_code,
+        justification=waiver.justification,
+        status=waiver.status,
+        created_by=creator,
+        created_at=waiver.created_at,
+        revoked_by=None,
+        revoked_at=waiver.revoked_at,
+        revoke_reason=waiver.revoke_reason,
+    )
+
+
+async def _evaluate(
+    session: AsyncSession, from_stage: int, state: ProcessState
+) -> list[RequirementGroupOut]:
+    """Etapa 7.1: status por GRUPO — SATISFIED (dados completos), WAIVED
+    (incompleto, mas com `RequirementWaiver` ACTIVE) ou MISSING (bloqueia o
+    avanço). O motor nunca aceita `force=true`: só os grupos que
+    `app.modules.workflow.stages` marca como `waivable` podem ficar WAIVED,
+    e só quando alguém de fato registrou a dispensa."""
+    waivers = await _active_waivers(session, state.equipment.id if state.equipment else "", from_stage)
+    groups: list[RequirementGroupOut] = []
+    for spec in groups_for(from_stage):
+        satisfied = spec.check(state)
+        waiver = waivers.get(spec.code)
+        if satisfied:
+            status: Literal["SATISFIED", "WAIVED", "MISSING"] = "SATISFIED"
+        elif waiver is not None:
+            status = "WAIVED"
+        else:
+            status = "MISSING"
+        groups.append(
+            RequirementGroupOut(
+                code=spec.code,
+                label=spec.label,
+                status=status,
+                waivable=spec.waivable,
+                fields=list(spec.fields),
+                message=spec.message,
+                waiver=(await _waiver_out(session, waiver)) if waiver is not None else None,
+            )
         )
-        for spec in requirements_for(from_stage)
-    ]
+    return groups
 
 
 async def _get_equipment(
@@ -165,11 +217,10 @@ async def available_transitions(
     state = await _load_state(session, equipment_id, equipment)
     current = equipment.current_stage
     options: list[TransitionOptionOut] = []
-    exception = await _active_exception(session, equipment_id)
 
     if current < FINAL_STAGE:
-        requirements = _evaluate(current, state, exception.type if exception else None)
-        missing = [item for item in requirements if not item.satisfied]
+        groups = await _evaluate(session, current, state)
+        missing = [item for item in groups if item.status == "MISSING"]
         allowed = (
             actor_can(actor, Permission.WORKFLOW_TRANSITION)
             and equipment.operational_status == "ACTIVE"
@@ -191,9 +242,7 @@ async def available_transitions(
                         else "Seu perfil não tem permissão para avançar etapas."
                     )
                 ),
-                requirements=requirements,
-                satisfied_requirements=[item for item in requirements if item.satisfied],
-                missing_requirements=missing,
+                requirement_groups=groups,
             )
         )
 
@@ -245,7 +294,6 @@ async def execute_transition(
     from_stage = equipment.current_stage
     kind = _classify(from_stage, target_stage)
     clean_reason = reason.strip() if reason else None
-    exception = await _active_exception(session, equipment_id)
 
     if equipment.operational_status != "ACTIVE":
         raise DomainError(
@@ -253,11 +301,7 @@ async def execute_transition(
             "normalize o estado operacional antes de avançar."
         )
     state = await _load_state(session, equipment_id, equipment)
-    missing = [
-        item
-        for item in _evaluate(from_stage, state, exception.type if exception else None)
-        if not item.satisfied
-    ]
+    missing = [item for item in await _evaluate(session, from_stage, state) if item.status == "MISSING"]
     if missing:
         pending = " ".join(item.message for item in missing)
         raise DomainError(f"Requisitos pendentes para avançar: {pending}")
@@ -279,9 +323,6 @@ async def execute_transition(
     )
     session.add(transition)
     equipment.current_stage = target_stage
-    if kind == "advance" and exception is not None and target_stage >= exception.intended_target_stage:
-        exception.status = "COMPLETED"
-        exception.completed_at = utcnow()
     await session.flush()
     await record_audit(
         session,
@@ -366,9 +407,24 @@ async def history(session: AsyncSession, equipment_id: str, actor: CurrentUser) 
             id=item.id,
             kind="change",
             action=item.action,
-            title=_AUDIT_TITLES.get(item.action, item.action),
+            title=(
+                f"{_AUDIT_TITLES.get(item.action, item.action)} "
+                f"({(item.newData or {}).get('requirementGroupCode')})"
+                if item.action in ("requirementwaiver.create", "requirementwaiver.revoke")
+                and (item.newData or {}).get("requirementGroupCode")
+                else _AUDIT_TITLES.get(item.action, item.action)
+            ),
             actor=actors.get(item.userId) if item.userId else None,
             occurred_at=item.createdAt,
+            # Etapa 7.1: mesma vitrine usada por Standby/Saneamento/Cancelado
+            # — justificativa legível direto no histórico, sem abrir o JSON.
+            justification=(
+                (item.newData or {}).get("justification")
+                if item.action == "requirementwaiver.create"
+                else (item.newData or {}).get("revokeReason")
+                if item.action == "requirementwaiver.revoke"
+                else None
+            ),
             previous_data=item.previousData,
             new_data=item.newData,
         )
