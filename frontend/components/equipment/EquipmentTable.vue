@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Equipment } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
-import { stageTone } from "~/utils/stages";
+import StageBadge from "~/components/equipment/StageBadge.vue";
+import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
 
 defineProps<{ equipments: Equipment[] }>();
 </script>
@@ -20,15 +21,9 @@ defineProps<{ equipments: Equipment[] }>();
           <TableCell>{{ equipment.projectContext.code ?? equipment.projectContext.name }}</TableCell>
           <TableCell>{{ equipment.area?.name ?? "—" }}</TableCell>
           <TableCell>{{ equipment.discipline?.name ?? "—" }}</TableCell>
-          <TableCell>
-            <span v-if="equipment.workPackages.length === 0">—</span>
-            <div v-else class="wp-chips">
-              <span v-for="item in equipment.workPackages.slice(0, 3)" :key="item.id" class="wp-chip">{{ item.code ?? item.name }}</span>
-              <span v-if="equipment.workPackages.length > 3" class="wp-chip wp-chip--more">+{{ equipment.workPackages.length - 3 }}</span>
-            </div>
-          </TableCell>
+          <TableCell><WorkPackageChips :items="equipment.workPackages" /></TableCell>
           <TableCell>{{ equipment.responsibleUser?.name ?? "—" }}</TableCell>
-          <TableCell><span class="stage-badge" :class="stageTone(equipment.currentStage)">{{ equipment.currentStage }} · {{ equipment.stageName }}</span></TableCell>
+          <TableCell><StageBadge :stage="equipment.currentStage" :name="equipment.stageName" /></TableCell>
           <TableCell>{{ formatDateOnly(equipment.startupAt) }}</TableCell>
           <TableCell>{{ equipment.criticality ?? "—" }}</TableCell>
           <TableCell class="text-center font-semibold">{{ equipment.componentsCount }}</TableCell>
@@ -42,15 +37,6 @@ defineProps<{ equipments: Equipment[] }>();
 <style scoped>
 .table-wrap { padding: 0 18px 18px; }
 .table-empty { margin: auto; }
-.stage-badge { display: inline-flex; white-space: nowrap; border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 750; }
-.stage-badge--new { background: #eef2f7; color: #53647a; }
-.stage-badge--progress { background: #fff3df; color: #9b6418; }
-.stage-badge--advanced { background: #e8f1fc; color: #2f5f9c; }
-.stage-badge--complete { background: #eaf4e5; color: #477a32; }
 .detail-link { color: #304f7e; font-size: 12px; font-weight: 750; text-decoration: none; white-space: nowrap; }
 .detail-link:hover { text-decoration: underline; }
-/* Compacto: no máx. 3 chips + "+N", nunca aumenta a altura da linha. */
-.wp-chips { display: flex; flex-wrap: wrap; gap: 4px; max-width: 220px; }
-.wp-chip { display: inline-flex; white-space: nowrap; border-radius: 999px; padding: 3px 8px; font-size: 10.5px; font-weight: 700; background: #eef2f7; color: #2b3e58; }
-.wp-chip--more { background: #e1e7ef; color: #56657c; }
 </style>

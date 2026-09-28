@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { SlidersHorizontal } from "lucide-vue-next";
 import type { ProcurementRow } from "~/types/equipment";
-import { formatCurrency, formatDateOnly } from "~/utils/format";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -60,42 +59,7 @@ onMounted(async () => {
         </button>
       </template>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Equipamento</TableHead>
-            <TableHead>Unidade</TableHead>
-            <TableHead>Responsável</TableHead>
-            <TableHead>Etapa</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Número SC/OCI</TableHead>
-            <TableHead>Data SC/OCI</TableHead>
-            <TableHead>Número OC</TableHead>
-            <TableHead>Data OC</TableHead>
-            <TableHead>Valor OC</TableHead>
-            <TableHead>Fornecedor principal</TableHead>
-            <TableHead>Pendência</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="row in queue.items.value" :key="row.equipmentId">
-            <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
-            <TableCell>{{ row.unit.code }}</TableCell>
-            <TableCell>{{ row.responsibleUser?.name ?? "—" }}</TableCell>
-            <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
-            <TableCell>{{ row.kind ?? "—" }}</TableCell>
-            <TableCell>{{ row.requestNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDateOnly(row.requestedAt) }}</TableCell>
-            <TableCell>{{ row.orderNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDateOnly(row.orderedAt) }}</TableCell>
-            <TableCell>{{ formatCurrency(row.amount) }}</TableCell>
-            <TableCell>{{ row.primarySupplier?.legalName ?? "—" }}</TableCell>
-            <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
-            <TableCell><NuxtLink class="text-button" :to="`/equipamentos/${row.equipmentId}`">Ver detalhes</NuxtLink></TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <ProcurementTable :rows="queue.items.value" />
     </QueueShell>
 
     <SupplierAdmin
@@ -106,7 +70,3 @@ onMounted(async () => {
     />
   </ModuleWorkspace>
 </template>
-
-<style scoped>
-.text-button { color: #304f7e; font-size: 12px; font-weight: 750; text-decoration: none; }
-</style>

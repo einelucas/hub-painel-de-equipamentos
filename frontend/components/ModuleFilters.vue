@@ -66,10 +66,14 @@ function onEquipment(event: Event): void {
 
 <style scoped>
 .filter-surface { padding: 16px 18px; }
-.filter-grid { display: grid; grid-template-columns: minmax(190px, .8fr) minmax(220px, 1fr) minmax(0, 1.3fr) auto; align-items: end; gap: 12px; }
-.filter-extra { display: flex; align-items: end; gap: 10px; }
-.filter-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-grid { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 12px; }
+.filter-grid > .field { flex: 1 1 240px; }
+/* display: contents deixa cada campo do slot participar da quebra de linha como item próprio */
+.filter-extra { display: contents; }
+.filter-extra > :slotted(.field) { flex: 1 1 170px; }
+.filter-extra > :slotted(.field-wide) { flex: 2 1 300px; }
+.filter-extra > :slotted(.field-inline) { flex: 0 0 auto; }
+.filter-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .filter-hint { margin: 10px 0 0; color: #8b96a5; font-size: 11.5px; }
-@media (max-width: 1050px) { .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .filter-grid { grid-template-columns: 1fr; } .filter-actions { justify-content: stretch; } .filter-actions .btn { flex: 1; } }
+@media (max-width: 640px) { .filter-grid > .field, .filter-extra > :slotted(.field) { flex-basis: 100%; } .filter-actions { width: 100%; } .filter-actions .btn { flex: 1; } }
 </style>

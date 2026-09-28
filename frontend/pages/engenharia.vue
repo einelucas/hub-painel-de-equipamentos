@@ -102,7 +102,7 @@ onMounted(async () => {
             <option v-for="item in responsibles" :key="item.id" :value="item.id">{{ item.name }}</option>
           </select>
         </label>
-        <label class="field field-check">
+        <label class="field-inline group-toggle" :class="{ active: groupEnabled }">
           <input v-model="groupEnabled" type="checkbox" data-testid="group-by-responsible">
           <span>Agrupar por responsável</span>
         </label>
@@ -114,6 +114,20 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.field-check { flex-direction: row; align-items: center; gap: 7px; }
-.field-check input { width: 15px; height: 15px; }
+.group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 39px;
+  padding: 0 12px;
+  border: 1px solid #d8e0ea;
+  border-radius: 9px;
+  background: #fff;
+  color: #26364d;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.group-toggle.active { border-color: #6687b8; background: #f2f6fc; }
+.group-toggle input { width: 15px; height: 15px; margin: 0; cursor: pointer; }
 </style>
