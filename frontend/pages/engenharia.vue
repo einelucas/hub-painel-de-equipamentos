@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import type { CatalogItem, CatalogList, EngineeringRow, Responsible } from "~/types/equipment";
-import { groupByResponsible } from "~/utils/engineering";
-import { formatDateOnly } from "~/utils/format";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -48,8 +46,6 @@ async function applySearch(term: string): Promise<void> {
   queue.search.value = term;
   await queue.reload();
 }
-
-const groupedRows = computed(() => groupByResponsible(queue.items.value));
 
 onMounted(async () => {
   if (!allowed.value) {
@@ -112,79 +108,12 @@ onMounted(async () => {
         </label>
       </template>
 
-      <Table v-if="!groupEnabled">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Equipamento</TableHead>
-            <TableHead>Unidade</TableHead>
-            <TableHead>Etapa</TableHead>
-            <TableHead>Disciplina</TableHead>
-            <TableHead>Área</TableHead>
-            <TableHead>Pacotes</TableHead>
-            <TableHead>Responsável</TableHead>
-            <TableHead>Startup</TableHead>
-            <TableHead>Pendência</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="row in queue.items.value" :key="row.equipmentId">
-            <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
-            <TableCell>{{ row.unit.code }}</TableCell>
-            <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
-            <TableCell>{{ row.discipline?.name ?? "—" }}</TableCell>
-            <TableCell>{{ row.area?.name ?? "—" }}</TableCell>
-            <TableCell>{{ row.workPackages.length ? row.workPackages.map((item) => item.code ?? item.name).join(", ") : "—" }}</TableCell>
-            <TableCell>{{ row.responsibleUser?.name ?? "—" }}</TableCell>
-            <TableCell>{{ formatDateOnly(row.startupAt) }}</TableCell>
-            <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
-            <TableCell><NuxtLink class="text-button" :to="`/equipamentos/${row.equipmentId}`">Ver detalhes</NuxtLink></TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-
-      <div v-else class="grouped" data-testid="engineering-grouped">
-        <section v-for="group in groupedRows" :key="group.key" class="group-block">
-          <h3 class="group-title">{{ group.label }} <span class="group-count">({{ group.rows.length }})</span></h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Equipamento</TableHead>
-                <TableHead>Unidade</TableHead>
-                <TableHead>Etapa</TableHead>
-                <TableHead>Disciplina</TableHead>
-                <TableHead>Área</TableHead>
-                <TableHead>Pacotes</TableHead>
-                <TableHead>Startup</TableHead>
-                <TableHead>Pendência</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="row in group.rows" :key="row.equipmentId">
-                <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
-                <TableCell>{{ row.unit.code }}</TableCell>
-                <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
-                <TableCell>{{ row.discipline?.name ?? "—" }}</TableCell>
-                <TableCell>{{ row.area?.name ?? "—" }}</TableCell>
-                <TableCell>{{ row.workPackages.length ? row.workPackages.map((item) => item.code ?? item.name).join(", ") : "—" }}</TableCell>
-                <TableCell>{{ formatDateOnly(row.startupAt) }}</TableCell>
-                <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
-                <TableCell><NuxtLink class="text-button" :to="`/equipamentos/${row.equipmentId}`">Ver detalhes</NuxtLink></TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </section>
-      </div>
+      <EngineeringTable :rows="queue.items.value" :grouped="groupEnabled" />
     </QueueShell>
   </ModuleWorkspace>
 </template>
 
 <style scoped>
-.text-button { color: #304f7e; font-size: 12px; font-weight: 750; text-decoration: none; }
 .field-check { flex-direction: row; align-items: center; gap: 7px; }
 .field-check input { width: 15px; height: 15px; }
-.grouped { display: grid; gap: 22px; }
-.group-title { margin: 0 0 8px; color: #2b3e58; font-size: 13px; font-weight: 800; }
-.group-count { color: #8b96a5; font-weight: 700; }
 </style>
