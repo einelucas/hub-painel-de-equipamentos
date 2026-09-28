@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
-import { Pencil, Plus, Trash2 } from "lucide-vue-next";
+import { computed, ref } from "vue";
+import { Plus } from "lucide-vue-next";
 import type { PurchaseRequest, RequirementGroup, RequirementWaiver } from "~/types/equipment";
-import { formatDateOnly } from "~/utils/format";
 import { blankToNull } from "~/utils/workflow";
+import EquipmentPurchaseRequestsTable from "~/components/equipment/purchase-requests/EquipmentPurchaseRequestsTable.vue";
+import EquipmentPurchaseRequestForm, {
+  type EquipmentPurchaseRequestFormValues,
+} from "~/components/equipment/purchase-requests/EquipmentPurchaseRequestForm.vue";
 
 const props = defineProps<{
   equipmentId: string;
@@ -25,24 +28,16 @@ const actionError = ref("");
 const showForm = ref(false);
 const editing = ref<PurchaseRequest | null>(null);
 
-const form = reactive({ kind: "" as "" | "SC" | "OCI", requestNumber: "", requestedAt: "" });
-
 const sorted = computed(() => [...props.items].sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
 
 function openCreate(): void {
   editing.value = null;
-  form.kind = "";
-  form.requestNumber = "";
-  form.requestedAt = "";
   actionError.value = "";
   showForm.value = true;
 }
 
 function openEdit(item: PurchaseRequest): void {
   editing.value = item;
-  form.kind = item.kind ?? "";
-  form.requestNumber = item.requestNumber ?? "";
-  form.requestedAt = item.requestedAt ?? "";
   actionError.value = "";
   showForm.value = true;
 }
@@ -52,13 +47,13 @@ function closeForm(): void {
   editing.value = null;
 }
 
-async function submit(): Promise<void> {
+async function submit(values: EquipmentPurchaseRequestFormValues): Promise<void> {
   busy.value = true;
   actionError.value = "";
   const payload = {
-    kind: form.kind === "" ? null : form.kind,
-    requestNumber: blankToNull(form.requestNumber),
-    requestedAt: blankToNull(form.requestedAt),
+    kind: values.kind === "" ? null : values.kind,
+    requestNumber: blankToNull(values.requestNumber),
+    requestedAt: blankToNull(values.requestedAt),
   };
   try {
     if (editing.value) {
@@ -112,68 +107,26 @@ async function removeItem(item: PurchaseRequest): Promise<void> {
       @changed="emit('changed')"
     />
 
-    <div v-if="sorted.length === 0" class="empty-state table-empty" data-testid="purchase-requests-empty">
-      <h2>Nenhuma SC/OCI cadastrada</h2>
-      <p>Adicione uma solicitação para avançar a Fase 6 (exceto sob exceção de Importação).</p>
-    </div>
-    <div v-else class="table-wrap">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Número</TableHead>
-            <TableHead>Data</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="item in sorted" :key="item.id" :data-testid="`purchase-request-${item.id}`">
-            <TableCell class="font-semibold">{{ item.kind ?? "—" }}</TableCell>
-            <TableCell>{{ item.requestNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDateOnly(item.requestedAt) }}</TableCell>
-            <TableCell class="row-actions">
-              <button v-if="editable" class="text-button" @click="openEdit(item)"><Pencil :size="13" /> Editar</button>
-              <button v-if="editable" class="text-button danger" :disabled="busy" @click="removeItem(item)">
-                <Trash2 :size="13" /> Excluir
-              </button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-    </div>
+    <EquipmentPurchaseRequestsTable
+      :items="sorted"
+      :editable="editable"
+      :busy="busy"
+      @edit="openEdit"
+      @delete="removeItem"
+    />
 
     <AppModal :open="showForm" :title="editing ? 'Editar SC/OCI' : 'Nova SC/OCI'" @close="closeForm">
-      <form class="item-form" @submit.prevent="submit">
-        <label class="field">
-          <span>Tipo</span>
-          <select v-model="form.kind">
-            <option value="">Não informado</option>
-            <option value="SC">SC</option>
-            <option value="OCI">OCI</option>
-          </select>
-        </label>
-        <label class="field"><span>Número</span><input v-model="form.requestNumber" maxlength="80"></label>
-        <label class="field"><span>Data</span><input v-model="form.requestedAt" type="date"></label>
-        <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
-        <div class="form-actions">
-          <button type="button" class="btn" @click="closeForm">Cancelar</button>
-          <button type="submit" class="btn primary" :disabled="busy">{{ busy ? "Salvando..." : "Salvar" }}</button>
-        </div>
-      </form>
+      <EquipmentPurchaseRequestForm
+        :item="editing"
+        :busy="busy"
+        :error="actionError"
+        @submit="submit"
+        @cancel="closeForm"
+      />
     </AppModal>
   </section>
 </template>
 
 <style scoped>
 .list-notice { margin: 0 18px 14px; }
-.table-wrap { padding: 0 18px 18px; overflow-x: auto; }
-.table-empty { margin: auto; padding-bottom: 28px; }
-.row-actions { display: flex; gap: 12px; white-space: nowrap; }
-.text-button { display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
-.text-button.danger { color: #a4453a; }
-.item-form { display: grid; gap: 14px; }
-.field { display: grid; gap: 4px; font-size: 12px; }
-.field span { color: #7a879a; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-.field input, .field select { border: 1px solid #d8dee7; border-radius: 6px; padding: 7px 9px; font-size: 13px; }
-.form-actions { display: flex; justify-content: flex-end; gap: 9px; }
 </style>

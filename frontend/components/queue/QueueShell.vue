@@ -26,7 +26,7 @@ const term = ref("");
     </div>
     <template v-else>
       <ModuleFilters :refreshing="props.refreshing" @change="emit('reload')">
-        <form class="field queue-search" @submit.prevent="emit('search', term)">
+        <form class="field field-wide queue-search" @submit.prevent="emit('search', term)">
           <span>Busca</span>
           <div class="search-control">
             <input v-model="term" placeholder="Nome do equipamento">
@@ -73,6 +73,8 @@ const term = ref("");
 .state-card { max-width: none; }
 .queue-search { min-width: 0; }
 .search-control { display: flex; gap: 7px; }
+.search-control input { flex: 1; min-width: 0; }
+.search-control .btn { flex: none; }
 .queue-criteria { margin: 0; padding: 0 18px 12px; color: #8b96a5; font-size: 11.5px; }
 .queue-state { display: flex; min-height: 220px; align-items: center; justify-content: center; gap: 12px; color: #748197; }
 .table-wrap { padding: 0 18px 18px; overflow-x: auto; }

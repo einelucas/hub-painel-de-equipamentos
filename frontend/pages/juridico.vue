@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import type { LegalRow } from "~/types/equipment";
-import { formatDateOnly } from "~/utils/format";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
 const auth = useAuthStore();
 const queue = useQueue<LegalRow>("legal");
 const allowed = computed(() => auth.can("equipments:read"));
-
-function flag(value: boolean): string {
-  return value ? "Sim" : "Não";
-}
 
 async function applySearch(term: string): Promise<void> {
   queue.search.value = term;
@@ -50,46 +45,7 @@ onMounted(async () => {
       @search="applySearch"
       @page="queue.goToPage"
     >
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Equipamento</TableHead>
-            <TableHead>Unidade</TableHead>
-            <TableHead>Responsável</TableHead>
-            <TableHead>Etapa</TableHead>
-            <TableHead>Chamado</TableHead>
-            <TableHead>Abertura</TableHead>
-            <TableHead>Minuta elaborada</TableHead>
-            <TableHead>Minuta aprovada</TableHead>
-            <TableHead>Contrato</TableHead>
-            <TableHead>Escrituração</TableHead>
-            <TableHead>Entrega contratual</TableHead>
-            <TableHead>Pendência</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="row in queue.items.value" :key="row.equipmentId">
-            <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
-            <TableCell>{{ row.unit.code }}</TableCell>
-            <TableCell>{{ row.responsibleUser?.name ?? "—" }}</TableCell>
-            <TableCell>{{ row.currentStage }} · {{ row.currentStageName }}</TableCell>
-            <TableCell>{{ row.ticketNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDateOnly(row.openedAt) }}</TableCell>
-            <TableCell>{{ flag(row.draftPrepared) }}</TableCell>
-            <TableCell>{{ flag(row.draftApproved) }}</TableCell>
-            <TableCell>{{ row.contractNumber ?? "—" }}</TableCell>
-            <TableCell>{{ formatDateOnly(row.executedAt) }}</TableCell>
-            <TableCell>{{ formatDateOnly(row.deliveryAt) }}</TableCell>
-            <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
-            <TableCell><NuxtLink class="text-button" :to="`/equipamentos/${row.equipmentId}`">Ver detalhes</NuxtLink></TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <LegalTable :rows="queue.items.value" />
     </QueueShell>
   </ModuleWorkspace>
 </template>
-
-<style scoped>
-.text-button { color: #304f7e; font-size: 12px; font-weight: 750; text-decoration: none; }
-</style>
