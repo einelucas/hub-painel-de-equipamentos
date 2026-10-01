@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.auth import CurrentUser
 from app.core.errors import ConflictError, NotFoundError
@@ -12,7 +13,15 @@ from app.core.scope import (
     assert_context_allowed,
     assert_unit_allowed,
 )
-from app.models.equipment import Area, Discipline, ProjectContext, Unit, WorkPackage
+from app.models.equipment import (
+    Area,
+    Discipline,
+    EapNode,
+    ProjectContext,
+    ProjectEap,
+    Unit,
+    WorkPackage,
+)
 from app.shared.audit import record_audit
 
 
@@ -40,6 +49,34 @@ async def list_project_contexts(
     return await _list(
         session, ProjectContext, ProjectContext.unit_id == unit_id, ProjectContext.active.is_(True)
     )
+
+
+async def list_eap_nodes(
+    session: AsyncSession, *, level: str | None, parent_id: str | None, active: bool | None
+) -> list[EapNode]:
+    """Catálogo corporativo: não pertence a uma unidade, então não há escopo."""
+    stmt = select(EapNode).order_by(EapNode.code.asc())
+    if level is not None:
+        stmt = stmt.where(EapNode.level == level)
+    if parent_id is not None:
+        stmt = stmt.where(EapNode.parent_id == parent_id)
+    if active is not None:
+        stmt = stmt.where(EapNode.active.is_(active))
+    return list((await session.execute(stmt)).scalars().all())
+
+
+async def list_project_eap_nodes(
+    session: AsyncSession, actor: CurrentUser, project_context_id: str
+) -> list[ProjectEap]:
+    await assert_context_allowed(session, actor, project_context_id)
+    stmt = (
+        select(ProjectEap)
+        .join(EapNode, ProjectEap.eap_node_id == EapNode.id)
+        .where(ProjectEap.project_context_id == project_context_id)
+        .options(selectinload(ProjectEap.eap_node))
+        .order_by(EapNode.code.asc())
+    )
+    return list((await session.execute(stmt)).scalars().all())
 
 
 async def list_areas(session: AsyncSession, actor: CurrentUser, unit_id: str) -> list[Area]:

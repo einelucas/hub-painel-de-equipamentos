@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
+from app.domain.eap import AREA_CODE_RE, PROCESS_CODE_RE, UNIT_NUMERIC_CODE_RE, EapLevel
 from app.shared.schema import CamelModel
 
 
 class UnitOut(CamelModel):
     id: str
     code: str
+    numeric_code: str | None
     name: str
     active: bool
     created_at: datetime
@@ -53,6 +55,67 @@ class CatalogListOut(CamelModel):
 class UnitCreateIn(CamelModel):
     code: str = Field(min_length=1, max_length=40)
     name: str = Field(min_length=1, max_length=160)
+    numeric_code: str | None = Field(default=None, max_length=10)
+
+    @field_validator("numeric_code")
+    @classmethod
+    def numeric_code_digits(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if not UNIT_NUMERIC_CODE_RE.fullmatch(value):
+            raise ValueError("Código numérico da unidade deve conter só dígitos (ex.: 21)")
+        return value
+
+
+class EapNodeOut(CamelModel):
+    id: str
+    code: str
+    name: str
+    level: EapLevel
+    parent_id: str | None
+    active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class EapNodeListOut(CamelModel):
+    items: list[EapNodeOut]
+
+
+class EapNodeCreateIn(CamelModel):
+    """Só a parte corporativa do código ("01", "01.A") — nunca "2101.A".
+    A coerência com o pai é validada no serviço, que conhece o nó pai."""
+
+    code: str = Field(min_length=1, max_length=20)
+    name: str = Field(min_length=1, max_length=160)
+    level: EapLevel
+    parent_id: str | None = None
+
+    @model_validator(mode="after")
+    def code_matches_level(self) -> EapNodeCreateIn:
+        if self.code != self.code.strip() or " " in self.code:
+            raise ValueError("Código da EAP não pode ter espaços")
+        if self.level is EapLevel.PROCESS and not PROCESS_CODE_RE.fullmatch(self.code):
+            raise ValueError("PROCESS usa 2 dígitos (ex.: 01), sem o prefixo da unidade")
+        if self.level is EapLevel.AREA and not AREA_CODE_RE.fullmatch(self.code):
+            raise ValueError("AREA usa o formato 01.A, sem o prefixo da unidade")
+        if self.level is EapLevel.AREA and self.parent_id is None:
+            raise ValueError("AREA exige um PROCESS pai")
+        if self.level is EapLevel.ISLAND and self.parent_id is not None:
+            raise ValueError("ISLAND é raiz e não tem pai")
+        return self
+
+
+class ProjectEapOut(CamelModel):
+    id: str
+    project_context_id: str
+    eap_node: EapNodeOut
+    active: bool
+    created_at: datetime
+
+
+class ProjectEapListOut(CamelModel):
+    items: list[ProjectEapOut]
 
 
 class ProjectContextCreateIn(CamelModel):
