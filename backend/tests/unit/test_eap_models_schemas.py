@@ -6,8 +6,15 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import CheckConstraint, Index
 
-from app.models.equipment import EapNode, Equipment, ProjectEap, Unit
-from app.modules.catalogs.schemas import CatalogUpdateIn, EapNodeCreateIn, UnitCreateIn, UnitOut
+from app.models.equipment import EapNode, Equipment, ProjectContext, ProjectEap, Unit
+from app.modules.catalogs.schemas import (
+    CatalogUpdateIn,
+    EapNodeCreateIn,
+    ProjectContextCreateIn,
+    ProjectContextOut,
+    UnitCreateIn,
+    UnitOut,
+)
 
 
 def _indexes(model) -> dict[str, Index]:
@@ -18,14 +25,38 @@ def _checks(model) -> set[str]:
     return {c.name for c in model.__table__.constraints if isinstance(c, CheckConstraint)}
 
 
-def test_unit_numeric_code_is_optional_unique_when_filled_and_keeps_code() -> None:
+def test_unit_has_no_numeric_code_and_keeps_code_as_acronym() -> None:
     table = Unit.__table__
-    assert table.c.numeric_code.nullable is True
+    assert "numeric_code" not in table.c
     assert table.c.code.nullable is False
-    index = _indexes(Unit)["unit_numeric_code_key"]
-    assert index.unique is True
-    assert index.dialect_options["postgresql"]["where"] is not None
-    assert "unit_numeric_code_check" in _checks(Unit)
+    assert not any("numeric_code" in (index.name or "") for index in table.indexes)
+    assert "numeric_code" not in UnitOut.model_fields
+    assert "numeric_code" not in UnitCreateIn.model_fields
+
+
+def test_project_context_eap_prefix_is_optional_digits_only_and_not_globally_unique() -> None:
+    table = ProjectContext.__table__
+    assert table.c.eap_prefix.nullable is True
+    assert "project_context_eap_prefix_check" in _checks(ProjectContext)
+    assert not any(
+        index.unique and [c.name for c in index.columns] == ["eap_prefix"] for index in table.indexes
+    )
+    assert "eap_prefix" in ProjectContextOut.model_fields
+
+
+@pytest.mark.parametrize("prefix", ["23", "24", "03", "123"])
+def test_project_context_create_accepts_numeric_prefixes(prefix: str) -> None:
+    assert ProjectContextCreateIn(code="F1", name="Fase 1", eap_prefix=prefix).eap_prefix == prefix
+
+
+def test_project_context_create_keeps_prefix_optional() -> None:
+    assert ProjectContextCreateIn(code="C2", name="Caldeira 2").eap_prefix is None
+
+
+@pytest.mark.parametrize("prefix", ["", "ABC", "23A"])
+def test_project_context_create_rejects_non_numeric_prefixes(prefix: str) -> None:
+    with pytest.raises(ValidationError):
+        ProjectContextCreateIn(code="F1", name="Fase 1", eap_prefix=prefix)
 
 
 def test_eap_node_shape_hierarchy_and_unique_code() -> None:
@@ -58,20 +89,9 @@ def test_equipment_keeps_area_id_and_gains_optional_eap_node_id() -> None:
     assert "equipment_eap_node_id_idx" in _indexes(Equipment)
 
 
-def test_unit_schemas_expose_and_validate_numeric_code() -> None:
-    assert "numeric_code" in UnitOut.model_fields
-    assert UnitCreateIn(code="RVD", name="Rio Verde", numeric_code="21").numeric_code == "21"
-    assert UnitCreateIn(code="LEM", name="LEM").numeric_code is None
-    assert UnitCreateIn(code="XYZ", name="Futura", numeric_code="123").numeric_code == "123"
-    with pytest.raises(ValidationError):
-        UnitCreateIn(code="RVD", name="Rio Verde", numeric_code="")
-    with pytest.raises(ValidationError):
-        UnitCreateIn(code="RVD", name="Rio Verde", numeric_code="2A")
-
-
-def test_generic_catalog_update_does_not_change_numeric_code() -> None:
+def test_generic_catalog_update_does_not_change_eap_prefix() -> None:
     """Alteração futura será uma operação administrativa específica e auditada."""
-    assert "numeric_code" not in CatalogUpdateIn.model_fields
+    assert "eap_prefix" not in CatalogUpdateIn.model_fields
 
 
 def test_eap_node_create_accepts_corporate_codes() -> None:
@@ -83,8 +103,8 @@ def test_eap_node_create_accepts_corporate_codes() -> None:
 @pytest.mark.parametrize(
     "payload",
     [
-        {"code": "2101.A", "name": "Caldeira", "level": "AREA", "parent_id": "p-1"},
-        {"code": "2108", "name": "Destilaria", "level": "PROCESS"},
+        {"code": "2301.A", "name": "Caldeira", "level": "AREA", "parent_id": "p-1"},
+        {"code": "2408", "name": "Destilaria", "level": "PROCESS"},
         {"code": "01.A", "name": "Caldeira", "level": "AREA"},
         {"code": "I1", "name": "Ilha", "level": "ISLAND", "parent_id": "x"},
         {"code": "01", "name": "Algo", "level": "SUBAREA"},
