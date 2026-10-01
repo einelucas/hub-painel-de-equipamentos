@@ -10,3 +10,5 @@ htmlcov/
 build/
 dist/
 openapi.json
+# Arquivos enviados pelo app em runtime (STORAGE_LOCAL_DIR) — nunca versionar.
+/var/contract-files/
