@@ -4,14 +4,13 @@ from datetime import datetime
 
 from pydantic import Field, field_validator, model_validator
 
-from app.domain.eap import AREA_CODE_RE, PROCESS_CODE_RE, UNIT_NUMERIC_CODE_RE, EapLevel
+from app.domain.eap import AREA_CODE_RE, EAP_PREFIX_RE, PROCESS_CODE_RE, EapLevel
 from app.shared.schema import CamelModel
 
 
 class UnitOut(CamelModel):
     id: str
     code: str
-    numeric_code: str | None
     name: str
     active: bool
     created_at: datetime
@@ -23,6 +22,7 @@ class ProjectContextOut(CamelModel):
     unit_id: str
     code: str
     name: str
+    eap_prefix: str | None
     active: bool
 
 
@@ -55,16 +55,6 @@ class CatalogListOut(CamelModel):
 class UnitCreateIn(CamelModel):
     code: str = Field(min_length=1, max_length=40)
     name: str = Field(min_length=1, max_length=160)
-    numeric_code: str | None = Field(default=None, max_length=10)
-
-    @field_validator("numeric_code")
-    @classmethod
-    def numeric_code_digits(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        if not UNIT_NUMERIC_CODE_RE.fullmatch(value):
-            raise ValueError("Código numérico da unidade deve conter só dígitos (ex.: 21)")
-        return value
 
 
 class EapNodeOut(CamelModel):
@@ -121,6 +111,17 @@ class ProjectEapListOut(CamelModel):
 class ProjectContextCreateIn(CamelModel):
     code: str = Field(min_length=1, max_length=60)
     name: str = Field(min_length=1, max_length=160)
+    # Informado explicitamente (ex.: "23", "24"); nunca calculado.
+    eap_prefix: str | None = Field(default=None, max_length=10)
+
+    @field_validator("eap_prefix")
+    @classmethod
+    def eap_prefix_digits(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if not EAP_PREFIX_RE.fullmatch(value):
+            raise ValueError("Prefixo EAP deve conter só dígitos (ex.: 23)")
+        return value
 
 
 class AreaCreateIn(CamelModel):

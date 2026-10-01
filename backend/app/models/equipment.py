@@ -39,9 +39,6 @@ class Unit(Base):
 
     id: Mapped[str] = uuid_pk()
     code: Mapped[str] = mapped_column(String(40), nullable=False, unique=True)
-    # Código corporativo numérico (ex.: "21" Rio Verde, "23" Rondonópolis,
-    # "26" LEM): prefixo do código EAP exibido. Nulo nos registros legados.
-    numeric_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
@@ -50,22 +47,10 @@ class Unit(Base):
     project_contexts: Mapped[list[ProjectContext]] = relationship(back_populates="unit")
     areas: Mapped[list[Area]] = relationship(back_populates="unit")
 
-    __table_args__ = (
-        CheckConstraint(
-            "numeric_code IS NULL OR numeric_code ~ '^[0-9]+$'", name="unit_numeric_code_check"
-        ),
-        Index(
-            "unit_numeric_code_key",
-            "numeric_code",
-            unique=True,
-            postgresql_where=numeric_code.is_not(None),
-        ),
-    )
-
 
 class EapNode(Base):
     """Nó da EAP corporativa (ISLAND → PROCESS → AREA). `code` é só a parte
-    corporativa ("01", "01.A"), nunca com o prefixo da unidade ("2101.A")."""
+    corporativa ("01", "01.A"), nunca com o prefixo do projeto ("2301.A")."""
 
     __tablename__ = "eap_node"
 
@@ -127,6 +112,10 @@ class ProjectContext(Base):
     unit_id: Mapped[str] = mapped_column(ForeignKey("unit.id", ondelete="RESTRICT"), nullable=False)
     code: Mapped[str] = mapped_column(String(60), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
+    # Prefixo do código EAP exibido (ex.: Rondonópolis F1 "23", F2 "24"):
+    # informado explicitamente, nunca derivado da unidade nem de outra fase.
+    # Sem unicidade global: não há evidência de que projetos nunca o reutilizem.
+    eap_prefix: Mapped[str | None] = mapped_column(String(10), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow, onupdate=utcnow)
@@ -136,6 +125,9 @@ class ProjectContext(Base):
     equipments: Mapped[list[Equipment]] = relationship(back_populates="project_context")
 
     __table_args__ = (
+        CheckConstraint(
+            "eap_prefix IS NULL OR eap_prefix ~ '^[0-9]+$'", name="project_context_eap_prefix_check"
+        ),
         Index("project_context_unit_code_key", "unit_id", "code", unique=True),
         Index("project_context_unit_id_idx", "unit_id"),
     )

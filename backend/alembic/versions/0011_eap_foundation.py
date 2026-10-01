@@ -1,10 +1,11 @@
-"""Fundação da EAP corporativa (Unidade + EAP).
+"""Fundação da EAP corporativa (Projeto + EAP).
 
 Só estrutura — nenhum dado é inserido ou alterado:
 
-- `unit.numeric_code` (nulo nos registros legados; único quando preenchido);
+- `project_context.eap_prefix` (nulo nos contextos existentes; só dígitos;
+  sem unicidade global — o prefixo é do projeto, ex.: RDN F1 "23", F2 "24");
 - `eap_node` (catálogo hierárquico ISLAND/PROCESS/AREA, código sem o prefixo
-  da unidade);
+  do projeto);
 - `project_eap` (quais nós cada obra utiliza);
 - `equipment.eap_node_id` (nulo; `equipment.area_id` permanece intocado).
 
@@ -29,16 +30,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("unit", sa.Column("numeric_code", sa.String(length=10), nullable=True))
+    op.add_column("project_context", sa.Column("eap_prefix", sa.String(length=10), nullable=True))
     op.create_check_constraint(
-        "unit_numeric_code_check", "unit", "numeric_code IS NULL OR numeric_code ~ '^[0-9]+$'"
-    )
-    op.create_index(
-        "unit_numeric_code_key",
-        "unit",
-        ["numeric_code"],
-        unique=True,
-        postgresql_where=sa.text("numeric_code IS NOT NULL"),
+        "project_context_eap_prefix_check",
+        "project_context",
+        "eap_prefix IS NULL OR eap_prefix ~ '^[0-9]+$'",
     )
 
     op.create_table(
@@ -118,6 +114,5 @@ def downgrade() -> None:
     op.drop_index("eap_node_parent_id_idx", table_name="eap_node")
     op.drop_index("eap_node_code_key", table_name="eap_node")
     op.drop_table("eap_node")
-    op.drop_index("unit_numeric_code_key", table_name="unit")
-    op.drop_constraint("unit_numeric_code_check", "unit", type_="check")
-    op.drop_column("unit", "numeric_code")
+    op.drop_constraint("project_context_eap_prefix_check", "project_context", type_="check")
+    op.drop_column("project_context", "eap_prefix")

@@ -132,10 +132,6 @@ async def create_catalog(
         conditions.append(model.project_context_id == values["project_context_id"])
     if (await session.execute(select(model.id).where(*conditions))).scalar_one_or_none() is not None:
         raise ConflictError("Já existe um registro equivalente neste catálogo")
-    if model is Unit and values.get("numeric_code"):
-        taken = select(Unit.id).where(Unit.numeric_code == values["numeric_code"])
-        if (await session.execute(taken)).scalar_one_or_none() is not None:
-            raise ConflictError("Já existe uma unidade com este código numérico")
 
     item = model(**values)
     session.add(item)
