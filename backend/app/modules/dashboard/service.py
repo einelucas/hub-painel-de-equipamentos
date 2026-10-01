@@ -8,8 +8,10 @@ retornam estado explicitamente não calculável.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import Select, Subquery, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,10 +73,35 @@ _NEGOTIATION_DEADLINE_FIELD_BY_STATUS = {
 }
 
 
+@dataclass(frozen=True)
+class DashboardFilters:
+    """Filtros globais do painel (Área AND Disciplina AND Fase). `None` = sem restrição."""
+
+    area_id: str | None = None
+    discipline_id: str | None = None
+    stage: int | None = None
+
+
+def apply_dashboard_filters[T: tuple[Any, ...]](stmt: Select[T], filters: DashboardFilters) -> Select[T]:
+    if filters.area_id:
+        stmt = stmt.where(Equipment.area_id == filters.area_id)
+    if filters.discipline_id:
+        stmt = stmt.where(Equipment.discipline_id == filters.discipline_id)
+    if filters.stage is not None:
+        stmt = stmt.where(Equipment.current_stage == filters.stage)
+    return stmt
+
+
 def _scope(
-    unit_id: str | None, equipment_id: str | None, allowed: set[str] | None
+    unit_id: str | None,
+    equipment_id: str | None,
+    allowed: set[str] | None,
+    filters: DashboardFilters,
 ) -> Select[tuple[str, int, date | None]]:
-    """Recorte base: equipamentos visíveis no filtro atual e nas unidades autorizadas."""
+    """Recorte base: equipamentos visíveis no filtro atual e nas unidades autorizadas.
+
+    Todas as agregações do painel fazem join neste recorte — filtrar aqui
+    filtra cards, gráficos e prazos com exatamente a mesma lógica."""
     stmt = select(Equipment.id, Equipment.current_stage, Equipment.startup_at).join(
         Equipment.project_context
     )
@@ -83,16 +110,21 @@ def _scope(
         stmt = stmt.where(ProjectContext.unit_id == unit_id)
     if equipment_id:
         stmt = stmt.where(Equipment.id == equipment_id)
-    return stmt
+    return apply_dashboard_filters(stmt, filters)
 
 
 async def get_summary(
-    session: AsyncSession, *, actor: CurrentUser, unit_id: str | None, equipment_id: str | None
+    session: AsyncSession,
+    *,
+    actor: CurrentUser,
+    unit_id: str | None,
+    equipment_id: str | None,
+    filters: DashboardFilters | None = None,
 ) -> DashboardSummaryOut:
     if unit_id:
         await assert_unit_allowed(session, actor, unit_id)
     allowed = await allowed_unit_ids(session, actor)
-    scope = _scope(unit_id, equipment_id, allowed).subquery()
+    scope = _scope(unit_id, equipment_id, allowed, filters or DashboardFilters()).subquery()
 
     stage_rows = (
         await session.execute(

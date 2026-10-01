@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Boxes, Layers } from "lucide-vue-next";
-import type { DashboardSummary } from "~/types/equipment";
+import type { CatalogItem, CatalogList, DashboardSummary } from "~/types/equipment";
 import { situationDonut, stageChartPoints, startupLabel } from "~/utils/dashboard";
 import { formatCurrency, formatNumber } from "~/utils/format";
 
@@ -10,7 +10,10 @@ const router = useRouter();
 const auth = useAuthStore();
 const api = useApi();
 const context = useModuleContextStore();
+const dashboard = useDashboardFilters();
 
+const areas = ref<CatalogItem[]>([]);
+const disciplines = ref<CatalogItem[]>([]);
 const summary = ref<DashboardSummary | null>(null);
 const loading = ref(true);
 const refreshing = ref(false);
@@ -28,7 +31,33 @@ async function syncQuery(): Promise<void> {
   else delete query.unit;
   if (context.selectedEquipment) query.equipment = context.selectedEquipment;
   else delete query.equipment;
+  dashboard.writeRouteQuery(query);
   await router.replace({ query });
+}
+
+/** Catálogos só alimentam as opções dos selects: uma falha aqui não deve impedir o painel de carregar. */
+async function loadDisciplines(): Promise<void> {
+  try {
+    disciplines.value = (await api.get<CatalogList<CatalogItem>>("/disciplines")).items;
+  } catch {
+    disciplines.value = [];
+  }
+}
+
+/** Área pertence à Unidade: troca de unidade descarta uma área que não existe mais no catálogo. */
+async function loadAreas(): Promise<void> {
+  if (!context.selectedUnit) {
+    areas.value = [];
+  } else {
+    try {
+      areas.value = (
+        await api.get<CatalogList<CatalogItem>>("/areas", { unit_id: context.selectedUnit })
+      ).items;
+    } catch {
+      areas.value = [];
+    }
+  }
+  if (!areas.value.some((item) => item.id === dashboard.filters.areaId)) dashboard.filters.areaId = null;
 }
 
 async function load(): Promise<void> {
@@ -36,7 +65,10 @@ async function load(): Promise<void> {
   refreshing.value = true;
   error.value = "";
   try {
-    const result = await api.get<DashboardSummary>("/dashboard/summary", context.apiQuery);
+    const result = await api.get<DashboardSummary>("/dashboard/summary", {
+      ...context.apiQuery,
+      ...dashboard.apiQuery.value,
+    });
     if (version !== requestVersion) return;
     summary.value = result;
   } catch (caught) {
@@ -52,8 +84,19 @@ async function load(): Promise<void> {
 }
 
 async function reload(): Promise<void> {
+  await loadAreas();
   await syncQuery();
   await load();
+}
+
+async function applyDashboardFilters(): Promise<void> {
+  await syncQuery();
+  await load();
+}
+
+async function clearDashboardFilters(): Promise<void> {
+  dashboard.clear();
+  await applyDashboardFilters();
 }
 
 onMounted(async () => {
@@ -65,6 +108,8 @@ onMounted(async () => {
     unit: typeof route.query.unit === "string" ? route.query.unit : undefined,
     equipment: typeof route.query.equipment === "string" ? route.query.equipment : undefined,
   });
+  dashboard.readRouteQuery(route.query);
+  await Promise.all([loadDisciplines(), loadAreas()]);
   await syncQuery();
   await load();
 });
@@ -80,7 +125,18 @@ onMounted(async () => {
       <h2>Sem permissão</h2><p>Seu perfil não tem acesso à leitura de equipamentos deste módulo.</p>
     </div>
     <div v-else class="stack">
-      <ModuleFilters :refreshing="refreshing" @change="reload" />
+      <ModuleFilters :refreshing="refreshing" @change="reload">
+        <DashboardFilters
+          v-model:area-id="dashboard.filters.areaId"
+          v-model:discipline-id="dashboard.filters.disciplineId"
+          v-model:stage="dashboard.filters.stage"
+          :areas="areas"
+          :disciplines="disciplines"
+          :area-disabled="!context.selectedUnit"
+          @change="applyDashboardFilters"
+          @clear="clearDashboardFilters"
+        />
+      </ModuleFilters>
 
       <div v-if="loading" class="surface loading-state" data-testid="dashboard-loading"><span class="spinner" /><p>Carregando painel...</p></div>
       <div v-else-if="error" class="surface empty-state state-card" role="alert" data-testid="dashboard-error">
@@ -89,7 +145,8 @@ onMounted(async () => {
       </div>
       <div v-else-if="isEmpty" class="surface empty-state state-card" data-testid="dashboard-empty">
         <h2>Nenhum equipamento no recorte</h2>
-        <p>Cadastre um equipamento ou ajuste os filtros de unidade e equipamento.</p>
+        <p v-if="dashboard.hasActive.value">Nenhum equipamento atende à combinação de área, fase e disciplina selecionada.</p>
+        <p v-else>Cadastre um equipamento ou ajuste os filtros de unidade e equipamento.</p>
         <NuxtLink class="btn" to="/equipamentos">Ir para Equipamentos</NuxtLink>
       </div>
       <template v-else-if="summary">
