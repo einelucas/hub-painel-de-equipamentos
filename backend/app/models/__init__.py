@@ -28,7 +28,7 @@ from app.models.process import (
     PurchaseOrder,
     PurchaseRequest,
 )
-from app.models.supplier import EquipmentSupplier, Supplier
+from app.models.supplier import EquipmentSupplier, Supplier, SupplierAlias
 from app.models.user import Account, Role, Session, User, Verification
 from app.models.workflow_extras import (
     Comment,
@@ -63,6 +63,7 @@ __all__ = [
     "ReopenRequest",
     "RequirementWaiver",
     "Supplier",
+    "SupplierAlias",
     "Unit",
     "UserUnitAccess",
     "WorkflowException",

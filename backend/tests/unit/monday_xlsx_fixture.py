@@ -17,6 +17,44 @@ def _column_name(number: int) -> str:
 
 
 def build_xlsx(rows: list[list[Any]]) -> bytes:
+    return build_workbook({"equipamentos - teste": rows})
+
+
+def build_workbook(sheets: dict[str, list[list[Any]]]) -> bytes:
+    """XLSX com várias abas nomeadas, na ordem do dicionário."""
+    sheet_entries: list[str] = []
+    relationship_entries: list[str] = []
+    parts: dict[str, str] = {}
+    for index, (name, rows) in enumerate(sheets.items(), start=1):
+        sheet_entries.append(f'<sheet name="{escape(name)}" sheetId="{index}" r:id="rId{index}"/>')
+        relationship_entries.append(
+            f'<Relationship Id="rId{index}" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+            f'Target="worksheets/sheet{index}.xml"/>'
+        )
+        parts[f"xl/worksheets/sheet{index}.xml"] = _worksheet(rows)
+    workbook = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        f'<sheets>{"".join(sheet_entries)}</sheets>'
+        "</workbook>"
+    )
+    relationships = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        f'{"".join(relationship_entries)}</Relationships>'
+    )
+    output = BytesIO()
+    with ZipFile(output, "w", ZIP_DEFLATED) as archive:
+        archive.writestr("xl/workbook.xml", workbook)
+        archive.writestr("xl/_rels/workbook.xml.rels", relationships)
+        for part, content in parts.items():
+            archive.writestr(part, content)
+    return output.getvalue()
+
+
+def _worksheet(rows: list[list[Any]]) -> str:
     xml_rows: list[str] = []
     for row_number, values in enumerate(rows, start=1):
         cells: list[str] = []
@@ -31,31 +69,11 @@ def build_xlsx(rows: list[list[Any]]) -> bytes:
             else:
                 cells.append(f'<c r="{reference}" t="str"><v>{escape(str(value))}</v></c>')
         xml_rows.append(f'<row r="{row_number}">{"".join(cells)}</row>')
-    worksheet = (
+    return (
         '<?xml version="1.0" encoding="UTF-8"?>'
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
         f'<sheetData>{"".join(xml_rows)}</sheetData></worksheet>'
     )
-    workbook = (
-        '<?xml version="1.0" encoding="UTF-8"?>'
-        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
-        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-        '<sheets><sheet name="equipamentos - teste" sheetId="1" r:id="rId1"/></sheets>'
-        "</workbook>"
-    )
-    relationships = (
-        '<?xml version="1.0" encoding="UTF-8"?>'
-        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-        '<Relationship Id="rId1" '
-        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
-        'Target="worksheets/sheet1.xml"/></Relationships>'
-    )
-    output = BytesIO()
-    with ZipFile(output, "w", ZIP_DEFLATED) as archive:
-        archive.writestr("xl/workbook.xml", workbook)
-        archive.writestr("xl/_rels/workbook.xml.rels", relationships)
-        archive.writestr("xl/worksheets/sheet1.xml", worksheet)
-    return output.getvalue()
 
 
 def representative_xlsx(*, duplicate_component: bool = False) -> bytes:

@@ -11,6 +11,7 @@ class SupplierCreateIn(CamelModel):
     legal_name: str = Field(min_length=1, max_length=200)
     trade_name: str | None = Field(default=None, max_length=200)
     tax_id: str | None = Field(default=None, max_length=32)
+    corporate_code: str | None = Field(default=None, max_length=20)
 
     @model_validator(mode="after")
     def clean(self) -> SupplierCreateIn:
@@ -23,6 +24,7 @@ class SupplierUpdateIn(CamelModel):
     legal_name: str | None = Field(default=None, min_length=1, max_length=200)
     trade_name: str | None = Field(default=None, max_length=200)
     tax_id: str | None = Field(default=None, max_length=32)
+    corporate_code: str | None = Field(default=None, max_length=20)
     active: bool | None = None
 
     @model_validator(mode="after")
@@ -36,6 +38,7 @@ class SupplierUpdateIn(CamelModel):
 
 class SupplierOut(CamelModel):
     id: str
+    corporate_code: str | None
     legal_name: str
     trade_name: str | None
     tax_id: str | None
