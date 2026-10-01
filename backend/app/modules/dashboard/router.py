@@ -14,9 +14,18 @@ router = APIRouter(prefix="/dashboard", tags=["painel"])
 async def get_dashboard_summary(
     unit_id: str | None = Query(default=None),
     equipment_id: str | None = Query(default=None),
+    area_id: str | None = Query(default=None),
+    discipline_id: str | None = Query(default=None),
+    stage: int | None = Query(default=None, ge=0, le=8),
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> DashboardSummaryOut:
     return await service.get_summary(
-        session, actor=actor, unit_id=unit_id, equipment_id=equipment_id
+        session,
+        actor=actor,
+        unit_id=unit_id,
+        equipment_id=equipment_id,
+        filters=service.DashboardFilters(
+            area_id=area_id, discipline_id=discipline_id, stage=stage
+        ),
     )

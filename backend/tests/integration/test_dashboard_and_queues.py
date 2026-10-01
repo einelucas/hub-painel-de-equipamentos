@@ -173,6 +173,128 @@ async def test_summary_respects_unit_and_equipment_filters(client, auth_header) 
     assert by_equipment["context"]["equipmentId"] == target
 
 
+# --- Filtros globais do painel: Área AND Disciplina AND Fase ---------------
+
+
+async def _area_id(client, auth_header, unit_id: str, name: str) -> str:
+    response = await client.post(
+        "/api/v1/areas", json={"unitId": unit_id, "name": name}, headers=auth_header("ADMIN")
+    )
+    assert response.status_code == 201, response.text
+    return str(response.json()["id"])
+
+
+async def _discipline_id(client, auth_header, code: str, name: str) -> str:
+    response = await client.post(
+        "/api/v1/disciplines", json={"code": code, "name": name}, headers=auth_header("ADMIN")
+    )
+    assert response.status_code == 201, response.text
+    return str(response.json()["id"])
+
+
+async def _summary(client, auth_header, query: str) -> dict:
+    response = await client.get(f"/api/v1/dashboard/summary?{query}", headers=auth_header("VIEWER"))
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+async def test_summary_filters_by_area(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "FAREA")
+    caldeira = await _area_id(client, auth_header, ids["unit"], "Caldeira")
+    drenagem = await _area_id(client, auth_header, ids["unit"], "Drenagem")
+    await _create(client, auth_header, ids["context"], "Na caldeira", areaId=caldeira, capexEstimated=1000)
+    await _create(client, auth_header, ids["context"], "Na drenagem", areaId=drenagem, capexEstimated=300)
+    await _create(client, auth_header, ids["context"], "Sem área", capexEstimated=50)
+
+    body = await _summary(client, auth_header, f"unit_id={ids['unit']}&area_id={caldeira}")
+
+    assert body["totals"]["equipments"] == 1
+    assert float(body["totals"]["capexEstimated"]) == 1000.0
+    assert body["deadlines"]["total"] == 1
+    assert body["negotiationDeadlineStatus"]["total"] == 1
+
+
+async def test_summary_filters_by_stage_across_all_widgets(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "FSTAGE")
+    advanced = await _create(client, auth_header, ids["context"], "Na equalização", capexEstimated=700)
+    await _create(client, auth_header, ids["context"], "Nova demanda", capexEstimated=100)
+    await client.post(
+        f"/api/v1/equipments/{advanced}/components", json={"name": "Motor"}, headers=auth_header("ANALYST")
+    )
+    await _advance_to(client, auth_header, advanced, 2)
+
+    body = await _summary(client, auth_header, f"unit_id={ids['unit']}&stage=2")
+
+    assert body["totals"]["equipments"] == 1
+    assert body["totals"]["components"] == 1
+    assert float(body["totals"]["capexEstimated"]) == 700.0
+    assert body["negotiation"]["inNegotiation"] == 1
+    distribution = {item["stage"]: item["count"] for item in body["workflow"]}
+    assert distribution == {stage: (1 if stage == 2 else 0) for stage in range(9)}
+
+
+async def test_summary_combines_area_discipline_and_stage_with_and(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "FCOMBO")
+    caldeira = await _area_id(client, auth_header, ids["unit"], "Caldeira combo")
+    metal_mec = await _discipline_id(client, auth_header, "MM-DASH", "Metal Mec. dash")
+    eletrica = await _discipline_id(client, auth_header, "EL-DASH", "Elétrica dash")
+    match = await _create(
+        client,
+        auth_header,
+        ids["context"],
+        "Alvo",
+        areaId=caldeira,
+        disciplineId=metal_mec,
+        capexEstimated=900,
+    )
+    await _advance_to(client, auth_header, match, 2)
+    await _create(
+        client,
+        auth_header,
+        ids["context"],
+        "Mesma área e disciplina, outra fase",
+        areaId=caldeira,
+        disciplineId=metal_mec,
+    )
+    other_discipline = await _create(
+        client, auth_header, ids["context"], "Outra disciplina", areaId=caldeira, disciplineId=eletrica
+    )
+    await _advance_to(client, auth_header, other_discipline, 2)
+
+    base = f"unit_id={ids['unit']}"
+    combined = await _summary(
+        client, auth_header, f"{base}&area_id={caldeira}&discipline_id={metal_mec}&stage=2"
+    )
+    area_only = await _summary(client, auth_header, f"{base}&area_id={caldeira}")
+    area_and_discipline = await _summary(
+        client, auth_header, f"{base}&area_id={caldeira}&discipline_id={metal_mec}"
+    )
+    unfiltered = await _summary(client, auth_header, base)
+
+    assert combined["totals"]["equipments"] == 1
+    assert float(combined["totals"]["capexEstimated"]) == 900.0
+    assert area_and_discipline["totals"]["equipments"] == 2
+    assert area_only["totals"]["equipments"] == 3
+    assert unfiltered["totals"]["equipments"] == 3
+    assert combined["context"] == {"unitId": ids["unit"], "equipmentId": None}
+
+
+async def test_summary_filter_without_matches_returns_empty_totals(client, auth_header) -> None:
+    ids = await _unit_with_context(client, auth_header, "FNONE")
+    await _create(client, auth_header, ids["context"], "Nova demanda")
+
+    body = await _summary(client, auth_header, f"unit_id={ids['unit']}&stage=8")
+
+    assert body["totals"]["equipments"] == 0
+    assert body["totals"]["inProgress"] == 0
+    assert body["startup"]["nextAt"] is None
+
+
+async def test_summary_rejects_stage_out_of_range(client, auth_header) -> None:
+    response = await client.get("/api/v1/dashboard/summary?stage=9", headers=auth_header("VIEWER"))
+    assert response.status_code == 422
+
+
 async def test_summary_purchase_order_and_negotiation_metrics(client, auth_header) -> None:
     ids = await _unit_with_context(client, auth_header, "OC")
     equipment_id = await _create(client, auth_header, ids["context"], "Com OC")
