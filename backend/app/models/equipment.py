@@ -39,6 +39,9 @@ class Unit(Base):
 
     id: Mapped[str] = uuid_pk()
     code: Mapped[str] = mapped_column(String(40), nullable=False, unique=True)
+    # Código corporativo numérico (ex.: "21" Rio Verde, "23" Rondonópolis,
+    # "26" LEM): prefixo do código EAP exibido. Nulo nos registros legados.
+    numeric_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
@@ -46,6 +49,75 @@ class Unit(Base):
 
     project_contexts: Mapped[list[ProjectContext]] = relationship(back_populates="unit")
     areas: Mapped[list[Area]] = relationship(back_populates="unit")
+
+    __table_args__ = (
+        CheckConstraint(
+            "numeric_code IS NULL OR numeric_code ~ '^[0-9]+$'", name="unit_numeric_code_check"
+        ),
+        Index(
+            "unit_numeric_code_key",
+            "numeric_code",
+            unique=True,
+            postgresql_where=numeric_code.is_not(None),
+        ),
+    )
+
+
+class EapNode(Base):
+    """Nó da EAP corporativa (ISLAND → PROCESS → AREA). `code` é só a parte
+    corporativa ("01", "01.A"), nunca com o prefixo da unidade ("2101.A")."""
+
+    __tablename__ = "eap_node"
+
+    id: Mapped[str] = uuid_pk()
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    level: Mapped[str] = mapped_column(String(10), nullable=False)
+    parent_id: Mapped[str | None] = mapped_column(
+        ForeignKey("eap_node.id", ondelete="RESTRICT"), nullable=True
+    )
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow, onupdate=utcnow)
+
+    parent: Mapped[EapNode | None] = relationship(remote_side="EapNode.id", back_populates="children")
+    children: Mapped[list[EapNode]] = relationship(back_populates="parent")
+    project_links: Mapped[list[ProjectEap]] = relationship(back_populates="eap_node")
+
+    __table_args__ = (
+        CheckConstraint("level IN ('ISLAND','PROCESS','AREA')", name="eap_node_level_check"),
+        CheckConstraint(
+            "length(code) > 0 AND code = btrim(code) AND position(' ' in code) = 0",
+            name="eap_node_code_check",
+        ),
+        CheckConstraint("parent_id IS NULL OR parent_id <> id", name="eap_node_not_self_parent_check"),
+        Index("eap_node_code_key", "code", unique=True),
+        Index("eap_node_parent_id_idx", "parent_id"),
+        Index("eap_node_level_idx", "level"),
+    )
+
+
+class ProjectEap(Base):
+    """Quais nós da EAP corporativa uma obra (project_context) utiliza,
+    sem duplicar a identidade do nó."""
+
+    __tablename__ = "project_eap"
+
+    id: Mapped[str] = uuid_pk()
+    project_context_id: Mapped[str] = mapped_column(
+        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+    )
+    eap_node_id: Mapped[str] = mapped_column(ForeignKey("eap_node.id", ondelete="RESTRICT"), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+
+    project_context: Mapped[ProjectContext] = relationship()
+    eap_node: Mapped[EapNode] = relationship(back_populates="project_links")
+
+    __table_args__ = (
+        Index("project_eap_context_node_key", "project_context_id", "eap_node_id", unique=True),
+        Index("project_eap_eap_node_id_idx", "eap_node_id"),
+    )
 
 
 class ProjectContext(Base):
@@ -160,7 +232,13 @@ class Equipment(Base):
     discipline_id: Mapped[str | None] = mapped_column(
         ForeignKey("discipline.id", ondelete="SET NULL"), nullable=True
     )
+    # Legado: mantido durante a transição para a EAP corporativa. Não há
+    # sincronização automática entre area_id e eap_node_id.
     area_id: Mapped[str | None] = mapped_column(ForeignKey("area.id", ondelete="SET NULL"), nullable=True)
+    # Futura fonte de verdade da localização (PROCESS ou AREA da EAP).
+    eap_node_id: Mapped[str | None] = mapped_column(
+        ForeignKey("eap_node.id", ondelete="SET NULL"), nullable=True
+    )
     work_package_id: Mapped[str | None] = mapped_column(
         ForeignKey("work_package.id", ondelete="SET NULL"), nullable=True
     )
@@ -188,6 +266,7 @@ class Equipment(Base):
     project_context: Mapped[ProjectContext] = relationship(back_populates="equipments")
     discipline: Mapped[Discipline | None] = relationship(back_populates="equipments")
     area: Mapped[Area | None] = relationship(back_populates="equipments")
+    eap_node: Mapped[EapNode | None] = relationship()
     work_package: Mapped[WorkPackage | None] = relationship(back_populates="equipments")
     responsible_user: Mapped[User | None] = relationship("User")
     components: Mapped[list[EquipmentComponent]] = relationship(
@@ -255,6 +334,7 @@ class Equipment(Base):
             name="equipment_delivery_window_order_check",
         ),
         Index("equipment_project_context_id_idx", "project_context_id"),
+        Index("equipment_eap_node_id_idx", "eap_node_id"),
         Index("equipment_current_stage_idx", "current_stage"),
         Index("equipment_name_idx", "name"),
         Index("equipment_operational_status_idx", "operational_status"),

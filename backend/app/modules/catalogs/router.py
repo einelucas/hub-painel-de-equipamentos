@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
+from app.domain.eap import EapLevel
 from app.models.equipment import Area, Discipline, ProjectContext, Unit, WorkPackage
 from app.modules.catalogs import service
 from app.modules.catalogs.schemas import (
@@ -15,8 +16,12 @@ from app.modules.catalogs.schemas import (
     CatalogUpdateIn,
     DisciplineCreateIn,
     DisciplineOut,
+    EapNodeListOut,
+    EapNodeOut,
     ProjectContextCreateIn,
     ProjectContextOut,
+    ProjectEapListOut,
+    ProjectEapOut,
     UnitCreateIn,
     UnitOut,
     WorkPackageCreateIn,
@@ -67,6 +72,30 @@ async def post_project_context(
     values = body.model_dump() | {"unit_id": unit_id}
     item = await service.create_catalog(session, ProjectContext, values=values, actor=actor)
     return ProjectContextOut.model_validate(item)
+
+
+@router.get("/eap-nodes", response_model=EapNodeListOut)
+async def get_eap_nodes(
+    level: EapLevel | None = Query(default=None),
+    parent_id: str | None = Query(default=None),
+    active: bool | None = Query(default=None),
+    session: AsyncSession = Depends(get_session),
+    _: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
+) -> EapNodeListOut:
+    items = await service.list_eap_nodes(
+        session, level=level.value if level else None, parent_id=parent_id, active=active
+    )
+    return EapNodeListOut(items=[EapNodeOut.model_validate(item) for item in items])
+
+
+@router.get("/project-contexts/{project_context_id}/eap-nodes", response_model=ProjectEapListOut)
+async def get_project_eap_nodes(
+    project_context_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
+) -> ProjectEapListOut:
+    items = await service.list_project_eap_nodes(session, actor, project_context_id)
+    return ProjectEapListOut(items=[ProjectEapOut.model_validate(item) for item in items])
 
 
 @router.get("/areas", response_model=CatalogListOut)
