@@ -119,6 +119,15 @@ def _cell_value(cell: ElementTree.Element, shared_strings: list[str]) -> tuple[A
 
 
 def read_first_sheet(source: bytes | bytearray | str | Path | BinaryIO) -> XlsxSheet:
+    return _read_sheet(source, None)
+
+
+def read_sheet(source: bytes | bytearray | str | Path | BinaryIO, name: str) -> XlsxSheet:
+    """Lê a aba com exatamente este nome (visível ou não)."""
+    return _read_sheet(source, name)
+
+
+def _read_sheet(source: bytes | bytearray | str | Path | BinaryIO, name: str | None) -> XlsxSheet:
     if isinstance(source, bytes | bytearray):
         stream: BinaryIO | str | Path = BytesIO(source)
     else:
@@ -152,9 +161,14 @@ def read_first_sheet(source: bytes | bytearray | str | Path | BinaryIO) -> XlsxS
         sheets = workbook.find(f"{{{_MAIN_NS}}}sheets")
         if sheets is None:
             raise XlsxReadError("workbook sem planilhas")
-        selected = next((sheet for sheet in sheets if sheet.get("state", "visible") == "visible"), None)
-        if selected is None:
-            raise XlsxReadError("workbook sem planilha visível")
+        if name is None:
+            selected = next((sheet for sheet in sheets if sheet.get("state", "visible") == "visible"), None)
+            if selected is None:
+                raise XlsxReadError("workbook sem planilha visível")
+        else:
+            selected = next((sheet for sheet in sheets if sheet.get("name") == name), None)
+            if selected is None:
+                raise XlsxReadError(f"aba {name!r} não encontrada no workbook")
         relation_id = selected.get(f"{{{_REL_NS}}}id")
         target = relationship_targets.get(relation_id)
         if target is None:

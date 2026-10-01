@@ -515,6 +515,8 @@ export interface Responsible {
 
 export interface Supplier {
   id: string;
+  /** "Cód. Fornecedor. CS" da base corporativa; ausente em fornecedores cadastrados à mão. */
+  corporateCode?: string | null;
   legalName: string;
   tradeName: string | null;
   taxId: string | null;

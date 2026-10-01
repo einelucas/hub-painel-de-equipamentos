@@ -62,11 +62,24 @@ async def _assert_tax_id_free(
         raise ConflictError("Já existe um fornecedor com este documento")
 
 
+async def _assert_corporate_code_free(
+    session: AsyncSession, corporate_code: str | None, *, ignore_id: str | None = None
+) -> None:
+    if not corporate_code:
+        return
+    stmt = select(Supplier.id).where(Supplier.corporate_code == corporate_code)
+    if ignore_id:
+        stmt = stmt.where(Supplier.id != ignore_id)
+    if (await session.execute(stmt)).scalar_one_or_none() is not None:
+        raise ConflictError("Já existe um fornecedor com este código corporativo")
+
+
 async def create_supplier(
     session: AsyncSession, *, values: dict[str, Any], actor: CurrentUser
 ) -> Supplier:
     values = {key: _clean(value) if isinstance(value, str) else value for key, value in values.items()}
     await _assert_tax_id_free(session, values.get("tax_id"))
+    await _assert_corporate_code_free(session, values.get("corporate_code"))
     supplier = Supplier(**values)
     session.add(supplier)
     await session.flush()
@@ -92,6 +105,8 @@ async def update_supplier(
     }
     if "tax_id" in changes:
         await _assert_tax_id_free(session, changes["tax_id"], ignore_id=supplier_id)
+    if "corporate_code" in changes:
+        await _assert_corporate_code_free(session, changes["corporate_code"], ignore_id=supplier_id)
     previous: dict[str, Any] = {}
     changed: dict[str, Any] = {}
     for field, value in changes.items():
