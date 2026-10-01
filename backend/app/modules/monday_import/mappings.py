@@ -24,6 +24,9 @@ EQUIPMENT_FIELDS: Final = _aliases(
         "F.Limite Entrega Obra": "delivery_deadline",
         "A.Status": "current_stage",
         "0.Fornecedores": "suppliers_raw",
+        # Board F2: fornecedor no singular + código corporativo explícito.
+        "0.Fornecedor": "suppliers_raw",
+        "Cód. Fornecedor. CS": "supplier_corporate_code",
         "0.Origem": "origin",
         "0.Startup/Grãos": "startup_at",
         "0.Disciplina": "discipline_name",
@@ -31,7 +34,15 @@ EQUIPMENT_FIELDS: Final = _aliases(
         "0.Criticidade": "criticality_observed",
         "E.Data de Entrega contrato": "contract_delivery_mirror",
         "0.Responsável": "responsible_name",
+        # F2: mesmo padrão da área — "(padrão)" é a coluna vigente, "z." é texto antigo.
+        "0.Responsável (padrão)": "responsible_name",
+        "z.0.Responsável (texto antigo)": "responsible_legacy_text",
         "0.Área": "area_name",
+        # F2: a área vigente é "0.Área (padrão)". "z.0.Área" é texto antigo —
+        # preservado em campo próprio, nunca usado como área.
+        "0.Área (padrão)": "area_name",
+        "z.0.Área": "area_legacy_text",
+        "z.0.Área (texto antigo)": "area_legacy_text",
         "Work Package": "work_package_codes",
         "1.Equalização": "equalized",
         "2.Data da Negociação": "negotiated_at",
@@ -50,6 +61,8 @@ EQUIPMENT_FIELDS: Final = _aliases(
         "7.Numero OC": "purchase_order_number",
         "7.Número OC": "purchase_order_number",
         "E.Lead Time de Fabricação": "lead_time_days_mirror",
+        # F2: o sufixo só explicita o MAX(subitem) que o espelho do C2 já era.
+        "E.Lead Time de Fabricação (máx)": "lead_time_days_mirror",
         "Espelho/Fórmula2": "formula2_observed",
         "E.Dias Antes do Startup": "pre_start_days_mirror",
         "ESPELHO-FORMULA-FRETE": "freight_days_mirror",
@@ -57,6 +70,9 @@ EQUIPMENT_FIELDS: Final = _aliases(
         "Leadtime Negociação": "negotiation_lead_time_observed",
         "Prazo Máximo Negociação": "negotiation_max_days_observed",
         "CAPEX Estimado": "capex_estimated",
+        # F2: candidato a CAPEX, pendente de validação entre boards. Campo
+        # próprio para que o plan/apply NUNCA o grave como capex_estimated.
+        "Custo Previsto": "planned_cost_candidate",
     }
 )
 
@@ -82,6 +98,16 @@ COMPONENT_FIELDS: Final = _aliases(
         "FÓRMULA-NÃO MEXER": "formula_date_observed",
         "F.Data Limite Negociação_calc": "negotiation_deadline",
         "ID do elemento": "external_id",
+        # F2: mesmos conceitos do C2 com prefixo de grupo da coluna (0./1./5./F.).
+        "1.TAG": "tag",
+        "0.Lead Time de Fabricação": "lead_time_days",
+        "0.Frete (Dias)": "freight_days",
+        "F.Data Limite de Entrega em Obra": "delivery_deadline",
+        "F.Data limite para contrato/OC": "contract_or_po_deadline",
+        "F.Disponivel Coleta": "collection_available_at",
+        "5.Data de Entrega pelo contrato": "contract_delivery_at",
+        "F.Entrega planejada vs negociada": "delivery_margin_days_observed",
+        "F.Status da Data de Entrega": "delivery_status_observed",
     }
 )
 

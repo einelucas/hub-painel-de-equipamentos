@@ -477,7 +477,15 @@ async def build_plan(
                 )
             )
         current_stage = observed_stage if observed_stage is not None else phase_stage
-        if current_stage is None:
+        if current_stage is None and normalized.get("stage_not_applicable"):
+            issues.append(
+                PlanIssue(
+                    "STAGE_NOT_APPLICABLE",
+                    "Origem marcada como 'Não se Aplica': não existe fase 0-8 equivalente e ela "
+                    "não é convertida para fase 0. Representação no Hub pendente de decisão.",
+                )
+            )
+        elif current_stage is None:
             issues.append(PlanIssue("missing_current_stage", "Nenhuma etapa identificada na origem"))
 
         existing_mapping = await _existing_mapping(
@@ -505,6 +513,7 @@ async def build_plan(
             "IMPORT_CONFLICT",
             "STAGE_CONFLICT",
             "missing_current_stage",
+            "STAGE_NOT_APPLICABLE",
             "unmapped_area",
             "unmapped_discipline",
             "unmapped_responsible",

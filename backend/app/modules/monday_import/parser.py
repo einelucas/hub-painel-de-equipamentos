@@ -38,8 +38,15 @@ from app.modules.monday_import.schemas import (
 )
 from app.modules.monday_import.xlsx import XlsxRow, read_first_sheet
 
-PARSER_VERSION = "monday-xlsx-v1"
+PARSER_VERSION = "monday-xlsx-v2"
 _STAGE_RE = re.compile(r"(?:^|\s)([0-8])(?:\.|\s|$)")
+# Grupo/status do board F2 fora do fluxo 0-8. Preservado como está: nunca
+# vira fase 0 (a representação no domínio ainda é decisão pendente).
+NOT_APPLICABLE_LABEL = "nao se aplica"
+
+
+def _is_group_title(canonical: str) -> bool:
+    return re.match(r"^fase\s+[0-8]\b", canonical) is not None or canonical == NOT_APPLICABLE_LABEL
 
 
 def _source_bytes(
@@ -148,11 +155,11 @@ def _normalize_fields(
                 value = normalize_integer(raw_value)
             elif field == "work_package_codes":
                 value = normalize_multi_value(raw_value)
-            elif field == "external_id":
+            elif field in {"external_id", "supplier_corporate_code"}:
                 value = normalize_external_id(raw_value)
             elif field == "current_stage":
                 value = _parse_stage(raw_value)
-            elif field == "capex_estimated":
+            elif field in {"capex_estimated", "planned_cost_candidate"}:
                 value = normalize_decimal(raw_value)
             else:
                 value = clean_text(raw_value)
@@ -207,7 +214,7 @@ def parse_monday_xlsx(
         if len(values) == 1 and values[0][0] == 1 and first_canonical.startswith("equipamentos"):
             result.board_title = first_text
             continue
-        if len(values) == 1 and values[0][0] == 1 and re.match(r"^fase\s+[0-8]\b", first_canonical):
+        if len(values) == 1 and values[0][0] == 1 and _is_group_title(first_canonical):
             current_group = first_text
             current_equipment = None
             component_headers = {}
@@ -246,6 +253,11 @@ def parse_monday_xlsx(
             )
             normalized["name"] = equipment_name
             normalized["group_name"] = current_group
+            status_text = canonical_text(fields.get("current_stage"))
+            normalized["stage_not_applicable"] = (
+                status_text == NOT_APPLICABLE_LABEL
+                or canonical_text(current_group) == NOT_APPLICABLE_LABEL
+            )
             key = provisional_equipment_key(equipment_name)
             if key in equipment_keys:
                 result.issues.append(
