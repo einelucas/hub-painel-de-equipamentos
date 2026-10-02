@@ -102,7 +102,9 @@ watch(
           v-else-if="catalog === 'contexts'"
           :path="props.unitId ? `/units/${props.unitId}/project-contexts` : '/units'"
           label="Contextos"
+          item-path="/project-contexts"
           :has-code="true"
+          :has-eap-prefix="true"
           :requires-parent="unitHint"
           @changed="onChanged"
         />

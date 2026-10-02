@@ -44,7 +44,7 @@ ADMIN também pode criar esses catálogos pelos respectivos endpoints `POST`.
 ## Equipamentos e componentes
 
 - `GET /equipments`: filtros `unit_id`, `project_context_id`, `equipment_id`, `search`, `stage`, `discipline_id`, `responsible_user_id`, paginação e ordenação segura.
-- `PATCH /units/{id}`, `/project-contexts/{id}`, `/areas/{id}`, `/disciplines/{id}`, `/work-packages/{id}` (`catalogs:manage`): edita nome/código e ativa/desativa. Não há exclusão física.
+- `PATCH /units/{id}`, `/project-contexts/{id}`, `/areas/{id}`, `/disciplines/{id}`, `/work-packages/{id}` (`catalogs:manage`): edita nome/código e ativa/desativa. Não há exclusão física. Em `/project-contexts/{id}` também aceita `eapPrefix` (só dígitos, como texto; `null` limpa), informado manualmente e auditado; ver `docs/eap-catalogo.md`.
 - `POST /equipments`
 - `GET /equipments/{equipment_id}`
 - `PATCH /equipments/{equipment_id}`

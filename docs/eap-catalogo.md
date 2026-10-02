@@ -42,6 +42,28 @@ Localização oficial. A LGE e o Monday não participam deste catálogo.
 - Um PROCESS sem AREA é válido (ex.: `16`). Equipamento pode apontar para
   PROCESS ou AREA, nunca ISLAND (regra inalterada).
 
+## Prefixo EAP do projeto
+
+- O prefixo pertence ao **projeto/fase** (`ProjectContext.eap_prefix`), não à
+  unidade nem ao catálogo. A árvore EAP é corporativa e única. O prefixo é
+  o que diferencia o código exibido em cada obra.
+- É **informado manualmente** por quem tem `catalogs:manage`, em
+  *Administração · Equipamentos → Catálogos → Contextos de projeto* (campo
+  "Prefixo EAP"), ou via `PATCH /project-contexts/{id}` com `{"eapPrefix": "23"}`.
+- **Não é sequencial nem calculado.** Rondonópolis F1 = `23` e F2 = `24` não
+  implica F3 = `25`. Projetos diferentes podem usar o mesmo prefixo (sem
+  unicidade).
+- Só dígitos, guardado como texto: `"03"` continua `"03"`. **Pode ser NULL**
+  ("Não definido"). `{"eapPrefix": null}` limpa o valor; string vazia é
+  rejeitada. Sem prefixo, o sistema funciona normalmente; só não é possível
+  compor o código completo.
+- **Código completo é derivado, nunca persistido:** `eap_prefix + EapNode.code`
+  (`23` + `01.A` → `2301.A`), via `build_full_eap_code()` em
+  `app/domain/eap.py`.
+- Cada alteração gera um AuditLog `catalog.update` (entidade `ProjectContext`,
+  `entityId` = id do contexto), com o valor anterior e o novo, o usuário e a
+  data.
+
 ## Carga (`seed`)
 
 - Cria só códigos inexistentes, pais antes de filhos. Cada criação gera um

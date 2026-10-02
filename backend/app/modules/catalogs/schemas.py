@@ -108,6 +108,16 @@ class ProjectEapListOut(CamelModel):
     items: list[ProjectEapOut]
 
 
+def _validate_eap_prefix(value: str | None) -> str | None:
+    """Só dígitos, mantido como texto ("03" continua "03"). None = ainda não
+    definido; string vazia é rejeitada para não virar um "" persistido."""
+    if value is None:
+        return None
+    if not EAP_PREFIX_RE.fullmatch(value):
+        raise ValueError("Prefixo EAP deve conter só dígitos (ex.: 23)")
+    return value
+
+
 class ProjectContextCreateIn(CamelModel):
     code: str = Field(min_length=1, max_length=60)
     name: str = Field(min_length=1, max_length=160)
@@ -117,11 +127,7 @@ class ProjectContextCreateIn(CamelModel):
     @field_validator("eap_prefix")
     @classmethod
     def eap_prefix_digits(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        if not EAP_PREFIX_RE.fullmatch(value):
-            raise ValueError("Prefixo EAP deve conter só dígitos (ex.: 23)")
-        return value
+        return _validate_eap_prefix(value)
 
 
 class AreaCreateIn(CamelModel):
@@ -152,3 +158,19 @@ class CatalogUpdateIn(CamelModel):
         if not self.model_fields_set:
             raise ValueError("Informe ao menos um campo para atualizar")
         return self
+
+
+class ProjectContextUpdateIn(CatalogUpdateIn):
+    """Atualização de contexto: os campos comuns + `eap_prefix`.
+
+    O prefixo é informado manualmente por quem administra catálogos — nunca
+    calculado nem sugerido a partir de outra fase. `eapPrefix: null` limpa o
+    valor (persistido como NULL); omitir o campo não o altera. Sem unicidade:
+    projetos diferentes podem usar o mesmo prefixo."""
+
+    eap_prefix: str | None = Field(default=None, max_length=10)
+
+    @field_validator("eap_prefix")
+    @classmethod
+    def eap_prefix_digits(cls, value: str | None) -> str | None:
+        return _validate_eap_prefix(value)
