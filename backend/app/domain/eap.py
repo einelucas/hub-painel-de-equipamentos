@@ -173,7 +173,9 @@ def parse_eap_reference(value: str | None, *, expected_eap_prefix: str | None = 
     )
 
 
-def _comparable(name: str) -> str:
+def comparable_eap_name(name: str) -> str:
+    """Forma de comparação de nomes da EAP: sem acentos, casefold e espaços
+    normalizados. Só isso — nada de fuzzy, sinônimos ou remoção de palavras."""
     decomposed = unicodedata.normalize("NFKD", name)
     return " ".join("".join(c for c in decomposed if not unicodedata.combining(c)).casefold().split())
 
@@ -192,7 +194,7 @@ def check_against_catalog(reference: EapReference, catalog: Mapping[str, str]) -
                 found=reference.eap_code,
             ),
         )
-    if reference.label and _comparable(reference.label) != _comparable(official):
+    if reference.label and comparable_eap_name(reference.label) != comparable_eap_name(official):
         return (
             EapIssue(
                 EapIssueCode.EAP_NAME_MISMATCH,
