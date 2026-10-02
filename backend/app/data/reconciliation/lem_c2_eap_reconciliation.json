@@ -1,0 +1,1299 @@
+{
+  "format_version": 1,
+  "description": "Relatório de reconciliação READ-ONLY Monday × catálogo EAP oficial. NÃO é seed: nenhum vínculo é gravado a partir deste arquivo.",
+  "project": "LEM C2",
+  "catalog": {
+    "sha256": "d070bdde2ac74dd99a3cffa5e49375910279675e325340f587ea9d5bfd5660f7",
+    "source": "INPASA-DO-PRO-1700-001-07 - ÁRVORE DE LOCALIZAÇÃO - POR RESPONSÁVEL 2.xlsx"
+  },
+  "sources": [
+    {
+      "file": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sha256": "3217056aef05de39b5b98e9258be1721e26f1264eea49b19d4dc81c3053912ad",
+      "boardTitle": "Equipamentos - LEM C2",
+      "equipments": 31,
+      "components": 55
+    },
+    {
+      "file": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sha256": "21e0c8e80dbcd763225145b5de57f29006335c087f5b2ed16b829cdbe12d25c8",
+      "boardTitle": "Equipamentos - LEM C2",
+      "equipments": 10,
+      "components": 109
+    }
+  ],
+  "metrics": {
+    "total_equipment": 41,
+    "matched_code_and_name": 1,
+    "matched_code": 0,
+    "matched_unique_name": 37,
+    "review_name_mismatch": 0,
+    "review_catalog": 1,
+    "review_multiple_eap": 0,
+    "unresolved_unknown_code": 0,
+    "unresolved_generic": 2,
+    "unresolved_ambiguous_name": 0,
+    "auto_match_safe_total": 38
+  },
+  "observed_prefixes": [
+    {
+      "prefix": "21",
+      "occurrences": 1,
+      "equipments": [
+        "Ponte rolante 25 ton"
+      ]
+    }
+  ],
+  "prefix_consistent": true,
+  "multiple_eap_equipments": [],
+  "source_conflicts": [],
+  "candidate_project_eap_codes": [
+    "01.A",
+    "04.A"
+  ],
+  "records": [
+    {
+      "externalId": "normalized-name:analisador de gas da caldeira",
+      "equipmentName": "Analisador de gás da Caldeira",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 32,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Analisador de gás da Caldeira",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:bomba sump",
+      "equipmentName": "Bomba SUMP",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 17,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Bomba SUMP",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:bomba sump - drenagem",
+      "equipmentName": "Bomba SUMP - Drenagem",
+      "rawEapValue": "Drenagem",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Drenagem",
+      "matchedEapCode": null,
+      "matchedEapName": null,
+      "matchedEapLevel": null,
+      "status": "UNRESOLVED_GENERIC_VALUE",
+      "category": "UNRESOLVED",
+      "reason": "Valor sem código e sem nó oficial com este nome; não vira EAP.",
+      "candidates": [],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 110,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Bomba SUMP - Drenagem",
+        "legacyAreaName": "Drenagem",
+        "legacyAreaVsEap": "NO_EAP_MATCH"
+      }
+    },
+    {
+      "externalId": "normalized-name:caldeira de biomassa",
+      "equipmentName": "Caldeira de Biomassa",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 115,
+      "group": "Fase 8 - Concluído",
+      "database": {
+        "equipmentName": "Caldeira de Biomassa",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:conjunto turbo-gerador",
+      "equipmentName": "Conjunto Turbo-Gerador",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 4,
+      "group": "Fase 4 - Aprovação da Minuta",
+      "database": {
+        "equipmentName": "Conjunto Turbo-Gerador",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:cubiculos",
+      "equipmentName": "Cubículos",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 7,
+      "group": "Fase 4 - Aprovação da Minuta",
+      "database": {
+        "equipmentName": "Cubículos",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:eletrocentro se12",
+      "equipmentName": "Eletrocentro SE12",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 13,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Eletrocentro SE12",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:eletrocentros - casa de quimicos",
+      "equipmentName": "Eletrocentros - Casa de Químicos",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 104,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Eletrocentros - Casa de Químicos",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:equipamentos da biomassa: linha de alternativos",
+      "equipmentName": "Equipamentos da Biomassa: Linha de Alternativos",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 113,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Equipamentos da Biomassa: Linha de Alternativos",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:equipamentos da biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulizacao.",
+      "equipmentName": "Equipamentos da Biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulização.",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 38,
+      "group": "Fase 6 - SC ou OCI",
+      "database": {
+        "equipmentName": "Equipamentos da Biomassa: tremonhas, transportadores, peneiras, dutos, plataformas, torres, separadores e sistemas de nebulização.",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:estrutura metalica - pipe rack",
+      "equipmentName": "Estrutura Metálica - Pipe Rack",
+      "rawEapValue": "Pipe Rack",
+      "observedPrefix": null,
+      "parsedCode": "00.A",
+      "parsedLabel": "Pipe Rack",
+      "matchedEapCode": null,
+      "matchedEapName": null,
+      "matchedEapLevel": null,
+      "status": "REVIEW_EAP_CATALOG",
+      "category": "REVIEW",
+      "reason": "Nome corresponde a 00.A, que está em EAP_REVIEW_REQUIRED.",
+      "candidates": [
+        {
+          "code": "00.A",
+          "name": "Pipe Rack",
+          "level": "AREA",
+          "reviewRequired": true
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 79,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Estrutura Metálica - Pipe Rack",
+        "legacyAreaName": "Pipe Rack",
+        "legacyAreaVsEap": "NO_EAP_MATCH"
+      }
+    },
+    {
+      "externalId": "normalized-name:estruturas metalicas caldeira",
+      "equipmentName": "ESTRUTURAS METÁLICAS CALDEIRA",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 108,
+      "group": "Fase 6 - SC ou OCI",
+      "database": {
+        "equipmentName": "ESTRUTURAS METÁLICAS CALDEIRA",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:gerador a diesel",
+      "equipmentName": "Gerador a Diesel",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 73,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Gerador a Diesel",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:lm - isolamento termico",
+      "equipmentName": "LM - Isolamento térmico",
+      "rawEapValue": "Geral",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Geral",
+      "matchedEapCode": null,
+      "matchedEapName": null,
+      "matchedEapLevel": null,
+      "status": "UNRESOLVED_GENERIC_VALUE",
+      "category": "UNRESOLVED",
+      "reason": "Nome corresponde só a uma ILHA, que não é elegível para equipamento.",
+      "candidates": [
+        {
+          "code": null,
+          "name": "GERAL",
+          "level": "ISLAND",
+          "reviewRequired": true
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 67,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "LM - Isolamento térmico",
+        "legacyAreaName": "Geral",
+        "legacyAreaVsEap": "NO_EAP_MATCH"
+      }
+    },
+    {
+      "externalId": "normalized-name:lubrificacao forcada - unidade de lubrificacao",
+      "equipmentName": "Lubrificação Forçada - Unidade de Lubrificação",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 20,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Lubrificação Forçada - Unidade de Lubrificação",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:manometros e termometros",
+      "equipmentName": "Manômetros e Termômetros",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 44,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Manômetros e Termômetros",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:moto bombas",
+      "equipmentName": "Moto Bombas",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 19,
+      "group": "Fase 4 - Aprovação da Minuta",
+      "database": {
+        "equipmentName": "Moto Bombas",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:motores da caldeira",
+      "equipmentName": "Motores Da Caldeira",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 10,
+      "group": "Fase 4 - Aprovação da Minuta",
+      "database": {
+        "equipmentName": "Motores Da Caldeira",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:paineis de plc",
+      "equipmentName": "Painéis de PLC",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 7,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Painéis de PLC",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:paineis qdca/qnbs",
+      "equipmentName": "Painéis QDCA/QNBS",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 26,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Painéis QDCA/QNBS",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:painel de acionamento (cilindros) das grelhas",
+      "equipmentName": "Painel de Acionamento (Cilindros) das Grelhas",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 35,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Painel de Acionamento (Cilindros) das Grelhas",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:ponte rolante 25 ton",
+      "equipmentName": "Ponte rolante 25 ton",
+      "rawEapValue": "2104.A Casa de Força",
+      "observedPrefix": "21",
+      "parsedCode": "04.A",
+      "parsedLabel": "Casa de Força",
+      "matchedEapCode": "04.A",
+      "matchedEapName": "Casa de força",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_CODE_AND_NAME",
+      "category": "MATCH",
+      "reason": "Código no catálogo e nome igual ao oficial.",
+      "candidates": [],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 118,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Ponte rolante 25 ton",
+        "legacyAreaName": "Casa de Força",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:projetores, iluminacao industrial e iluminacao perimetral",
+      "equipmentName": "Projetores, Iluminação Industrial E Iluminação Perimetral",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 50,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Projetores, Iluminação Industrial E Iluminação Perimetral",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:remotas",
+      "equipmentName": "Remotas",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 94,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Remotas",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:retificadores",
+      "equipmentName": "Retificadores",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 47,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Retificadores",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:sensores eletronicos de alarme e nivel por eletrodo (nivel cald.)",
+      "equipmentName": "Sensores Eletrônicos De Alarme E Nível Por Eletrodo (Nível Cald.)",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 53,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Sensores Eletrônicos De Alarme E Nível Por Eletrodo (Nível Cald.)",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:servidor(desktop e tablets)",
+      "equipmentName": "Servidor(Desktop e Tablets)",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 70,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Servidor(Desktop e Tablets)",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:sistema de requeima de cinzas",
+      "equipmentName": "Sistema de Requeima de Cinzas",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 16,
+      "group": "Fase 4 - Aprovação da Minuta",
+      "database": {
+        "equipmentName": "Sistema de Requeima de Cinzas",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:sopradores de fuligem",
+      "equipmentName": "Sopradores de Fuligem",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 13,
+      "group": "Fase 4 - Aprovação da Minuta",
+      "database": {
+        "equipmentName": "Sopradores de Fuligem",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:suporte de mola - modelo carga variavel",
+      "equipmentName": "Suporte de mola - Modelo Carga Variável",
+      "rawEapValue": "Casa de Força",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Casa de Força",
+      "matchedEapCode": "04.A",
+      "matchedEapName": "Casa de força",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "04.A",
+          "name": "Casa de força",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 83,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Suporte de mola - Modelo Carga Variável",
+        "legacyAreaName": "Casa de Força",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:transformadores",
+      "equipmentName": "Transformadores",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 23,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Transformadores",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:transmissores",
+      "equipmentName": "Transmissores",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 76,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Transmissores",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:transportadores de cinza",
+      "equipmentName": "Transportadores de Cinza",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 56,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Transportadores de Cinza",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:tubulacao de alta pressao - p22 tg ate caldeira",
+      "equipmentName": "Tubulação de alta pressão - P22 TG até caldeira",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 97,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Tubulação de alta pressão - P22 TG até caldeira",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:valvula eletrica caldeira",
+      "equipmentName": "Válvula elétrica Caldeira",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 38,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Válvula elétrica Caldeira",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:valvulas de alivio/seguranca (alta pressao) caldeira",
+      "equipmentName": "Válvulas De Alívio/Segurança (Alta Pressão) Caldeira",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 10,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Válvulas De Alívio/Segurança (Alta Pressão) Caldeira",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:valvulas de alivio/seguranca (baixa pressao) caldeira",
+      "equipmentName": "Válvulas De Alívio/Segurança (Baixa Pressão) Caldeira",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 29,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Válvulas De Alívio/Segurança (Baixa Pressão) Caldeira",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:valvulas de controle on-off desuper e dumper",
+      "equipmentName": "Válvulas de Controle On-Off Desuper e Dumper",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 41,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Válvulas de Controle On-Off Desuper e Dumper",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:valvulas manuais (alta pressao)",
+      "equipmentName": "Válvulas Manuais (Alta Pressão)",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 100,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Válvulas Manuais (Alta Pressão)",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:ventiladores centrifugos - conjuntos",
+      "equipmentName": "Ventiladores centrífugos - Conjuntos",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_1789930920.xlsx",
+      "sourceRow": 28,
+      "group": "Fase 6 - SC ou OCI",
+      "database": {
+        "equipmentName": "Ventiladores centrífugos - Conjuntos",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    },
+    {
+      "externalId": "normalized-name:visores de nivel",
+      "equipmentName": "Visores de nível",
+      "rawEapValue": "Caldeira",
+      "observedPrefix": null,
+      "parsedCode": null,
+      "parsedLabel": "Caldeira",
+      "matchedEapCode": "01.A",
+      "matchedEapName": "Caldeira",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
+      "candidates": [
+        {
+          "code": "01.A",
+          "name": "Caldeira",
+          "level": "AREA",
+          "reviewRequired": false
+        }
+      ],
+      "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
+      "sourceRow": 4,
+      "group": "Fase 0 - Nova Demanda",
+      "database": {
+        "equipmentName": "Visores de nível",
+        "legacyAreaName": "Caldeira",
+        "legacyAreaVsEap": "SAME_NAME"
+      }
+    }
+  ],
+  "auxiliary_exports": {
+    "files": [
+      "Equipamentos_LEM_C2_1789930895.xlsx",
+      "Equipamentos_LEM_C2_1789930910.xlsx"
+    ],
+    "equipments": 9,
+    "subset_of_canonical": true,
+    "same_area": true
+  },
+  "database_comparison": {
+    "database": "neondb",
+    "alembicRevision": "0009_requirement_waivers",
+    "equipmentTotal": 41,
+    "mappedEquipments": 41,
+    "matchedExportAndDatabase": 41,
+    "exportWithoutEquipment": [],
+    "equipmentWithoutExport": [],
+    "equipmentWithoutMapping": [],
+    "duplicateExternalIds": [],
+    "contexts": [
+      "LEM/C2"
+    ],
+    "legacyAreaVsEap": {
+      "NO_EAP_MATCH": 3,
+      "SAME_NAME": 38
+    }
+  }
+}
