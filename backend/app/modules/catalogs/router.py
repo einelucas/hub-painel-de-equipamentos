@@ -20,6 +20,7 @@ from app.modules.catalogs.schemas import (
     EapNodeOut,
     ProjectContextCreateIn,
     ProjectContextOut,
+    ProjectContextUpdateIn,
     ProjectEapListOut,
     ProjectEapOut,
     UnitCreateIn,
@@ -181,7 +182,7 @@ async def patch_unit(
 @router.patch("/project-contexts/{item_id}", response_model=ProjectContextOut)
 async def patch_project_context(
     item_id: str,
-    body: CatalogUpdateIn,
+    body: ProjectContextUpdateIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_manage),
 ) -> ProjectContextOut:

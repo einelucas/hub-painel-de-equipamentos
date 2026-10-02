@@ -12,6 +12,7 @@ from app.modules.catalogs.schemas import (
     EapNodeCreateIn,
     ProjectContextCreateIn,
     ProjectContextOut,
+    ProjectContextUpdateIn,
     UnitCreateIn,
     UnitOut,
 )
@@ -53,7 +54,7 @@ def test_project_context_create_keeps_prefix_optional() -> None:
     assert ProjectContextCreateIn(code="C2", name="Caldeira 2").eap_prefix is None
 
 
-@pytest.mark.parametrize("prefix", ["", "ABC", "23A"])
+@pytest.mark.parametrize("prefix", ["", "ABC", "23A", "23.A", "RDN", "-1", "2A"])
 def test_project_context_create_rejects_non_numeric_prefixes(prefix: str) -> None:
     with pytest.raises(ValidationError):
         ProjectContextCreateIn(code="F1", name="Fase 1", eap_prefix=prefix)
@@ -113,3 +114,31 @@ def test_eap_node_create_accepts_corporate_codes() -> None:
 def test_eap_node_create_rejects_invalid_payloads(payload: dict) -> None:
     with pytest.raises(ValidationError):
         EapNodeCreateIn(**payload)
+
+
+@pytest.mark.parametrize("prefix", ["03", "21", "23", "24", "123"])
+def test_project_context_update_accepts_digit_prefixes_as_text(prefix: str) -> None:
+    body = ProjectContextUpdateIn(eap_prefix=prefix)
+    assert body.model_dump(exclude_unset=True) == {"eap_prefix": prefix}
+
+
+def test_project_context_update_preserves_leading_zero() -> None:
+    assert ProjectContextUpdateIn.model_validate({"eapPrefix": "03"}).eap_prefix == "03"
+
+
+def test_project_context_update_explicit_null_clears_and_omitted_keeps() -> None:
+    cleared = ProjectContextUpdateIn.model_validate({"eapPrefix": None})
+    assert cleared.model_dump(exclude_unset=True) == {"eap_prefix": None}
+    renamed = ProjectContextUpdateIn.model_validate({"name": "Fase 2"})
+    assert "eap_prefix" not in renamed.model_dump(exclude_unset=True)
+
+
+@pytest.mark.parametrize("prefix", ["", "ABC", "23A", "23.A", "RDN", "-1", "2A", " 23", 23])
+def test_project_context_update_rejects_invalid_prefixes(prefix: object) -> None:
+    with pytest.raises(ValidationError):
+        ProjectContextUpdateIn.model_validate({"eapPrefix": prefix})
+
+
+def test_project_context_update_requires_some_field() -> None:
+    with pytest.raises(ValidationError):
+        ProjectContextUpdateIn.model_validate({})
