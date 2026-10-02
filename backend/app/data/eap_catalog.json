@@ -1,0 +1,1517 @@
+{
+  "format_version": 1,
+  "description": "Catálogo EAP corporativo extraído da Árvore de Localização oficial. Códigos sem prefixo de projeto (o prefixo é ProjectContext.eap_prefix). Itens de review_required NÃO são carregados.",
+  "source": {
+    "file": "INPASA-DO-PRO-1700-001-07 - ÁRVORE DE LOCALIZAÇÃO - POR RESPONSÁVEL 2.xlsx",
+    "sha256": "aafd38fb034d987534473cf8c82f062cc0ea1fa2059a5e81071dff20c746bd5d",
+    "sheet": "Table 2",
+    "eap_rows": 144,
+    "island_rows": 8,
+    "non_eap_rows": [
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187
+    ]
+  },
+  "summary": {
+    "distinct_eap_codes": 141,
+    "nodes": 134,
+    "island": 7,
+    "process": 20,
+    "area": 107,
+    "review_required": 15
+  },
+  "nodes": [
+    {
+      "level": "ISLAND",
+      "code": "B",
+      "name": "Etanol",
+      "parent_code": null,
+      "source_rows": [
+        15
+      ]
+    },
+    {
+      "level": "ISLAND",
+      "code": "C",
+      "name": "DDGS e Óleo",
+      "parent_code": null,
+      "source_rows": [
+        52
+      ]
+    },
+    {
+      "level": "ISLAND",
+      "code": "D",
+      "name": "Utilidades",
+      "parent_code": null,
+      "source_rows": [
+        104
+      ]
+    },
+    {
+      "level": "ISLAND",
+      "code": "E",
+      "name": "Grãos",
+      "parent_code": null,
+      "source_rows": [
+        72
+      ]
+    },
+    {
+      "level": "ISLAND",
+      "code": "F",
+      "name": "Administração",
+      "parent_code": null,
+      "source_rows": [
+        138
+      ]
+    },
+    {
+      "level": "ISLAND",
+      "code": "H",
+      "name": "Laboratórios",
+      "parent_code": null,
+      "source_rows": [
+        48
+      ]
+    },
+    {
+      "level": "ISLAND",
+      "code": "I",
+      "name": "Efluentes",
+      "parent_code": null,
+      "source_rows": [
+        97
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "01",
+      "name": "Geração de vapor [SE-02]",
+      "parent_code": "D",
+      "source_rows": [
+        112
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "02",
+      "name": "Cozimento",
+      "parent_code": "B",
+      "source_rows": [
+        18
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "03",
+      "name": "Estação de Tratamento de Efluentes (ETE)",
+      "parent_code": "I",
+      "source_rows": [
+        98
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "04",
+      "name": "Geração de energia [SE-01]",
+      "parent_code": "D",
+      "source_rows": [
+        119
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "06",
+      "name": "Fermentação [SE-05]",
+      "parent_code": "B",
+      "source_rows": [
+        25
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "08",
+      "name": "Destilaria [SE-08]",
+      "parent_code": "B",
+      "source_rows": [
+        33
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "09",
+      "name": "Separação de sólidos e secagem de DDGS [SE-07]",
+      "parent_code": "C",
+      "source_rows": [
+        53
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "10",
+      "name": "Estação de Tratamento de Água (ETA)",
+      "parent_code": "D",
+      "source_rows": [
+        123
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "11",
+      "name": "Moinho de grãos [SE-03]",
+      "parent_code": "B",
+      "source_rows": [
+        16
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "12",
+      "name": "Sistema de selagem",
+      "parent_code": "D",
+      "source_rows": [
+        136
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "14",
+      "name": "Sistema de refrigeração de água [SE-04]",
+      "parent_code": "D",
+      "source_rows": [
+        129
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "15",
+      "name": "Recebimento de grãos",
+      "parent_code": "E",
+      "source_rows": [
+        73
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "16",
+      "name": "Sistema de combate a incêndio",
+      "parent_code": "D",
+      "source_rows": [
+        134
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "17",
+      "name": "Sistema de evaporação de vinhaça",
+      "parent_code": "C",
+      "source_rows": [
+        62
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "19",
+      "name": "Descarregamento e armazenamento de grãos [SE-09]",
+      "parent_code": "E",
+      "source_rows": [
+        81
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "20",
+      "name": "Fábrica de óleo",
+      "parent_code": "C",
+      "source_rows": [
+        66
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "23",
+      "name": "Administração",
+      "parent_code": "F",
+      "source_rows": [
+        139
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "26",
+      "name": "Laboratórios",
+      "parent_code": "H",
+      "source_rows": [
+        49
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "27",
+      "name": "Armazenamento e expedição de etanol [SE-06]",
+      "parent_code": "B",
+      "source_rows": [
+        41
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "31",
+      "name": "Biomassa",
+      "parent_code": "D",
+      "source_rows": [
+        105
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "01.A",
+      "name": "Caldeira",
+      "parent_code": "01",
+      "source_rows": [
+        113
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "01.B",
+      "name": "Armazenamento de água desmineralizada",
+      "parent_code": "01",
+      "source_rows": [
+        114
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "01.C",
+      "name": "Estação redutora",
+      "parent_code": "01",
+      "source_rows": [
+        115
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "01.D",
+      "name": "Caldeira de Cinzas",
+      "parent_code": "01",
+      "source_rows": [
+        116
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "01.E",
+      "name": "Casa de químicos da caldeira",
+      "parent_code": "01",
+      "source_rows": [
+        117
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "01.F",
+      "name": "Geração de vapor-Executivo Civil",
+      "parent_code": "01",
+      "source_rows": [
+        118
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "02.A",
+      "name": "Mash milling",
+      "parent_code": "02",
+      "source_rows": [
+        19
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "02.B",
+      "name": "Liquefação",
+      "parent_code": "02",
+      "source_rows": [
+        20
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "02.C",
+      "name": "Dióxido de Cloro",
+      "parent_code": "02",
+      "source_rows": [
+        21
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "02.D",
+      "name": "Selective Grind Technology (SGT)",
+      "parent_code": "02",
+      "source_rows": [
+        22
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "02.E",
+      "name": "Clean In Place (CIP)",
+      "parent_code": "02",
+      "source_rows": [
+        23
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "02.F",
+      "name": "Cozimento-Executivo Civil",
+      "parent_code": "02",
+      "source_rows": [
+        24
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "03.A",
+      "name": "Rede de esgoto e do resíduo do processo industrial",
+      "parent_code": "03",
+      "source_rows": [
+        99
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "03.B",
+      "name": "Tratamento de efluentes (lagoas)",
+      "parent_code": "03",
+      "source_rows": [
+        100
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "03.C",
+      "name": "Depósito de resíduos sólidos",
+      "parent_code": "03",
+      "source_rows": [
+        101
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "03.D",
+      "name": "Fertirrigação",
+      "parent_code": "03",
+      "source_rows": [
+        102
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "03.E",
+      "name": "Estação de Tratamento de Efluentes (ETE)-Executivo Civil",
+      "parent_code": "03",
+      "source_rows": [
+        103
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "04.A",
+      "name": "Casa de força",
+      "parent_code": "04",
+      "source_rows": [
+        120
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "04.B",
+      "name": "Subestação e Distribuição de energia",
+      "parent_code": "04",
+      "source_rows": [
+        121
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "04.C",
+      "name": "Geração de energia -Executivo Civil",
+      "parent_code": "04",
+      "source_rows": [
+        122
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "06.A",
+      "name": "Propagação do fermento",
+      "parent_code": "06",
+      "source_rows": [
+        26
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "06.B",
+      "name": "Dornas de fermentação [SE-05]",
+      "parent_code": "06",
+      "source_rows": [
+        27
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "06.C",
+      "name": "Recuperação de CO2",
+      "parent_code": "06",
+      "source_rows": [
+        28
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "06.D",
+      "name": "Químicos",
+      "parent_code": "06",
+      "source_rows": [
+        29
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "06.E",
+      "name": "Enzimas",
+      "parent_code": "06",
+      "source_rows": [
+        30
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "06.F",
+      "name": "Fermentação a vácuo",
+      "parent_code": "06",
+      "source_rows": [
+        31
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "08.A",
+      "name": "Dorna volante",
+      "parent_code": "08",
+      "source_rows": [
+        34
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "08.B",
+      "name": "Destilaria de etanol hidratado [SE-08]",
+      "parent_code": "08",
+      "source_rows": [
+        35
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "08.C",
+      "name": "Destilaria de etanol anidro",
+      "parent_code": "08",
+      "source_rows": [
+        36
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "08.D",
+      "name": "Destilaria de etanol Coreia-B",
+      "parent_code": "08",
+      "source_rows": [
+        37
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "08.E",
+      "name": "Regenerador de Vapor",
+      "parent_code": "08",
+      "source_rows": [
+        38
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "08.F",
+      "name": "Destilaria de etanol neutro",
+      "parent_code": "08",
+      "source_rows": [
+        39
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "08.G",
+      "name": "Destilaria-Executivo Civil",
+      "parent_code": "08",
+      "source_rows": [
+        40
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "09.A",
+      "name": "Centrifugação de vinhaça (Decanter)",
+      "parent_code": "09",
+      "source_rows": [
+        54
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "09.B",
+      "name": "Secadores de Distiller's Dried Grains with Solubles (DDGS) [SE-07]",
+      "parent_code": "09",
+      "source_rows": [
+        55
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "09.C",
+      "name": "Armazenamento e expedição de DDGS",
+      "parent_code": "09",
+      "source_rows": [
+        56
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "09.D",
+      "name": "Refrigeração do DDGS",
+      "parent_code": "09",
+      "source_rows": [
+        57
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "09.E",
+      "name": "Sistema de vinhaça grossa e xarope",
+      "parent_code": "09",
+      "source_rows": [
+        58
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "09.F",
+      "name": "Prédio de apoio do armazém do DDGS",
+      "parent_code": "09",
+      "source_rows": [
+        59
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "09.G",
+      "name": "Prédio de depósito do módulo do DDGS",
+      "parent_code": "09",
+      "source_rows": [
+        60
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "09.H",
+      "name": "Separação de sólidos e secagem de DDGS-Executivo Civil",
+      "parent_code": "09",
+      "source_rows": [
+        61
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "10.A",
+      "name": "Poços artesianos",
+      "parent_code": "10",
+      "source_rows": [
+        124
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "10.B",
+      "name": "Osmose",
+      "parent_code": "10",
+      "source_rows": [
+        125
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "10.C",
+      "name": "Armazenamento de água bruta",
+      "parent_code": "10",
+      "source_rows": [
+        126
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "10.D",
+      "name": "Água potável",
+      "parent_code": "10",
+      "source_rows": [
+        127
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "10.E",
+      "name": "Estação de Tratamento de Água-Executivo Civil",
+      "parent_code": "10",
+      "source_rows": [
+        128
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "11.A",
+      "name": "Moinho de grãos [SE-03]-Executivo Civil",
+      "parent_code": "11",
+      "source_rows": [
+        17
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "12.A",
+      "name": "Sistema de selagem-Executivo Civil",
+      "parent_code": "12",
+      "source_rows": [
+        137
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "14.A",
+      "name": "Torres de resfriamento de água [SE-04]",
+      "parent_code": "14",
+      "source_rows": [
+        130
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "14.B",
+      "name": "Chillers",
+      "parent_code": "14",
+      "source_rows": [
+        131
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "14.C",
+      "name": "Torres de resfriamento de água [SE-04]-Executivo Civil",
+      "parent_code": "14",
+      "source_rows": [
+        132
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "14.D",
+      "name": "Chillers-Executivo Civil",
+      "parent_code": "14",
+      "source_rows": [
+        133
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "15.A",
+      "name": "Classificação",
+      "parent_code": "15",
+      "source_rows": [
+        74
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "15.C",
+      "name": "Faturamento",
+      "parent_code": "15",
+      "source_rows": [
+        77
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "15.D",
+      "name": "Check-out",
+      "parent_code": "15",
+      "source_rows": [
+        78
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "15.E",
+      "name": "Check-List",
+      "parent_code": "15",
+      "source_rows": [
+        79
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "15.F",
+      "name": "Faturamento-Executivo civil",
+      "parent_code": "15",
+      "source_rows": [
+        80
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "16.A",
+      "name": "Sistema de combate a incêndio-Executivo Civil",
+      "parent_code": "16",
+      "source_rows": [
+        135
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "17.A",
+      "name": "Evaporadores",
+      "parent_code": "17",
+      "source_rows": [
+        63
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "17.B",
+      "name": "Armazenamento de vinhaça fina",
+      "parent_code": "17",
+      "source_rows": [
+        64
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "17.C",
+      "name": "Sistema de evaporação de vinhaça-Executivo Civil",
+      "parent_code": "17",
+      "source_rows": [
+        65
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.A",
+      "name": "Tombador, casa de máquinas, pré-limpeza, moega, elevador",
+      "parent_code": "19",
+      "source_rows": [
+        82
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.B",
+      "name": "Armazenamento de grãos [SE-09] (Armazéns, aeração e termometria)",
+      "parent_code": "19",
+      "source_rows": [
+        83
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.C",
+      "name": "Secagem de grãos (Secadores e queimadores)",
+      "parent_code": "19",
+      "source_rows": [
+        84
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.D",
+      "name": "Prédio de apoio do armazém de grãos",
+      "parent_code": "19",
+      "source_rows": [
+        85
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.E",
+      "name": "Descarregamento e armazenamento de grãos-Executivo Civil",
+      "parent_code": "19",
+      "source_rows": [
+        86
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.F",
+      "name": "Torre TT1 e TT2",
+      "parent_code": "19",
+      "source_rows": [
+        87
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.G",
+      "name": "Escada poço",
+      "parent_code": "19",
+      "source_rows": [
+        88
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.H",
+      "name": "Cobertura Máquinas e Secador",
+      "parent_code": "19",
+      "source_rows": [
+        89
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.I",
+      "name": "Apoio Correias TT1 ao AMZ1",
+      "parent_code": "19",
+      "source_rows": [
+        90
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.J",
+      "name": "Plataforma interna AMZ1",
+      "parent_code": "19",
+      "source_rows": [
+        91
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.K",
+      "name": "Plataformas Bulkflow",
+      "parent_code": "19",
+      "source_rows": [
+        92
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.L",
+      "name": "Torre Elevador Moinho",
+      "parent_code": "19",
+      "source_rows": [
+        93
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.M",
+      "name": "Apoio Transportadores Entre Torres - GM01A e GM02",
+      "parent_code": "19",
+      "source_rows": [
+        94
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.N",
+      "name": "Escada Poço ET 2",
+      "parent_code": "19",
+      "source_rows": [
+        95
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "19.O",
+      "name": "GM-03-Plataforma Interna do AZ-02",
+      "parent_code": "19",
+      "source_rows": [
+        96
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "20.A",
+      "name": "Extração de óleo (Tricanter)",
+      "parent_code": "20",
+      "source_rows": [
+        67
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "20.B",
+      "name": "Clarificação de óleo",
+      "parent_code": "20",
+      "source_rows": [
+        68
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "20.C",
+      "name": "Armazenamento de óleo",
+      "parent_code": "20",
+      "source_rows": [
+        69
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "20.E",
+      "name": "Expedição de óleo",
+      "parent_code": "20",
+      "source_rows": [
+        70
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "20.F",
+      "name": "Fábrica de óleo-Executivo Civil",
+      "parent_code": "20",
+      "source_rows": [
+        71
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.A",
+      "name": "Portaria, Vestiário, Refeitório, Recursos Humanos, Monitoramento",
+      "parent_code": "23",
+      "source_rows": [
+        140
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.B",
+      "name": "Guarita de controle de acesso",
+      "parent_code": "23",
+      "source_rows": [
+        141
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.C",
+      "name": "Posto de combustível, Conveniência, Restaurante",
+      "parent_code": "23",
+      "source_rows": [
+        142
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.D",
+      "name": "Segurança, Meio Ambiente e Saúde (SMS)",
+      "parent_code": "23",
+      "source_rows": [
+        143
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.E",
+      "name": "Pátio, arredores, estacionamento, sinalização viária",
+      "parent_code": "23",
+      "source_rows": [
+        144
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.F",
+      "name": "Almoxarifado de materiais e Depósito de produtos químicos",
+      "parent_code": "23",
+      "source_rows": [
+        145
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.G",
+      "name": "Oficina de Lubrificação",
+      "parent_code": "23",
+      "source_rows": [
+        146
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.H",
+      "name": "Manutenção industrial (oficina mecânica)",
+      "parent_code": "23",
+      "source_rows": [
+        147
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.I",
+      "name": "Escritório administrativo",
+      "parent_code": "23",
+      "source_rows": [
+        148
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.J",
+      "name": "Depósito de gestão de agroquímicos",
+      "parent_code": "23",
+      "source_rows": [
+        149
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.K",
+      "name": "Centro de treinamentos para PCD",
+      "parent_code": "23",
+      "source_rows": [
+        150
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "23.L",
+      "name": "Barracão de Maquinários",
+      "parent_code": "23",
+      "source_rows": [
+        151
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "26.A",
+      "name": "Laboratório - matéria-prima, processo e produto final",
+      "parent_code": "26",
+      "source_rows": [
+        50
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "26.B",
+      "name": "Centro de Operação Integrado (COI)",
+      "parent_code": "26",
+      "source_rows": [
+        51
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "27.A",
+      "name": "Armazenamento de etanol [SE-06]",
+      "parent_code": "27",
+      "source_rows": [
+        42
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "27.B",
+      "name": "Expedição de etanol",
+      "parent_code": "27",
+      "source_rows": [
+        43
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "27.C",
+      "name": "Tanques de medição",
+      "parent_code": "27",
+      "source_rows": [
+        44
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "27.D",
+      "name": "Prédio de apoio da Expedição de Etanol",
+      "parent_code": "27",
+      "source_rows": [
+        45
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "27.E",
+      "name": "Prédio de depósito da Expedição de Etanol",
+      "parent_code": "27",
+      "source_rows": [
+        46
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "27.F",
+      "name": "Armazenamento e expedição de etanol-Executivo Civil",
+      "parent_code": "27",
+      "source_rows": [
+        47
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "31.A",
+      "name": "Armazenamento de biomassa",
+      "parent_code": "31",
+      "source_rows": [
+        106
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "31.B",
+      "name": "Sistema de alimentação (tansportadores de alimentação da caldeira, sistema de medição de biomassa e peneiras de disco)",
+      "parent_code": "31",
+      "source_rows": [
+        107
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "31.C",
+      "name": "Picador",
+      "parent_code": "31",
+      "source_rows": [
+        108
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "31.D",
+      "name": "Depósito de Cinzas",
+      "parent_code": "31",
+      "source_rows": [
+        109
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "31.E",
+      "name": "Prédio de apoio do armazém da Biomassa",
+      "parent_code": "31",
+      "source_rows": [
+        110
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "31.F",
+      "name": "Biomassa-Executivo Civil",
+      "parent_code": "31",
+      "source_rows": [
+        111
+      ]
+    }
+  ],
+  "review_required": [
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "ISLAND",
+      "code": null,
+      "names_found": [
+        "GERAL"
+      ],
+      "reason": "ISLAND_CODE_MISSING",
+      "detail": "Cabeçalho de ilha sem letra na Árvore: não há código oficial para o nó.",
+      "source_rows": [
+        2
+      ],
+      "alternatives": [
+        "Definir o código oficial desta ilha (a Árvore não traz letra para o bloco)."
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "PROCESS",
+      "code": "00",
+      "names_found": [
+        "Geral INPASA AGROINDUSTRIAL",
+        "Layout Geral",
+        "ADM 3D"
+      ],
+      "reason": "DUPLICATE_CODE_DIFFERENT_NAMES",
+      "detail": "O código aparece em 3 linhas com descrições diferentes.",
+      "source_rows": [
+        3,
+        4,
+        5
+      ],
+      "alternatives": [
+        "'Geral INPASA AGROINDUSTRIAL' (linha 3)",
+        "'Layout Geral' (linha 4)",
+        "'ADM 3D' (linha 5)"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "PROCESS",
+      "code": "21",
+      "names_found": [
+        "Sistema de Geração de Ar Comprimido"
+      ],
+      "reason": "MALFORMED_PREFIX_MARKER",
+      "detail": "Marcador de prefixo 'XX' em vez de 'X' ('XX21').",
+      "source_rows": [
+        152
+      ],
+      "alternatives": [
+        "'21' lido com o marcador corrigido para 'X'",
+        "posição na Árvore: bloco da ilha F"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.0",
+      "names_found": [
+        "Projetos executivos civis industriais"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        14
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.A",
+      "names_found": [
+        "Pipe Rack"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        6
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.B",
+      "names_found": [
+        "Terraplenagem (camada vegetal, tratamento de sub-leito, compactação de aterro)"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        7
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.C",
+      "names_found": [
+        "Drenagem (boca de lobo, poço de visita, caixa de coleta, tubo, meio fio)"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        8
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.D",
+      "names_found": [
+        "Pavimentação (cascalho, tratamento de sub-base e base, imprimação, CBUQ)"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        9
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.E",
+      "names_found": [
+        "Hangar (aeroporto)"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        10
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.H",
+      "names_found": [
+        "Reservatório de detenção de água pluvial (dissipador)"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        11
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.I",
+      "names_found": [
+        "Trevo de acesso"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        12
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "00.J",
+      "names_found": [
+        "Projeto de canteiros"
+      ],
+      "reason": "PARENT_REVIEW_REQUIRED",
+      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
+      "source_rows": [
+        13
+      ],
+      "alternatives": [
+        "Carregar após resolver 00"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "02.G",
+      "names_found": [
+        "Fermentação-Executivo Civil"
+      ],
+      "reason": "POSITION_CONTRADICTS_CODE",
+      "detail": "O código indica o PROCESS 02, mas a linha está no bloco do PROCESS 06.",
+      "source_rows": [
+        32
+      ],
+      "alternatives": [
+        "pai 02 (pelo código)",
+        "pai 06 (pela posição; o código seria 06.G)"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "15.B",
+      "names_found": [
+        "Balanças rodoviária",
+        "Balanças rodoviária - executivo civil"
+      ],
+      "reason": "DUPLICATE_CODE_DIFFERENT_NAMES",
+      "detail": "O código aparece em 2 linhas com descrições diferentes.",
+      "source_rows": [
+        75,
+        76
+      ],
+      "alternatives": [
+        "'Balanças rodoviária' (linha 75)",
+        "'Balanças rodoviária - executivo civil' (linha 76)"
+      ]
+    },
+    {
+      "status": "EAP_REVIEW_REQUIRED",
+      "level": "AREA",
+      "code": "21.A",
+      "names_found": [
+        "Geração e Distribuição de Ar Comprimido"
+      ],
+      "reason": "MALFORMED_PREFIX_MARKER",
+      "detail": "Marcador de prefixo 'XX' em vez de 'X' ('XX21.A').",
+      "source_rows": [
+        153
+      ],
+      "alternatives": [
+        "'21.A' lido com o marcador corrigido para 'X'",
+        "posição na Árvore: bloco da ilha F"
+      ]
+    }
+  ]
+}
