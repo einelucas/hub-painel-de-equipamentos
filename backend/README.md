@@ -70,7 +70,7 @@ Novas funcionalidades podem ser adicionadas em pacotes próprios, por exemplo:
 
 ```text
 app/modules/equipments/
-├── router.py
+├── controllers.py
 ├── schemas.py
 ├── service.py
 └── repository.py
