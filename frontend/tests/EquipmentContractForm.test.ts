@@ -101,8 +101,8 @@ describe("EquipmentContractsList (container)", () => {
 
   it("cria o contrato e envia o arquivo escolhido para o endpoint do contrato criado", async () => {
     const post = vi.fn().mockResolvedValue({ ...existing, id: "ct-new" });
-    const request = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal("useApi", () => ({ post, patch: vi.fn(), delete: vi.fn(), request }));
+    const upload = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("useApi", () => ({ post, patch: vi.fn(), delete: vi.fn(), upload }));
     const wrapper = mount(EquipmentContractsList, {
       props: { equipmentId: "eq-1", contracts: [], editable: true },
       global: { stubs: listStubs },
@@ -118,19 +118,20 @@ describe("EquipmentContractsList (container)", () => {
     await flushPromises();
 
     expect(post).toHaveBeenCalledWith("/equipments/eq-1/contracts", { contractNumber: "CT-0099", executedAt: null });
-    expect(request).toHaveBeenCalledTimes(1);
-    const [url, options] = request.mock.calls[0]!;
+    expect(upload).toHaveBeenCalledTimes(1);
+    const [url, body, method] = upload.mock.calls[0]!;
     expect(url).toBe("/equipments/eq-1/contracts/ct-new/file");
-    expect(options.method).toBe("PUT");
-    expect(((options.body as FormData).get("file") as File).name).toBe("novo.pdf");
+    // Sem método explícito: `upload` usa PUT por padrão, o mesmo de antes.
+    expect(method).toBeUndefined();
+    expect(((body as FormData).get("file") as File).name).toBe("novo.pdf");
     expect(wrapper.emitted("changed")).toHaveLength(1);
     expect(wrapper.find(".modal").exists()).toBe(false);
   });
 
   it("edita via PATCH sem upload quando nenhum arquivo novo foi escolhido", async () => {
     const patch = vi.fn().mockResolvedValue(existing);
-    const request = vi.fn();
-    vi.stubGlobal("useApi", () => ({ post: vi.fn(), patch, delete: vi.fn(), request }));
+    const upload = vi.fn();
+    vi.stubGlobal("useApi", () => ({ post: vi.fn(), patch, delete: vi.fn(), upload }));
     const wrapper = mount(EquipmentContractsList, {
       props: { equipmentId: "eq-1", contracts: [existing], editable: true },
       global: { stubs: listStubs },
@@ -142,13 +143,13 @@ describe("EquipmentContractsList (container)", () => {
     await flushPromises();
 
     expect(patch).toHaveBeenCalledWith("/equipments/eq-1/contracts/ct-1", { contractNumber: "CT-0001", executedAt: "2026-03-01" });
-    expect(request).not.toHaveBeenCalled();
+    expect(upload).not.toHaveBeenCalled();
     expect(wrapper.emitted("changed")).toHaveLength(1);
   });
 
   it("exclui via DELETE e mostra o erro da API na seção quando falha", async () => {
     const del = vi.fn().mockRejectedValue(new Error("Contrato vinculado"));
-    vi.stubGlobal("useApi", () => ({ post: vi.fn(), patch: vi.fn(), delete: del, request: vi.fn() }));
+    vi.stubGlobal("useApi", () => ({ post: vi.fn(), patch: vi.fn(), delete: del, upload: vi.fn() }));
     const wrapper = mount(EquipmentContractsList, {
       props: { equipmentId: "eq-1", contracts: [existing], editable: true },
       global: { stubs: listStubs },
