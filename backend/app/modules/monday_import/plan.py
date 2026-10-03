@@ -540,6 +540,9 @@ async def build_plan(
             "criticality": normalized.get("criticality_observed"),
             "capex_estimated": _as_decimal(normalized.get("capex_estimated")),
             "current_stage": current_stage,
+            # "5.Data de Entrega pelo contrato": desde a migration 0007 a entrega
+            # contratual pertence ao equipamento (fim da janela), não ao Contract.
+            "contractual_delivery_end": _as_date(normalized.get("contract_delivery_at")),
         }
         payload = {key: value for key, value in payload.items() if value is not None}
         payload["work_package_ids"] = sorted(work_package_ids)
@@ -667,7 +670,6 @@ async def build_plan(
             payload={
                 "contract_number": normalized.get("contract_number"),
                 "executed_at": _as_date(normalized.get("contract_executed_at")),
-                "delivery_at": _as_date(normalized.get("contract_delivery_at")),
             },
         )
         if contract_item:
@@ -748,7 +750,6 @@ async def build_plan(
                 {
                     "contract_number": normalized.get("contract_number"),
                     "executed_at": _as_date(normalized.get("contract_executed_at")),
-                    "delivery_at": _as_date(normalized.get("contract_delivery_at")),
                 },
             ),
             (

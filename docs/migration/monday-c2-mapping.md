@@ -41,7 +41,7 @@ As classes significam:
 | 4.Minuta Aprovada | MIGRAR | `legal_process.draft_approved` | Booleano. |
 | 5.Data Escrituração | MIGRAR | `contract.executed_at` | Cardinalidade ainda provisoriamente 1:1. |
 | 5.Numero Contrato | MIGRAR | `contract.contract_number` | String; não inferir cardinalidade. |
-| 5.Data de Entrega pelo contrato | MIGRAR | `contract.delivery_at` | Aderência negativa ainda pendente. |
+| 5.Data de Entrega pelo contrato | MIGRAR | `equipment.contractual_delivery_end` | Desde a migration 0007 (Etapa 7A) a entrega contratual é o fim da janela do equipamento; `contract.delivery_at` não existe mais. Aderência negativa ainda pendente. |
 | 6.Data de SC/OCI | MIGRAR | `purchase_request.requested_at` | Tipo SC/OCI deve ser resolvido sem inferência pelo número. |
 | 6.Numero SC/OCI | MIGRAR | `purchase_request.request_number` | String. |
 | 7.Data OC | MIGRAR | `purchase_order.ordered_at` | Data primária. |

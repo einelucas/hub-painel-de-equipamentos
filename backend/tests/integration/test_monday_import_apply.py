@@ -27,10 +27,11 @@ from app.models.equipment import (
     WorkPackage,
 )
 from app.models.monday_import import ExternalMapping, MondayImportBatch, MondayMigrationRun
-from app.models.process import PurchaseRequest
+from app.models.process import Contract, PurchaseRequest
 from app.models.user import Role as UserRole
 from app.models.user import User
 from app.modules.monday_import.apply import PlanBlockedError, PlanStaleError, apply_plan
+from app.modules.monday_import.domain_reconciliation import reconcile_domain
 from app.modules.monday_import.mapping_file import MappingFileSchema, validate_mapping
 from app.modules.monday_import.plan import build_plan
 from app.modules.monday_import.service import stage_import
@@ -92,6 +93,7 @@ def _rich_equipment_xlsx(
     discipline_name: str = "Disciplina Um",
     work_packages: str = "CAL100, CIV100",
     component_external_id: str = "999001",
+    contract_delivery: str | None = None,
 ) -> bytes:
     rows: list[list[Any]] = [
         ["Equipamentos - Teste Apply"],
@@ -112,6 +114,7 @@ def _rich_equipment_xlsx(
             "3.Chamado Jurídico",
             "5.Numero Contrato",
             "5.Data Escrituração",
+            "5.Data de Entrega pelo contrato",
             "6.Numero SC/OCI",
             "6.Data de SC/OCI",
             "7.Numero OC",
@@ -133,6 +136,7 @@ def _rich_equipment_xlsx(
             "TCK-001",
             contract_number,
             "2026/02/01",
+            contract_delivery,
             "SC-9001",
             "2026/02/10",
             "OC-9001",
@@ -528,3 +532,86 @@ async def test_external_mapping_registered_for_equipment_and_component(db_sessio
     kinds = {item.source_entity_type: item.identity_strategy for item in mappings}
     assert kinds["equipment"] == "normalized-name-v1"
     assert kinds["component"] == "monday-item-id-v1"
+
+
+async def _plan_and_apply_delivery(db_session, suffix: str, contract_delivery: str | None):
+    ids = await _seed_context(db_session, suffix)
+    staged = await stage_import(
+        db_session,
+        project_context_id=ids["context_id"],
+        source=_rich_equipment_xlsx(contract_delivery=contract_delivery),
+        source_name=f"{suffix}.xlsx",
+    )
+    mapping = await validate_mapping(db_session, _mapping_schema(ids), project_context_id=ids["context_id"])
+    plan = await build_plan(
+        db_session, project_context_id=ids["context_id"], batch_ids=[staged.batch_id], mapping=mapping
+    )
+    return ids, mapping, plan
+
+
+async def test_contract_delivery_date_goes_to_equipment_contractual_delivery_end(db_session) -> None:
+    """Desde a migration 0007, "5.Data de Entrega pelo contrato" é o fim da janela de
+    entrega do equipamento; o Contract não tem mais `delivery_at`."""
+    ids, mapping, plan = await _plan_and_apply_delivery(db_session, "DLV1", "2027/08/31")
+
+    assert not hasattr(Contract, "delivery_at")
+    assert plan.has_blocked is False
+    [contract_item] = plan.contracts
+    assert "delivery_at" not in contract_item.payload
+    assert contract_item.payload == {"contract_number": "CT-9001", "executed_at": date(2026, 2, 1)}
+    assert plan.equipments[0].payload["contractual_delivery_end"] == date(2027, 8, 31)
+
+    result = await _apply(db_session, plan, ids)
+    assert result.status == "APPLIED"
+
+    equipment = (
+        await db_session.execute(select(Equipment).where(Equipment.project_context_id == ids["context_id"]))
+    ).scalar_one()
+    assert equipment.contractual_delivery_end == date(2027, 8, 31)
+    assert equipment.contractual_delivery_start is None
+    contract = (
+        await db_session.execute(select(Contract).where(Contract.equipment_id == equipment.id))
+    ).scalar_one()
+    assert (contract.contract_number, contract.executed_at) == ("CT-9001", date(2026, 2, 1))
+
+    report = await reconcile_domain(db_session, project_context_id=ids["context_id"], mapping=mapping)
+    fields = {item.field: item for item in report.equipments[0].fields}
+    assert fields["contractual_delivery_end"].status == "MATCH"
+    assert fields["contractual_delivery_end"].hub_value == date(2027, 8, 31)
+    assert fields["contract_number"].status == "MATCH"
+
+
+async def test_missing_contract_delivery_date_stays_null_and_contract_is_still_created(db_session) -> None:
+    ids, mapping, plan = await _plan_and_apply_delivery(db_session, "DLV2", None)
+
+    assert "contractual_delivery_end" not in plan.equipments[0].payload
+    assert len(plan.contracts) == 1
+    result = await _apply(db_session, plan, ids)
+    assert result.status == "APPLIED"
+
+    equipment = (
+        await db_session.execute(select(Equipment).where(Equipment.project_context_id == ids["context_id"]))
+    ).scalar_one()
+    assert equipment.contractual_delivery_end is None
+    assert (
+        await db_session.execute(select(func.count(Contract.id)).where(Contract.equipment_id == equipment.id))
+    ).scalar_one() == 1
+
+    report = await reconcile_domain(db_session, project_context_id=ids["context_id"], mapping=mapping)
+    fields = {item.field: item for item in report.equipments[0].fields}
+    assert fields["contractual_delivery_end"].status == "NOT_COMPARABLE"
+
+
+async def test_reapplying_with_contract_delivery_date_is_idempotent(db_session) -> None:
+    ids, mapping, plan = await _plan_and_apply_delivery(db_session, "DLV3", "2027/04/30")
+    assert (await _apply(db_session, plan, ids)).status == "APPLIED"
+
+    batch_ids = [batch.id for batch in (await db_session.execute(select(MondayImportBatch))).scalars()]
+    again = await build_plan(
+        db_session, project_context_id=ids["context_id"], batch_ids=batch_ids, mapping=mapping
+    )
+    assert [item.action for item in again.equipments] == ["NOOP"]
+    # Equipamento NOOP não replaneja sub-processos (comportamento existente do plan):
+    # nenhum contrato novo, e o já criado continua único.
+    assert not any(item.action == "CREATE" for item in again.contracts)
+    assert (await db_session.execute(select(func.count(Contract.id)))).scalar_one() == 1
