@@ -19,6 +19,9 @@ async def test_equipment_without_components_has_all_calculated_fields_null(clien
         "contractOrderDeadline": None,
         "negotiationDeadline": None,
         "negotiationDaysRemaining": None,
+        "negotiationStatus": None,
+        "workNeedDaysRemaining": None,
+        "workNeedStatus": None,
     }
 
 

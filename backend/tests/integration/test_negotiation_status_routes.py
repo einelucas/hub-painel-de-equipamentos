@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+from tests.helpers import utc_today
 from tests.integration.test_equipment_routes import _catalogs, _equipment
 
 
@@ -53,7 +54,8 @@ async def test_negotiation_status_classifies_by_days_remaining(client, auth_head
     # negotiation_deadline = startup - preStart - freight - leadTime - 21.
     # Escolhido para cair exatamente em CRITICAL (5 dias restantes).
     target_days_remaining = 5
-    startup = date.today() + timedelta(days=21 + target_days_remaining)
+    today = utc_today()
+    startup = today + timedelta(days=21 + target_days_remaining)
     await client.post(
         f"/api/v1/equipments/{equipment_id}/components",
         json={
@@ -66,8 +68,12 @@ async def test_negotiation_status_classifies_by_days_remaining(client, auth_head
         headers=auth_header("ANALYST"),
     )
     detail = await client.get(f"/api/v1/equipments/{equipment_id}", headers=auth_header("VIEWER"))
+    after = utc_today()
     calculated = detail.json()["equipment"]["calculated"]
-    assert calculated["negotiationDaysRemaining"] == target_days_remaining
+    assert calculated["negotiationDaysRemaining"] in {
+        target_days_remaining,
+        target_days_remaining - (after - today).days,
+    }
     assert calculated["negotiationStatus"] == "CRITICAL"
 
 

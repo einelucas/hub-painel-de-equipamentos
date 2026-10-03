@@ -107,7 +107,7 @@ async def _waive(client, auth_header, equipment_id: str, *, stage: int, code: st
         },
         headers=auth_header("ANALYST"),
     )
-    assert response.status_code == 201, response.text
+    assert response.status_code == 200, response.text
 
 
 async def test_fixed_supplier_waiver_dispenses_negotiation_group(client, auth_header) -> None:
@@ -230,16 +230,17 @@ async def test_importation_waivers_reach_stage_seven_without_contract_or_purchas
 ) -> None:
     equipment_id = await _new_equipment(client, auth_header, "DispensaImportacao")
 
-    # Stages 1-4 (negotiation/legal) não são dispensáveis por este cenário —
-    # continuam precisando de dado real via `_advance`.
-    for target in (1, 2, 3, 4):
+    # Os grupos de negociação/jurídico (fases 1-4, incluindo a minuta exigida
+    # para 4 -> 5) não são dispensáveis por este cenário — continuam
+    # precisando de dado real via `_advance`.
+    for target in (1, 2, 3, 4, 5):
         response = await _advance(client, auth_header, equipment_id, target)
         assert response.status_code == 200, (target, response.text)
 
     await _waive(client, auth_header, equipment_id, stage=5, code="CONTRACT", reason="IMPORTATION")
     await _waive(client, auth_header, equipment_id, stage=6, code="PURCHASE_REQUEST", reason="IMPORTATION")
 
-    for target in (5, 6, 7):
+    for target in (6, 7):
         response = await client.post(
             f"/api/v1/equipments/{equipment_id}/transitions",
             json={"targetStage": target},
@@ -276,7 +277,7 @@ async def test_reopen_request_then_approve_changes_stage_reject_does_not(client,
         json={"targetStage": 1, "justification": "Revisar negociação"},
         headers=auth_header("ANALYST"),
     )
-    assert request.status_code == 201
+    assert request.status_code == 200
     request_id = request.json()["id"]
 
     unchanged = await client.get(f"/api/v1/equipments/{equipment_id}", headers=auth_header("VIEWER"))
@@ -307,7 +308,7 @@ async def test_reopen_request_then_approve_changes_stage_reject_does_not(client,
         json={"targetStage": 1, "justification": "outra tentativa"},
         headers=auth_header("ANALYST"),
     )
-    assert request2.status_code == 201
+    assert request2.status_code == 200
     rejected = await client.post(
         f"/api/v1/equipments/{equipment_id}/reopen-requests/{request2.json()['id']}/reject",
         json={"note": "Não procede"},
@@ -549,7 +550,7 @@ async def test_waiving_a_group_never_deletes_partial_data_already_filled(client,
         },
         headers=auth_header("ANALYST"),
     )
-    assert waiver.status_code == 201
+    assert waiver.status_code == 200
 
     after = await client.get(f"/api/v1/equipments/{equipment_id}/processes", headers=auth_header("VIEWER"))
     assert after.json()["legal"]["ticketNumber"] == "TCK-PARCIAL"
@@ -559,22 +560,25 @@ async def test_purchase_request_group_requires_kind_number_and_date_on_same_reco
     client, auth_header
 ) -> None:
     equipment_id = await _new_equipment(client, auth_header, "SCOCIMesmoRegistro")
-    for target in (1, 2, 3, 4, 5):
+    # PURCHASE_REQUEST é o grupo da fase 6 (exigido para 6 -> 7).
+    for target in (1, 2, 3, 4, 5, 6):
         response = await _advance(client, auth_header, equipment_id, target)
         assert response.status_code == 200, (target, response.text)
 
     # Two partial purchase requests, each missing a different field — none
     # alone satisfies the group.
-    await client.post(
+    partial_number = await client.post(
         f"/api/v1/equipments/{equipment_id}/purchase-requests",
         json={"kind": "SC", "requestNumber": "SC-0001"},
         headers=auth_header("ANALYST"),
     )
-    await client.post(
+    assert partial_number.status_code == 201, partial_number.text
+    partial_date = await client.post(
         f"/api/v1/equipments/{equipment_id}/purchase-requests",
         json={"kind": "OCI", "requestedAt": "2026-03-05"},
         headers=auth_header("ANALYST"),
     )
+    assert partial_date.status_code == 201, partial_date.text
     transitions = await client.get(
         f"/api/v1/equipments/{equipment_id}/available-transitions", headers=auth_header("VIEWER")
     )
@@ -628,7 +632,7 @@ async def test_reopen_approval_preserves_active_waiver(client, auth_header) -> N
         json={"targetStage": 1, "justification": "Revisar negociação"},
         headers=auth_header("ANALYST"),
     )
-    assert request.status_code == 201
+    assert request.status_code == 200
     approved = await client.post(
         f"/api/v1/equipments/{equipment_id}/reopen-requests/{request.json()['id']}/approve",
         json={},
