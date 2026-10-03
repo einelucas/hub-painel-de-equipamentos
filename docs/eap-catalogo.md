@@ -8,6 +8,7 @@ Localização oficial. A LGE e o Monday não participam deste catálogo.
 ```
 Árvore oficial (XLSX, somente leitura, fora do Git)
   → extração em desenvolvimento: python -m app.modules.eap_catalog extract <xlsx>
+     (+ decisões aprovadas: backend/app/data/eap_catalog_resolutions.json)
   → backend/app/data/eap_catalog.json   (versionado; o app nunca abre o XLSX)
   → validação: python -m app.modules.eap_catalog validate
   → carga idempotente: python -m app.modules.eap_catalog seed --dry-run | --apply
@@ -18,13 +19,13 @@ Localização oficial. A LGE e o Monday não participam deste catálogo.
 |---|---|
 | Fonte | `INPASA-DO-PRO-1700-001-07 - ÁRVORE DE LOCALIZAÇÃO - POR RESPONSÁVEL 2.xlsx`, aba `Table 2` |
 | SHA-256 da fonte | `aafd38fb034d987534473cf8c82f062cc0ea1fa2059a5e81071dff20c746bd5d` |
-| SHA-256 do catálogo | `d070bdde2ac74dd99a3cffa5e49375910279675e325340f587ea9d5bfd5660f7` |
+| SHA-256 do catálogo | `53ff2d19d615a6339874f9b394ac13c49d32f81506a54d27bd2c2a3f94e1e11d` (antes da decisão 00: `d070bdde…`) |
 | Linhas EAP (códigos `X…`) | 144 |
 | Cabeçalhos de ilha | 8 |
 | Linhas de responsabilidade ignoradas | 34 (linhas 154–187) |
 | Códigos EAP distintos | 141 |
-| Nós carregáveis | 134: 7 ISLAND, 20 PROCESS, 107 AREA |
-| `EAP_REVIEW_REQUIRED` | 15 (não carregados) |
+| Nós carregáveis | 144: 7 ISLAND, 21 PROCESS, 116 AREA (antes da decisão 00: 134 = 7/20/107) |
+| `EAP_REVIEW_REQUIRED` | 5 (não carregados; antes da decisão 00: 15) |
 
 ## Regras de extração
 
@@ -41,6 +42,31 @@ Localização oficial. A LGE e o Monday não participam deste catálogo.
 - Nomes: o texto da Árvore, só com espaços normalizados (incluindo `[SE-xx]`).
 - Um PROCESS sem AREA é válido (ex.: `16`). Equipamento pode apontar para
   PROCESS ou AREA, nunca ISLAND (regra inalterada).
+
+## Decisão de domínio: família 00 = Áreas gerais (2026-10-02)
+
+A Árvore traz o código `X00` em **três linhas** (2–5, bloco `X GERAL`):
+"Geral INPASA AGROINDUSTRIAL", "Layout Geral" e "ADM 3D". Na primeira extração
+isso foi tratado como `DUPLICATE_CODE_DIFFERENT_NAMES`, o que levou `00` e as
+nove áreas `00.*` para revisão.
+
+**Decisão aprovada:** `00` representa a família/processo de **Áreas gerais**. As
+três linhas são descrições/atribuições do mesmo agrupamento no documento
+"por responsável", não três EAPs.
+
+| Item | Valor |
+|---|---|
+| Nó | `00` — PROCESS **raiz** (`parent = NULL`), nome canônico **"Geral"** |
+| Nomes da fonte (preservados em `source_names` no catálogo) | Geral INPASA AGROINDUSTRIAL; Layout Geral; ADM 3D |
+| Áreas liberadas (AREA, pai `00`, nome oficial da Árvore) | `00.0`, `00.A`, `00.B`, `00.C`, `00.D`, `00.E`, `00.H`, `00.I`, `00.J` |
+| Cabeçalho `X GERAL` | Continua **sem ISLAND** (a Árvore não dá código); fica em revisão |
+
+- "Geral" é decisão de domínio, não uma linha literal da Árvore.
+- A decisão está em `backend/app/data/eap_catalog_resolutions.json` e vale só
+  para `00`. A extração só a aplica se a Árvore trouxer exatamente esses três
+  nomes; se a fonte mudar, a extração falha em vez de aplicar a decisão antiga.
+- Nenhum outro código duplicado é resolvido por essa regra: `15.B` continua em
+  revisão.
 
 ## Prefixo EAP do projeto
 
@@ -89,20 +115,13 @@ alternativa foi escolhida; cada um depende de decisão do dono da Árvore.
 | Código | Nível | Descrição encontrada | Motivo | Detalhe | Linhas | Alternativas encontradas |
 |---|---|---|---|---|---|---|
 | — (ilha) | ISLAND | GERAL | `ISLAND_CODE_MISSING` | Cabeçalho de ilha sem letra na Árvore: não há código oficial para o nó. | 2 | Definir o código oficial desta ilha (a Árvore não traz letra para o bloco). |
-| 00 | PROCESS | Geral INPASA AGROINDUSTRIAL / Layout Geral / ADM 3D | `DUPLICATE_CODE_DIFFERENT_NAMES` | O código aparece em 3 linhas com descrições diferentes. | 3, 4, 5 | 'Geral INPASA AGROINDUSTRIAL' (linha 3); 'Layout Geral' (linha 4); 'ADM 3D' (linha 5) |
 | 21 | PROCESS | Sistema de Geração de Ar Comprimido | `MALFORMED_PREFIX_MARKER` | Marcador de prefixo 'XX' em vez de 'X' ('XX21'). | 152 | '21' lido com o marcador corrigido para 'X'; posição na Árvore: bloco da ilha F |
-| 00.0 | AREA | Projetos executivos civis industriais | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 14 | Carregar após resolver 00 |
-| 00.A | AREA | Pipe Rack | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 6 | Carregar após resolver 00 |
-| 00.B | AREA | Terraplenagem (camada vegetal, tratamento de sub-leito, compactação de aterro) | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 7 | Carregar após resolver 00 |
-| 00.C | AREA | Drenagem (boca de lobo, poço de visita, caixa de coleta, tubo, meio fio) | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 8 | Carregar após resolver 00 |
-| 00.D | AREA | Pavimentação (cascalho, tratamento de sub-base e base, imprimação, CBUQ) | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 9 | Carregar após resolver 00 |
-| 00.E | AREA | Hangar (aeroporto) | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 10 | Carregar após resolver 00 |
-| 00.H | AREA | Reservatório de detenção de água pluvial (dissipador) | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 11 | Carregar após resolver 00 |
-| 00.I | AREA | Trevo de acesso | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 12 | Carregar após resolver 00 |
-| 00.J | AREA | Projeto de canteiros | `PARENT_REVIEW_REQUIRED` | O pai (00) está em revisão. | 13 | Carregar após resolver 00 |
 | 02.G | AREA | Fermentação-Executivo Civil | `POSITION_CONTRADICTS_CODE` | O código indica o PROCESS 02, mas a linha está no bloco do PROCESS 06. | 32 | pai 02 (pelo código); pai 06 (pela posição; o código seria 06.G) |
 | 15.B | AREA | Balanças rodoviária / Balanças rodoviária - executivo civil | `DUPLICATE_CODE_DIFFERENT_NAMES` | O código aparece em 2 linhas com descrições diferentes. | 75, 76 | 'Balanças rodoviária' (linha 75); 'Balanças rodoviária - executivo civil' (linha 76) |
 | 21.A | AREA | Geração e Distribuição de Ar Comprimido | `MALFORMED_PREFIX_MARKER` | Marcador de prefixo 'XX' em vez de 'X' ('XX21.A'). | 153 | '21.A' lido com o marcador corrigido para 'X'; posição na Árvore: bloco da ilha F |
+
+Saíram da revisão pela decisão da família 00: `00`, `00.0`, `00.A`, `00.B`,
+`00.C`, `00.D`, `00.E`, `00.H`, `00.I` e `00.J`.
 
 **Como resolver.** Corrigir a Árvore (ou registrar a decisão), rodar `extract`
 de novo e conferir o diff do JSON. Depois rodar `seed`: os nós resolvidos

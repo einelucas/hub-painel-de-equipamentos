@@ -23,6 +23,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         f"- Catálogo EAP: `{report['catalog']['source']}` (catálogo SHA-256 `{report['catalog']['sha256']}`)",
     ]
+    for alias in report.get("approved_aliases", []):
+        lines.append(
+            f"- Alias EAP aprovado (`app/data/eap_aliases.json`): `{alias['alias']}` → "
+            f"`{alias['eapCode']}` — {alias['decision']}"
+        )
     for source in report["sources"]:
         lines.append(
             f"- Export Monday: `{source['file']}` — {source['equipments']} equipamentos, "

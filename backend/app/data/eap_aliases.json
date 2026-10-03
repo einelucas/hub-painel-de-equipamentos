@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "description": "Decisões APROVADAS de reconciliação de valores de Área do Monday (comparação exata; só acentos/caixa/espaços normalizados). 'aliases' liga um texto a um código EAP oficial; 'non_linkable_values' impede que um texto genérico vire vínculo mesmo que coincida com um nome do catálogo. Não é regra de prefixo de texto nem fuzzy matching; cada entrada vale só para o texto indicado.",
+  "aliases": [
+    {
+      "alias": "Drenagem",
+      "eap_code": "00.C",
+      "decision": "Na Árvore, 00.C é 'Drenagem (boca de lobo, poço de visita, caixa de coleta, tubo, meio fio)'; 'Drenagem' no Monday designa explicitamente esse nó.",
+      "source": "Monday LEM C2 (campo 0.Área)",
+      "approved": "2026-10-02"
+    }
+  ],
+  "non_linkable_values": [
+    {
+      "value": "Geral",
+      "decision": "'Geral' sozinho não identifica qual área geral (00.*) é a do equipamento; não vincula ao PROCESS 00 nem a ilha (GERAL não tem código e equipamento nunca aponta para ISLAND). Permanece sem EAP até haver valor específico.",
+      "approved": "2026-10-02"
+    }
+  ]
+}

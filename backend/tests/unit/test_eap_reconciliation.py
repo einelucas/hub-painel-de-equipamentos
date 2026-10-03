@@ -10,7 +10,16 @@ import pytest
 from app.domain.eap import EapLevel
 from app.modules.eap_catalog.catalog import CatalogNode, EapCatalog, load_catalog
 from app.modules.eap_reconciliation.monday import build_reconciliation
-from app.modules.eap_reconciliation.reconcile import CatalogIndex, MatchStatus, reconcile_value
+from app.modules.eap_reconciliation.reconcile import (
+    SAFE_STATUSES,
+    ApprovedAlias,
+    CatalogIndex,
+    EapAliasError,
+    MatchStatus,
+    ReconciliationDecisions,
+    load_decisions,
+    reconcile_value,
+)
 from app.modules.eap_reconciliation.report import render_markdown
 from tests.unit.monday_xlsx_fixture import build_xlsx
 
@@ -181,12 +190,132 @@ def test_equipment_name_is_never_used_to_infer_eap(tmp_path) -> None:
 
 @pytest.mark.skipif(not C2_CANONICAL[0].is_file(), reason="exports Monday C2 ausentes")
 def test_versioned_c2_artifact_is_reproducible_from_exports() -> None:
-    rebuilt = build_reconciliation(project="LEM C2", paths=C2_CANONICAL, catalog=load_catalog())
+    rebuilt = build_reconciliation(
+        project="LEM C2", paths=C2_CANONICAL, catalog=load_catalog(), decisions=load_decisions()
+    )
     stored = json.loads(C2_ARTIFACT.read_text(encoding="utf-8"))
     for key in ("metrics", "observed_prefixes", "candidate_project_eap_codes", "multiple_eap_equipments"):
         assert stored[key] == rebuilt[key], key
     assert [(r["externalId"], r["status"], r["matchedEapCode"]) for r in stored["records"]] == [
         (r["externalId"], r["status"], r["matchedEapCode"]) for r in rebuilt["records"]
     ]
-    assert rebuilt["metrics"]["total_equipment"] == 41
+    metrics = rebuilt["metrics"]
+    assert (metrics["total_equipment"], metrics["auto_match_safe_total"]) == (41, 40)
+    assert metrics["unresolved_generic"] == 1
+    assert sum(value for key, value in metrics.items() if key.startswith("review_")) == 0
+    assert rebuilt["candidate_project_eap_codes"] == ["00.A", "00.C", "01.A", "04.A"]
+    by_value = {record["rawEapValue"]: record for record in rebuilt["records"]}
+    assert (by_value["Pipe Rack"]["status"], by_value["Pipe Rack"]["matchedEapCode"]) == (
+        "MATCH_UNIQUE_NAME",
+        "00.A",
+    )
+    assert (by_value["Drenagem"]["status"], by_value["Drenagem"]["matchedEapCode"]) == (
+        "MATCH_APPROVED_ALIAS",
+        "00.C",
+    )
+    assert (by_value["Geral"]["status"], by_value["Geral"]["matchedEapCode"]) == (
+        "UNRESOLVED_GENERIC_VALUE",
+        None,
+    )
     assert "Reconciliação EAP — LEM C2" in render_markdown(rebuilt)
+
+
+_DRENAGEM_OFFICIAL = "Drenagem (boca de lobo, poço de visita, caixa de coleta, tubo, meio fio)"
+
+
+@pytest.fixture(scope="module")
+def general_index() -> CatalogIndex:
+    """Bloco 00 como no catálogo real: PROCESS raiz 'Geral' + áreas, alias e valor não vinculável."""
+    process, area = EapLevel.PROCESS, EapLevel.AREA
+    catalog = EapCatalog(
+        nodes=(
+            _node(process, "00", "Geral", None),
+            _node(area, "00.A", "Pipe Rack", "00"),
+            _node(area, "00.C", _DRENAGEM_OFFICIAL, "00"),
+        ),
+        review_required=(
+            {"code": None, "level": "ISLAND", "names_found": ["GERAL"], "reason": "ISLAND_CODE_MISSING"},
+        ),
+    )
+    decisions = ReconciliationDecisions(
+        aliases={"drenagem": ApprovedAlias("Drenagem", "00.C", "teste")},
+        non_linkable={"geral": "genérico"},
+    )
+    return CatalogIndex(catalog, decisions)
+
+
+def test_pipe_rack_resolves_to_00a_by_unique_name(general_index) -> None:
+    result = reconcile_value("Pipe Rack", general_index)
+    assert (result.status, result.matched_code) == (S.MATCH_UNIQUE_NAME, "00.A")
+
+
+def test_drenagem_resolves_by_explicit_approved_alias(general_index) -> None:
+    result = reconcile_value("drenagem", general_index)
+    assert (result.status, result.matched_code, result.category) == (S.MATCH_APPROVED_ALIAS, "00.C", "MATCH")
+    assert "Alias EAP aprovado" in result.reason
+
+
+@pytest.mark.parametrize("raw", ["Drenagens", "Drenagem pluvial", "Rede de drenagem", "Dren"])
+def test_alias_is_exact_never_fuzzy(general_index, raw: str) -> None:
+    assert reconcile_value(raw, general_index).status is S.UNRESOLVED_GENERIC_VALUE
+
+
+def test_geral_stays_unresolved_even_with_process_00_named_geral(general_index) -> None:
+    result = reconcile_value("Geral", general_index)
+    assert (result.status, result.matched_code) == (S.UNRESOLVED_GENERIC_VALUE, None)
+
+
+def test_code_00_area_still_resolves_by_code(general_index) -> None:
+    assert reconcile_value("2100.A Pipe Rack", general_index).matched_code == "00.A"
+
+
+def test_approved_alias_is_safe_and_review_unresolved_are_not() -> None:
+    assert S.MATCH_APPROVED_ALIAS in SAFE_STATUSES
+    assert not any(status.value.startswith(("REVIEW", "UNRESOLVED")) for status in SAFE_STATUSES)
+
+
+def test_alias_cannot_shadow_official_name_or_point_to_ineligible_node() -> None:
+    catalog = EapCatalog(
+        nodes=(_node(EapLevel.PROCESS, "00", "Geral", None), _node(EapLevel.AREA, "00.A", "Pipe Rack", "00"))
+    )
+    with pytest.raises(EapAliasError):
+        CatalogIndex(
+            catalog, ReconciliationDecisions(aliases={"pipe rack": ApprovedAlias("Pipe Rack", "00.A", "x")})
+        )
+    with pytest.raises(EapAliasError):
+        CatalogIndex(catalog, ReconciliationDecisions(aliases={"tubos": ApprovedAlias("Tubos", "99.Z", "x")}))
+
+
+def test_versioned_decisions_file() -> None:
+    decisions = load_decisions()
+    assert {alias.alias: alias.eap_code for alias in decisions.aliases.values()} == {"Drenagem": "00.C"}
+    assert set(decisions.non_linkable) == {"geral"}
+
+
+def test_regenerating_report_preserves_manual_history_section(tmp_path) -> None:
+    from app.modules.eap_reconciliation.cli import HISTORY_MARKER, main
+
+    workbook = build_xlsx(
+        [
+            ["Equipamentos - LEM C2"],
+            ["Fase 0 - Nova Demanda"],
+            ["Name", "Subelementos", "A.Status", "0.Área"],
+            ["Motores", None, "0.Nova demanda", "Caldeira"],
+        ]
+    )
+    source = tmp_path / "board.xlsx"
+    source.write_bytes(workbook)
+    report = tmp_path / "relatorio.md"
+    report.write_text(
+        f"conteúdo antigo gerado\n\n{HISTORY_MARKER}\n## Histórico\n- decisão registrada\n", encoding="utf-8"
+    )
+
+    assert (
+        main(["analyze", "--project", "TESTE", "--export", str(source), "--markdown-out", str(report)]) == 0
+    )
+
+    text = report.read_text(encoding="utf-8")
+    assert "conteúdo antigo gerado" not in text
+    assert text.startswith("# Reconciliação EAP — TESTE")
+    assert text.count(HISTORY_MARKER) == 1
+    assert text.rstrip().endswith("- decisão registrada")

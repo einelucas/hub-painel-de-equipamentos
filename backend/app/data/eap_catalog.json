@@ -42,15 +42,19 @@
       185,
       186,
       187
+    ],
+    "resolutions_file": "eap_catalog_resolutions.json",
+    "resolutions_applied": [
+      "00"
     ]
   },
   "summary": {
     "distinct_eap_codes": 141,
-    "nodes": 134,
+    "nodes": 144,
     "island": 7,
-    "process": 20,
-    "area": 107,
-    "review_required": 15
+    "process": 21,
+    "area": 116,
+    "review_required": 5
   },
   "nodes": [
     {
@@ -115,6 +119,23 @@
       "source_rows": [
         97
       ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "00",
+      "name": "Geral",
+      "parent_code": null,
+      "source_rows": [
+        3,
+        4,
+        5
+      ],
+      "source_names": [
+        "Geral INPASA AGROINDUSTRIAL",
+        "Layout Geral",
+        "ADM 3D"
+      ],
+      "resolution": "Família 00 = ÁREAS GERAIS. As três linhas X00 da Árvore 'por responsável' são descrições/atribuições do mesmo agrupamento geral, não três EAPs. PROCESS raiz (o cabeçalho de ilha 'GERAL' não tem código oficial e continua sem ISLAND)."
     },
     {
       "level": "PROCESS",
@@ -294,6 +315,87 @@
       "parent_code": "D",
       "source_rows": [
         105
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.0",
+      "name": "Projetos executivos civis industriais",
+      "parent_code": "00",
+      "source_rows": [
+        14
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.A",
+      "name": "Pipe Rack",
+      "parent_code": "00",
+      "source_rows": [
+        6
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.B",
+      "name": "Terraplenagem (camada vegetal, tratamento de sub-leito, compactação de aterro)",
+      "parent_code": "00",
+      "source_rows": [
+        7
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.C",
+      "name": "Drenagem (boca de lobo, poço de visita, caixa de coleta, tubo, meio fio)",
+      "parent_code": "00",
+      "source_rows": [
+        8
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.D",
+      "name": "Pavimentação (cascalho, tratamento de sub-base e base, imprimação, CBUQ)",
+      "parent_code": "00",
+      "source_rows": [
+        9
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.E",
+      "name": "Hangar (aeroporto)",
+      "parent_code": "00",
+      "source_rows": [
+        10
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.H",
+      "name": "Reservatório de detenção de água pluvial (dissipador)",
+      "parent_code": "00",
+      "source_rows": [
+        11
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.I",
+      "name": "Trevo de acesso",
+      "parent_code": "00",
+      "source_rows": [
+        12
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.J",
+      "name": "Projeto de canteiros",
+      "parent_code": "00",
+      "source_rows": [
+        13
       ]
     },
     {
@@ -1280,28 +1382,6 @@
     {
       "status": "EAP_REVIEW_REQUIRED",
       "level": "PROCESS",
-      "code": "00",
-      "names_found": [
-        "Geral INPASA AGROINDUSTRIAL",
-        "Layout Geral",
-        "ADM 3D"
-      ],
-      "reason": "DUPLICATE_CODE_DIFFERENT_NAMES",
-      "detail": "O código aparece em 3 linhas com descrições diferentes.",
-      "source_rows": [
-        3,
-        4,
-        5
-      ],
-      "alternatives": [
-        "'Geral INPASA AGROINDUSTRIAL' (linha 3)",
-        "'Layout Geral' (linha 4)",
-        "'ADM 3D' (linha 5)"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "PROCESS",
       "code": "21",
       "names_found": [
         "Sistema de Geração de Ar Comprimido"
@@ -1314,150 +1394,6 @@
       "alternatives": [
         "'21' lido com o marcador corrigido para 'X'",
         "posição na Árvore: bloco da ilha F"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.0",
-      "names_found": [
-        "Projetos executivos civis industriais"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        14
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.A",
-      "names_found": [
-        "Pipe Rack"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        6
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.B",
-      "names_found": [
-        "Terraplenagem (camada vegetal, tratamento de sub-leito, compactação de aterro)"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        7
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.C",
-      "names_found": [
-        "Drenagem (boca de lobo, poço de visita, caixa de coleta, tubo, meio fio)"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        8
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.D",
-      "names_found": [
-        "Pavimentação (cascalho, tratamento de sub-base e base, imprimação, CBUQ)"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        9
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.E",
-      "names_found": [
-        "Hangar (aeroporto)"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        10
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.H",
-      "names_found": [
-        "Reservatório de detenção de água pluvial (dissipador)"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        11
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.I",
-      "names_found": [
-        "Trevo de acesso"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        12
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "00.J",
-      "names_found": [
-        "Projeto de canteiros"
-      ],
-      "reason": "PARENT_REVIEW_REQUIRED",
-      "detail": "O pai (00) está em revisão; o nó não pode ser carregado sem ele.",
-      "source_rows": [
-        13
-      ],
-      "alternatives": [
-        "Carregar após resolver 00"
       ]
     },
     {

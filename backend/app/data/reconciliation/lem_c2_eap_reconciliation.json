@@ -3,9 +3,19 @@
   "description": "Relatório de reconciliação READ-ONLY Monday × catálogo EAP oficial. NÃO é seed: nenhum vínculo é gravado a partir deste arquivo.",
   "project": "LEM C2",
   "catalog": {
-    "sha256": "d070bdde2ac74dd99a3cffa5e49375910279675e325340f587ea9d5bfd5660f7",
+    "sha256": "53ff2d19d615a6339874f9b394ac13c49d32f81506a54d27bd2c2a3f94e1e11d",
     "source": "INPASA-DO-PRO-1700-001-07 - ÁRVORE DE LOCALIZAÇÃO - POR RESPONSÁVEL 2.xlsx"
   },
+  "approved_aliases": [
+    {
+      "alias": "Drenagem",
+      "eapCode": "00.C",
+      "decision": "Na Árvore, 00.C é 'Drenagem (boca de lobo, poço de visita, caixa de coleta, tubo, meio fio)'; 'Drenagem' no Monday designa explicitamente esse nó."
+    }
+  ],
+  "non_linkable_values": [
+    "geral"
+  ],
   "sources": [
     {
       "file": "Equipamentos_LEM_C2_ fase-0.xlsx",
@@ -26,14 +36,15 @@
     "total_equipment": 41,
     "matched_code_and_name": 1,
     "matched_code": 0,
-    "matched_unique_name": 37,
+    "matched_unique_name": 38,
+    "matched_approved_alias": 1,
     "review_name_mismatch": 0,
-    "review_catalog": 1,
+    "review_catalog": 0,
     "review_multiple_eap": 0,
     "unresolved_unknown_code": 0,
-    "unresolved_generic": 2,
+    "unresolved_generic": 1,
     "unresolved_ambiguous_name": 0,
-    "auto_match_safe_total": 38
+    "auto_match_safe_total": 40
   },
   "observed_prefixes": [
     {
@@ -48,6 +59,8 @@
   "multiple_eap_equipments": [],
   "source_conflicts": [],
   "candidate_project_eap_codes": [
+    "00.A",
+    "00.C",
     "01.A",
     "04.A"
   ],
@@ -119,12 +132,12 @@
       "observedPrefix": null,
       "parsedCode": null,
       "parsedLabel": "Drenagem",
-      "matchedEapCode": null,
-      "matchedEapName": null,
-      "matchedEapLevel": null,
-      "status": "UNRESOLVED_GENERIC_VALUE",
-      "category": "UNRESOLVED",
-      "reason": "Valor sem código e sem nó oficial com este nome; não vira EAP.",
+      "matchedEapCode": "00.C",
+      "matchedEapName": "Drenagem (boca de lobo, poço de visita, caixa de coleta, tubo, meio fio)",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_APPROVED_ALIAS",
+      "category": "MATCH",
+      "reason": "Alias EAP aprovado 'Drenagem' → 00.C (app/data/eap_aliases.json).",
       "candidates": [],
       "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
       "sourceRow": 110,
@@ -132,7 +145,7 @@
       "database": {
         "equipmentName": "Bomba SUMP - Drenagem",
         "legacyAreaName": "Drenagem",
-        "legacyAreaVsEap": "NO_EAP_MATCH"
+        "legacyAreaVsEap": "DIFFERENT_NAME"
       }
     },
     {
@@ -350,20 +363,20 @@
       "equipmentName": "Estrutura Metálica - Pipe Rack",
       "rawEapValue": "Pipe Rack",
       "observedPrefix": null,
-      "parsedCode": "00.A",
+      "parsedCode": null,
       "parsedLabel": "Pipe Rack",
-      "matchedEapCode": null,
-      "matchedEapName": null,
-      "matchedEapLevel": null,
-      "status": "REVIEW_EAP_CATALOG",
-      "category": "REVIEW",
-      "reason": "Nome corresponde a 00.A, que está em EAP_REVIEW_REQUIRED.",
+      "matchedEapCode": "00.A",
+      "matchedEapName": "Pipe Rack",
+      "matchedEapLevel": "AREA",
+      "status": "MATCH_UNIQUE_NAME",
+      "category": "MATCH",
+      "reason": "Valor sem código; nome igual a um único nó oficial elegível.",
       "candidates": [
         {
           "code": "00.A",
           "name": "Pipe Rack",
           "level": "AREA",
-          "reviewRequired": true
+          "reviewRequired": false
         }
       ],
       "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
@@ -372,7 +385,7 @@
       "database": {
         "equipmentName": "Estrutura Metálica - Pipe Rack",
         "legacyAreaName": "Pipe Rack",
-        "legacyAreaVsEap": "NO_EAP_MATCH"
+        "legacyAreaVsEap": "SAME_NAME"
       }
     },
     {
@@ -447,15 +460,8 @@
       "matchedEapLevel": null,
       "status": "UNRESOLVED_GENERIC_VALUE",
       "category": "UNRESOLVED",
-      "reason": "Nome corresponde só a uma ILHA, que não é elegível para equipamento.",
-      "candidates": [
-        {
-          "code": null,
-          "name": "GERAL",
-          "level": "ISLAND",
-          "reviewRequired": true
-        }
-      ],
+      "reason": "Valor genérico aprovado como não vinculável: 'Geral' sozinho não identifica qual área geral (00.*) é a do equipamento; não vincula ao PROCESS 00 nem a ilha (GERAL não tem código e equipamento nunca aponta para ISLAND). Permanece sem EAP até haver valor específico.",
+      "candidates": [],
       "sourceFile": "Equipamentos_LEM_C2_ fase-0.xlsx",
       "sourceRow": 67,
       "group": "Fase 0 - Nova Demanda",
@@ -1292,8 +1298,9 @@
       "LEM/C2"
     ],
     "legacyAreaVsEap": {
-      "NO_EAP_MATCH": 3,
-      "SAME_NAME": 38
+      "DIFFERENT_NAME": 1,
+      "NO_EAP_MATCH": 1,
+      "SAME_NAME": 39
     }
   }
 }

@@ -1,0 +1,19 @@
+{
+  "format_version": 1,
+  "description": "Decisões de domínio APROVADAS que resolvem itens que a Árvore não permite representar de forma inequívoca. Cada entrada vale só para o código indicado e só quando a Árvore traz exatamente os nomes listados em source_names; não é heurística genérica.",
+  "resolutions": [
+    {
+      "code": "00",
+      "level": "PROCESS",
+      "canonical_name": "Geral",
+      "parent_code": null,
+      "source_names": [
+        "Geral INPASA AGROINDUSTRIAL",
+        "Layout Geral",
+        "ADM 3D"
+      ],
+      "decision": "Família 00 = ÁREAS GERAIS. As três linhas X00 da Árvore 'por responsável' são descrições/atribuições do mesmo agrupamento geral, não três EAPs. PROCESS raiz (o cabeçalho de ilha 'GERAL' não tem código oficial e continua sem ISLAND).",
+      "approved": "2026-10-02"
+    }
+  ]
+}

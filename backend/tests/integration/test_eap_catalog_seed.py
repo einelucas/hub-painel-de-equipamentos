@@ -26,7 +26,7 @@ async def test_seed_loads_official_catalog_and_is_idempotent(db_session) -> None
     first = await seed_eap_catalog(db_session, catalog, apply=True)
     assert first.summary() == {
         "applied": True,
-        "created": 134,
+        "created": 144,
         "unchanged": 0,
         "conflicts": 0,
         "skipped_review_required": len(catalog.review_required),
@@ -34,7 +34,7 @@ async def test_seed_loads_official_catalog_and_is_idempotent(db_session) -> None
     }
 
     nodes = await _nodes(db_session)
-    assert len(nodes) == 134
+    assert len(nodes) == 144
     assert not catalog.review_codes & nodes.keys()
     by_id = {node.id: node for node in nodes.values()}
     for node in nodes.values():
@@ -46,18 +46,18 @@ async def test_seed_loads_official_catalog_and_is_idempotent(db_session) -> None
         else:
             assert parent is None
     assert nodes["01.A"].name == "Caldeira" and by_id[nodes["01.A"].parent_id].code == "01"
-    assert await _count(db_session, AuditLog) == 134
+    assert await _count(db_session, AuditLog) == 144
 
     second = await seed_eap_catalog(db_session, catalog, apply=True)
-    assert (len(second.created), len(second.unchanged), second.conflicts) == (0, 134, [])
-    assert len(await _nodes(db_session)) == 134
-    assert await _count(db_session, AuditLog) == 134
+    assert (len(second.created), len(second.unchanged), second.conflicts) == (0, 144, [])
+    assert len(await _nodes(db_session)) == 144
+    assert await _count(db_session, AuditLog) == 144
     assert await _count(db_session, ProjectEap) == 0
 
 
 async def test_dry_run_writes_nothing(db_session) -> None:
     result = await seed_eap_catalog(db_session, load_catalog(), apply=False)
-    assert (result.applied, len(result.created)) == (False, 134)
+    assert (result.applied, len(result.created)) == (False, 144)
     assert await _count(db_session, EapNode) == 0
     assert await _count(db_session, AuditLog) == 0
 

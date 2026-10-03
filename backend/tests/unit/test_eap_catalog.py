@@ -19,6 +19,8 @@ from app.modules.eap_catalog.tree import (
     MALFORMED_MARKER,
     PARENT_REVIEW_REQUIRED,
     POSITION_MISMATCH,
+    EapResolution,
+    EapResolutionError,
     TreeRow,
     extract_tree,
 )
@@ -59,10 +61,11 @@ def test_versioned_catalog_hierarchy(catalog: EapCatalog) -> None:
 
 def test_versioned_catalog_matches_summary_and_keeps_review_out(catalog: EapCatalog) -> None:
     summary = {level: sum(1 for n in catalog.nodes if n.level is level) for level in EapLevel}
-    assert summary == {ISLAND: 7, PROCESS: 20, AREA: 107}
+    assert summary == {ISLAND: 7, PROCESS: 21, AREA: 116}
     assert not catalog.review_codes & {node.code for node in catalog.nodes}
     assert {item["status"] for item in catalog.review_required} == {"EAP_REVIEW_REQUIRED"}
-    assert {"00", "02.G", "15.B", "21", "21.A"} <= catalog.review_codes
+    assert catalog.review_codes == {"02.G", "15.B", "21", "21.A"}
+    assert [item["level"] for item in catalog.review_required if item["code"] is None] == ["ISLAND"]
     assert catalog.source["file"].startswith("INPASA-DO-PRO-1700-001-07")
 
 
@@ -161,3 +164,67 @@ def test_extract_sends_ambiguous_nodes_and_descendants_to_review() -> None:
     assert {n.code for n in tree.nodes} == {"B", "E", "02", "06", "15"}
     duplicated = next(item for item in tree.review_required if item.code == "00")
     assert duplicated.source_rows == [3, 4] and duplicated.names_found == ["Geral", "Layout Geral"]
+
+
+def test_general_areas_family_00_is_a_root_process_with_documented_resolution(catalog: EapCatalog) -> None:
+    by_code = {node.code: node for node in catalog.nodes}
+    general = by_code["00"]
+    assert (general.level, general.name, general.parent_code) == (PROCESS, "Geral", None)
+    children = sorted(node.code for node in catalog.nodes if node.parent_code == "00")
+    assert children == ["00.0", "00.A", "00.B", "00.C", "00.D", "00.E", "00.H", "00.I", "00.J"]
+    assert all(by_code[code].level is AREA for code in children)
+    assert by_code["00.C"].name.startswith("Drenagem (boca de lobo")
+    assert not any(node.level is ISLAND and node.name.upper() == "GERAL" for node in catalog.nodes)
+    for code in ("00", "00.A", "00.C"):
+        assert_equipment_eap_level(by_code[code].level)
+
+
+def test_resolutions_file_documents_source_names_for_00() -> None:
+    from app.modules.eap_catalog.catalog import load_resolutions
+
+    resolution = load_resolutions()["00"]
+    assert resolution.canonical_name == "Geral" and resolution.parent_code is None
+    assert resolution.source_names == ("Geral INPASA AGROINDUSTRIAL", "Layout Geral", "ADM 3D")
+
+
+def _general_block_rows() -> list[TreeRow]:
+    return _rows(
+        ("X GERAL", None),
+        ("X00", "Geral INPASA AGROINDUSTRIAL"),
+        ("X00", "Layout Geral"),
+        ("X00", "ADM 3D"),
+        ("X00.A", "Pipe Rack"),
+        ("XB Etanol", None),
+        ("X15", "Recebimento"),
+        ("X15.B", "Balanças"),
+        ("X15.B", "Balanças - executivo civil"),
+    )
+
+
+def _resolution(source_names: tuple[str, ...]) -> dict[str, EapResolution]:
+    return {"00": EapResolution("00", PROCESS, "Geral", None, source_names, "decisão de teste")}
+
+
+def test_resolution_turns_duplicate_00_into_root_process_and_releases_children() -> None:
+    names = ("Geral INPASA AGROINDUSTRIAL", "Layout Geral", "ADM 3D")
+    tree = extract_tree(_general_block_rows(), _resolution(names))
+    nodes = {n.code: n for n in tree.nodes}
+    assert (nodes["00"].name, nodes["00"].parent_code, nodes["00"].source_rows) == ("Geral", None, [3, 4, 5])
+    assert nodes["00"].as_dict()["source_names"] == list(names)
+    assert nodes["00.A"].parent_code == "00"
+    # A resolução vale só para 00: 15.B (também duplicado) continua em revisão.
+    assert {(r.code, r.reason) for r in tree.review_required} == {
+        (None, ISLAND_CODE_MISSING),
+        ("15.B", DUPLICATE_CODE),
+    }
+
+
+def test_resolution_refuses_to_apply_when_source_names_differ() -> None:
+    with pytest.raises(EapResolutionError):
+        extract_tree(_general_block_rows(), _resolution(("Geral INPASA AGROINDUSTRIAL", "Layout Geral")))
+
+
+def test_resolution_without_matching_code_is_rejected() -> None:
+    rows = _rows(("XB Etanol", None), ("X02", "Cozimento"))
+    with pytest.raises(EapResolutionError):
+        extract_tree(rows, _resolution(("Geral",)))

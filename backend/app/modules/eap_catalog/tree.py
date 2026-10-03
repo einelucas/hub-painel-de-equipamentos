@@ -12,6 +12,12 @@ Leitura da Árvore (coluna A = ÁREA, coluna B = SETOR):
 - Qualquer outra linha (ex.: "Materiais", "Geral | Controle de listas…") é
   atribuição de responsabilidade, não nó da árvore.
 
+Decisões de domínio aprovadas (`app/data/eap_catalog_resolutions.json`) entram
+como `EapResolution`: cada uma vale para UM código e só se a Árvore trouxer
+exatamente os nomes registrados nela — se a fonte mudar, a extração falha em
+vez de aplicar a decisão antiga em silêncio. Os nomes da fonte ficam no nó
+(`source_names`).
+
 Nada é decidido por escolha arbitrária: quando um nó não pode ser representado
 de forma inequívoca (código repetido com descrições diferentes, marcador
 malformado, posição que contradiz o código, ilha sem código), ele vai para
@@ -22,7 +28,7 @@ também, porque não podem ser carregados sem o pai.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
 from app.domain.eap import EapLevel, validate_eap_node
@@ -59,6 +65,22 @@ class _Occurrence:
     block_process: str | None  # último PROCESS visto antes desta linha
 
 
+class EapResolutionError(ValueError):
+    pass
+
+
+@dataclass(slots=True, frozen=True)
+class EapResolution:
+    """Decisão de domínio aprovada para um código que a Árvore traz de forma ambígua."""
+
+    code: str
+    level: EapLevel
+    canonical_name: str
+    parent_code: str | None
+    source_names: tuple[str, ...]
+    decision: str
+
+
 @dataclass(slots=True)
 class ExtractedNode:
     level: EapLevel
@@ -66,15 +88,20 @@ class ExtractedNode:
     name: str
     parent_code: str | None
     source_rows: list[int]
+    resolution: EapResolution | None = None
 
     def as_dict(self) -> dict[str, object]:
-        return {
+        data: dict[str, object] = {
             "level": self.level.value,
             "code": self.code,
             "name": self.name,
             "parent_code": self.parent_code,
             "source_rows": self.source_rows,
         }
+        if self.resolution is not None:
+            data["source_names"] = list(self.resolution.source_names)
+            data["resolution"] = self.resolution.decision
+        return data
 
 
 @dataclass(slots=True)
@@ -116,7 +143,10 @@ def clean_text(value: object) -> str | None:
     return text or None
 
 
-def extract_tree(rows: Iterable[TreeRow]) -> ExtractedTree:
+def extract_tree(
+    rows: Iterable[TreeRow], resolutions: Mapping[str, EapResolution] | None = None
+) -> ExtractedTree:
+    resolutions = resolutions or {}
     result = ExtractedTree()
     islands: dict[str, tuple[str | None, str, int]] = {}  # chave -> (letra, nome, linha)
     occurrences: dict[str, list[_Occurrence]] = {}
@@ -176,6 +206,20 @@ def extract_tree(rows: Iterable[TreeRow]) -> ExtractedTree:
         names = list(dict.fromkeys(item.name for item in found))
         first = found[0]
         island_label = islands[first.island_key][0] if first.island_key in islands else None
+        resolution = resolutions.get(code)
+        if resolution is not None:
+            if resolution.level is not level or tuple(names) != resolution.source_names:
+                raise EapResolutionError(
+                    f"Resolução de {code} não confere com a Árvore: esperado {list(resolution.source_names)} "
+                    f"({resolution.level.value}), encontrado {names} ({level.value})."
+                )
+            if any(item.marker != "X" for item in found):
+                raise EapResolutionError(f"Resolução de {code}: marcador de prefixo malformado na Árvore.")
+            candidates[code] = ExtractedNode(
+                level, code, resolution.canonical_name, resolution.parent_code, rows_found, resolution
+            )
+            parent_keys[code] = resolution.parent_code
+            continue
         if len(names) > 1:
             reviews[code] = ReviewItem(
                 level,
@@ -225,6 +269,10 @@ def extract_tree(rows: Iterable[TreeRow]) -> ExtractedTree:
                 continue
         candidates[code] = ExtractedNode(level, code, first.name, parent_code, rows_found)
         parent_keys[code] = parent_key
+
+    unused = sorted(set(resolutions) - set(occurrences))
+    if unused:
+        raise EapResolutionError(f"Resoluções sem código correspondente na Árvore: {unused}")
 
     # Um nó só é carregável se o pai também for (propaga até estabilizar).
     changed = True
