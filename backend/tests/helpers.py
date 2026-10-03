@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime
+
 OPERATIONAL_ROLES = ("VIEWER", "ANALYST")
+
+
+def utc_today() -> date:
+    """Mesma data de referência da aplicação (hoje em UTC), independente do fuso
+    da máquina. Testes sensíveis à virada do dia leem antes e depois da chamada
+    e aceitam as duas datas."""
+    return datetime.now(UTC).date()
 
 
 async def grant_unit(client, auth_header, unit_id: str, roles=OPERATIONAL_ROLES) -> None:

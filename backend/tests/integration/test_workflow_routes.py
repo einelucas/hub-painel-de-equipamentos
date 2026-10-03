@@ -282,7 +282,7 @@ async def test_reopen_request_requires_permission_and_justification(client, auth
         json={"targetStage": 1, "justification": "Fornecedor revisou a proposta"},
         headers=auth_header("ANALYST"),
     )
-    assert response.status_code == 201
+    assert response.status_code == 200
     body = response.json()
     assert body["status"] == "PENDING"
     assert body["targetStage"] == 1
@@ -308,7 +308,7 @@ async def test_reopen_approval_requires_permission(client, auth_header, role, ex
         json={"targetStage": 1, "justification": "Fornecedor revisou a proposta"},
         headers=auth_header("ANALYST"),
     )
-    assert request.status_code == 201
+    assert request.status_code == 200
     request_id = request.json()["id"]
 
     decision = await client.post(
@@ -342,7 +342,7 @@ async def test_reopen_target_must_be_prior_stage(client, auth_header) -> None:
         json={"targetStage": 1, "justification": "Fase anterior válida"},
         headers=auth_header("ANALYST"),
     )
-    assert prior.status_code == 201
+    assert prior.status_code == 200
 
 
 async def test_reopen_requester_cannot_approve_own_request(client, auth_header) -> None:
@@ -355,7 +355,7 @@ async def test_reopen_requester_cannot_approve_own_request(client, auth_header) 
         json={"targetStage": 1, "justification": "Necessário revisar"},
         headers=auth_header("ANALYST"),
     )
-    assert request.status_code == 201
+    assert request.status_code == 200
     request_id = request.json()["id"]
 
     reject = await client.post(
@@ -383,11 +383,20 @@ async def test_history_consolidates_transitions_and_data_changes(client, auth_he
         json={"equalized": True},
         headers=auth_header("ANALYST"),
     )
-    await client.post(
-        f"/api/v1/equipments/{equipment_id}/transitions",
-        json={"targetStage": 1, "reason": "Renegociar escopo"},
+    # Etapa 7C: retroceder exige reabertura aprovada; a transição gerada pela
+    # aprovação carrega a justificativa como `reason`.
+    reopen = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests",
+        json={"targetStage": 1, "justification": "Renegociar escopo"},
+        headers=auth_header("ANALYST"),
+    )
+    assert reopen.status_code == 200, reopen.text
+    approved = await client.post(
+        f"/api/v1/equipments/{equipment_id}/reopen-requests/{reopen.json()['id']}/approve",
+        json={},
         headers=auth_header("ADMIN"),
     )
+    assert approved.status_code == 200, approved.text
 
     history = await client.get(f"/api/v1/equipments/{equipment_id}/history", headers=auth_header("VIEWER"))
     assert history.status_code == 200
@@ -465,7 +474,7 @@ async def test_reopen_is_audited(client, auth_header, db_session) -> None:
         json={"targetStage": 1, "justification": "Revalidar proposta"},
         headers=auth_header("ANALYST"),
     )
-    assert request.status_code == 201
+    assert request.status_code == 200
     request_id = request.json()["id"]
 
     approved = await client.post(

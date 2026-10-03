@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
 
-from tests.helpers import grant_unit
+from tests.helpers import grant_unit, utc_today
 
 
 async def _new_equipment(client, auth_header, suffix: str) -> str:
@@ -98,11 +98,14 @@ async def test_audit_filters_by_user_id(client, auth_header) -> None:
 
 
 async def test_audit_filters_by_date_range(client, auth_header) -> None:
+    # O filtro compara com `createdAt` em UTC; o intervalo [antes, depois]
+    # cobre uma eventual virada do dia durante a criação.
+    before = utc_today()
     equipment_id = await _new_equipment(client, auth_header, "AUDDATE")
-    today = date.today()
+    after = utc_today()
 
     only_today = await client.get(
-        f"/api/v1/auditoria?equipment_id={equipment_id}&date_from={today}&date_to={today}",
+        f"/api/v1/auditoria?equipment_id={equipment_id}&date_from={before}&date_to={after}",
         headers=auth_header("ADMIN"),
     )
     assert only_today.status_code == 200
@@ -110,7 +113,7 @@ async def test_audit_filters_by_date_range(client, auth_header) -> None:
 
     future_only = await client.get(
         "/api/v1/auditoria?equipment_id="
-        f"{equipment_id}&date_from={today + timedelta(days=1)}",
+        f"{equipment_id}&date_from={after + timedelta(days=1)}",
         headers=auth_header("ADMIN"),
     )
     assert future_only.status_code == 200

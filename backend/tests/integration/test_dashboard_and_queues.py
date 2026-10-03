@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from app.modules.queues.service import QUEUE_STAGES
-from tests.helpers import grant_unit
+from tests.helpers import grant_unit, utc_today
 
 # Dados fictícios de teste: nenhum número/contrato real do processo.
 # Etapa 7A: Contract/PurchaseRequest/PurchaseOrder são 1:N — ver
@@ -523,7 +523,7 @@ async def test_summary_deadlines_respects_unit_scoping_and_permissions(client, a
 
 async def test_summary_next_startup_ignores_past_dates(client, auth_header) -> None:
     ids = await _unit_with_context(client, auth_header, "STU")
-    today = date.today()
+    today = utc_today()
     await _create(
         client,
         auth_header,
@@ -549,9 +549,10 @@ async def test_summary_next_startup_ignores_past_dates(client, auth_header) -> N
     startup = (
         await client.get(f"/api/v1/dashboard/summary?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
     ).json()["startup"]
+    after = utc_today()
 
     assert startup["equipmentId"] == future
-    assert startup["daysRemaining"] == 10
+    assert startup["daysRemaining"] in {10, 10 - (after - today).days}
 
 
 async def test_summary_requires_read_permission(client, auth_header) -> None:

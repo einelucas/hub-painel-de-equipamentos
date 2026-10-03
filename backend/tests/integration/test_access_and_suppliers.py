@@ -412,7 +412,6 @@ async def test_procurement_queue_exposes_primary_supplier(client, auth_header) -
         3: ("negotiation", {"negotiatedAt": "2026-02-10"}),
         4: ("legal", {"openedAt": "2026-02-12", "ticketNumber": "TK-QSUP"}),
         5: ("legal", {"draftPrepared": True, "draftApproved": True}),
-        6: ("contract", {"contractNumber": "CT-QSUP", "executedAt": "2026-03-01"}),
     }
     for stage in range(1, 7):
         payload = steps.get(stage)
@@ -423,6 +422,20 @@ async def test_procurement_queue_exposes_primary_supplier(client, auth_header) -
                 json=body,
                 headers=auth_header("ANALYST"),
             )
+        if stage == 6:
+            # O grupo CONTRACT exige número + data + arquivo no MESMO registro.
+            created = await client.post(
+                f"/api/v1/equipments/{equipment_id}/contracts",
+                json={"contractNumber": "CT-QSUP", "executedAt": "2026-03-01"},
+                headers=auth_header("ANALYST"),
+            )
+            assert created.status_code == 201, created.text
+            uploaded = await client.put(
+                f"/api/v1/equipments/{equipment_id}/contracts/{created.json()['id']}/file",
+                files={"file": ("contrato.pdf", b"conteudo fake de teste", "application/pdf")},
+                headers=auth_header("ANALYST"),
+            )
+            assert uploaded.status_code == 200, uploaded.text
         moved = await client.post(
             f"/api/v1/equipments/{equipment_id}/transitions",
             json={"targetStage": stage},
