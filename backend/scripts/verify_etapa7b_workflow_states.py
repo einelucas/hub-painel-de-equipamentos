@@ -106,8 +106,8 @@ async def main() -> None:
 
         # --- Em Saneamento ---
         # Advance the equipment to stage 1 first (negotiation.equalized).
-        from app.modules.processes.service import ensure_process, update_process  # noqa: E402
         from app.models.process import Negotiation  # noqa: E402
+        from app.modules.processes.service import ensure_process, update_process  # noqa: E402
 
         await ensure_process(session, Negotiation, equipment_id)
         await update_process(

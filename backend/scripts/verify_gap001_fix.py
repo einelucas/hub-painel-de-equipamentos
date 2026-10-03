@@ -24,7 +24,7 @@ from sqlalchemy import select  # noqa: E402
 from app.core.auth import CurrentUser  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.core.permissions import Role  # noqa: E402
-from app.models.equipment import Area, Discipline, ProjectContext, Unit, WorkPackage  # noqa: E402
+from app.models.equipment import ProjectContext, Unit, WorkPackage  # noqa: E402
 from app.models.user import User  # noqa: E402
 from app.modules.equipments.service import create_equipment, update_equipment  # noqa: E402
 
@@ -35,7 +35,9 @@ async def main() -> None:
             await session.execute(select(User).where(User.role == Role.ADMIN, User.active.is_(True)))
         ).scalars().first()
         if admin is None:
-            admin = User(name="Admin verificação", email="verify-gap001@example.com", role=Role.ADMIN, active=True)
+            admin = User(
+                name="Admin verificação", email="verify-gap001@example.com", role=Role.ADMIN, active=True
+            )
             session.add(admin)
             await session.flush()
         actor = CurrentUser(id=admin.id, email=admin.email, name=admin.name, role=Role.ADMIN, active=True)

@@ -20,7 +20,7 @@ from sqlalchemy import select  # noqa: E402
 from app.core.auth import CurrentUser  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.core.permissions import Role  # noqa: E402
-from app.models.equipment import Discipline, Equipment, ProjectContext, Unit  # noqa: E402
+from app.models.equipment import Discipline, ProjectContext, Unit  # noqa: E402
 from app.models.user import User  # noqa: E402
 from app.modules.equipments.service import create_equipment  # noqa: E402
 from app.modules.queues.service import QueueFilters, engineering_queue  # noqa: E402

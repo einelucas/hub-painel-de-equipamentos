@@ -55,7 +55,9 @@ async def main() -> None:
         unit = Unit(code=f"ETP7E{suffix}", name="Unidade verificação 7E", active=True)
         session.add(unit)
         await session.flush()
-        context = ProjectContext(unit_id=unit.id, code=f"ETP7E{suffix}", name="Contexto verificação 7E", active=True)
+        context = ProjectContext(
+            unit_id=unit.id, code=f"ETP7E{suffix}", name="Contexto verificação 7E", active=True
+        )
         session.add(context)
         await session.flush()
         discipline = Discipline(code=f"MM-ETP7E{suffix}", name="Metal Mec. 7E", active=True)

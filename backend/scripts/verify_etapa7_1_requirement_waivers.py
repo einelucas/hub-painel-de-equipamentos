@@ -22,7 +22,7 @@ from app.core.auth import CurrentUser  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.core.errors import ConflictError, DomainError  # noqa: E402
 from app.core.permissions import Role  # noqa: E402
-from app.models.equipment import Discipline, Equipment, ProjectContext, Unit  # noqa: E402
+from app.models.equipment import Discipline, ProjectContext, Unit  # noqa: E402
 from app.models.process import Contract  # noqa: E402
 from app.models.user import User  # noqa: E402
 from app.modules.equipments.service import create_equipment  # noqa: E402
@@ -50,7 +50,9 @@ async def main() -> None:
         unit = Unit(code=f"ETP71{suffix}", name="Unidade verificação 7.1", active=True)
         session.add(unit)
         await session.flush()
-        context = ProjectContext(unit_id=unit.id, code=f"ETP71{suffix}", name="Contexto verificação 7.1", active=True)
+        context = ProjectContext(
+            unit_id=unit.id, code=f"ETP71{suffix}", name="Contexto verificação 7.1", active=True
+        )
         session.add(context)
         await session.flush()
         discipline = Discipline(code=f"MM-ETP71{suffix}", name="Metal Mec. 7.1", active=True)
@@ -120,7 +122,9 @@ async def main() -> None:
         # 4. Cria waiver válido -> grupo fica WAIVED, avanço permitido (só 1 fase).
         waiver = await waivers_service.create_waiver(
             session, equipment_id, stage=1, requirement_group_code="NEGOTIATION_EQUALIZATION",
-            reason_code="EXCEPTIONAL_PROCESS", justification="Negociação não se aplica a este caso", actor=actor,
+            reason_code="EXCEPTIONAL_PROCESS",
+            justification="Negociação não se aplica a este caso",
+            actor=actor,
         )
         assert waiver.status == "ACTIVE"
         transitions = await available_transitions(session, equipment_id, actor)
@@ -140,7 +144,9 @@ async def main() -> None:
         print("OK: segunda dispensa ativa simultânea é rejeitada")
 
         # 6. waiver permite avançar UMA fase — nunca pula etapas.
-        result = await execute_transition(session, equipment_id=equipment_id, target_stage=2, reason=None, actor=actor)
+        result = await execute_transition(
+            session, equipment_id=equipment_id, target_stage=2, reason=None, actor=actor
+        )
         assert result.current_stage == 2
         await expect_error(
             execute_transition(session, equipment_id=equipment_id, target_stage=4, reason=None, actor=actor),
@@ -208,7 +214,9 @@ async def main() -> None:
             session, model=Contract, entity_name="Contract", equipment_id=equipment_id,
             values={"contract_number": "CT-COMPLETO", "executed_at": date(2026, 1, 5)}, actor=actor,
         )
-        row = (await session.execute(select(Contract).where(Contract.id == complete_contract.id))).scalar_one()
+        row = (
+            await session.execute(select(Contract).where(Contract.id == complete_contract.id))
+        ).scalar_one()
         row.file_storage_key = "contracts/fake/key.pdf"
         await session.commit()
 

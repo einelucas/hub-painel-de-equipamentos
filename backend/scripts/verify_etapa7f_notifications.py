@@ -22,7 +22,7 @@ from sqlalchemy import select  # noqa: E402
 from app.core.auth import CurrentUser  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.core.permissions import Role  # noqa: E402
-from app.models.equipment import Discipline, Equipment, ProjectContext, Unit, WorkflowTransition  # noqa: E402
+from app.models.equipment import Discipline, ProjectContext, Unit, WorkflowTransition  # noqa: E402
 from app.models.notification import NotificationEvent  # noqa: E402
 from app.models.process import Contract, Negotiation  # noqa: E402
 from app.models.user import User  # noqa: E402
@@ -42,7 +42,9 @@ async def main() -> None:
         unit = Unit(code=f"ETP7F{suffix}", name="Unidade verificação 7F", active=True)
         session.add(unit)
         await session.flush()
-        context = ProjectContext(unit_id=unit.id, code=f"ETP7F{suffix}", name="Contexto verificação 7F", active=True)
+        context = ProjectContext(
+            unit_id=unit.id, code=f"ETP7F{suffix}", name="Contexto verificação 7F", active=True
+        )
         session.add(context)
         await session.flush()
         discipline = Discipline(code=f"MM-ETP7F{suffix}", name="Metal Mec. 7F", active=True)
@@ -102,7 +104,9 @@ async def main() -> None:
 
         # This transition (5 -> 6) concludes phase 5: must generate exactly one KICKOFF event.
         await execute_transition(session, equipment_id=equipment_id, target_stage=5, reason=None, actor=actor)
-        result = await execute_transition(session, equipment_id=equipment_id, target_stage=6, reason=None, actor=actor)
+        result = await execute_transition(
+            session, equipment_id=equipment_id, target_stage=6, reason=None, actor=actor
+        )
         assert result.current_stage == 6
 
         transition_5_6 = (

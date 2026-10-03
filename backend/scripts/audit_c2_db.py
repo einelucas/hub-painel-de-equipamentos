@@ -26,11 +26,19 @@ from app.models.user import User
 PCID = "b264c140-7f10-4430-93d0-d880c2029bd0"
 
 
+def _write_json(path: str, data: object) -> None:
+    """Escrita síncrona fora da função async (mesmo conteúdo de antes)."""
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, ensure_ascii=False, indent=2, default=str)
+
+
 async def main() -> None:
     out: dict = {}
     async with SessionLocal() as s:
         out["equipment_total"] = (
-            await s.execute(select(func.count()).select_from(Equipment).where(Equipment.project_context_id == PCID))
+            await s.execute(
+                select(func.count()).select_from(Equipment).where(Equipment.project_context_id == PCID)
+            )
         ).scalar_one()
         out["component_total"] = (
             await s.execute(
@@ -81,17 +89,31 @@ async def main() -> None:
                 "discipline_id": eq.discipline_id,
                 "work_package_id": eq.work_package_id,
             }
-            neg = (await s.execute(select(Negotiation).where(Negotiation.equipment_id == eq.id))).scalar_one_or_none()
-            legal = (await s.execute(select(LegalProcess).where(LegalProcess.equipment_id == eq.id))).scalar_one_or_none()
-            contract = (await s.execute(select(Contract).where(Contract.equipment_id == eq.id))).scalar_one_or_none()
-            pr = (await s.execute(select(PurchaseRequest).where(PurchaseRequest.equipment_id == eq.id))).scalar_one_or_none()
-            po = (await s.execute(select(PurchaseOrder).where(PurchaseOrder.equipment_id == eq.id))).scalar_one_or_none()
+            neg = (
+                await s.execute(select(Negotiation).where(Negotiation.equipment_id == eq.id))
+            ).scalar_one_or_none()
+            legal = (
+                await s.execute(select(LegalProcess).where(LegalProcess.equipment_id == eq.id))
+            ).scalar_one_or_none()
+            contract = (
+                await s.execute(select(Contract).where(Contract.equipment_id == eq.id))
+            ).scalar_one_or_none()
+            pr = (
+                await s.execute(select(PurchaseRequest).where(PurchaseRequest.equipment_id == eq.id))
+            ).scalar_one_or_none()
+            po = (
+                await s.execute(select(PurchaseOrder).where(PurchaseOrder.equipment_id == eq.id))
+            ).scalar_one_or_none()
             wp_links = (
-                await s.execute(select(EquipmentWorkPackage).where(EquipmentWorkPackage.equipment_id == eq.id))
+                await s.execute(
+                    select(EquipmentWorkPackage).where(EquipmentWorkPackage.equipment_id == eq.id)
+                )
             ).scalars().all()
             comp_count = (
                 await s.execute(
-                    select(func.count()).select_from(EquipmentComponent).where(EquipmentComponent.equipment_id == eq.id)
+                    select(func.count())
+                    .select_from(EquipmentComponent)
+                    .where(EquipmentComponent.equipment_id == eq.id)
                 )
             ).scalar_one()
             out[key]["negotiation_exists"] = neg is not None
@@ -119,7 +141,9 @@ async def main() -> None:
             sample_id = wp_counts[0][0]
             eq = await s.get(Equipment, sample_id)
             links = (
-                await s.execute(select(EquipmentWorkPackage).where(EquipmentWorkPackage.equipment_id == sample_id))
+                await s.execute(
+                    select(EquipmentWorkPackage).where(EquipmentWorkPackage.equipment_id == sample_id)
+                )
             ).scalars().all()
             codes = []
             for link in links:
@@ -130,9 +154,15 @@ async def main() -> None:
         users = (await s.execute(select(User).where(User.email.like("%inpasa.com.br")))).scalars().all()
         out["responsibles"] = []
         for u in users:
-            access = (await s.execute(select(UserUnitAccess).where(UserUnitAccess.user_id == u.id))).scalars().all()
+            access = (
+                (await s.execute(select(UserUnitAccess).where(UserUnitAccess.user_id == u.id)))
+                .scalars()
+                .all()
+            )
             eq_count = (
-                await s.execute(select(func.count()).select_from(Equipment).where(Equipment.responsible_user_id == u.id))
+                await s.execute(
+                    select(func.count()).select_from(Equipment).where(Equipment.responsible_user_id == u.id)
+                )
             ).scalar_one()
             out["responsibles"].append(
                 {
@@ -213,7 +243,9 @@ async def main() -> None:
 
         out["equipment_null_area"] = (
             await s.execute(
-                select(func.count()).select_from(Equipment).where(Equipment.project_context_id == PCID, Equipment.area_id.is_(None))
+                select(func.count())
+                .select_from(Equipment)
+                .where(Equipment.project_context_id == PCID, Equipment.area_id.is_(None))
             )
         ).scalar_one()
         out["equipment_null_discipline"] = (
@@ -242,8 +274,7 @@ async def main() -> None:
         ).scalar_one()
         out["equipment_zero_work_packages"] = no_wp
 
-    with open("../docs/validation/audit_db_result.json", "w", encoding="utf-8") as fh:
-        json.dump(out, fh, ensure_ascii=False, indent=2, default=str)
+    _write_json("../docs/validation/audit_db_result.json", out)
     print("saved")
 
 

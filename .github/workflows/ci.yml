@@ -19,12 +19,15 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      # pnpm/Node alinhados ao toolchain que gera o lockfile: o pnpm 9 não lê
+      # `overrides`/`allowBuilds` do pnpm-workspace.yaml (lockfile ficaria
+      # divergente) e o Nuxt 4 do lockfile exige Node ^22.19 ou ^24.11.
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11.15.1
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile

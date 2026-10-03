@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-from collections import Counter
 
 from sqlalchemy import select
 
@@ -25,7 +24,6 @@ from app.core.database import SessionLocal
 from app.domain.equipment_calculations import NegotiationStatus
 from app.models.equipment import Equipment
 from app.models.monday_import import MondayImportRecord
-from app.models.process import Negotiation
 from app.modules.equipments.service import get_equipment_out
 
 PCID = "b264c140-7f10-4430-93d0-d880c2029bd0"
@@ -97,12 +95,17 @@ async def main() -> None:
                 continue
             if calculated == expected:
                 exact_match += 1
-            elif expected in _DATE_DEPENDENT and calculated in _DATE_DEPENDENT | {NegotiationStatus.OVERDUE, NegotiationStatus.DUE_TODAY}:
+            elif expected in _DATE_DEPENDENT and calculated in _DATE_DEPENDENT | {
+                NegotiationStatus.OVERDUE,
+                NegotiationStatus.DUE_TODAY,
+            }:
                 # Ambos os lados são "faltam N dias" — só o N mudou porque o
                 # tempo passou entre a exportação do Monday e agora.
                 date_dependent_diff += 1
             else:
-                real_mismatch.append((equipment_id, expected.value, calculated.value if calculated else "None"))
+                real_mismatch.append(
+                    (equipment_id, expected.value, calculated.value if calculated else "None")
+                )
 
         print(f"Equipamentos com negotiation_status_observed no staging: {41 - no_observed_value}/41")
         print(f"Sem valor observado (equipamento sem essa coluna preenchida): {no_observed_value}")
@@ -113,7 +116,10 @@ async def main() -> None:
             f"Divergência esperada por passagem de tempo (categoria dependente de dias, "
             f"precedência intacta): {date_dependent_diff}"
         )
-        print(f"MISMATCH real (precedência ou classificação incompatível): {len(real_mismatch)} {real_mismatch}")
+        print(
+            "MISMATCH real (precedência ou classificação incompatível): "
+            f"{len(real_mismatch)} {real_mismatch}"
+        )
         assert len(real_mismatch) == 0, "MISMATCH real encontrado — não adaptar fórmula, investigar."
         print("\nGAP-014: nenhum MISMATCH real. Fórmula e precedência batem com os dados reais do C2.")
 

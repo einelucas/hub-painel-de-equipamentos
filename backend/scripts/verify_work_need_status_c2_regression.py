@@ -90,10 +90,18 @@ async def main() -> None:
             elif expected in _DATE_DEPENDENT and calculated in _DATE_DEPENDENT:
                 date_dependent_diff += 1
             else:
-                real_mismatch.append((equipment_id, expected.value, calculated.value if calculated else "None"))
+                real_mismatch.append(
+                    (equipment_id, expected.value, calculated.value if calculated else "None")
+                )
 
-        print(f"Comparáveis (com valor observado reconhecido): {exact_match + date_dependent_diff + len(real_mismatch)}/41")
-        print(f"NOT_COMPARABLE (sem valor observado ou não reconhecido): {len(not_comparable)} {not_comparable}")
+        print(
+            "Comparáveis (com valor observado reconhecido): "
+            f"{exact_match + date_dependent_diff + len(real_mismatch)}/41"
+        )
+        print(
+            "NOT_COMPARABLE (sem valor observado ou não reconhecido): "
+            f"{len(not_comparable)} {not_comparable}"
+        )
         print()
         print(f"MATCH exato: {exact_match}")
         print(f"Divergência esperada por passagem de tempo: {date_dependent_diff}")
@@ -108,7 +116,10 @@ async def main() -> None:
         print(f"  LT_90_DAYS         = {distribution.get('LT_90_DAYS', 0)}")
         print(f"  SAFE               = {distribution.get('SAFE', 0)}")
         print(f"  WITHOUT_DEADLINE   = {distribution.get('WITHOUT_DEADLINE', 0)}")
-        print(f"\n  with_deadline={with_deadline} without_deadline={without_deadline} total={with_deadline + without_deadline}")
+        print(
+            f"\n  with_deadline={with_deadline} without_deadline={without_deadline} "
+            f"total={with_deadline + without_deadline}"
+        )
         assert with_deadline + without_deadline == 41
 
         print("\nEtapa 6C.1: nenhum MISMATCH real na regressão do Status Necessidade da Obra.")

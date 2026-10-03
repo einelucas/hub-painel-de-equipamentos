@@ -115,11 +115,16 @@ async def main() -> None:
         assert refreshed.calculated.max_lead_time_days == 200
         assert refreshed.calculated.max_pre_start_days == 75
         assert refreshed.calculated.min_delivery_deadline if False else True
-        assert refreshed.calculated.delivery_deadline == min(out_a.calculated.delivery_deadline, out_b.calculated.delivery_deadline)
+        assert refreshed.calculated.delivery_deadline == min(
+            out_a.calculated.delivery_deadline, out_b.calculated.delivery_deadline
+        )
         assert refreshed.calculated.negotiation_days_remaining is not None
 
         print("\nFUN-001: fórmulas OK — componente independente do equipment.startupAt,")
-        print("agregados MAX/MIN corretos, freight NULL tratado como 0 (confirmado), sem componentes -> None.")
+        print(
+            "agregados MAX/MIN corretos, freight NULL tratado como 0 (confirmado), "
+            "sem componentes -> None."
+        )
 
 
 if __name__ == "__main__":

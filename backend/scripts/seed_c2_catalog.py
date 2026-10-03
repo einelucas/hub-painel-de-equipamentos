@@ -70,6 +70,12 @@ RESPONSIBLES = [
 ]
 
 
+def _write_json(path: str, data: object) -> None:
+    """Escrita síncrona fora da função async (mesmo conteúdo de antes)."""
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, ensure_ascii=False, indent=2)
+
+
 async def main() -> None:
     async with SessionLocal() as session:
         admin = (
@@ -173,8 +179,7 @@ async def main() -> None:
             "work_packages": work_package_ids,
             "responsibles": responsible_ids,
         }
-        with open("../docs/migration/c2-seed-ids.json", "w", encoding="utf-8") as fh:
-            json.dump(summary, fh, ensure_ascii=False, indent=2)
+        _write_json("../docs/migration/c2-seed-ids.json", summary)
         print("\nResumo salvo em docs/migration/c2-seed-ids.json")
 
 

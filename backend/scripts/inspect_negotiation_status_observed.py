@@ -15,6 +15,12 @@ from app.models.monday_import import MondayImportRecord
 PCID = "b264c140-7f10-4430-93d0-d880c2029bd0"
 
 
+def _write_text(path: str, content: str) -> None:
+    """Escrita síncrona fora da função async (mesmo conteúdo de antes)."""
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(content)
+
+
 async def main() -> None:
     async with SessionLocal() as session:
         records = (
@@ -36,8 +42,7 @@ async def main() -> None:
         for key, count in counter.most_common():
             lines.append(f"  {key}: {count}x (ex. equipment_id={samples[key]})")
         output = "\n".join(lines)
-        with open("../docs/validation/negotiation_status_observed.txt", "w", encoding="utf-8") as fh:
-            fh.write(output + "\n")
+        _write_text("../docs/validation/negotiation_status_observed.txt", output + "\n")
         print(output.encode("ascii", "backslashreplace").decode("ascii"))
 
 
