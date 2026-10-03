@@ -165,5 +165,11 @@ def test_days_until_uses_explicit_reference_date_only() -> None:
 
 
 def test_delivery_margin_days_positive_and_negative() -> None:
-    assert delivery_margin_days(delivery_deadline=date(2027, 8, 28), contract_delivery_at=date(2027, 8, 20)) == 8
-    assert delivery_margin_days(delivery_deadline=date(2027, 8, 10), contract_delivery_at=date(2027, 8, 20)) == -10
+    assert (
+        delivery_margin_days(delivery_deadline=date(2027, 8, 28), contract_delivery_at=date(2027, 8, 20))
+        == 8
+    )
+    assert (
+        delivery_margin_days(delivery_deadline=date(2027, 8, 10), contract_delivery_at=date(2027, 8, 20))
+        == -10
+    )

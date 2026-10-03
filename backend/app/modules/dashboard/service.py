@@ -20,6 +20,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from app.core.auth import CurrentUser
 from app.core.scope import allowed_unit_ids, assert_unit_allowed, restrict_to_units
 from app.domain.equipment_calculations import (
+    EquipmentDeadlineAggregates,
     NegotiationStatus,
     WorkNeedStatus,
     aggregate_component_deadlines,
@@ -225,7 +226,7 @@ async def _load_scoped_equipments(session: AsyncSession, scope: Subquery) -> Seq
     )
 
 
-def _component_deadline_aggregates(equipment: Equipment):
+def _component_deadline_aggregates(equipment: Equipment) -> EquipmentDeadlineAggregates:
     return aggregate_component_deadlines(
         component_deadline_values(
             startup_at=component.startup_at,

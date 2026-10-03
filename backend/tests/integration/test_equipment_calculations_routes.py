@@ -58,7 +58,13 @@ async def test_equipment_calculated_aggregates_use_max_and_min_across_components
 
     await client.post(
         f"/api/v1/equipments/{equipment_id}/components",
-        json={"name": "A", "startupAt": "2027-10-27", "preStartDays": 75, "freightDays": 5, "leadTimeDays": 145},
+        json={
+            "name": "A",
+            "startupAt": "2027-10-27",
+            "preStartDays": 75,
+            "freightDays": 5,
+            "leadTimeDays": 145,
+        },
         headers=auth_header("ANALYST"),
     )
     await client.post(
@@ -85,7 +91,13 @@ async def test_recalculates_after_editing_component_base_fields(client, auth_hea
     component = (
         await client.post(
             f"/api/v1/equipments/{equipment_id}/components",
-            json={"name": "C", "startupAt": "2027-10-27", "preStartDays": 75, "freightDays": 5, "leadTimeDays": 145},
+            json={
+                "name": "C",
+                "startupAt": "2027-10-27",
+                "preStartDays": 75,
+                "freightDays": 5,
+                "leadTimeDays": 145,
+            },
             headers=auth_header("ANALYST"),
         )
     ).json()
