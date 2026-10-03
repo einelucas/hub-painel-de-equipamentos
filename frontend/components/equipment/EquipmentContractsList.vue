@@ -56,12 +56,9 @@ function closeForm(): void {
 async function uploadFile(contractId: string, file: File): Promise<void> {
   const body = new FormData();
   body.append("file", file);
-  await api.request(
+  await api.upload(
     `/equipments/${props.equipmentId}/contracts/${contractId}/file`,
-    {
-      method: "PUT",
-      body: body as never,
-    },
+    body,
   );
 }
 
@@ -116,17 +113,15 @@ async function removeContract(item: Contract): Promise<void> {
 
 async function downloadFile(item: Contract): Promise<void> {
   if (!item.file) return;
-  const blob = await api.request<Blob>(
+  const file = await api.download(
     `/equipments/${props.equipmentId}/contracts/${item.id}/file`,
-    {
-      method: "GET",
-      responseType: "blob",
-    },
   );
-  const url = URL.createObjectURL(blob as Blob);
+  const url = URL.createObjectURL(file.blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = item.file.fileName;
+  // O nome cadastrado continua sendo a fonte principal; o do
+  // Content-Disposition só é usado se ele faltar.
+  link.download = item.file.fileName || file.filename || "";
   link.click();
   URL.revokeObjectURL(url);
 }
