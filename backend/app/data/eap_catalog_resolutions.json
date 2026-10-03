@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "description": "Decisões de domínio APROVADAS que resolvem itens que a Árvore não permite representar de forma inequívoca. Cada entrada vale só para o código indicado e só quando a Árvore traz exatamente os nomes listados em source_names; não é heurística genérica.",
+  "description": "Decisões de domínio APROVADAS sobre a Árvore oficial. São pontuais e verificadas contra a fonte (a extração falha se a Árvore mudar): 'resolutions' resolvem um código ambíguo; 'source_corrections' corrigem erro de digitação de uma célula ÁREA (só se o SETOR for o registrado); 'ignored_headers' são títulos visuais que não são nós. Não é heurística genérica.",
   "resolutions": [
     {
       "code": "00",
@@ -12,8 +12,50 @@
         "Layout Geral",
         "ADM 3D"
       ],
-      "decision": "Família 00 = ÁREAS GERAIS. As três linhas X00 da Árvore 'por responsável' são descrições/atribuições do mesmo agrupamento geral, não três EAPs. PROCESS raiz (o cabeçalho de ilha 'GERAL' não tem código oficial e continua sem ISLAND).",
+      "decision": "Família 00 = ÁREAS GERAIS. As três linhas X00 da Árvore 'por responsável' são descrições/atribuições do mesmo agrupamento geral, não três EAPs. PROCESS raiz (o título 'X GERAL' não é ilha).",
       "approved": "2026-10-02"
+    },
+    {
+      "code": "15.B",
+      "level": "AREA",
+      "canonical_name": "Balanças rodoviária",
+      "parent_code": "15",
+      "source_names": [
+        "Balanças rodoviária",
+        "Balanças rodoviária - executivo civil"
+      ],
+      "decision": "X15.B repetido não representa dois nós: um único 15.B (Balanças rodoviária); a segunda linha é a mesma área com o sufixo 'executivo civil'.",
+      "approved": "2026-10-03"
+    }
+  ],
+  "source_corrections": [
+    {
+      "source_area": "XX21",
+      "canonical_area": "X21",
+      "expected_name": "Sistema de Geração de Ar Comprimido",
+      "decision": "Erro de digitação aprovado: 'XX21' é 'X21' (código canônico 21).",
+      "approved": "2026-10-03"
+    },
+    {
+      "source_area": "XX21.A",
+      "canonical_area": "X21.A",
+      "expected_name": "Geração e Distribuição de Ar Comprimido",
+      "decision": "Erro de digitação aprovado: 'XX21.A' é 'X21.A' (código canônico 21.A).",
+      "approved": "2026-10-03"
+    },
+    {
+      "source_area": "X02.G",
+      "canonical_area": "X06.G",
+      "expected_name": "Fermentação-Executivo Civil",
+      "decision": "Erro de digitação aprovado: o item pertence à família X06 (está no bloco de Fermentação); 'X02.G' é 'X06.G' (código canônico 06.G). 02.G não existe.",
+      "approved": "2026-10-03"
+    }
+  ],
+  "ignored_headers": [
+    {
+      "text": "X GERAL",
+      "decision": "Título/cabeçalho visual do bloco na planilha; não é ISLAND, não é nó EAP e não é pendência.",
+      "approved": "2026-10-03"
     }
   ]
 }

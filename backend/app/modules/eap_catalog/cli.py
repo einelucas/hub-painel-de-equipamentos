@@ -34,7 +34,7 @@ from app.modules.eap_catalog.catalog import (
     EapCatalogError,
     build_catalog_document,
     load_catalog,
-    load_resolutions,
+    load_tree_decisions,
     parse_catalog,
     validate_catalog,
 )
@@ -47,9 +47,9 @@ def _cmd_extract(args: argparse.Namespace) -> int:
     raw = args.workbook.read_bytes()
     sheet = read_first_sheet(raw)
     rows = [TreeRow(row.number, row.value(1), row.value(2)) for row in sheet.rows if row.number > 1]
-    resolutions = load_resolutions(args.resolutions)
+    resolutions, corrections, ignored_headers = load_tree_decisions(args.resolutions)
     try:
-        tree = extract_tree(rows, resolutions)
+        tree = extract_tree(rows, resolutions, corrections, ignored_headers)
     except EapResolutionError as exc:
         raise SystemExit(f"Extração interrompida: {exc}") from exc
     levels = Counter(node.level.value for node in tree.nodes)
@@ -68,6 +68,8 @@ def _cmd_extract(args: argparse.Namespace) -> int:
             "non_eap_rows": tree.non_eap_rows,
             "resolutions_file": args.resolutions.name,
             "resolutions_applied": sorted(resolutions),
+            "source_corrections_applied": sorted(corrections),
+            "ignored_header_rows": tree.ignored_header_rows,
         },
         summary={
             "distinct_eap_codes": len(distinct_codes),

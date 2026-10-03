@@ -176,3 +176,27 @@ def load_resolutions(path: Path = RESOLUTIONS_PATH) -> dict[str, Any]:
             decision=item["decision"],
         )
     return resolutions
+
+
+def load_tree_decisions(
+    path: Path = RESOLUTIONS_PATH,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Todas as decisões aprovadas da extração: resoluções por código, correções
+    de digitação por texto da célula ÁREA e cabeçalhos visuais a ignorar."""
+    from app.modules.eap_catalog.tree import IgnoredHeader, SourceCorrection
+
+    document = json.loads(path.read_text(encoding="utf-8"))
+    corrections: dict[str, Any] = {}
+    for item in document.get("source_corrections", []):
+        if item["source_area"] in corrections:
+            raise EapCatalogError(f"correção duplicada para {item['source_area']}")
+        corrections[item["source_area"]] = SourceCorrection(
+            source_area=item["source_area"],
+            canonical_area=item["canonical_area"],
+            expected_name=item["expected_name"],
+            decision=item["decision"],
+        )
+    headers: dict[str, Any] = {}
+    for item in document.get("ignored_headers", []):
+        headers[item["text"]] = IgnoredHeader(text=item["text"], decision=item["decision"])
+    return load_resolutions(path), corrections, headers

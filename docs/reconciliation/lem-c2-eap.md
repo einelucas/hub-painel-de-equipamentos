@@ -203,3 +203,16 @@ O dry-run não escreveu nada (0 vínculos e 0 auditorias depois dele).
 - `project_eap` = 0 (candidatos apenas: `00.A`, `00.C`, `01.A`, `04.A`).
 - `ProjectContext.eap_prefix` do C2 = NULL; o prefixo observado `21` continua só como evidência.
 - DEV (`neondb`, `0009_requirement_waivers`): somente leitura; nada aplicado.
+
+### 5. P0.4.1 — correções aprovadas da Árvore (2026-10-03), sem efeito no C2
+
+- O catálogo passou de 144 para 148 nós (`21`, `21.A`, `06.G` e `15.B` liberados) e
+  `EAP_REVIEW_REQUIRED` passou de 5 para 0 (ver `docs/eap-catalogo.md`). Na P0.4 esses
+  itens estavam em revisão; o registro acima continua válido como histórico.
+- Nenhum valor de Área do C2 aponta para esses nós. Os 40 vínculos e o equipamento sem
+  EAP (LM - Isolamento térmico) **não mudaram**: 0 `eap_node_id` e 0 `area_id` alterados
+  no `neondb_test`, comparados com o retrato tirado antes do seed. A auditoria
+  `eap_reconciliation.apply` continua com 40 registros.
+- O JSON de reconciliação deste relatório não foi regenerado: ele registra o catálogo da
+  P0.4 (`53ff2d19…`). Uma nova execução de `apply` vai recusá-lo por divergência de
+  catálogo até que o `analyze` seja rodado de novo. É o comportamento de segurança previsto.

@@ -19,13 +19,13 @@ Localização oficial. A LGE e o Monday não participam deste catálogo.
 |---|---|
 | Fonte | `INPASA-DO-PRO-1700-001-07 - ÁRVORE DE LOCALIZAÇÃO - POR RESPONSÁVEL 2.xlsx`, aba `Table 2` |
 | SHA-256 da fonte | `aafd38fb034d987534473cf8c82f062cc0ea1fa2059a5e81071dff20c746bd5d` |
-| SHA-256 do catálogo | `53ff2d19d615a6339874f9b394ac13c49d32f81506a54d27bd2c2a3f94e1e11d` (antes da decisão 00: `d070bdde…`) |
+| SHA-256 do catálogo | `ab1d0d8bd178c56feacbb22bc7b2bcff556839dde7d312f5d9f7b63c7597746e` (P0.4: `53ff2d19…`; antes da decisão 00: `d070bdde…`) |
 | Linhas EAP (códigos `X…`) | 144 |
 | Cabeçalhos de ilha | 8 |
 | Linhas de responsabilidade ignoradas | 34 (linhas 154–187) |
 | Códigos EAP distintos | 141 |
-| Nós carregáveis | 144: 7 ISLAND, 21 PROCESS, 116 AREA (antes da decisão 00: 134 = 7/20/107) |
-| `EAP_REVIEW_REQUIRED` | 5 (não carregados; antes da decisão 00: 15) |
+| Nós carregáveis | 148: 7 ISLAND, 22 PROCESS, 119 AREA (P0.4: 144 = 7/21/116; antes da decisão 00: 134 = 7/20/107) |
+| `EAP_REVIEW_REQUIRED` | **0** (P0.4: 5; antes da decisão 00: 15) |
 
 ## Regras de extração
 
@@ -59,14 +59,14 @@ três linhas são descrições/atribuições do mesmo agrupamento no documento
 | Nó | `00` — PROCESS **raiz** (`parent = NULL`), nome canônico **"Geral"** |
 | Nomes da fonte (preservados em `source_names` no catálogo) | Geral INPASA AGROINDUSTRIAL; Layout Geral; ADM 3D |
 | Áreas liberadas (AREA, pai `00`, nome oficial da Árvore) | `00.0`, `00.A`, `00.B`, `00.C`, `00.D`, `00.E`, `00.H`, `00.I`, `00.J` |
-| Cabeçalho `X GERAL` | Continua **sem ISLAND** (a Árvore não dá código); fica em revisão |
+| Cabeçalho `X GERAL` | **Sem ISLAND**. Na P0.4 ficou em revisão; na P0.4.1 foi reconhecido como título visual (ver abaixo) |
 
 - "Geral" é decisão de domínio, não uma linha literal da Árvore.
 - A decisão está em `backend/app/data/eap_catalog_resolutions.json` e vale só
   para `00`. A extração só a aplica se a Árvore trouxer exatamente esses três
   nomes; se a fonte mudar, a extração falha em vez de aplicar a decisão antiga.
-- Nenhum outro código duplicado é resolvido por essa regra: `15.B` continua em
-  revisão.
+- Essa resolução vale só para `00`. O outro código duplicado (`15.B`) foi
+  resolvido depois, por decisão própria (P0.4.1, abaixo).
 
 ## Prefixo EAP do projeto
 
@@ -107,25 +107,43 @@ três linhas são descrições/atribuições do mesmo agrupamento no documento
 python -m app.modules.eap_catalog seed --apply --confirm --expect-database neondb_test --env-file .env.test
 ```
 
-## EAP_REVIEW_REQUIRED
+## Correções aprovadas da Árvore oficial (P0.4.1, 2026-10-03)
 
-Nós que a Árvore não permite representar de forma inequívoca. Nenhuma
-alternativa foi escolhida; cada um depende de decisão do dono da Árvore.
+Depois da P0.4 restavam 5 itens em `EAP_REVIEW_REQUIRED`. Eles vinham de uma leitura
+**literal** da planilha. O responsável pelo projeto esclareceu que são erros de digitação
+ou estrutura visual da fonte. As decisões estão em
+`backend/app/data/eap_catalog_resolutions.json` e não alteram o XLSX.
 
-| Código | Nível | Descrição encontrada | Motivo | Detalhe | Linhas | Alternativas encontradas |
-|---|---|---|---|---|---|---|
-| — (ilha) | ISLAND | GERAL | `ISLAND_CODE_MISSING` | Cabeçalho de ilha sem letra na Árvore: não há código oficial para o nó. | 2 | Definir o código oficial desta ilha (a Árvore não traz letra para o bloco). |
-| 21 | PROCESS | Sistema de Geração de Ar Comprimido | `MALFORMED_PREFIX_MARKER` | Marcador de prefixo 'XX' em vez de 'X' ('XX21'). | 152 | '21' lido com o marcador corrigido para 'X'; posição na Árvore: bloco da ilha F |
-| 02.G | AREA | Fermentação-Executivo Civil | `POSITION_CONTRADICTS_CODE` | O código indica o PROCESS 02, mas a linha está no bloco do PROCESS 06. | 32 | pai 02 (pelo código); pai 06 (pela posição; o código seria 06.G) |
-| 15.B | AREA | Balanças rodoviária / Balanças rodoviária - executivo civil | `DUPLICATE_CODE_DIFFERENT_NAMES` | O código aparece em 2 linhas com descrições diferentes. | 75, 76 | 'Balanças rodoviária' (linha 75); 'Balanças rodoviária - executivo civil' (linha 76) |
-| 21.A | AREA | Geração e Distribuição de Ar Comprimido | `MALFORMED_PREFIX_MARKER` | Marcador de prefixo 'XX' em vez de 'X' ('XX21.A'). | 153 | '21.A' lido com o marcador corrigido para 'X'; posição na Árvore: bloco da ilha F |
+| Fonte (linha) | Canônico | Tipo de decisão | Motivo aprovado |
+|---|---|---|---|
+| `XX21` — Sistema de Geração de Ar Comprimido (152) | `21` (PROCESS) | `source_corrections` | Erro de digitação: `XX21` é `X21` |
+| `XX21.A` — Geração e Distribuição de Ar Comprimido (153) | `21.A` (AREA, pai `21`) | `source_corrections` | Erro de digitação: `XX21.A` é `X21.A` |
+| `X02.G` — Fermentação-Executivo Civil (32) | `06.G` (AREA, pai `06`) | `source_corrections` | Erro de digitação: o item pertence à família X06; `02.G` não existe |
+| `X15.B` repetido (75: "Balanças rodoviária"; 76: "Balanças rodoviária - executivo civil") | um único `15.B` "Balanças rodoviária" (AREA, pai `15`) | `resolutions` | Duplicidade consolidada; os dois textos ficam em `source_names` |
+| `X GERAL` (2) | nenhum nó | `ignored_headers` | Título visual do bloco; não é ISLAND, nem nó, nem pendência |
 
-Saíram da revisão pela decisão da família 00: `00`, `00.0`, `00.A`, `00.B`,
-`00.C`, `00.D`, `00.E`, `00.H`, `00.I` e `00.J`.
+- Cada correção vale só para o texto exato da célula e só se o SETOR da linha for o
+  registrado. Se a fonte mudar, a extração falha. Não existe heurística genérica.
+- O valor original fica no nó: `source_corrections` (fonte → canônico → motivo) para
+  `21`, `21.A` e `06.G`, e `source_names` para `15.B`.
+- `21` segue a regra geral de posição: fica sob a ilha do bloco em que aparece na
+  Árvore, que é **F (Administração)**, porque as linhas `XX21` vêm logo depois do bloco `XF`.
+- Resultado: catálogo com **148 nós** (7 ISLAND, 22 PROCESS, 119 AREA) e **0**
+  `EAP_REVIEW_REQUIRED`. Aplicado no `neondb_test`: 4 nós criados (`21`, `21.A`, `06.G`,
+  `15.B`) e 144 inalterados. Os vínculos EAP do LEM/C2 não mudaram.
 
-**Como resolver.** Corrigir a Árvore (ou registrar a decisão), rodar `extract`
-de novo e conferir o diff do JSON. Depois rodar `seed`: os nós resolvidos
-entram como `created`, e os já carregados continuam `unchanged`.
+### Histórico de `EAP_REVIEW_REQUIRED`
+
+| Momento | Pendências | O que mudou |
+|---|---|---|
+| P0.1 (extração literal) | 15 | GERAL sem código, `00` (3 descrições) e suas 9 áreas, `21`, `21.A`, `02.G`, `15.B` |
+| P0.4 (decisão da família 00) | 5 | Saíram `00` e `00.0`…`00.J` |
+| P0.4.1 (correções aprovadas) | 0 | Saíram GERAL (título visual), `21`, `21.A`, `02.G` (→ `06.G`) e `15.B` |
+
+**Novas pendências.** Se a Árvore mudar e a extração encontrar um caso ambíguo, ele
+volta para `review_required` com as alternativas encontradas. Para resolver: registrar
+a decisão aprovada no arquivo de resoluções, rodar `extract`, conferir o diff do JSON e
+rodar `seed`.
 
 **Observação.** O código de ilha usa a letra da própria Árvore, a fonte
 oficial. As siglas da LGE (ETN, DGO, UTI…) não foram usadas.

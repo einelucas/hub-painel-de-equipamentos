@@ -21,6 +21,8 @@ from app.modules.eap_catalog.tree import (
     POSITION_MISMATCH,
     EapResolution,
     EapResolutionError,
+    IgnoredHeader,
+    SourceCorrection,
     TreeRow,
     extract_tree,
 )
@@ -61,11 +63,10 @@ def test_versioned_catalog_hierarchy(catalog: EapCatalog) -> None:
 
 def test_versioned_catalog_matches_summary_and_keeps_review_out(catalog: EapCatalog) -> None:
     summary = {level: sum(1 for n in catalog.nodes if n.level is level) for level in EapLevel}
-    assert summary == {ISLAND: 7, PROCESS: 21, AREA: 116}
-    assert not catalog.review_codes & {node.code for node in catalog.nodes}
-    assert {item["status"] for item in catalog.review_required} == {"EAP_REVIEW_REQUIRED"}
-    assert catalog.review_codes == {"02.G", "15.B", "21", "21.A"}
-    assert [item["level"] for item in catalog.review_required if item["code"] is None] == ["ISLAND"]
+    assert summary == {ISLAND: 7, PROCESS: 22, AREA: 119}
+    # P0.4.1: as pendências da Árvore foram resolvidas por decisões aprovadas.
+    assert catalog.review_required == ()
+    assert catalog.review_codes == set()
     assert catalog.source["file"].startswith("INPASA-DO-PRO-1700-001-07")
 
 
@@ -228,3 +229,109 @@ def test_resolution_without_matching_code_is_rejected() -> None:
     rows = _rows(("XB Etanol", None), ("X02", "Cozimento"))
     with pytest.raises(EapResolutionError):
         extract_tree(rows, _resolution(("Geral",)))
+
+
+def test_approved_tree_corrections_in_versioned_catalog(catalog: EapCatalog) -> None:
+    by_code = {node.code: node for node in catalog.nodes}
+    assert (by_code["21"].level, by_code["21"].name) == (PROCESS, "Sistema de Geração de Ar Comprimido")
+    assert (by_code["21.A"].level, by_code["21.A"].parent_code) == (AREA, "21")
+    assert (by_code["06.G"].level, by_code["06.G"].parent_code) == (AREA, "06")
+    assert by_code["06.G"].name == "Fermentação-Executivo Civil"
+    assert "02.G" not in by_code
+    assert [node.code for node in catalog.nodes].count("15.B") == 1
+    assert by_code["15.B"].parent_code == "15"
+    assert not any(node.level is ISLAND and node.name.upper() == "GERAL" for node in catalog.nodes)
+    assert catalog.source["ignored_header_rows"] == [2]
+    assert catalog.source["source_corrections_applied"] == ["X02.G", "XX21", "XX21.A"]
+
+
+def test_tree_decisions_file_lists_each_approved_correction() -> None:
+    from app.modules.eap_catalog.catalog import load_tree_decisions
+
+    resolutions, corrections, headers = load_tree_decisions()
+    assert set(resolutions) == {"00", "15.B"}
+    assert {c.source_area: c.canonical_area for c in corrections.values()} == {
+        "XX21": "X21",
+        "XX21.A": "X21.A",
+        "X02.G": "X06.G",
+    }
+    assert set(headers) == {"X GERAL"}
+
+
+def _corrections() -> dict[str, SourceCorrection]:
+    return {
+        "XX21": SourceCorrection("XX21", "X21", "Ar comprimido", "digitação"),
+        "XX21.A": SourceCorrection("XX21.A", "X21.A", "Distribuição de ar", "digitação"),
+        "X02.G": SourceCorrection("X02.G", "X06.G", "Fermentação-Executivo Civil", "digitação"),
+    }
+
+
+def _correction_rows() -> list[TreeRow]:
+    return _rows(
+        ("X GERAL", None),
+        ("XB Etanol", None),
+        ("X02", "Cozimento"),
+        ("X06", "Fermentação"),
+        ("X02.G", "Fermentação-Executivo Civil"),
+        ("XE Grãos", None),
+        ("X15", "Recebimento"),
+        ("X15.B", "Balanças"),
+        ("X15.B", "Balanças - executivo civil"),
+        ("XD Utilidades", None),
+        ("XX21", "Ar comprimido"),
+        ("XX21.A", "Distribuição de ar"),
+    )
+
+
+def test_source_corrections_header_and_duplicate_resolution_leave_no_review() -> None:
+    tree = extract_tree(
+        _correction_rows(),
+        {
+            "15.B": EapResolution(
+                "15.B", AREA, "Balanças", "15", ("Balanças", "Balanças - executivo civil"), "x"
+            )
+        },
+        _corrections(),
+        {"X GERAL": IgnoredHeader("X GERAL", "título visual")},
+    )
+    nodes = {node.code: node for node in tree.nodes}
+    assert tree.review_required == []
+    assert (nodes["21"].level, nodes["21"].parent_code) == (PROCESS, "D")
+    assert nodes["21.A"].parent_code == "21"
+    assert nodes["06.G"].parent_code == "06"
+    assert "02.G" not in nodes
+    assert [node.code for node in tree.nodes].count("15.B") == 1
+    assert tree.ignored_header_rows == [2]
+    assert not any(node.level is ISLAND and node.name == "GERAL" for node in tree.nodes)
+    assert nodes["21"].as_dict()["source_corrections"][0]["source"] == "XX21"
+    assert nodes["06.G"].as_dict()["source_corrections"][0] == {
+        "source": "X02.G",
+        "canonical": "X06.G",
+        "reason": "digitação",
+    }
+
+
+def test_without_decisions_the_same_rows_stay_in_review() -> None:
+    reasons = {(r.code, r.reason) for r in extract_tree(_correction_rows()).review_required}
+    assert reasons == {
+        (None, ISLAND_CODE_MISSING),
+        ("02.G", POSITION_MISMATCH),
+        ("15.B", DUPLICATE_CODE),
+        ("21", MALFORMED_MARKER),
+        ("21.A", MALFORMED_MARKER),
+    }
+
+
+def test_source_correction_refuses_row_with_unexpected_sector() -> None:
+    corrections = {"XX21": SourceCorrection("XX21", "X21", "Outro nome", "digitação")}
+    rows = _rows(("XD Utilidades", None), ("XX21", "Ar comprimido"))
+    with pytest.raises(EapResolutionError):
+        extract_tree(rows, corrections=corrections)
+
+
+def test_unused_correction_or_header_is_rejected() -> None:
+    rows = _rows(("XD Utilidades", None), ("X01", "Geração de vapor"))
+    with pytest.raises(EapResolutionError):
+        extract_tree(rows, corrections=_corrections())
+    with pytest.raises(EapResolutionError):
+        extract_tree(rows, ignored_headers={"X GERAL": IgnoredHeader("X GERAL", "título")})

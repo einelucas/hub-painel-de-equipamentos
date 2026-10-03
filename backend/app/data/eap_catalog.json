@@ -6,7 +6,7 @@
     "sha256": "aafd38fb034d987534473cf8c82f062cc0ea1fa2059a5e81071dff20c746bd5d",
     "sheet": "Table 2",
     "eap_rows": 144,
-    "island_rows": 8,
+    "island_rows": 7,
     "non_eap_rows": [
       154,
       155,
@@ -45,16 +45,25 @@
     ],
     "resolutions_file": "eap_catalog_resolutions.json",
     "resolutions_applied": [
-      "00"
+      "00",
+      "15.B"
+    ],
+    "source_corrections_applied": [
+      "X02.G",
+      "XX21",
+      "XX21.A"
+    ],
+    "ignored_header_rows": [
+      2
     ]
   },
   "summary": {
     "distinct_eap_codes": 141,
-    "nodes": 144,
+    "nodes": 148,
     "island": 7,
-    "process": 21,
-    "area": 116,
-    "review_required": 5
+    "process": 22,
+    "area": 119,
+    "review_required": 0
   },
   "nodes": [
     {
@@ -135,7 +144,7 @@
         "Layout Geral",
         "ADM 3D"
       ],
-      "resolution": "Família 00 = ÁREAS GERAIS. As três linhas X00 da Árvore 'por responsável' são descrições/atribuições do mesmo agrupamento geral, não três EAPs. PROCESS raiz (o cabeçalho de ilha 'GERAL' não tem código oficial e continua sem ISLAND)."
+      "resolution": "Família 00 = ÁREAS GERAIS. As três linhas X00 da Árvore 'por responsável' são descrições/atribuições do mesmo agrupamento geral, não três EAPs. PROCESS raiz (o título 'X GERAL' não é ilha)."
     },
     {
       "level": "PROCESS",
@@ -279,6 +288,22 @@
       "parent_code": "C",
       "source_rows": [
         66
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "21",
+      "name": "Sistema de Geração de Ar Comprimido",
+      "parent_code": "F",
+      "source_rows": [
+        152
+      ],
+      "source_corrections": [
+        {
+          "source": "XX21",
+          "canonical": "X21",
+          "reason": "Erro de digitação aprovado: 'XX21' é 'X21' (código canônico 21)."
+        }
       ]
     },
     {
@@ -634,6 +659,22 @@
     },
     {
       "level": "AREA",
+      "code": "06.G",
+      "name": "Fermentação-Executivo Civil",
+      "parent_code": "06",
+      "source_rows": [
+        32
+      ],
+      "source_corrections": [
+        {
+          "source": "X02.G",
+          "canonical": "X06.G",
+          "reason": "Erro de digitação aprovado: o item pertence à família X06 (está no bloco de Fermentação); 'X02.G' é 'X06.G' (código canônico 06.G). 02.G não existe."
+        }
+      ]
+    },
+    {
+      "level": "AREA",
       "code": "08.A",
       "name": "Dorna volante",
       "parent_code": "08",
@@ -874,6 +915,21 @@
       "source_rows": [
         74
       ]
+    },
+    {
+      "level": "AREA",
+      "code": "15.B",
+      "name": "Balanças rodoviária",
+      "parent_code": "15",
+      "source_rows": [
+        75,
+        76
+      ],
+      "source_names": [
+        "Balanças rodoviária",
+        "Balanças rodoviária - executivo civil"
+      ],
+      "resolution": "X15.B repetido não representa dois nós: um único 15.B (Balanças rodoviária); a segunda linha é a mesma área com o sufixo 'executivo civil'."
     },
     {
       "level": "AREA",
@@ -1129,6 +1185,22 @@
     },
     {
       "level": "AREA",
+      "code": "21.A",
+      "name": "Geração e Distribuição de Ar Comprimido",
+      "parent_code": "21",
+      "source_rows": [
+        153
+      ],
+      "source_corrections": [
+        {
+          "source": "XX21.A",
+          "canonical": "X21.A",
+          "reason": "Erro de digitação aprovado: 'XX21.A' é 'X21.A' (código canônico 21.A)."
+        }
+      ]
+    },
+    {
+      "level": "AREA",
       "code": "23.A",
       "name": "Portaria, Vestiário, Refeitório, Recursos Humanos, Monitoramento",
       "parent_code": "23",
@@ -1362,92 +1434,5 @@
       ]
     }
   ],
-  "review_required": [
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "ISLAND",
-      "code": null,
-      "names_found": [
-        "GERAL"
-      ],
-      "reason": "ISLAND_CODE_MISSING",
-      "detail": "Cabeçalho de ilha sem letra na Árvore: não há código oficial para o nó.",
-      "source_rows": [
-        2
-      ],
-      "alternatives": [
-        "Definir o código oficial desta ilha (a Árvore não traz letra para o bloco)."
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "PROCESS",
-      "code": "21",
-      "names_found": [
-        "Sistema de Geração de Ar Comprimido"
-      ],
-      "reason": "MALFORMED_PREFIX_MARKER",
-      "detail": "Marcador de prefixo 'XX' em vez de 'X' ('XX21').",
-      "source_rows": [
-        152
-      ],
-      "alternatives": [
-        "'21' lido com o marcador corrigido para 'X'",
-        "posição na Árvore: bloco da ilha F"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "02.G",
-      "names_found": [
-        "Fermentação-Executivo Civil"
-      ],
-      "reason": "POSITION_CONTRADICTS_CODE",
-      "detail": "O código indica o PROCESS 02, mas a linha está no bloco do PROCESS 06.",
-      "source_rows": [
-        32
-      ],
-      "alternatives": [
-        "pai 02 (pelo código)",
-        "pai 06 (pela posição; o código seria 06.G)"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "15.B",
-      "names_found": [
-        "Balanças rodoviária",
-        "Balanças rodoviária - executivo civil"
-      ],
-      "reason": "DUPLICATE_CODE_DIFFERENT_NAMES",
-      "detail": "O código aparece em 2 linhas com descrições diferentes.",
-      "source_rows": [
-        75,
-        76
-      ],
-      "alternatives": [
-        "'Balanças rodoviária' (linha 75)",
-        "'Balanças rodoviária - executivo civil' (linha 76)"
-      ]
-    },
-    {
-      "status": "EAP_REVIEW_REQUIRED",
-      "level": "AREA",
-      "code": "21.A",
-      "names_found": [
-        "Geração e Distribuição de Ar Comprimido"
-      ],
-      "reason": "MALFORMED_PREFIX_MARKER",
-      "detail": "Marcador de prefixo 'XX' em vez de 'X' ('XX21.A').",
-      "source_rows": [
-        153
-      ],
-      "alternatives": [
-        "'21.A' lido com o marcador corrigido para 'X'",
-        "posição na Árvore: bloco da ilha F"
-      ]
-    }
-  ]
+  "review_required": []
 }

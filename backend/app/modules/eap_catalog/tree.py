@@ -12,11 +12,16 @@ Leitura da Árvore (coluna A = ÁREA, coluna B = SETOR):
 - Qualquer outra linha (ex.: "Materiais", "Geral | Controle de listas…") é
   atribuição de responsabilidade, não nó da árvore.
 
-Decisões de domínio aprovadas (`app/data/eap_catalog_resolutions.json`) entram
-como `EapResolution`: cada uma vale para UM código e só se a Árvore trouxer
-exatamente os nomes registrados nela — se a fonte mudar, a extração falha em
-vez de aplicar a decisão antiga em silêncio. Os nomes da fonte ficam no nó
-(`source_names`).
+Decisões de domínio aprovadas (`app/data/eap_catalog_resolutions.json`), todas
+pontuais e verificadas contra a fonte — se a Árvore mudar, a extração falha em
+vez de aplicar uma decisão antiga em silêncio:
+
+- `EapResolution`: um código ambíguo (ex.: `00` com três descrições) vira um nó
+  com nome canônico; os nomes da fonte ficam no nó (`source_names`);
+- `SourceCorrection`: erro de digitação de uma célula ÁREA (ex.: `XX21` → `X21`),
+  aplicado só se o SETOR da linha for o registrado; o valor original fica no nó
+  (`source_corrections`);
+- `IgnoredHeader`: título visual da planilha (ex.: `X GERAL`) que não é nó.
 
 Nada é decidido por escolha arbitrária: quando um nó não pode ser representado
 de forma inequívoca (código repetido com descrições diferentes, marcador
@@ -63,10 +68,29 @@ class _Occurrence:
     marker: str
     island_key: str | None  # letra da ilha, ou "row:<n>" para ilha sem código
     block_process: str | None  # último PROCESS visto antes desta linha
+    correction: SourceCorrection | None = None
 
 
 class EapResolutionError(ValueError):
     pass
+
+
+@dataclass(slots=True, frozen=True)
+class SourceCorrection:
+    """Erro de digitação aprovado numa célula ÁREA da Árvore."""
+
+    source_area: str
+    canonical_area: str
+    expected_name: str
+    decision: str
+
+
+@dataclass(slots=True, frozen=True)
+class IgnoredHeader:
+    """Título visual da planilha que não representa nó da EAP."""
+
+    text: str
+    decision: str
 
 
 @dataclass(slots=True, frozen=True)
@@ -89,6 +113,7 @@ class ExtractedNode:
     parent_code: str | None
     source_rows: list[int]
     resolution: EapResolution | None = None
+    corrections: list[SourceCorrection] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, object]:
         data: dict[str, object] = {
@@ -101,6 +126,11 @@ class ExtractedNode:
         if self.resolution is not None:
             data["source_names"] = list(self.resolution.source_names)
             data["resolution"] = self.resolution.decision
+        if self.corrections:
+            data["source_corrections"] = [
+                {"source": item.source_area, "canonical": item.canonical_area, "reason": item.decision}
+                for item in self.corrections
+            ]
         return data
 
 
@@ -134,6 +164,7 @@ class ExtractedTree:
     eap_rows: int = 0
     island_rows: int = 0
     non_eap_rows: list[int] = field(default_factory=list)
+    ignored_header_rows: list[int] = field(default_factory=list)
 
 
 def clean_text(value: object) -> str | None:
@@ -144,9 +175,16 @@ def clean_text(value: object) -> str | None:
 
 
 def extract_tree(
-    rows: Iterable[TreeRow], resolutions: Mapping[str, EapResolution] | None = None
+    rows: Iterable[TreeRow],
+    resolutions: Mapping[str, EapResolution] | None = None,
+    corrections: Mapping[str, SourceCorrection] | None = None,
+    ignored_headers: Mapping[str, IgnoredHeader] | None = None,
 ) -> ExtractedTree:
     resolutions = resolutions or {}
+    corrections = corrections or {}
+    ignored_headers = ignored_headers or {}
+    used_corrections: set[str] = set()
+    used_headers: set[str] = set()
     result = ExtractedTree()
     islands: dict[str, tuple[str | None, str, int]] = {}  # chave -> (letra, nome, linha)
     occurrences: dict[str, list[_Occurrence]] = {}
@@ -158,6 +196,21 @@ def extract_tree(
         sector = clean_text(row.sector)
         if area is None:
             continue
+        if sector is None and area in ignored_headers:
+            # Título visual (ex.: "X GERAL"): não é ilha nem nó; encerra o bloco anterior.
+            used_headers.add(area)
+            current_island, current_process = None, None
+            result.ignored_header_rows.append(row.number)
+            continue
+        correction = corrections.get(area)
+        if correction is not None:
+            if sector != correction.expected_name:
+                raise EapResolutionError(
+                    f"Correção de '{area}' (linha {row.number}) não confere: SETOR esperado "
+                    f"'{correction.expected_name}', encontrado '{sector}'."
+                )
+            used_corrections.add(area)
+            area = correction.canonical_area
         island_match = ISLAND_HEADER_RE.fullmatch(area) if sector is None else None
         node_match = NODE_RE.fullmatch(area) if sector is not None else None
         if island_match is not None:
@@ -174,12 +227,21 @@ def extract_tree(
                 current_process = code
             occurrences.setdefault(code, []).append(
                 _Occurrence(
-                    row.number, str(sector), node_match.group("marker"), current_island, current_process
+                    row.number,
+                    str(sector),
+                    node_match.group("marker"),
+                    current_island,
+                    current_process,
+                    correction,
                 )
             )
             result.eap_rows += 1
         else:
             result.non_eap_rows.append(row.number)
+
+    unused = sorted(set(corrections) - used_corrections) + sorted(set(ignored_headers) - used_headers)
+    if unused:
+        raise EapResolutionError(f"Correções/cabeçalhos sem linha correspondente na Árvore: {unused}")
 
     candidates: dict[str, ExtractedNode] = {}
     parent_keys: dict[str, str | None] = {}
@@ -206,6 +268,7 @@ def extract_tree(
         names = list(dict.fromkeys(item.name for item in found))
         first = found[0]
         island_label = islands[first.island_key][0] if first.island_key in islands else None
+        applied = [item.correction for item in found if item.correction is not None]
         resolution = resolutions.get(code)
         if resolution is not None:
             if resolution.level is not level or tuple(names) != resolution.source_names:
@@ -216,7 +279,13 @@ def extract_tree(
             if any(item.marker != "X" for item in found):
                 raise EapResolutionError(f"Resolução de {code}: marcador de prefixo malformado na Árvore.")
             candidates[code] = ExtractedNode(
-                level, code, resolution.canonical_name, resolution.parent_code, rows_found, resolution
+                level,
+                code,
+                resolution.canonical_name,
+                resolution.parent_code,
+                rows_found,
+                resolution,
+                applied,
             )
             parent_keys[code] = resolution.parent_code
             continue
@@ -267,7 +336,7 @@ def extract_tree(
                     ],
                 )
                 continue
-        candidates[code] = ExtractedNode(level, code, first.name, parent_code, rows_found)
+        candidates[code] = ExtractedNode(level, code, first.name, parent_code, rows_found, None, applied)
         parent_keys[code] = parent_key
 
     unused = sorted(set(resolutions) - set(occurrences))
