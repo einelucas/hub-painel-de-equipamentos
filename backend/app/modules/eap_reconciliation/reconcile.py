@@ -12,11 +12,15 @@ Regras (ordem = precedência):
    - código fora do catálogo → UNRESOLVED_UNKNOWN_CODE;
    - nome divergente do oficial → REVIEW_NAME_MISMATCH;
    - nome igual → MATCH_CODE_AND_NAME; sem nome → MATCH_CODE.
-3. Valor sem código: igualdade EXATA do nome normalizado (`comparable_eap_name`:
+3. Valor sem código listado em `non_linkable_values` (decisão aprovada, ex.: "Geral")
+   → UNRESOLVED_GENERIC_VALUE, antes de qualquer comparação de nome.
+4. Valor sem código: igualdade EXATA do nome normalizado (`comparable_eap_name`:
    acentos, caixa, espaços) — sem fuzzy, sem inferir pelo nome do equipamento.
    - 1 candidato PROCESS/AREA carregável → MATCH_UNIQUE_NAME;
    - 1 candidato em `review_required` → REVIEW_EAP_CATALOG;
    - 2+ candidatos → UNRESOLVED_AMBIGUOUS_NAME;
+   - nenhum nome oficial igual, mas alias APROVADO e versionado
+     (`app/data/eap_aliases.json`, igualdade exata) → MATCH_APPROVED_ALIAS;
    - nenhum (ou só ilha, que não é elegível) → UNRESOLVED_GENERIC_VALUE.
 
 Prefixo: o esperado do projeto é desconhecido, então nunca há
@@ -26,9 +30,11 @@ EAP_PREFIX_MISMATCH — o prefixo encontrado é só registrado como evidência
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from enum import StrEnum
+from pathlib import Path
 from typing import Any
 
 from app.domain.eap import (
@@ -38,13 +44,16 @@ from app.domain.eap import (
     comparable_eap_name,
     parse_eap_reference,
 )
-from app.modules.eap_catalog.catalog import EapCatalog
+from app.modules.eap_catalog.catalog import CATALOG_PATH, EapCatalog
+
+ALIASES_PATH = CATALOG_PATH.with_name("eap_aliases.json")
 
 
 class MatchStatus(StrEnum):
     MATCH_CODE_AND_NAME = "MATCH_CODE_AND_NAME"
     MATCH_CODE = "MATCH_CODE"
     MATCH_UNIQUE_NAME = "MATCH_UNIQUE_NAME"
+    MATCH_APPROVED_ALIAS = "MATCH_APPROVED_ALIAS"
     REVIEW_NAME_MISMATCH = "REVIEW_NAME_MISMATCH"
     REVIEW_EAP_CATALOG = "REVIEW_EAP_CATALOG"
     REVIEW_MULTIPLE_EAP = "REVIEW_MULTIPLE_EAP"
@@ -53,9 +62,53 @@ class MatchStatus(StrEnum):
     UNRESOLVED_AMBIGUOUS_NAME = "UNRESOLVED_AMBIGUOUS_NAME"
 
 
+# Únicos status que podem virar vínculo (apply).
 SAFE_STATUSES = frozenset(
-    {MatchStatus.MATCH_CODE_AND_NAME, MatchStatus.MATCH_CODE, MatchStatus.MATCH_UNIQUE_NAME}
+    {
+        MatchStatus.MATCH_CODE_AND_NAME,
+        MatchStatus.MATCH_CODE,
+        MatchStatus.MATCH_UNIQUE_NAME,
+        MatchStatus.MATCH_APPROVED_ALIAS,
+    }
 )
+
+
+class EapAliasError(ValueError):
+    pass
+
+
+@dataclass(slots=True, frozen=True)
+class ApprovedAlias:
+    alias: str
+    eap_code: str
+    decision: str
+
+
+@dataclass(slots=True, frozen=True)
+class ReconciliationDecisions:
+    """Decisões aprovadas e versionadas (`app/data/eap_aliases.json`)."""
+
+    aliases: dict[str, ApprovedAlias] = field(default_factory=dict)
+    non_linkable: dict[str, str] = field(default_factory=dict)  # texto normalizado -> motivo
+
+
+def load_decisions(path: Path = ALIASES_PATH) -> ReconciliationDecisions:
+    document = json.loads(path.read_text(encoding="utf-8"))
+    if document.get("format_version") != 1:
+        raise EapAliasError(f"format_version inesperado em {path}")
+    aliases: dict[str, ApprovedAlias] = {}
+    for item in document.get("aliases", []):
+        key = comparable_eap_name(item["alias"])
+        if key in aliases:
+            raise EapAliasError(f"alias duplicado: {item['alias']}")
+        aliases[key] = ApprovedAlias(item["alias"], item["eap_code"], item["decision"])
+    non_linkable: dict[str, str] = {}
+    for item in document.get("non_linkable_values", []):
+        key = comparable_eap_name(item["value"])
+        if key in aliases or key in non_linkable:
+            raise EapAliasError(f"valor repetido nas decisões: {item['value']}")
+        non_linkable[key] = item["decision"]
+    return ReconciliationDecisions(aliases, non_linkable)
 
 
 def category_of(status: MatchStatus) -> str:
@@ -101,7 +154,8 @@ class CatalogIndex:
     revisão e índice de nomes normalizados (incluindo os nomes em revisão,
     para que um nome que aponte para eles nunca vire match)."""
 
-    def __init__(self, catalog: EapCatalog) -> None:
+    def __init__(self, catalog: EapCatalog, decisions: ReconciliationDecisions | None = None) -> None:
+        decisions = decisions or ReconciliationDecisions()
         self.nodes = {node.code: node for node in catalog.nodes}
         self.names = {node.code: node.name for node in catalog.nodes}
         self.review = {item["code"]: item for item in catalog.review_required if item.get("code")}
@@ -111,6 +165,16 @@ class CatalogIndex:
         for item in catalog.review_required:
             for name in item.get("names_found", []):
                 self._add(NameCandidate(item.get("code"), name, item["level"], in_review=True))
+        self.aliases = dict(decisions.aliases)
+        self.non_linkable = dict(decisions.non_linkable)
+        for key, alias in self.aliases.items():
+            # Alias só preenche lacuna: nunca pode competir com um nome oficial
+            # nem apontar para nó inexistente, em revisão ou não elegível.
+            if key in self.by_name:
+                raise EapAliasError(f"alias '{alias.alias}' coincide com um nome oficial do catálogo")
+            target = self.nodes.get(alias.eap_code)
+            if target is None or target.level not in _ELIGIBLE_LEVELS or alias.eap_code in self.review:
+                raise EapAliasError(f"alias '{alias.alias}' aponta para {alias.eap_code}, que não é elegível")
 
     def _add(self, candidate: NameCandidate) -> None:
         self.by_name.setdefault(comparable_eap_name(candidate.name), []).append(candidate)
@@ -199,6 +263,13 @@ def reconcile_value(raw_value: str | None, index: CatalogIndex) -> ValueReconcil
         return result
 
     label = reference.label or raw_value
+    if comparable_eap_name(label) in index.non_linkable:
+        return ValueReconciliation(
+            raw_value,
+            MatchStatus.UNRESOLVED_GENERIC_VALUE,
+            "Valor genérico aprovado como não vinculável: " + index.non_linkable[comparable_eap_name(label)],
+            parsed_label=label,
+        )
     candidates = index.by_name.get(comparable_eap_name(label), [])
     eligible = [c for c in candidates if c.level in _ELIGIBLE_LEVELS]
     result = ValueReconciliation(
@@ -224,6 +295,16 @@ def reconcile_value(raw_value: str | None, index: CatalogIndex) -> ValueReconcil
             node.level.value,
         )
         result.reason = "Valor sem código; nome igual a um único nó oficial elegível."
+    elif comparable_eap_name(label) in index.aliases:
+        alias = index.aliases[comparable_eap_name(label)]
+        node = index.nodes[alias.eap_code]
+        result.status = MatchStatus.MATCH_APPROVED_ALIAS
+        result.matched_code, result.matched_name, result.matched_level = (
+            node.code,
+            node.name,
+            node.level.value,
+        )
+        result.reason = f"Alias EAP aprovado '{alias.alias}' → {alias.eap_code} (app/data/eap_aliases.json)."
     elif candidates:
         result.reason = "Nome corresponde só a uma ILHA, que não é elegível para equipamento."
     else:

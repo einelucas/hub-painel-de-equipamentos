@@ -30,13 +30,15 @@ from typing import Any
 
 from app.modules.eap_catalog.catalog import (
     CATALOG_PATH,
+    RESOLUTIONS_PATH,
     EapCatalogError,
     build_catalog_document,
     load_catalog,
+    load_resolutions,
     parse_catalog,
     validate_catalog,
 )
-from app.modules.eap_catalog.tree import TreeRow, extract_tree
+from app.modules.eap_catalog.tree import EapResolutionError, TreeRow, extract_tree
 
 
 def _cmd_extract(args: argparse.Namespace) -> int:
@@ -45,7 +47,11 @@ def _cmd_extract(args: argparse.Namespace) -> int:
     raw = args.workbook.read_bytes()
     sheet = read_first_sheet(raw)
     rows = [TreeRow(row.number, row.value(1), row.value(2)) for row in sheet.rows if row.number > 1]
-    tree = extract_tree(rows)
+    resolutions = load_resolutions(args.resolutions)
+    try:
+        tree = extract_tree(rows, resolutions)
+    except EapResolutionError as exc:
+        raise SystemExit(f"Extração interrompida: {exc}") from exc
     levels = Counter(node.level.value for node in tree.nodes)
     distinct_codes = {node.code for node in tree.nodes if node.level.value != "ISLAND"} | {
         item.code for item in tree.review_required if item.code and item.level.value != "ISLAND"
@@ -60,6 +66,8 @@ def _cmd_extract(args: argparse.Namespace) -> int:
             "eap_rows": tree.eap_rows,
             "island_rows": tree.island_rows,
             "non_eap_rows": tree.non_eap_rows,
+            "resolutions_file": args.resolutions.name,
+            "resolutions_applied": sorted(resolutions),
         },
         summary={
             "distinct_eap_codes": len(distinct_codes),
@@ -161,6 +169,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract = commands.add_parser("extract", help="DEV: extrai a Árvore oficial para o JSON versionado")
     extract.add_argument("workbook", type=Path)
     extract.add_argument("--out", type=Path, default=CATALOG_PATH)
+    extract.add_argument("--resolutions", type=Path, default=RESOLUTIONS_PATH)
     extract.set_defaults(handler=_cmd_extract)
 
     validate = commands.add_parser("validate", help="Valida o JSON versionado (sem banco)")

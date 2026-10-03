@@ -17,6 +17,7 @@ from typing import Any
 from app.domain.eap import EapLevel, validate_eap_node
 
 CATALOG_PATH = Path(__file__).resolve().parents[2] / "data" / "eap_catalog.json"
+RESOLUTIONS_PATH = CATALOG_PATH.with_name("eap_catalog_resolutions.json")
 CATALOG_FORMAT_VERSION = 1
 # Ilha: letras da própria Árvore ("B", "D"...). Nunca dígitos — um código
 # numérico aqui poderia ser confundido com prefixo de projeto.
@@ -153,3 +154,25 @@ def build_catalog_document(
         "nodes": nodes,
         "review_required": review_required,
     }
+
+
+def load_resolutions(path: Path = RESOLUTIONS_PATH) -> dict[str, Any]:
+    """Decisões de domínio aprovadas (código -> EapResolution) usadas na extração."""
+    from app.modules.eap_catalog.tree import EapResolution
+
+    document = json.loads(path.read_text(encoding="utf-8"))
+    if document.get("format_version") != 1:
+        raise EapCatalogError(f"format_version inesperado em {path}")
+    resolutions: dict[str, Any] = {}
+    for item in document["resolutions"]:
+        if item["code"] in resolutions:
+            raise EapCatalogError(f"resolução duplicada para {item['code']}")
+        resolutions[item["code"]] = EapResolution(
+            code=item["code"],
+            level=EapLevel(item["level"]),
+            canonical_name=item["canonical_name"],
+            parent_code=item.get("parent_code"),
+            source_names=tuple(item["source_names"]),
+            decision=item["decision"],
+        )
+    return resolutions

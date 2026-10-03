@@ -17,6 +17,7 @@ from app.modules.eap_catalog.catalog import EapCatalog
 from app.modules.eap_reconciliation.reconcile import (
     CatalogIndex,
     MatchStatus,
+    ReconciliationDecisions,
     ValueReconciliation,
     reconcile_value,
 )
@@ -95,9 +96,11 @@ def build_reconciliation(
     project: str,
     paths: list[Path],
     catalog: EapCatalog,
+    decisions: ReconciliationDecisions | None = None,
 ) -> dict[str, Any]:
+    decisions = decisions or ReconciliationDecisions()
     equipments, sources, conflicts = load_equipments(paths)
-    index = CatalogIndex(catalog)
+    index = CatalogIndex(catalog, decisions)
     records = []
     for equipment in equipments:
         result = reconcile_value(equipment.area_value, index)
@@ -120,6 +123,7 @@ def build_reconciliation(
         "matched_code_and_name": statuses[MatchStatus.MATCH_CODE_AND_NAME],
         "matched_code": statuses[MatchStatus.MATCH_CODE],
         "matched_unique_name": statuses[MatchStatus.MATCH_UNIQUE_NAME],
+        "matched_approved_alias": statuses[MatchStatus.MATCH_APPROVED_ALIAS],
         "review_name_mismatch": statuses[MatchStatus.REVIEW_NAME_MISMATCH],
         "review_catalog": statuses[MatchStatus.REVIEW_EAP_CATALOG],
         "review_multiple_eap": statuses[MatchStatus.REVIEW_MULTIPLE_EAP],
@@ -136,6 +140,11 @@ def build_reconciliation(
         ),
         "project": project,
         "catalog": {"sha256": catalog.sha256, "source": catalog.source.get("file")},
+        "approved_aliases": [
+            {"alias": alias.alias, "eapCode": alias.eap_code, "decision": alias.decision}
+            for alias in sorted(decisions.aliases.values(), key=lambda item: item.alias)
+        ],
+        "non_linkable_values": sorted(decisions.non_linkable),
         "sources": sources,
         "metrics": metrics,
         "observed_prefixes": [
