@@ -202,6 +202,16 @@ async def reconcile_domain(
                 source_startup_at,
             )
         )
+        # "5.Data de Entrega pelo contrato" vive no equipamento desde a migration 0007.
+        source_delivery_end = _as_date(normalized.get("contract_delivery_at"))
+        fields.append(
+            FieldComparison(
+                "contractual_delivery_end",
+                _compare(equipment.contractual_delivery_end, source_delivery_end),
+                equipment.contractual_delivery_end,
+                source_delivery_end,
+            )
+        )
 
         observed_stage = normalized.get("current_stage")
         phase_stage = normalized.get("group_name") and _group_phase(normalized["group_name"])
