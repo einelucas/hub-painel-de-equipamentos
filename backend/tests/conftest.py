@@ -1,11 +1,18 @@
-"""Fixtures de integração com PostgreSQL dedicado a testes.
+"""Fixtures de integração com PostgreSQL local dedicado a testes.
 
-A suíte carrega `.env.test` antes da aplicação e só permite limpeza em banco
-cujo nome termine em `_test`. Nunca aponte `.env.test` para dados reais.
+A suíte trunca todas as tabelas após cada teste de integração. Por isso:
+1. `.env.test` é carregado SEM sobrescrever variáveis já presentes no
+   ambiente (o ambiente explícito tem prioridade);
+2. o preflight `validate_destructive_test_target` valida o destino ANTES de
+   importar `app` (nenhuma engine/session existe até aqui) — só localhost,
+   banco `*_test`, `APP_ENV=test` e `ALLOW_DESTRUCTIVE_TESTS=true`;
+3. o teardown ainda confere `current_database()` como segunda barreira.
+Nunca aponte `.env.test` para Neon, DEV ou produção.
 """
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 
@@ -16,16 +23,21 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from tests.db_safety import LOCAL_HOSTS, validate_destructive_test_target
+
 _ENV_TEST_PATH = Path(__file__).resolve().parent.parent / ".env.test"
 if not _ENV_TEST_PATH.is_file():
     raise RuntimeError(
         f"'{_ENV_TEST_PATH}' não encontrado. A suíte de testes recusa-se a "
         "rodar sem um banco de dados dedicado a testes — copie "
         "'.env.test.example' para '.env.test' e ajuste DATABASE_URL para um "
-        "banco separado do usado por 'backend/.env'. NUNCA aponte os dois "
+        "banco local separado do usado por 'backend/.env'. NUNCA aponte os dois "
         "para o mesmo banco: a suíte trunca todas as tabelas a cada teste."
     )
-load_dotenv(_ENV_TEST_PATH, override=True)
+load_dotenv(_ENV_TEST_PATH, override=False)
+
+# Preflight: deve permanecer ANTES de qualquer import de `app`.
+validate_destructive_test_target(os.environ)
 
 import app.models  # noqa: E402,F401 — garante que todos os modelos estejam registrados
 from app.core.config import get_settings  # noqa: E402
@@ -34,7 +46,12 @@ from app.main import app as fastapi_app  # noqa: E402
 
 
 def _assert_connected_to_test_database(database_name: str) -> None:
-    """Recusa limpeza fora de um banco explicitamente dedicado a testes."""
+    """Segunda barreira (a primeira é o preflight acima): recusa limpeza fora
+    de um banco local explicitamente dedicado a testes."""
+    if engine.url.host not in LOCAL_HOSTS:
+        raise RuntimeError(
+            f"Recusando TRUNCATE: engine aponta para host não local '{engine.url.host}'."
+        )
     settings = get_settings()
     if settings.app_env != "test":
         raise RuntimeError(

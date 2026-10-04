@@ -61,6 +61,8 @@ jobs:
       DATABASE_URL: postgresql://equipamentos:equipamentos@localhost:5432/painel_equipamentos_test
       MIGRATION_DATABASE_URL: postgresql://equipamentos:equipamentos@localhost:5432/painel_equipamentos_test
       ALLOW_TEST_DB_MIGRATIONS: "true"
+      # Opt-in da suíte destrutiva; o conftest só o aceita com host local e banco *_test.
+      ALLOW_DESTRUCTIVE_TESTS: "true"
       CORS_ORIGINS: http://localhost:3000
       DEV_AUTH_ENABLED: "true"
       LOG_LEVEL: INFO
@@ -77,6 +79,7 @@ jobs:
           DATABASE_URL=$DATABASE_URL
           MIGRATION_DATABASE_URL=$MIGRATION_DATABASE_URL
           ALLOW_TEST_DB_MIGRATIONS=$ALLOW_TEST_DB_MIGRATIONS
+          ALLOW_DESTRUCTIVE_TESTS=$ALLOW_DESTRUCTIVE_TESTS
           CORS_ORIGINS=$CORS_ORIGINS
           DEV_AUTH_ENABLED=$DEV_AUTH_ENABLED
           LOG_LEVEL=$LOG_LEVEL
