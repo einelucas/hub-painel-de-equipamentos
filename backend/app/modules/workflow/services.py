@@ -29,7 +29,7 @@ from app.models.supplier import EquipmentSupplier
 from app.models.user import User
 from app.models.workflow_extras import OperationalStatusEvent, RequirementWaiver
 from app.modules.equipments.schemas import UserRefOut
-from app.modules.notifications.service import trigger_for_transition
+from app.modules.notifications.services import trigger_for_transition
 from app.modules.workflow.schemas import (
     AvailableTransitionsOut,
     HistoryEntryOut,

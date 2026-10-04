@@ -8,7 +8,7 @@ from app.core.database import get_session
 from app.core.permissions import Permission
 from app.domain.eap import EapLevel
 from app.models.equipment import Area, Discipline, ProjectContext, Unit, WorkPackage
-from app.modules.catalogs import service
+from app.modules.catalogs import services
 from app.modules.catalogs.schemas import (
     AreaCreateIn,
     AreaOut,
@@ -37,7 +37,7 @@ async def get_units(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    items = await service.list_units(session, actor)
+    items = await services.list_units(session, actor)
     return CatalogListOut(items=[UnitOut.model_validate(item) for item in items])
 
 
@@ -47,7 +47,7 @@ async def post_unit(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
 ) -> UnitOut:
-    item = await service.create_catalog(session, Unit, values=body.model_dump(), actor=actor)
+    item = await services.create_catalog(session, Unit, values=body.model_dump(), actor=actor)
     return UnitOut.model_validate(item)
 
 
@@ -57,7 +57,7 @@ async def get_project_contexts(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    items = await service.list_project_contexts(session, actor, unit_id)
+    items = await services.list_project_contexts(session, actor, unit_id)
     return CatalogListOut(items=[ProjectContextOut.model_validate(item) for item in items])
 
 
@@ -71,7 +71,7 @@ async def post_project_context(
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
 ) -> ProjectContextOut:
     values = body.model_dump() | {"unit_id": unit_id}
-    item = await service.create_catalog(session, ProjectContext, values=values, actor=actor)
+    item = await services.create_catalog(session, ProjectContext, values=values, actor=actor)
     return ProjectContextOut.model_validate(item)
 
 
@@ -83,7 +83,7 @@ async def get_eap_nodes(
     session: AsyncSession = Depends(get_session),
     _: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> EapNodeListOut:
-    items = await service.list_eap_nodes(
+    items = await services.list_eap_nodes(
         session, level=level.value if level else None, parent_id=parent_id, active=active
     )
     return EapNodeListOut(items=[EapNodeOut.model_validate(item) for item in items])
@@ -95,7 +95,7 @@ async def get_project_eap_nodes(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> ProjectEapListOut:
-    items = await service.list_project_eap_nodes(session, actor, project_context_id)
+    items = await services.list_project_eap_nodes(session, actor, project_context_id)
     return ProjectEapListOut(items=[ProjectEapOut.model_validate(item) for item in items])
 
 
@@ -105,7 +105,7 @@ async def get_areas(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    items = await service.list_areas(session, actor, unit_id)
+    items = await services.list_areas(session, actor, unit_id)
     return CatalogListOut(items=[AreaOut.model_validate(item) for item in items])
 
 
@@ -116,7 +116,7 @@ async def post_area(
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
 ) -> AreaOut:
     return AreaOut.model_validate(
-        await service.create_catalog(session, Area, values=body.model_dump(), actor=actor)
+        await services.create_catalog(session, Area, values=body.model_dump(), actor=actor)
     )
 
 
@@ -126,7 +126,7 @@ async def get_disciplines(
     _: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
     return CatalogListOut(
-        items=[DisciplineOut.model_validate(item) for item in await service.list_disciplines(session)]
+        items=[DisciplineOut.model_validate(item) for item in await services.list_disciplines(session)]
     )
 
 
@@ -137,7 +137,7 @@ async def post_discipline(
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
 ) -> DisciplineOut:
     return DisciplineOut.model_validate(
-        await service.create_catalog(session, Discipline, values=body.model_dump(), actor=actor)
+        await services.create_catalog(session, Discipline, values=body.model_dump(), actor=actor)
     )
 
 
@@ -147,7 +147,7 @@ async def get_work_packages(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    items = await service.list_work_packages(session, actor, project_context_id)
+    items = await services.list_work_packages(session, actor, project_context_id)
     return CatalogListOut(items=[WorkPackageOut.model_validate(item) for item in items])
 
 
@@ -158,7 +158,7 @@ async def post_work_package(
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
 ) -> WorkPackageOut:
     return WorkPackageOut.model_validate(
-        await service.create_catalog(session, WorkPackage, values=body.model_dump(), actor=actor)
+        await services.create_catalog(session, WorkPackage, values=body.model_dump(), actor=actor)
     )
 
 
@@ -173,7 +173,7 @@ async def patch_unit(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_manage),
 ) -> UnitOut:
-    item = await service.update_catalog(
+    item = await services.update_catalog(
         session, Unit, item_id=item_id, changes=body.model_dump(exclude_unset=True), actor=actor
     )
     return UnitOut.model_validate(item)
@@ -186,7 +186,7 @@ async def patch_project_context(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_manage),
 ) -> ProjectContextOut:
-    item = await service.update_catalog(
+    item = await services.update_catalog(
         session,
         ProjectContext,
         item_id=item_id,
@@ -205,7 +205,7 @@ async def patch_area(
 ) -> AreaOut:
     changes = body.model_dump(exclude_unset=True)
     changes.pop("code", None)  # área não tem código
-    item = await service.update_catalog(
+    item = await services.update_catalog(
         session, Area, item_id=item_id, changes=changes, actor=actor
     )
     return AreaOut.model_validate(item)
@@ -218,7 +218,7 @@ async def patch_discipline(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_manage),
 ) -> DisciplineOut:
-    item = await service.update_catalog(
+    item = await services.update_catalog(
         session,
         Discipline,
         item_id=item_id,
@@ -235,7 +235,7 @@ async def patch_work_package(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_manage),
 ) -> WorkPackageOut:
-    item = await service.update_catalog(
+    item = await services.update_catalog(
         session,
         WorkPackage,
         item_id=item_id,

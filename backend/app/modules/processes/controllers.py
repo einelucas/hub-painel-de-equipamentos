@@ -14,7 +14,7 @@ from app.models.process import (
     PurchaseOrder,
     PurchaseRequest,
 )
-from app.modules.processes import service
+from app.modules.processes import services
 from app.modules.processes.schemas import (
     ContractCreateIn,
     ContractListOut,
@@ -47,7 +47,7 @@ async def get_processes(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> EquipmentProcessesOut:
-    return await service.get_all_processes(session, equipment_id, actor)
+    return await services.get_all_processes(session, equipment_id, actor)
 
 
 @router.get("/equipments/{equipment_id}/negotiation", response_model=NegotiationOut)
@@ -56,9 +56,9 @@ async def get_negotiation(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> NegotiationOut:
-    await service.assert_readable(session, equipment_id, actor)
-    return service.negotiation_out(
-        equipment_id, await service.get_process(session, Negotiation, equipment_id)
+    await services.assert_readable(session, equipment_id, actor)
+    return services.negotiation_out(
+        equipment_id, await services.get_process(session, Negotiation, equipment_id)
     )
 
 
@@ -69,7 +69,7 @@ async def patch_negotiation(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> NegotiationOut:
-    item = await service.update_process(
+    item = await services.update_process(
         session,
         model=Negotiation,
         entity_name="Negotiation",
@@ -86,9 +86,9 @@ async def get_legal(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> LegalProcessOut:
-    await service.assert_readable(session, equipment_id, actor)
-    return service.legal_out(
-        equipment_id, await service.get_process(session, LegalProcess, equipment_id)
+    await services.assert_readable(session, equipment_id, actor)
+    return services.legal_out(
+        equipment_id, await services.get_process(session, LegalProcess, equipment_id)
     )
 
 
@@ -99,7 +99,7 @@ async def patch_legal(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> LegalProcessOut:
-    item = await service.update_process(
+    item = await services.update_process(
         session,
         model=LegalProcess,
         entity_name="LegalProcess",
@@ -120,9 +120,9 @@ async def list_contracts(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> ContractListOut:
-    await service.assert_readable(session, equipment_id, actor)
-    items = await service.list_items(session, Contract, equipment_id)
-    return ContractListOut(items=[service.contract_out(item) for item in items])
+    await services.assert_readable(session, equipment_id, actor)
+    items = await services.list_items(session, Contract, equipment_id)
+    return ContractListOut(items=[services.contract_out(item) for item in items])
 
 
 @router.post(
@@ -134,7 +134,7 @@ async def post_contract(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> ContractOut:
-    item = await service.create_item(
+    item = await services.create_item(
         session,
         model=Contract,
         entity_name="Contract",
@@ -142,7 +142,7 @@ async def post_contract(
         values=body.model_dump(),
         actor=actor,
     )
-    return service.contract_out(item)
+    return services.contract_out(item)
 
 
 @router.patch("/equipments/{equipment_id}/contracts/{contract_id}", response_model=ContractOut)
@@ -153,7 +153,7 @@ async def patch_contract(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> ContractOut:
-    item = await service.update_item(
+    item = await services.update_item(
         session,
         model=Contract,
         entity_name="Contract",
@@ -162,7 +162,7 @@ async def patch_contract(
         changes=body.model_dump(exclude_unset=True),
         actor=actor,
     )
-    return service.contract_out(item)
+    return services.contract_out(item)
 
 
 @router.delete(
@@ -176,7 +176,7 @@ async def delete_contract(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> None:
-    await service.delete_item(
+    await services.delete_item(
         session,
         model=Contract,
         entity_name="Contract",
@@ -200,7 +200,7 @@ async def put_contract_file(
     content = await file.read()
     if len(content) > _MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="Arquivo excede o tamanho máximo permitido (20 MB).")
-    item = await service.upload_contract_file(
+    item = await services.upload_contract_file(
         session,
         equipment_id=equipment_id,
         contract_id=contract_id,
@@ -209,7 +209,7 @@ async def put_contract_file(
         content=content,
         actor=actor,
     )
-    return service.contract_out(item)
+    return services.contract_out(item)
 
 
 @router.get("/equipments/{equipment_id}/contracts/{contract_id}/file")
@@ -219,7 +219,7 @@ async def get_contract_file(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> Response:
-    content, contract = await service.download_contract_file(
+    content, contract = await services.download_contract_file(
         session, equipment_id=equipment_id, contract_id=contract_id, actor=actor
     )
     return Response(
@@ -238,8 +238,8 @@ async def list_purchase_requests(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> PurchaseRequestListOut:
-    await service.assert_readable(session, equipment_id, actor)
-    items = await service.list_items(session, PurchaseRequest, equipment_id)
+    await services.assert_readable(session, equipment_id, actor)
+    items = await services.list_items(session, PurchaseRequest, equipment_id)
     return PurchaseRequestListOut(items=[PurchaseRequestOut.model_validate(item) for item in items])
 
 
@@ -254,7 +254,7 @@ async def post_purchase_request(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> PurchaseRequestOut:
-    item = await service.create_item(
+    item = await services.create_item(
         session,
         model=PurchaseRequest,
         entity_name="PurchaseRequest",
@@ -275,7 +275,7 @@ async def patch_purchase_request(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> PurchaseRequestOut:
-    item = await service.update_item(
+    item = await services.update_item(
         session,
         model=PurchaseRequest,
         entity_name="PurchaseRequest",
@@ -298,7 +298,7 @@ async def delete_purchase_request(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> None:
-    await service.delete_item(
+    await services.delete_item(
         session,
         model=PurchaseRequest,
         entity_name="PurchaseRequest",
@@ -317,8 +317,8 @@ async def list_purchase_orders(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> PurchaseOrderListOut:
-    await service.assert_readable(session, equipment_id, actor)
-    items = await service.list_items(session, PurchaseOrder, equipment_id)
+    await services.assert_readable(session, equipment_id, actor)
+    items = await services.list_items(session, PurchaseOrder, equipment_id)
     return PurchaseOrderListOut(items=[PurchaseOrderOut.model_validate(item) for item in items])
 
 
@@ -333,7 +333,7 @@ async def post_purchase_order(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> PurchaseOrderOut:
-    item = await service.create_item(
+    item = await services.create_item(
         session,
         model=PurchaseOrder,
         entity_name="PurchaseOrder",
@@ -352,7 +352,7 @@ async def patch_purchase_order(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> PurchaseOrderOut:
-    item = await service.update_item(
+    item = await services.update_item(
         session,
         model=PurchaseOrder,
         entity_name="PurchaseOrder",
@@ -375,7 +375,7 @@ async def delete_purchase_order(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> None:
-    await service.delete_item(
+    await services.delete_item(
         session,
         model=PurchaseOrder,
         entity_name="PurchaseOrder",

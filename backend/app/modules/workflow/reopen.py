@@ -22,7 +22,7 @@ from app.models.user import User
 from app.models.workflow_extras import ReopenRequest
 from app.modules.equipments.schemas import UserRefOut
 from app.modules.workflow.schemas import ReopenRequestListOut, ReopenRequestOut
-from app.modules.workflow.service import _get_equipment
+from app.modules.workflow.services import _get_equipment
 from app.shared.audit import record_audit
 
 

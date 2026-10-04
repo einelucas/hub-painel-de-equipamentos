@@ -87,7 +87,7 @@ def _base_load_options() -> tuple[Any, ...]:
 def _reference_date() -> date:
     """Data-base dos prazos dinâmicos (ex.: dias restantes de negociação).
     Nunca persistida — recalculada a cada leitura, mesmo padrão já usado em
-    `dashboard/service.py` (`_next_startup`)."""
+    `dashboard/services.py` (`_next_startup`)."""
     return datetime.now(UTC).date()
 
 

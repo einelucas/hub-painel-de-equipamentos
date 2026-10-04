@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.users import service
+from app.modules.users import services
 from app.modules.users.schemas import (
     CreateUserIn,
     CreateUserOut,
@@ -27,7 +27,7 @@ async def list_usuarios(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(require_permission(Permission.USERS_MANAGE)),
 ) -> UserListOut:
-    users = await service.list_users(session)
+    users = await services.list_users(session)
     return UserListOut(
         items=[
             UserListItemOut(
@@ -51,7 +51,7 @@ async def create_usuario(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(require_permission(Permission.USERS_MANAGE)),
 ) -> CreateUserOut:
-    user = await service.create_user(
+    user = await services.create_user(
         session, name=body.name, email=body.email, role=body.role, admin=current_user
     )
     return CreateUserOut(
@@ -69,7 +69,7 @@ async def update_usuario(
     current_user: CurrentUser = Depends(require_permission(Permission.USERS_MANAGE)),
 ) -> UpdateUserOut:
     changes = body.model_dump(exclude_unset=True)
-    user = await service.update_user(session, user_id=user_id, changes=changes, admin=current_user)
+    user = await services.update_user(session, user_id=user_id, changes=changes, admin=current_user)
     return UpdateUserOut(
         user=UserBasicOut(
             id=user.id, name=user.name, email=user.email, role=user.role.value, active=user.active

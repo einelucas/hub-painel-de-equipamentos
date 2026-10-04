@@ -13,7 +13,7 @@ from app.core.auth import CurrentUser
 from app.core.database import SessionLocal
 from app.core.permissions import Role
 from app.models.equipment import Equipment
-from app.modules.workflow.service import history
+from app.modules.workflow.services import history
 
 
 async def main() -> None:

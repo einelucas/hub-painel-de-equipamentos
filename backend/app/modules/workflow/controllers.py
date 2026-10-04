@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.workflow import operational_status, service
+from app.modules.workflow import operational_status, services
 from app.modules.workflow import reopen as reopen_service
 from app.modules.workflow import waivers as waivers_service
 from app.modules.workflow.schemas import (
@@ -37,7 +37,7 @@ async def get_available_transitions(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
 ) -> AvailableTransitionsOut:
-    return await service.available_transitions(session, equipment_id, actor)
+    return await services.available_transitions(session, equipment_id, actor)
 
 
 @router.post("/equipments/{equipment_id}/transitions", response_model=AvailableTransitionsOut)
@@ -47,7 +47,7 @@ async def post_transition(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_TRANSITION)),
 ) -> AvailableTransitionsOut:
-    return await service.execute_transition(
+    return await services.execute_transition(
         session,
         equipment_id=equipment_id,
         target_stage=body.target_stage,
@@ -62,7 +62,7 @@ async def get_history(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.WORKFLOW_READ)),
 ) -> HistoryOut:
-    return await service.history(session, equipment_id, actor)
+    return await services.history(session, equipment_id, actor)
 
 
 # --- Etapa 7B: estado operacional (Standby / Cancelado / Em Saneamento) ---

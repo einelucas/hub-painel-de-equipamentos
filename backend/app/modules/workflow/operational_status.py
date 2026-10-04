@@ -1,7 +1,7 @@
 """Etapa 7B — estado operacional (Standby / Cancelado / Em Saneamento).
 
 Separado da fase do processo (`Equipment.current_stage`, controlada só por
-`app.modules.workflow.service.execute_transition`). Aqui só
+`app.modules.workflow.services.execute_transition`). Aqui só
 `Equipment.operational_status` muda, e sempre acompanhado de um
 `OperationalStatusEvent` com usuário, data/hora, fase e justificativa — nunca
 um campo mutável isolado sem rastro.
@@ -19,7 +19,7 @@ from app.models.equipment import Equipment
 from app.models.workflow_extras import OperationalStatusEvent
 from app.modules.equipments.schemas import UserRefOut
 from app.modules.workflow.schemas import EquipmentOperationalStatusOut, OperationalStatusEventOut
-from app.modules.workflow.service import _get_equipment
+from app.modules.workflow.services import _get_equipment
 from app.shared.audit import record_audit
 
 _AUDIT_ACTIONS = {

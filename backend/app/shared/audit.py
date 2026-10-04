@@ -17,8 +17,8 @@ _SENSITIVE_KEYS = {"password", "passwordhash", "token", "secret", "senha"}
 # AuditLogs de migração (`monday_import/apply.py`) têm `entityId` da própria
 # sub-entidade e nenhum `metadata.equipmentId` — só resolvíveis por
 # relacionamento. Usado tanto pelo histórico do equipamento
-# (`workflow/service.py::history`) quanto pelo filtro `equipmentId` da
-# Auditoria (`audit/service.py::list_audit_logs`), para as duas telas nunca
+# (`workflow/services.py::history`) quanto pelo filtro `equipmentId` da
+# Auditoria (`audit/services.py::list_audit_logs`), para as duas telas nunca
 # divergirem em "o que conta como AuditLog deste equipamento".
 _EQUIPMENT_SUB_ENTITY_MODELS = (Negotiation, LegalProcess, Contract, PurchaseRequest, PurchaseOrder)
 

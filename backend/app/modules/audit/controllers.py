@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.audit import service
+from app.modules.audit import services
 from app.modules.audit.schemas import AuditListOut, AuditLogOut, AuditLogUserOut, AuditPaginationOut
 
 router = APIRouter()
@@ -36,7 +36,7 @@ async def list_auditoria(
     page = max(1, page)
     page_size = min(_MAX_PAGE_SIZE, max(1, page_size))
 
-    logs, total, users = await service.list_audit_logs(
+    logs, total, users = await services.list_audit_logs(
         session,
         page=page,
         page_size=page_size,

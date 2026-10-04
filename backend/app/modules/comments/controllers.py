@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.comments import service
+from app.modules.comments import services
 from app.modules.comments.schemas import CommentCreateIn, CommentListOut, CommentOut, CommentUpdateIn
 
 router = APIRouter(tags=["comentarios"])
@@ -24,7 +24,7 @@ async def get_comments(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> CommentListOut:
-    return await service.list_comments(session, equipment_id, actor)
+    return await services.list_comments(session, equipment_id, actor)
 
 
 @router.post(
@@ -36,7 +36,7 @@ async def post_comment(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> CommentOut:
-    return await service.create_comment(session, equipment_id, text=body.text, actor=actor)
+    return await services.create_comment(session, equipment_id, text=body.text, actor=actor)
 
 
 @router.patch("/equipments/{equipment_id}/comments/{comment_id}", response_model=CommentOut)
@@ -47,7 +47,7 @@ async def patch_comment(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> CommentOut:
-    return await service.update_comment(
+    return await services.update_comment(
         session, equipment_id, comment_id, text=body.text, actor=actor
     )
 
@@ -64,4 +64,4 @@ async def delete_comment(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> None:
-    await service.delete_comment(session, equipment_id, comment_id, actor)
+    await services.delete_comment(session, equipment_id, comment_id, actor)

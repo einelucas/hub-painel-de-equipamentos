@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.suppliers import service
+from app.modules.suppliers import services
 from app.modules.suppliers.schemas import (
     EquipmentSupplierLinkIn,
     EquipmentSupplierListOut,
@@ -31,7 +31,7 @@ async def get_suppliers(
     session: AsyncSession = Depends(get_session),
     _: CurrentUser = Depends(_read),
 ) -> SupplierListOut:
-    items = await service.list_suppliers(session, search=search, include_inactive=include_inactive)
+    items = await services.list_suppliers(session, search=search, include_inactive=include_inactive)
     return SupplierListOut(items=[SupplierOut.model_validate(item) for item in items])
 
 
@@ -41,7 +41,7 @@ async def post_supplier(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> SupplierOut:
-    item = await service.create_supplier(session, values=body.model_dump(), actor=actor)
+    item = await services.create_supplier(session, values=body.model_dump(), actor=actor)
     return SupplierOut.model_validate(item)
 
 
@@ -51,7 +51,7 @@ async def get_supplier(
     session: AsyncSession = Depends(get_session),
     _: CurrentUser = Depends(_read),
 ) -> SupplierOut:
-    return SupplierOut.model_validate(await service.get_supplier(session, supplier_id))
+    return SupplierOut.model_validate(await services.get_supplier(session, supplier_id))
 
 
 @router.patch("/suppliers/{supplier_id}", response_model=SupplierOut)
@@ -61,7 +61,7 @@ async def patch_supplier(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> SupplierOut:
-    item = await service.update_supplier(
+    item = await services.update_supplier(
         session,
         supplier_id=supplier_id,
         changes=body.model_dump(exclude_unset=True),
@@ -77,7 +77,7 @@ async def get_equipment_suppliers(
     actor: CurrentUser = Depends(_read),
 ) -> EquipmentSupplierListOut:
     return EquipmentSupplierListOut(
-        items=await service.list_equipment_suppliers(session, equipment_id, actor)
+        items=await services.list_equipment_suppliers(session, equipment_id, actor)
     )
 
 
@@ -92,7 +92,7 @@ async def post_equipment_supplier(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> EquipmentSupplierOut:
-    return await service.link_supplier(
+    return await services.link_supplier(
         session,
         equipment_id=equipment_id,
         supplier_id=body.supplier_id,
@@ -111,7 +111,7 @@ async def put_equipment_supplier(
 ) -> EquipmentSupplierOut:
     """Etapa 7A: substituição explícita do fornecedor único do equipamento
     — remove o vínculo atual (se houver) e cria o novo, na mesma transação."""
-    return await service.replace_supplier(
+    return await services.replace_supplier(
         session,
         equipment_id=equipment_id,
         supplier_id=body.supplier_id,
@@ -130,7 +130,7 @@ async def patch_equipment_supplier(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> EquipmentSupplierOut:
-    return await service.update_link(
+    return await services.update_link(
         session,
         equipment_id=equipment_id,
         supplier_id=supplier_id,
@@ -152,6 +152,6 @@ async def delete_equipment_supplier(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> None:
-    await service.unlink_supplier(
+    await services.unlink_supplier(
         session, equipment_id=equipment_id, supplier_id=supplier_id, actor=actor
     )

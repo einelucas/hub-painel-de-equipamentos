@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.equipments import service
+from app.modules.equipments import services
 from app.modules.equipments.schemas import (
     ComponentCreateIn,
     ComponentListOut,
@@ -40,7 +40,7 @@ async def get_equipments(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> EquipmentListOut:
-    return await service.list_equipments(
+    return await services.list_equipments(
         session,
         actor=actor,
         unit_id=unit_id,
@@ -65,7 +65,7 @@ async def post_equipment(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
 ) -> EquipmentOut:
-    return await service.create_equipment(session, values=body.model_dump(), actor=actor)
+    return await services.create_equipment(session, values=body.model_dump(), actor=actor)
 
 
 @router.get("/equipments/{equipment_id}", response_model=EquipmentDetailOut)
@@ -74,7 +74,7 @@ async def get_equipment(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> EquipmentDetailOut:
-    return await service.get_equipment_detail(session, equipment_id, actor)
+    return await services.get_equipment_detail(session, equipment_id, actor)
 
 
 @router.patch("/equipments/{equipment_id}", response_model=EquipmentOut)
@@ -84,7 +84,7 @@ async def patch_equipment(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
 ) -> EquipmentOut:
-    return await service.update_equipment(
+    return await services.update_equipment(
         session, equipment_id=equipment_id, changes=body.model_dump(exclude_unset=True), actor=actor
     )
 
@@ -97,8 +97,8 @@ async def get_components(
 ) -> ComponentListOut:
     return ComponentListOut(
         items=[
-            service.component_out(item)
-            for item in await service.list_components(session, equipment_id, actor)
+            services.component_out(item)
+            for item in await services.list_components(session, equipment_id, actor)
         ]
     )
 
@@ -114,10 +114,10 @@ async def post_component(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
 ) -> ComponentOut:
-    item = await service.create_component(
+    item = await services.create_component(
         session, equipment_id=equipment_id, values=body.model_dump(), actor=actor
     )
-    return service.component_out(item)
+    return services.component_out(item)
 
 
 @router.patch("/components/{component_id}", response_model=ComponentOut)
@@ -127,7 +127,7 @@ async def patch_component(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
 ) -> ComponentOut:
-    item = await service.update_component(
+    item = await services.update_component(
         session, component_id=component_id, changes=body.model_dump(exclude_unset=True), actor=actor
     )
-    return service.component_out(item)
+    return services.component_out(item)

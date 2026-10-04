@@ -71,8 +71,8 @@ def component_deadline_values(
 ) -> ComponentDeadlineValues:
     """Empacota `calculate_component_deadlines` num `ComponentDeadlineValues`
     pronto para `aggregate_component_deadlines`. Único ponto de conversão
-    campos-base-do-componente -> prazos — usado por `equipments/service.py`
-    (detalhe/listagem) e por `dashboard/service.py` (card "Situação de
+    campos-base-do-componente -> prazos — usado por `equipments/services.py`
+    (detalhe/listagem) e por `dashboard/services.py` (card "Situação de
     prazos"), para as duas telas nunca divergirem em como um componente vira
     prazo."""
     deadlines = calculate_component_deadlines(

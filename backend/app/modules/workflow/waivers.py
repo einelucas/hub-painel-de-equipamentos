@@ -22,7 +22,7 @@ from app.models.user import User
 from app.models.workflow_extras import RequirementWaiver
 from app.modules.equipments.schemas import UserRefOut
 from app.modules.workflow.schemas import RequirementWaiverListOut, RequirementWaiverOut
-from app.modules.workflow.service import _get_equipment
+from app.modules.workflow.services import _get_equipment
 from app.modules.workflow.stages import REASON_CODES, group_spec, is_waivable_group
 from app.shared.audit import record_audit
 
@@ -214,7 +214,7 @@ async def list_waivers(
 async def active_waivers_by_group(
     session: AsyncSession, equipment_id: str, stage: int
 ) -> dict[str, RequirementWaiver]:
-    """Usado pelo motor de avaliação (`workflow/service.py`) — dispensas
+    """Usado pelo motor de avaliação (`workflow/services.py`) — dispensas
     ACTIVE da fase informada, indexadas por `requirement_group_code`."""
     rows = (
         (

@@ -41,7 +41,7 @@ from app.modules.queues.schemas import (
     ProcurementRowOut,
     SupplierRefOut,
 )
-from app.modules.suppliers.service import primary_suppliers
+from app.modules.suppliers.services import primary_suppliers
 from app.modules.workflow.stages import FINAL_STAGE, ProcessState, groups_for
 
 # Recorte de etapas por área. Cada intervalo é inclusivo.

@@ -72,7 +72,7 @@ Novas funcionalidades podem ser adicionadas em pacotes próprios, por exemplo:
 app/modules/equipments/
 ├── controllers.py
 ├── schemas.py
-├── service.py
+├── services.py
 └── repository.py
 ```
 

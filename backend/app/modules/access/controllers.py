@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.access import service
+from app.modules.access import services
 from app.modules.access.schemas import (
     ResponsibleListOut,
     UserUnitsOut,
@@ -23,7 +23,7 @@ async def get_responsibles(
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> ResponsibleListOut:
     """Leitura própria para o formulário: não expõe a administração de usuários."""
-    return ResponsibleListOut(items=await service.list_responsibles(session, actor, unit_id))
+    return ResponsibleListOut(items=await services.list_responsibles(session, actor, unit_id))
 
 
 @router.get("/usuarios/{user_id}/units", response_model=UserUnitsOut)
@@ -32,7 +32,7 @@ async def get_user_units(
     session: AsyncSession = Depends(get_session),
     _: CurrentUser = Depends(require_permission(Permission.USERS_MANAGE)),
 ) -> UserUnitsOut:
-    return await service.get_user_units(session, user_id)
+    return await services.get_user_units(session, user_id)
 
 
 @router.put("/usuarios/{user_id}/units", response_model=UserUnitsOut)
@@ -42,6 +42,6 @@ async def put_user_units(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.USERS_MANAGE)),
 ) -> UserUnitsOut:
-    return await service.replace_user_units(
+    return await services.replace_user_units(
         session, user_id=user_id, unit_ids=body.unit_ids, actor=actor
     )

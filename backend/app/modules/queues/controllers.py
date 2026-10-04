@@ -6,13 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.queues import service
+from app.modules.queues import services
 from app.modules.queues.schemas import (
     EngineeringQueueOut,
     LegalQueueOut,
     ProcurementQueueOut,
 )
-from app.modules.queues.service import QueueFilters
+from app.modules.queues.services import QueueFilters
 
 router = APIRouter(prefix="/queues", tags=["filas"])
 
@@ -70,7 +70,7 @@ async def get_engineering_queue(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> EngineeringQueueOut:
-    return await service.engineering_queue(session, filters, actor)
+    return await services.engineering_queue(session, filters, actor)
 
 
 @router.get("/legal", response_model=LegalQueueOut)
@@ -79,7 +79,7 @@ async def get_legal_queue(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> LegalQueueOut:
-    return await service.legal_queue(session, filters, actor)
+    return await services.legal_queue(session, filters, actor)
 
 
 @router.get("/procurement", response_model=ProcurementQueueOut)
@@ -88,4 +88,4 @@ async def get_procurement_queue(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_read),
 ) -> ProcurementQueueOut:
-    return await service.procurement_queue(session, filters, actor)
+    return await services.procurement_queue(session, filters, actor)
