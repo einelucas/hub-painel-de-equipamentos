@@ -240,6 +240,25 @@ def load_profile(path: str | Path) -> ImportProfile:
         raise ImportProfileError(f"profile inválido em {source}: {exc}") from exc
 
 
+def runtime_profiles() -> list[ImportProfile]:
+    """Profiles de runtime versionados com a aplicação (`profiles/*.json`).
+
+    Fixtures de teste ficam fora deste diretório e nunca aparecem aqui.
+    """
+    return sorted(
+        (load_profile(path) for path in PROFILES_DIR.glob("*.json")),
+        key=lambda item: (item.profile_id, item.version),
+    )
+
+
+def load_runtime_profile(profile_id: str) -> ImportProfile:
+    """Seleção por ID (nunca por caminho vindo do cliente)."""
+    for profile in runtime_profiles():
+        if profile.profile_id == profile_id:
+            return profile
+    raise ImportProfileError(f"profile de importação desconhecido: {profile_id}")
+
+
 @lru_cache(maxsize=1)
 def default_profile() -> ImportProfile:
     """Profile histórico versionado: comportamento padrão quando nenhum é informado."""

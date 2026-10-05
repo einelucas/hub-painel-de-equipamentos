@@ -2,7 +2,7 @@
   "profile_id": "monday-equipamentos-legacy",
   "version": 1,
   "source_system": "monday",
-  "description": "Layout histórico do board 'Equipamentos' (variações C2/F2). Contém apenas nomes de colunas e rótulos estruturais; nenhum valor de registro. É o profile padrão quando nenhum outro é informado, preservando o comportamento anterior do parser.",
+  "description": "Board de equipamentos do Monday (layout padrão do Hub).",
   "board": {
     "title_prefixes": [
       "Equipamentos"

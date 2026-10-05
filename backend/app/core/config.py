@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     storage_provider: Literal["local"] = Field(default="local", alias="STORAGE_PROVIDER")
     storage_local_dir: str = Field(default="./var/contract-files", alias="STORAGE_LOCAL_DIR")
 
+    # P1.3 — upload de XLSX do Monday pelo Hub. Só o staging é persistido;
+    # os bytes do arquivo nunca são gravados.
+    import_max_upload_bytes: int = Field(default=10 * 1024 * 1024, alias="IMPORT_MAX_UPLOAD_BYTES")
+
     @field_validator("database_url", "migration_database_url")
     @classmethod
     def _require_asyncpg_scheme_for_app_url(cls, value: str | None) -> str | None:

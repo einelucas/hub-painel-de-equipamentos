@@ -37,6 +37,9 @@ const active = computed(() => activeNavPath(items.value, route.path));
         <!-- Rótulo só no hover/foco, como nos demais módulos do Hub. -->
         <span class="module-nav-tip" aria-hidden="true">{{ item.label }}</span>
       </NuxtLink>
+      <!-- Ações (não são rotas): separadas visualmente da navegação. -->
+      <span class="module-nav-divider" aria-hidden="true" />
+      <ImportEquipmentButton />
     </nav>
   </div>
 </template>
@@ -72,6 +75,8 @@ const active = computed(() => activeNavPath(items.value, route.path));
 .module-nav-item:hover { background: #f2f6fb; color: #2b3e58; }
 .module-nav-item:focus-visible { outline: 2px solid #304f7e; outline-offset: 2px; }
 .module-nav-item.is-active { border-color: #d5e2f3; background: #e8f1fc; color: #27456f; }
+.module-nav-divider { width: 1px; height: 26px; margin: 0 6px; background: #e4e9f0; }
+.module-nav-divider:last-child { display: none; }
 
 .module-nav-tip {
   position: absolute;
