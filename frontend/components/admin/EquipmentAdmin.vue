@@ -1,52 +1,75 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import type { CatalogItem, CatalogList } from "~/types/equipment";
+import type { CatalogItem, CatalogList, ProjectAdminTarget } from "~/types/equipment";
 
 /**
- * Administração contextual da aba Equipamentos: só os cadastros que dão
- * suporte a criar/classificar um equipamento, mais o acesso por unidade.
+ * Administração contextual da aba Equipamentos: configuração da obra
+ * (ProjectContexts), os cadastros de apoio e o acesso por unidade.
  */
 const props = defineProps<{ open: boolean; unitId: string }>();
 const emit = defineEmits<{ close: []; changed: [] }>();
 
 const api = useApi();
 const auth = useAuthStore();
-const section = ref("catalogs");
+const section = ref("projects");
 const catalog = ref("units");
 const contexts = ref<CatalogItem[]>([]);
 const selectedContext = ref("");
+/**
+ * Unidade em administração: começa pela do filtro do módulo e é compartilhada
+ * por Projetos e Catálogos dentro do painel, sem alterar o filtro global.
+ */
+const adminUnit = ref(props.unitId);
 
 const canManageCatalogs = computed(() => auth.can("catalogs:manage"));
 const canManageUsers = computed(() => auth.can("users:manage"));
 
 const sections = computed(() => {
   const items: { key: string; label: string }[] = [];
+  if (canManageCatalogs.value) items.push({ key: "projects", label: "Projetos" });
   if (canManageCatalogs.value) items.push({ key: "catalogs", label: "Catálogos" });
   if (canManageUsers.value) items.push({ key: "access", label: "Acesso às unidades" });
   return items;
 });
 
+// A seção ativa é sempre uma que o usuário pode ver (também quando o painel já nasce aberto).
+watch(
+  sections,
+  (items) => {
+    if (!items.some((item) => item.key === section.value)) section.value = items[0]?.key ?? "";
+  },
+  { immediate: true },
+);
+
+/** Ações contextuais de Projetos: só trocam para a seção/catálogo que já existe. */
+function navigate(target: ProjectAdminTarget): void {
+  section.value = target.section;
+  if (target.section === "catalogs") {
+    catalog.value = target.catalog;
+    if (target.contextId) selectedContext.value = target.contextId;
+  }
+}
+
 const CATALOGS = [
   { key: "units", label: "Unidades" },
-  { key: "contexts", label: "Contextos de projeto" },
   { key: "areas", label: "Áreas" },
   { key: "disciplines", label: "Disciplinas" },
   { key: "workPackages", label: "Work packages" },
 ];
 
 const unitHint = computed(() =>
-  props.unitId ? undefined : "Selecione uma unidade no filtro do módulo para administrar este catálogo.",
+  adminUnit.value ? undefined : "Selecione uma unidade (filtro do módulo ou aba Projetos) para administrar este catálogo.",
 );
 const contextHint = computed(() => {
-  if (!props.unitId) return unitHint.value;
+  if (!adminUnit.value) return unitHint.value;
   return selectedContext.value ? undefined : "Selecione um contexto de projeto acima.";
 });
 
 async function loadContexts(): Promise<void> {
   contexts.value = [];
-  if (!props.unitId) return;
+  if (!adminUnit.value) return;
   contexts.value = (
-    await api.get<CatalogList<CatalogItem>>(`/units/${props.unitId}/project-contexts`)
+    await api.get<CatalogList<CatalogItem>>(`/units/${adminUnit.value}/project-contexts`)
   ).items;
   if (!contexts.value.some((item) => item.id === selectedContext.value)) {
     selectedContext.value = contexts.value[0]?.id ?? "";
@@ -55,11 +78,18 @@ async function loadContexts(): Promise<void> {
 
 function onChanged(): void {
   emit("changed");
-  if (catalog.value === "contexts") void loadContexts();
+  void loadContexts();
 }
 
 watch(
-  () => [props.open, props.unitId],
+  () => props.unitId,
+  (unitId) => {
+    adminUnit.value = unitId;
+  },
+);
+
+watch(
+  () => [props.open, adminUnit.value],
   ([open]) => {
     if (open) void loadContexts();
   },
@@ -72,12 +102,19 @@ watch(
     v-model:section="section"
     :open="props.open"
     title="Administração · Equipamentos"
-    description="Cadastros de apoio à criação e classificação de equipamentos. Registros não são excluídos: use desativar."
+    description="Configuração das obras e cadastros de apoio aos equipamentos. Registros não são excluídos: use desativar."
     :sections="sections"
     @close="emit('close')"
   >
     <template #default="{ section: active }">
-      <template v-if="active === 'catalogs'">
+      <ProjectContextAdmin
+        v-if="active === 'projects'"
+        v-model:unit-id="adminUnit"
+        @changed="onChanged"
+        @navigate="navigate"
+      />
+
+      <template v-else-if="active === 'catalogs'">
         <nav class="catalog-switch" aria-label="Catálogos">
           <button
             v-for="item in CATALOGS"
@@ -99,22 +136,12 @@ watch(
           @changed="onChanged"
         />
         <CatalogAdmin
-          v-else-if="catalog === 'contexts'"
-          :path="props.unitId ? `/units/${props.unitId}/project-contexts` : '/units'"
-          label="Contextos"
-          item-path="/project-contexts"
-          :has-code="true"
-          :has-eap-prefix="true"
-          :requires-parent="unitHint"
-          @changed="onChanged"
-        />
-        <CatalogAdmin
           v-else-if="catalog === 'areas'"
           path="/areas"
           label="Áreas"
           :has-code="false"
-          :parent="{ unitId: props.unitId }"
-          :query="{ unit_id: props.unitId }"
+          :parent="{ unitId: adminUnit }"
+          :query="{ unit_id: adminUnit }"
           :requires-parent="unitHint"
           @changed="onChanged"
         />

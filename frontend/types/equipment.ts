@@ -450,6 +450,11 @@ export interface HistoryList {
   items: HistoryEntry[];
 }
 
+/** Seção do painel administrativo que uma ação contextual de Projetos abre (sem duplicar CRUD). */
+export type ProjectAdminTarget =
+  | { section: "catalogs"; catalog: "units" | "areas" | "disciplines" | "workPackages"; contextId?: string }
+  | { section: "access" };
+
 export interface CatalogList<T> {
   items: T[];
 }
