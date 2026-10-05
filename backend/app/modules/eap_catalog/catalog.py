@@ -165,7 +165,7 @@ def build_catalog_document(
         "format_version": CATALOG_FORMAT_VERSION,
         "description": (
             "Catálogo EAP corporativo extraído da Árvore de Localização oficial. Códigos sem prefixo "
-            "de projeto (o prefixo é ProjectContext.eap_prefix). Itens de review_required NÃO são "
+            "contextual (o Hub usa somente EapNode.code). Itens de review_required NÃO são "
             "carregados."
         ),
         "source": source,

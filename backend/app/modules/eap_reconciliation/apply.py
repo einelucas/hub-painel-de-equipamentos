@@ -8,7 +8,7 @@ Regras:
 - pré-validação COMPLETA antes de qualquer UPDATE; qualquer erro aborta sem escrever;
 - `eap_node_id` já igual ao alvo → unchanged; diferente → conflito → aborta tudo;
 - transação única; um AuditLog `eap_reconciliation.apply` por vínculo criado;
-- não toca em `area_id`, `project_eap`, `project_context.eap_prefix` nem em subitens.
+- não toca em `area_id`, `project_eap`, `project_context.eap_prefix` (legado) nem em subitens.
 """
 
 from __future__ import annotations

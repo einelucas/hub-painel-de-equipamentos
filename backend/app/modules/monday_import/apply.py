@@ -20,13 +20,15 @@ from app.models.equipment import Equipment, EquipmentComponent, EquipmentWorkPac
 from app.models.monday_import import MondayImportBatch, MondayImportRecord, MondayMigrationRun
 from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
 from app.modules.monday_import.plan import (
-    ComponentIdentityStrategy,
+    OPERATIONAL_TRANSITIONS,
     MigrationPlan,
     PlanItem,
     _json_safe,
+    component_identity_strategy,
     equipment_identity_strategy,
 )
 from app.modules.monday_import.service import register_external_mapping
+from app.modules.workflow.operational_status import record_operational_status_change
 from app.shared.audit import record_audit
 
 _MIGRATION_ACTION = "migration.import"
@@ -74,6 +76,31 @@ class ApplyResult:
         }
 
 
+async def _apply_operational_status(
+    session: AsyncSession,
+    *,
+    plan: MigrationPlan,
+    equipment: Equipment,
+    target: str,
+    run_id: str,
+    source_key: str,
+    actor: CurrentUser,
+) -> None:
+    """Estado operacional da origem via evento do domínio (nunca coluna isolada)."""
+    kind = OPERATIONAL_TRANSITIONS[(equipment.operational_status, target)]
+    await record_operational_status_change(
+        session,
+        equipment=equipment,
+        kind=kind,
+        resulting_status=target,
+        stage_at_event=equipment.current_stage,
+        justification="Importação Monday: estado operacional informado no status da origem.",
+        actor_id=actor.id,
+        audit_action=_MIGRATION_ACTION,
+        audit_metadata=_plan_metadata(plan, run_id, source_key, equipment_identity_strategy(source_key)),
+    )
+
+
 def _plan_metadata(
     plan: MigrationPlan, run_id: str, source_key: str, identity_strategy: str
 ) -> dict[str, Any]:
@@ -94,7 +121,12 @@ async def _apply_equipment(
         return item.target_entity_id
 
     work_package_ids: list[str] = list(item.payload.get("work_package_ids", []))
-    columns = {key: value for key, value in item.payload.items() if key != "work_package_ids"}
+    columns = {
+        key: value
+        for key, value in item.payload.items()
+        if key not in {"work_package_ids", "operational_status"}
+    }
+    operational_target = item.payload.get("operational_status")
 
     if item.action == "CREATE":
         equipment = Equipment(project_context_id=plan.project_context_id, **columns)
@@ -124,6 +156,16 @@ async def _apply_equipment(
                 plan, run_id, item.source_key, equipment_identity_strategy(item.source_key)
             ),
         )
+        if operational_target is not None:
+            await _apply_operational_status(
+                session,
+                plan=plan,
+                equipment=equipment,
+                target=operational_target,
+                run_id=run_id,
+                source_key=item.source_key,
+                actor=actor,
+            )
         return equipment.id
 
     assert item.target_entity_id is not None
@@ -167,6 +209,16 @@ async def _apply_equipment(
         new_data=_json_safe(item.payload),
         metadata=_plan_metadata(plan, run_id, item.source_key, equipment_identity_strategy(item.source_key)),
     )
+    if operational_target is not None:
+        await _apply_operational_status(
+            session,
+            plan=plan,
+            equipment=existing_equipment,
+            target=operational_target,
+            run_id=run_id,
+            source_key=item.source_key,
+            actor=actor,
+        )
     return existing_equipment.id
 
 
@@ -235,7 +287,7 @@ async def _apply_component(
             project_context_id=plan.project_context_id,
             source_entity_type="component",
             external_id=item.source_key,
-            identity_strategy=ComponentIdentityStrategy,
+            identity_strategy=component_identity_strategy(item.source_key),
             target_entity_type="EquipmentComponent",
             target_entity_id=component.id,
         )
@@ -246,7 +298,9 @@ async def _apply_component(
             entity="EquipmentComponent",
             entity_id=component.id,
             new_data=_json_safe(item.payload),
-            metadata=_plan_metadata(plan, run_id, item.source_key, ComponentIdentityStrategy),
+            metadata=_plan_metadata(
+                plan, run_id, item.source_key, component_identity_strategy(item.source_key)
+            ),
         )
         return
     assert item.target_entity_id is not None
@@ -264,7 +318,7 @@ async def _apply_component(
         entity_id=existing_component.id,
         previous_data=_json_safe(previous),
         new_data=_json_safe(item.payload),
-        metadata=_plan_metadata(plan, run_id, item.source_key, ComponentIdentityStrategy),
+        metadata=_plan_metadata(plan, run_id, item.source_key, component_identity_strategy(item.source_key)),
     )
 
 

@@ -10,8 +10,8 @@ const UNITS: Unit[] = [
 ];
 function contexts(): CatalogItem[] {
   return [
-    { id: "pc-a", code: "PA", name: "Projeto Sintético A", unitId: "u-tst", eapPrefix: "03", active: true },
-    { id: "pc-b", code: "PB", name: "Projeto Sintético B", unitId: "u-tst", eapPrefix: null, active: false },
+    { id: "pc-a", code: "PA", name: "Projeto Sintético A", unitId: "u-tst", active: true },
+    { id: "pc-b", code: "PB", name: "Projeto Sintético B", unitId: "u-tst", active: false },
   ];
 }
 
@@ -32,7 +32,7 @@ function apiMock(routes: Routes = {}) {
     if (value instanceof Error) throw value;
     return typeof value === "function" ? (value as () => unknown)() : (value ?? { items: [] });
   });
-  const post = vi.fn().mockResolvedValue({ id: "pc-new", code: "PN", name: "Projeto Novo", eapPrefix: null, active: true });
+  const post = vi.fn().mockResolvedValue({ id: "pc-new", code: "PN", name: "Projeto Novo", active: true });
   const patch = vi.fn().mockResolvedValue({});
   vi.stubGlobal("useApi", () => ({ get, post, patch }));
   return { get, post, patch };
@@ -101,10 +101,9 @@ describe("ProjectContextAdmin", () => {
     const active = wrapper.get("[data-testid='project-item-pc-a']").text();
     expect(active).toContain("PA");
     expect(active).toContain("Projeto Sintético A");
-    expect(active).toContain("Prefixo EAP 03");
     expect(active).toContain("Ativo");
     const inactive = wrapper.get("[data-testid='project-item-pc-b']");
-    expect(inactive.text()).toContain("Prefixo EAP não definido");
+    expect(wrapper.text()).not.toContain("Prefixo EAP");
     expect(inactive.text()).toContain("Inativo");
     expect(inactive.classes()).toContain("inactive");
   });
@@ -117,67 +116,42 @@ describe("ProjectContextAdmin", () => {
 
     expect(get).toHaveBeenCalledWith("/areas", { unit_id: "u-tst" });
     expect(get).toHaveBeenCalledWith("/work-packages", { project_context_id: "pc-a" });
-    expect(wrapper.get("[data-testid='readiness-eap']").text()).toBe("Definido (03)");
+    // EAP é da localização do equipamento: a obra não tem (nem pede) prefixo.
+    expect(wrapper.find("[data-testid='readiness-eap']").exists()).toBe(false);
     expect(wrapper.get("[data-testid='readiness-areas']").text()).toBe("1 ativas · 2 cadastradas");
     expect(wrapper.get("[data-testid='readiness-disciplines']").text()).toBe("1 ativas");
     expect(wrapper.get("[data-testid='readiness-work-packages']").text()).toBe("1 cadastrados");
 
     await wrapper.get("[data-testid='project-item-pc-b'] .project-card").trigger("click");
     await settle(wrapper);
-    // Prefixo ausente é informativo: nada de erro nem bloqueio.
-    expect(wrapper.get("[data-testid='readiness-eap']").text()).toBe("Não definido");
     expect(wrapper.find("[data-testid='project-readiness'] [role='alert']").exists()).toBe(false);
   });
 
-  it("cria contexto na unidade selecionada; prefixo vazio vai como null", async () => {
+  it("cria contexto na unidade selecionada só com código e nome (sem prefixo EAP)", async () => {
     const { post } = apiMock();
     stubAuth();
     const wrapper = mountAdmin();
     await settle(wrapper);
 
     await wrapper.get("[data-testid='project-new']").trigger("click");
+    expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
     await wrapper.get("[data-testid='project-code']").setValue("PN");
     await wrapper.get("[data-testid='project-name']").setValue("Projeto Novo");
-    await wrapper.get("[data-testid='project-eap-prefix']").setValue("   ");
     await wrapper.get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
 
-    expect(post).toHaveBeenCalledWith("/units/u-tst/project-contexts", {
-      code: "PN",
-      name: "Projeto Novo",
-      eapPrefix: null,
-    });
+    expect(post).toHaveBeenCalledWith("/units/u-tst/project-contexts", { code: "PN", name: "Projeto Novo" });
     expect(wrapper.emitted("changed")).toBeTruthy();
   });
 
-  it("edita pelo endpoint do contexto preservando zero à esquerda (texto, não número)", async () => {
+  it("edita pelo endpoint do contexto e reativa pelo checkbox Ativo, sem prefixo", async () => {
     const { patch } = apiMock();
     stubAuth();
     const wrapper = mountAdmin();
     await settle(wrapper);
 
     await itemButton(wrapper, "pc-b", "Editar")!.trigger("click");
-    const prefix = wrapper.get("[data-testid='project-eap-prefix']");
-    expect(prefix.attributes("type")).toBe("text");
-    await prefix.setValue("007");
-    await wrapper.get("[data-testid='project-form']").trigger("submit");
-    await settle(wrapper);
-
-    expect(patch).toHaveBeenCalledWith("/project-contexts/pc-b", {
-      code: "PB",
-      name: "Projeto Sintético B",
-      eapPrefix: "007",
-    });
-  });
-
-  it("aceita prefixo numérico e reativa pelo checkbox Ativo na edição", async () => {
-    const { patch } = apiMock();
-    stubAuth();
-    const wrapper = mountAdmin();
-    await settle(wrapper);
-
-    await itemButton(wrapper, "pc-b", "Editar")!.trigger("click");
-    await wrapper.get("[data-testid='project-eap-prefix']").setValue("24");
+    expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
     await wrapper.get("[data-testid='project-active']").setValue(true);
     await wrapper.get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
@@ -185,46 +159,8 @@ describe("ProjectContextAdmin", () => {
     expect(patch).toHaveBeenCalledWith("/project-contexts/pc-b", {
       code: "PB",
       name: "Projeto Sintético B",
-      eapPrefix: "24",
       active: true,
     });
-  });
-
-  it("recusa prefixo inválido sem chamar a API", async () => {
-    const { patch, post } = apiMock();
-    stubAuth();
-    const wrapper = mountAdmin();
-    await settle(wrapper);
-
-    await itemButton(wrapper, "pc-a", "Editar")!.trigger("click");
-    await wrapper.get("[data-testid='project-eap-prefix']").setValue("2A");
-    await wrapper.get("[data-testid='project-form']").trigger("submit");
-    await settle(wrapper);
-
-    expect(patch).not.toHaveBeenCalled();
-    expect(post).not.toHaveBeenCalled();
-    expect(wrapper.get("[data-testid='project-form'] [role='alert']").text()).toContain("só dígitos");
-  });
-
-  it("limpar o prefixo na edição envia null e nunca copia de outro contexto", async () => {
-    const { patch } = apiMock();
-    stubAuth();
-    const wrapper = mountAdmin();
-    await settle(wrapper);
-
-    await itemButton(wrapper, "pc-a", "Editar")!.trigger("click");
-    await wrapper.get("[data-testid='project-eap-prefix']").setValue("");
-    await wrapper.get("[data-testid='project-form']").trigger("submit");
-    await settle(wrapper);
-    expect(patch).toHaveBeenCalledWith("/project-contexts/pc-a", {
-      code: "PA",
-      name: "Projeto Sintético A",
-      eapPrefix: null,
-    });
-
-    // Novo contexto começa sem prefixo, mesmo existindo outro contexto com "03".
-    await wrapper.get("[data-testid='project-new']").trigger("click");
-    expect((wrapper.get("[data-testid='project-eap-prefix']").element as HTMLInputElement).value).toBe("");
   });
 
   it("desativa com confirmação e reativa sem confirmação", async () => {
@@ -275,7 +211,6 @@ describe("ProjectContextAdmin", () => {
     await wrapper.get("[data-testid='project-new']").trigger("click");
     await wrapper.get("[data-testid='project-code']").setValue("PC");
     await wrapper.get("[data-testid='project-name']").setValue("Projeto Sintético C");
-    await wrapper.get("[data-testid='project-eap-prefix']").setValue("05");
     await wrapper.get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
     expect(wrapper.get("[data-testid='project-item-pc-new']").text()).toContain("Ativo");
@@ -285,7 +220,6 @@ describe("ProjectContextAdmin", () => {
     const inactive = wrapper.get("[data-testid='project-item-pc-new']");
     expect(inactive.text()).toContain("Inativo");
     expect(inactive.classes()).toContain("inactive");
-    expect(wrapper.get("[data-testid='readiness-eap']").text()).toBe("Definido (05)");
 
     await itemButton(wrapper, "pc-new", "Reativar")!.trigger("click");
     await settle(wrapper);

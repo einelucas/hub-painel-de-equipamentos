@@ -1,6 +1,6 @@
 {
   "profile_id": "monday-equipamentos-legacy",
-  "version": 1,
+  "version": 2,
   "source_system": "monday",
   "description": "Board de equipamentos do Monday (layout padrão do Hub).",
   "board": {
@@ -36,7 +36,8 @@
         "Subelementos"
       ],
       "negotiation_status_observed": [
-        "Status Negociação"
+        "Status Negociação",
+        "Status Prazo Negociação"
       ],
       "negotiation_deadline": [
         "F.Data Limite Negociação"
@@ -55,7 +56,8 @@
         "0.Fornecedor"
       ],
       "supplier_corporate_code": [
-        "Cód. Fornecedor. CS"
+        "Cód. Fornecedor. CS",
+        "Cód. Forn. CS"
       ],
       "origin": [
         "0.Origem"
@@ -103,7 +105,8 @@
         "3.Data de Abertura do Chamado"
       ],
       "legal_ticket_number": [
-        "3.Chamado Jurídico"
+        "3.Chamado Jurídico",
+        "3.Num Cham Juridico"
       ],
       "draft_prepared": [
         "3.Elab. Minuta"
@@ -164,7 +167,20 @@
         "Custo Previsto"
       ]
     },
-    "ignored_headers": [],
+    "ignored_headers": [
+      "6.Bypass Suprimentos",
+      "A.Retomar Negociação",
+      "A.Tempo Negociação",
+      "A.Tempo Contrato",
+      "F.Contador Júridico",
+      "Contador de OC",
+      "Contador Neg Concluido",
+      "DataLimiteNegociação Mês/Ano",
+      "ESPELHO-FORMULA",
+      "Prazo Neg (dias)",
+      "Projeto",
+      "Unidade"
+    ],
     "external_id_concept": null
   },
   "component": {
@@ -200,7 +216,8 @@
         "Setor"
       ],
       "negotiation_days_remaining_observed": [
-        "Prazo Neg"
+        "Prazo Neg",
+        "Prazo"
       ],
       "contract_or_po_deadline": [
         "Data limite para contrato/OC",
@@ -248,13 +265,17 @@
       ]
     },
     "ignored_headers": [],
-    "external_id_concept": "external_id"
+    "external_id_concept": "external_id",
+    "identity_fallback": "parent_name_ordinal"
   },
   "status": {
     "values": {
       "Não se Aplica": "NOT_APPLICABLE"
     },
-    "stage_number_in_text": true
+    "stage_number_in_text": true,
+    "operational_values": {
+      "9.Em Definição/Standby": "STANDBY"
+    }
   },
   "expected_counts": null
 }

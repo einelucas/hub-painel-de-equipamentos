@@ -5,33 +5,14 @@ import pytest
 from app.domain.eap import (
     EapIssueCode,
     EapLevel,
+    EapLocationKind,
     EapRuleError,
     assert_equipment_eap_level,
-    build_full_eap_code,
     check_against_catalog,
+    extract_eap_codes,
     parse_eap_reference,
     validate_eap_node,
 )
-
-
-@pytest.mark.parametrize(
-    ("prefix", "eap", "expected"),
-    [
-        ("23", "01.A", "2301.A"),
-        ("24", "01.A", "2401.A"),
-        ("24", "08", "2408"),
-        ("123", "01.A", "12301.A"),
-        ("03", "08", "0308"),
-    ],
-)
-def test_build_full_eap_code_from_project_prefix(prefix: str, eap: str, expected: str) -> None:
-    assert build_full_eap_code(prefix, eap) == expected
-
-
-@pytest.mark.parametrize(("prefix", "eap"), [("", "01.A"), ("2A", "01.A"), ("23", "  ")])
-def test_build_full_eap_code_rejects_invalid_parts(prefix: str, eap: str) -> None:
-    with pytest.raises(ValueError):
-        build_full_eap_code(prefix, eap)
 
 
 @pytest.mark.parametrize(
@@ -51,50 +32,14 @@ def test_parses_structured_monday_values(raw: str, prefix: str, eap: str, label:
     ref = parse_eap_reference(raw)
     assert ref is not None
     assert ref.structured is True
-    assert (ref.eap_prefix, ref.eap_code, ref.label) == (prefix, eap, label)
+    assert (ref.context_prefix, ref.eap_code, ref.label) == (prefix, eap, label)
     assert ref.raw == raw
     assert ref.issues == ()
 
 
-def test_prefix_mismatch_is_flagged_never_corrected() -> None:
-    ref = parse_eap_reference("2301.A Caldeira", expected_eap_prefix="24")
-    assert ref is not None
-    assert (ref.eap_prefix, ref.eap_code, ref.label) == ("23", "01.A", "Caldeira")
-    [issue] = ref.issues
-    assert issue.code is EapIssueCode.EAP_PREFIX_MISMATCH
-    assert (issue.expected, issue.found) == ("24", "23")
-
-
-def test_unit_prefix_mismatch_no_longer_exists() -> None:
+def test_prefix_mismatch_concept_no_longer_exists() -> None:
+    assert "EAP_PREFIX_MISMATCH" not in EapIssueCode.__members__
     assert "UNIT_PREFIX_MISMATCH" not in EapIssueCode.__members__
-
-
-@pytest.mark.parametrize(
-    ("raw", "expected", "found", "eap"),
-    [
-        ("12301.A Caldeira", "23", "123", "01.A"),
-        ("2301.A Caldeira", "123", "23", "01.A"),
-        ("12308 Destilaria", "124", "123", "08"),
-    ],
-)
-def test_prefix_mismatch_with_prefixes_of_other_lengths(
-    raw: str, expected: str, found: str, eap: str
-) -> None:
-    ref = parse_eap_reference(raw, expected_eap_prefix=expected)
-    assert ref is not None
-    assert (ref.eap_prefix, ref.eap_code) == (found, eap)
-    [issue] = ref.issues
-    assert issue.code is EapIssueCode.EAP_PREFIX_MISMATCH
-    assert (issue.expected, issue.found) == (expected, found)
-
-
-@pytest.mark.parametrize(
-    ("raw", "expected"),
-    [("2304.A - Casa de Força", "23"), ("2401.A Caldeira", "24"), ("12301.A Caldeira", "123")],
-)
-def test_matching_prefix_has_no_issue(raw: str, expected: str) -> None:
-    ref = parse_eap_reference(raw, expected_eap_prefix=expected)
-    assert ref is not None and ref.issues == ()
 
 
 @pytest.mark.parametrize(
@@ -104,7 +49,7 @@ def test_unstructured_values_never_become_eap(raw: str) -> None:
     ref = parse_eap_reference(raw)
     assert ref is not None
     assert ref.structured is False
-    assert ref.eap_code is None and ref.eap_prefix is None
+    assert ref.eap_code is None and ref.context_prefix is None
     assert ref.has_issue(EapIssueCode.UNSTRUCTURED_EAP_VALUE)
 
 
@@ -120,19 +65,8 @@ def test_corporate_code_without_prefix_is_structured(raw: str, eap: str, label: 
     ref = parse_eap_reference(raw)
     assert ref is not None
     assert ref.structured is True
-    assert (ref.eap_prefix, ref.eap_code, ref.label) == (None, eap, label)
+    assert (ref.context_prefix, ref.eap_code, ref.label) == (None, eap, label)
     assert ref.issues == ()
-
-
-def test_expected_prefix_is_context_only_never_copied_into_a_value_without_prefix() -> None:
-    ref = parse_eap_reference("01.A Caldeira", expected_eap_prefix="24")
-    assert ref is not None
-    assert ref.eap_prefix is None
-    assert ref.eap_code == "01.A"
-    assert not ref.has_issue(EapIssueCode.EAP_PREFIX_MISMATCH)
-    assert ref.issues == ()
-    # composição posterior, com o prefixo do contexto do projeto
-    assert build_full_eap_code("24", ref.eap_code) == "2401.A"
 
 
 def test_code_without_prefix_must_still_exist_in_catalog() -> None:
@@ -221,3 +155,60 @@ def test_invalid_hierarchy(
     code: str, level: EapLevel, parent_code: str | None, parent_level: EapLevel | None
 ) -> None:
     assert validate_eap_node(code=code, level=level, parent_code=parent_code, parent_level=parent_level)
+
+
+# P1.3.1 — EAP canônico sem prefixo ------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "codes"),
+    [
+        ("2303 - Sistema Sintético X", ("03",)),
+        ("2316 - Sistema Sintético Y", ("16",)),
+        ("2323.I Escritório Sintético", ("23.I",)),
+        ("2104.A Área Sintética X", ("04.A",)),
+        ("2404.A Área Sintética X", ("04.A",)),
+        ("2300 - Geral Sintético", ("00",)),
+        ("2300. Geral Sintético", ("00",)),
+        ("03 Sistema Sintético", ("03",)),
+        ("2304.A - Casa Sintética/Subestação", ("04.A",)),
+    ],
+)
+def test_contextual_prefix_is_removed_from_single_eap(raw: str, codes: tuple[str, ...]) -> None:
+    location = extract_eap_codes(raw)
+    assert (location.codes, location.kind) == (codes, EapLocationKind.SINGLE)
+    assert location.raw == raw  # valor bruto preservado
+
+
+def test_same_eap_under_different_contextual_prefixes_is_the_same_code() -> None:
+    assert extract_eap_codes("2104.A X").codes == extract_eap_codes("2304.A X").codes == ("04.A",)
+
+
+@pytest.mark.parametrize(
+    ("raw", "codes"),
+    [
+        ("2309 Sintético X / 2319 Sintético Y", ("09", "19")),
+        ("2309 X/2319 Y", ("09", "19")),
+        ("2309.C Sintético / 2127.B Sintético", ("09.C", "27.B")),
+    ],
+)
+def test_multiple_eaps_are_all_kept_and_never_chosen(raw: str, codes: tuple[str, ...]) -> None:
+    location = extract_eap_codes(raw)
+    assert (location.codes, location.kind) == (codes, EapLocationKind.MULTIPLE)
+
+
+def test_same_code_twice_in_one_value_counts_once() -> None:
+    assert extract_eap_codes("2309 X / 2309 Y").codes == ("09",)
+
+
+@pytest.mark.parametrize(
+    "raw", ["Diversos", "Pré-Obra", "Outros/Diversos", "Tanques 10/20", "2.A Algo", "210 Algo", "", None]
+)
+def test_values_without_eap_have_no_candidate(raw: str | None) -> None:
+    location = extract_eap_codes(raw)
+    assert (location.codes, location.kind) == ((), EapLocationKind.NONE)
+
+
+def test_unknown_code_is_detected_but_resolution_needs_the_catalog() -> None:
+    location = extract_eap_codes("2399.Z Inexistente")
+    assert location.codes == ("99.Z",)  # candidato detectado; validação contra EapNode é do plan

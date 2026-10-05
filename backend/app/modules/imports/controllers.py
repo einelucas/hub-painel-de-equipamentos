@@ -1,4 +1,4 @@
-"""Rotas HTTP da importação Monday pelo Hub (P1.3).
+"""Rotas HTTP da importação Monday pelo Hub (P1.3 / P1.3.1).
 
 Toda rota exige `equipments:write` (importar é escrita de Equipment) e o escopo
 por unidade do ProjectContext é validado no backend — nunca só na UI.
@@ -67,23 +67,23 @@ async def get_batch(
     return await services.batch_summary(session, actor, batch_id)
 
 
-@router.post("/batches/{batch_id}/plan", response_model=ImportPlanOut)
+@router.post("/plan", response_model=ImportPlanOut)
 async def post_plan(
-    batch_id: str,
     body: ImportPlanIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> ImportPlanOut:
-    """Valida o mapping e monta o plano (somente leitura: nada é gravado no domínio)."""
-    return await services.plan_batch(session, actor, batch_id, body.mapping)
+    """Plano ÚNICO para o conjunto de batches (ex.: um XLSX por fase ocupada).
+
+    Valida o mapping e monta o plano — somente leitura: nada é gravado no domínio."""
+    return await services.plan_batches(session, actor, body.batch_ids, body.mapping)
 
 
-@router.post("/batches/{batch_id}/apply", response_model=ImportApplyOut)
+@router.post("/apply", response_model=ImportApplyOut)
 async def post_apply(
-    batch_id: str,
     body: ImportApplyIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> ImportApplyOut:
-    """Aplica o plano confirmado (409 PLAN_STALE se o plano mudou) e reconcilia."""
-    return await services.apply_batch(session, actor, batch_id, body.mapping, body.plan_sha256)
+    """Aplica o plano confirmado do conjunto (409 PLAN_STALE se o plano mudou) e reconcilia."""
+    return await services.apply_batches(session, actor, body.batch_ids, body.mapping, body.plan_sha256)

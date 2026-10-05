@@ -49,8 +49,9 @@ class Unit(Base):
 
 
 class EapNode(Base):
-    """Nó da EAP corporativa (ISLAND → PROCESS → AREA). `code` é só a parte
-    corporativa ("01", "01.A"), nunca com o prefixo do projeto ("2301.A")."""
+    """Nó da EAP corporativa (ISLAND → PROCESS → AREA). `code` é o código
+    canônico ("01", "01.A") — identidade E exibição; nunca com prefixo
+    contextual de unidade/obra/fase ("2301.A")."""
 
     __tablename__ = "eap_node"
 
@@ -112,9 +113,9 @@ class ProjectContext(Base):
     unit_id: Mapped[str] = mapped_column(ForeignKey("unit.id", ondelete="RESTRICT"), nullable=False)
     code: Mapped[str] = mapped_column(String(60), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
-    # Prefixo do código EAP exibido (ex.: Rondonópolis F1 "23", F2 "24"):
-    # informado explicitamente, nunca derivado da unidade nem de outra fase.
-    # Sem unicidade global: não há evidência de que projetos nunca o reutilizem.
+    # LEGACY / deprecated — não usar para composição do EAP. Mantido só por
+    # compatibilidade de schema (sem migration na P1.3.1): nenhuma API o lê ou
+    # grava e nenhum fluxo o concatena ao código. O Hub usa somente EapNode.code.
     eap_prefix: Mapped[str | None] = mapped_column(String(10), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)

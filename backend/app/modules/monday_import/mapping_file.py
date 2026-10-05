@@ -1,6 +1,6 @@
 """Arquivo explícito de mapeamento de catálogos Monday -> Hub.
 
-O importador nunca cria usuário, área, disciplina ou Work Package
+O importador nunca cria usuário, EAP, disciplina ou Work Package
 automaticamente. Este módulo carrega e valida um arquivo JSON que resolve os
 valores textuais observados na origem para IDs já existentes no domínio.
 """
@@ -17,7 +17,8 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.scope import user_can_access_unit
-from app.models.equipment import Area, Discipline, ProjectContext, WorkPackage
+from app.domain.eap import EQUIPMENT_EAP_LEVELS
+from app.models.equipment import Area, Discipline, EapNode, ProjectContext, WorkPackage
 from app.models.user import User
 from app.modules.monday_import.normalization import canonical_text
 
@@ -28,9 +29,13 @@ class MappingFileSchema(BaseModel):
     """Schema validado do arquivo JSON de mapeamento."""
 
     responsibles: dict[str, str] = Field(default_factory=dict)
+    # LEGADO: Area deixou de ser destino da localização (P1.3.1). Ainda é aceito e
+    # validado para não quebrar arquivos antigos, mas o plan não grava `area_id`.
     areas: dict[str, str] = Field(default_factory=dict)
     disciplines: dict[str, str] = Field(default_factory=dict)
     work_packages: dict[str, str] = Field(default_factory=dict, alias="workPackages")
+    # valor de localização da origem -> EapNode escolhido explicitamente pelo usuário
+    eap_nodes: dict[str, str] = Field(default_factory=dict, alias="eapNodes")
 
     model_config = {"populate_by_name": True}
 
@@ -50,6 +55,7 @@ class MappingFileSchema(BaseModel):
             ("areas", self.areas),
             ("disciplines", self.disciplines),
             ("workPackages", self.work_packages),
+            ("eapNodes", self.eap_nodes),
         ]
 
 
@@ -82,6 +88,7 @@ class ValidatedMapping:
     areas: dict[str, str] = field(default_factory=dict)
     disciplines: dict[str, str] = field(default_factory=dict)
     work_packages: dict[str, str] = field(default_factory=dict)
+    eap_nodes: dict[str, str] = field(default_factory=dict)
     issues: list[MappingIssue] = field(default_factory=list)
 
     @property
@@ -108,6 +115,7 @@ class ValidatedMapping:
                 "areas": len(self.areas),
                 "disciplines": len(self.disciplines),
                 "workPackages": len(self.work_packages),
+                "eapNodes": len(self.eap_nodes),
             },
             "issues": [issue.to_dict() for issue in self.issues],
         }
@@ -202,6 +210,32 @@ async def validate_mapping(
             )
         else:
             resolved_areas[canonical_text(source)] = area_id
+    if schema.areas:
+        issues.append(
+            MappingIssue(
+                "legacy_area_mapping_ignored",
+                "warning",
+                "areas",
+                "Área é legado: a localização dos equipamentos agora é a EAP (eapNodes).",
+            )
+        )
+
+    resolved_eap_nodes: dict[str, str] = {}
+    eligible_levels = {level.value for level in EQUIPMENT_EAP_LEVELS}
+    for source, eap_node_id in schema.eap_nodes.items():
+        node = await session.get(EapNode, eap_node_id)
+        if node is None or not node.active or node.level not in eligible_levels:
+            issues.append(
+                MappingIssue(
+                    "unknown_eap_node",
+                    "error",
+                    "eapNodes",
+                    f"EAP {eap_node_id} inválida, inativa ou de nível não permitido",
+                    source,
+                )
+            )
+        else:
+            resolved_eap_nodes[canonical_text(source)] = eap_node_id
 
     resolved_disciplines: dict[str, str] = {}
     for source, discipline_id in schema.disciplines.items():
@@ -252,6 +286,7 @@ async def validate_mapping(
         areas=resolved_areas,
         disciplines=resolved_disciplines,
         work_packages=resolved_work_packages,
+        eap_nodes=resolved_eap_nodes,
         issues=issues,
     )
 

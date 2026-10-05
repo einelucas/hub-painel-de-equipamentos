@@ -60,8 +60,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Prefixos observados",
         "",
-        "O prefixo esperado do projeto é desconhecido (não configurado), então não há "
-        "`EAP_PREFIX_MISMATCH`: o prefixo encontrado é só evidência (`OBSERVED_EAP_PREFIX`).",
+        "O prefixo contextual da planilha é removido do código EAP e nunca o compõe: "
+        "o prefixo encontrado é só evidência (`OBSERVED_EAP_PREFIX`).",
         "",
         "| Prefixo | Ocorrências | Equipamentos |",
         "|---|---|---|",
@@ -73,7 +73,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines += [
         "",
         f"Consistente em todo o projeto: {'sim' if report['prefix_consistent'] else 'NÃO'}. "
-        "Evidência apenas — não autoriza gravar `ProjectContext.eap_prefix`.",
+        "Evidência apenas — o Hub usa somente `EapNode.code`.",
         "",
     ]
 

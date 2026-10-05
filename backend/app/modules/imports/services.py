@@ -1,4 +1,4 @@
-"""Camada HTTP fina da importação Monday (P1.3).
+"""Camada HTTP fina da importação Monday (P1.3 / P1.3.1).
 
 Só autoriza, valida a requisição e chama o motor `app.modules.monday_import`
 (parser, staging, mapping, plan, apply, reconciliation). Nenhuma regra de
@@ -12,6 +12,7 @@ de fornecedor é criado ou alterado; isso só acontece no apply confirmado.
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from typing import Any
 
 from sqlalchemy import select
@@ -22,6 +23,7 @@ from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.scope import assert_context_allowed
 from app.models.monday_import import MondayImportBatch, MondayImportIssue, MondayImportRecord
 from app.modules.imports.schemas import (
+    EapSummaryOut,
     ImportApplyOut,
     ImportBatchOut,
     ImportDivergenceOut,
@@ -30,6 +32,7 @@ from app.modules.imports.schemas import (
     ImportProfileOut,
     ImportProfileRef,
     ImportReconciliationOut,
+    LocationValueOut,
     MappingIssueOut,
     PlanBlockedOut,
     PlanGroupOut,
@@ -38,6 +41,7 @@ from app.modules.imports.schemas import (
 )
 from app.modules.monday_import.apply import PlanBlockedError, PlanStaleError, apply_plan
 from app.modules.monday_import.domain_reconciliation import reconcile_domain
+from app.modules.monday_import.eap_resolution import EapResolver
 from app.modules.monday_import.mapping_file import MappingFileSchema, ValidatedMapping, validate_mapping
 from app.modules.monday_import.normalization import canonical_text
 from app.modules.monday_import.plan import MigrationPlan, build_plan
@@ -114,7 +118,7 @@ async def stage_upload(
         ) from exc
     batch = await session.get(MondayImportBatch, result.batch_id)
     assert batch is not None
-    summary = await _summary(session, batch, already_staged=not result.created)
+    summary = await _summary(session, batch, already_staged=not result.created and not result.restaged)
     # Só identificadores e contagens: nunca conteúdo de células.
     logger.info(
         "monday import staged batch=%s sha256=%s profile=%s created=%s equipments=%s components=%s errors=%s",
@@ -170,6 +174,13 @@ async def _summary(
         .all()
     )
     equipments = [record.normalized_payload for record in records if record.record_kind == "equipment"]
+    groups = sorted(
+        {record.group_name for record in records if record.record_kind == "equipment" and record.group_name}
+    )
+    operational = Counter(
+        str(payload["operational_status"]) for payload in equipments if payload.get("operational_status")
+    )
+    locations = await _locations(session, [payload.get("area_name") for payload in equipments])
     work_packages: list[Any] = []
     for payload in equipments:
         codes = payload.get("work_package_codes")
@@ -188,6 +199,7 @@ async def _summary(
         file_sha256=batch.file_sha256,
         board_title=batch.board_title,
         sheet_name=batch.sheet_name,
+        groups=groups,
         profile=(
             ImportProfileRef(
                 profile_id=profile["profileId"], version=profile["version"], sha256=profile["sha256"]
@@ -202,6 +214,7 @@ async def _summary(
         unknown_fields=list(summary.get("unknown_fields") or []),
         fragile_identities=sum(1 for issue in issues if issue.code == "fragile_equipment_identity"),
         unknown_statuses=sum(1 for issue in issues if issue.code == "unknown_status_value"),
+        operational_statuses=dict(operational),
         can_proceed=errors == 0,
         issues=[
             ImportIssueOut(
@@ -215,14 +228,42 @@ async def _summary(
         ],
         source_values=SourceValuesOut(
             responsibles=_distinct([payload.get("responsible_name") for payload in equipments]),
-            areas=_distinct([payload.get("area_name") for payload in equipments]),
             disciplines=_distinct([payload.get("discipline_name") for payload in equipments]),
             work_packages=_distinct(work_packages),
+            locations=locations,
         ),
     )
 
 
-# --- Checkpoint B: mapping + plan ------------------------------------------------------
+async def _locations(session: AsyncSession, values: list[Any]) -> list[LocationValueOut]:
+    """Valores de localização distintos e a EAP resolvida automaticamente (sem mapping)."""
+    resolver = await EapResolver.load(session)
+    counts: Counter[str] = Counter()
+    originals: dict[str, str] = {}
+    for value in values:
+        if isinstance(value, str) and value.strip():
+            key = canonical_text(value)
+            counts[key] += 1
+            originals.setdefault(key, value.strip())
+    result = []
+    for key in sorted(counts):
+        resolution = resolver.resolve(originals[key])
+        node = resolution.node
+        result.append(
+            LocationValueOut(
+                value=originals[key],
+                status=resolution.status,
+                candidates=list(resolution.codes),
+                eap_node_id=node.id if node else None,
+                eap_code=node.code if node else None,
+                eap_name=node.name if node else None,
+                equipments=counts[key],
+            )
+        )
+    return result
+
+
+# --- mapping + plan (conjunto de batches) ----------------------------------------------
 
 
 async def _staged_batch_ready(session: AsyncSession, actor: CurrentUser, batch_id: str) -> MondayImportBatch:
@@ -233,27 +274,34 @@ async def _staged_batch_ready(session: AsyncSession, actor: CurrentUser, batch_i
         .limit(1)
     )
     if has_errors is not None:
-        raise DomainError("A análise da planilha tem erros: corrija o arquivo e envie novamente.")
+        raise DomainError(
+            f"A análise de '{batch.source_filename}' tem erros: corrija o arquivo e envie novamente."
+        )
     return batch
 
 
-async def build_batch_plan(
-    session: AsyncSession, actor: CurrentUser, batch_id: str, mapping: MappingFileSchema
-) -> tuple[MondayImportBatch, ValidatedMapping, MigrationPlan]:
-    """Mesmo caminho do motor (validate_mapping + build_plan); usado pelo plan E pelo apply,
-    para que o apply sempre reconstrua o plano e compare o hash."""
-    batch = await _staged_batch_ready(session, actor, batch_id)
-    validated = await validate_mapping(session, mapping, project_context_id=batch.project_context_id)
+async def build_batches_plan(
+    session: AsyncSession, actor: CurrentUser, batch_ids: list[str], mapping: MappingFileSchema
+) -> tuple[str, list[str], ValidatedMapping, MigrationPlan]:
+    """Mesmo caminho do motor (validate_mapping + build_plan com N batches); usado pelo
+    plan E pelo apply, para que o apply sempre reconstrua o plano e compare o hash."""
+    unique_ids = list(dict.fromkeys(batch_ids))
+    batches = [await _staged_batch_ready(session, actor, batch_id) for batch_id in unique_ids]
+    contexts = {batch.project_context_id for batch in batches}
+    if len(contexts) != 1:
+        raise DomainError("Todos os arquivos de uma importação devem ser da mesma obra.")
+    [project_context_id] = contexts
+    validated = await validate_mapping(session, mapping, project_context_id=project_context_id)
     plan = await build_plan(
-        session, project_context_id=batch.project_context_id, batch_ids=[batch.id], mapping=validated
+        session, project_context_id=project_context_id, batch_ids=unique_ids, mapping=validated
     )
-    return batch, validated, plan
+    return project_context_id, unique_ids, validated, plan
 
 
-async def _labels(session: AsyncSession, batch_id: str) -> dict[str, str]:
+async def _labels(session: AsyncSession, batch_ids: list[str]) -> dict[str, str]:
     """source_key -> nome legível (para listar bloqueios sem expor JSON bruto)."""
     records = (
-        (await session.execute(select(MondayImportRecord).where(MondayImportRecord.batch_id == batch_id)))
+        (await session.execute(select(MondayImportRecord).where(MondayImportRecord.batch_id.in_(batch_ids))))
         .scalars()
         .all()
     )
@@ -274,11 +322,13 @@ _GROUP_LABELS = {
 }
 
 
-async def plan_batch(
-    session: AsyncSession, actor: CurrentUser, batch_id: str, mapping: MappingFileSchema
+async def plan_batches(
+    session: AsyncSession, actor: CurrentUser, batch_ids: list[str], mapping: MappingFileSchema
 ) -> ImportPlanOut:
-    batch, validated, plan = await build_batch_plan(session, actor, batch_id, mapping)
-    labels = await _labels(session, batch.id)
+    project_context_id, unique_ids, validated, plan = await build_batches_plan(
+        session, actor, batch_ids, mapping
+    )
+    labels = await _labels(session, unique_ids)
     groups = []
     blocked = []
     for name, items in plan.all_groups.items():
@@ -306,15 +356,15 @@ async def plan_batch(
             )
         )
     logger.info(
-        "monday import planned batch=%s plan=%s blocked=%s mapping_errors=%s",
-        batch.id,
+        "monday import planned batches=%s plan=%s blocked=%s mapping_errors=%s",
+        len(unique_ids),
         plan.plan_sha256,
         len(blocked),
         validated.has_errors,
     )
     return ImportPlanOut(
-        batch_id=batch.id,
-        project_context_id=batch.project_context_id,
+        batch_ids=unique_ids,
+        project_context_id=project_context_id,
         mapping_sha256=validated.sha256,
         plan_sha256=plan.plan_sha256,
         mapping_issues=[
@@ -330,12 +380,18 @@ async def plan_batch(
         groups=groups,
         blocked=blocked,
         warnings=[PlanIssueOut(code=issue.code, message=issue.message) for issue in plan.warnings],
+        eap=EapSummaryOut(
+            resolved=plan.eap_summary.get("RESOLVED", 0),
+            multiple=plan.eap_summary.get("MULTIPLE", 0),
+            none=plan.eap_summary.get("NONE", 0),
+            not_found=plan.eap_summary.get("NOT_FOUND", 0),
+        ),
         has_blocked=plan.has_blocked,
         can_apply=not plan.has_blocked and not validated.has_errors,
     )
 
 
-# --- Checkpoint D: apply + reconciliation ----------------------------------------------
+# --- apply + reconciliation ------------------------------------------------------------
 
 
 def _text(value: Any) -> str | None:
@@ -344,19 +400,21 @@ def _text(value: Any) -> str | None:
     return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
-async def apply_batch(
+async def apply_batches(
     session: AsyncSession,
     actor: CurrentUser,
-    batch_id: str,
+    batch_ids: list[str],
     mapping: MappingFileSchema,
     expected_plan_sha256: str,
 ) -> ImportApplyOut:
     """Reconstrói o plano (mesmo caminho do `plan`), confere o hash e chama `apply_plan`.
 
     O ator é sempre o usuário autenticado; o escopo por unidade já foi validado
-    ao carregar o batch. Auditoria, ExternalMapping e transação são do motor.
+    ao carregar cada batch. Auditoria, ExternalMapping e transação são do motor.
     """
-    batch, validated, plan = await build_batch_plan(session, actor, batch_id, mapping)
+    project_context_id, unique_ids, validated, plan = await build_batches_plan(
+        session, actor, batch_ids, mapping
+    )
     if validated.has_errors:
         raise DomainError("Mapping inválido: revise as associações antes de aplicar.")
     try:
@@ -366,7 +424,7 @@ async def apply_batch(
     except PlanBlockedError as exc:
         raise DomainError("O plano tem itens bloqueados e não pode ser aplicado.") from exc
 
-    report = await reconcile_domain(session, project_context_id=batch.project_context_id, mapping=validated)
+    report = await reconcile_domain(session, project_context_id=project_context_id, mapping=validated)
     divergences = [
         ImportDivergenceOut(
             equipment=item.equipment_name,
@@ -381,8 +439,8 @@ async def apply_batch(
     totals = report.field_totals
     counts = result.counts
     logger.info(
-        "monday import applied batch=%s run=%s status=%s mismatches=%s",
-        batch.id,
+        "monday import applied batches=%s run=%s status=%s mismatches=%s",
+        len(unique_ids),
         result.migration_run_id,
         result.status,
         totals["MISMATCH"],

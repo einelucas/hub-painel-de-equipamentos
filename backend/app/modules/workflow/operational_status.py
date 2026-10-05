@@ -9,6 +9,8 @@ um campo mutável isolado sem rastro.
 
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +33,46 @@ _AUDIT_ACTIONS = {
 }
 
 
+async def record_operational_status_change(
+    session: AsyncSession,
+    *,
+    equipment: Equipment,
+    kind: str,
+    resulting_status: str,
+    stage_at_event: int,
+    justification: str | None,
+    actor_id: str,
+    audit_action: str | None = None,
+    audit_metadata: dict[str, Any] | None = None,
+) -> None:
+    """Evento + estado + auditoria, SEM commit: a única forma de mudar
+    `Equipment.operational_status`. Reutilizada pela importação Monday (que
+    audita com a própria ação de migração e faz commit no fim do apply)."""
+    session.add(
+        OperationalStatusEvent(
+            equipment_id=equipment.id,
+            kind=kind,
+            resulting_status=resulting_status,
+            stage_at_event=stage_at_event,
+            justification=justification or "",
+            actor_id=actor_id,
+        )
+    )
+    previous_status = equipment.operational_status
+    equipment.operational_status = resulting_status
+    await session.flush()
+    await record_audit(
+        session,
+        user_id=actor_id,
+        action=audit_action or _AUDIT_ACTIONS[kind],
+        entity="Equipment",
+        entity_id=equipment.id,
+        previous_data={"operationalStatus": previous_status},
+        new_data={"operationalStatus": resulting_status, "justification": justification},
+        metadata={"equipmentId": equipment.id, "stageAtEvent": stage_at_event, **(audit_metadata or {})},
+    )
+
+
 async def _apply(
     session: AsyncSession,
     *,
@@ -41,28 +83,14 @@ async def _apply(
     justification: str | None,
     actor: CurrentUser,
 ) -> None:
-    session.add(
-        OperationalStatusEvent(
-            equipment_id=equipment.id,
-            kind=kind,
-            resulting_status=resulting_status,
-            stage_at_event=stage_at_event,
-            justification=justification or "",
-            actor_id=actor.id,
-        )
-    )
-    previous_status = equipment.operational_status
-    equipment.operational_status = resulting_status
-    await session.flush()
-    await record_audit(
+    await record_operational_status_change(
         session,
-        user_id=actor.id,
-        action=_AUDIT_ACTIONS[kind],
-        entity="Equipment",
-        entity_id=equipment.id,
-        previous_data={"operationalStatus": previous_status},
-        new_data={"operationalStatus": resulting_status, "justification": justification},
-        metadata={"equipmentId": equipment.id, "stageAtEvent": stage_at_event},
+        equipment=equipment,
+        kind=kind,
+        resulting_status=resulting_status,
+        stage_at_event=stage_at_event,
+        justification=justification,
+        actor_id=actor.id,
     )
     await session.commit()
 

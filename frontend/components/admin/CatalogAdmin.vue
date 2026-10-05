@@ -23,8 +23,6 @@ const props = defineProps<{
    * listados em "/units/{id}/project-contexts" mas editados em "/project-contexts/{id}".
    */
   itemPath?: string;
-  /** Exibe e edita o prefixo EAP (só contextos de projeto). */
-  hasEapPrefix?: boolean;
 }>();
 const emit = defineEmits<{ changed: [] }>();
 
@@ -36,9 +34,7 @@ const error = ref("");
 const formError = ref("");
 const editingId = ref<string | null>(null);
 const creating = ref(false);
-const form = reactive({ name: "", code: "", eapPrefix: "" });
-/** Mesma regra do backend: só dígitos, mantido como texto ("03" continua "03"). */
-const EAP_PREFIX_PATTERN = /^\d+$/;
+const form = reactive({ name: "", code: "" });
 
 const blocked = computed(() => Boolean(props.requiresParent));
 
@@ -67,7 +63,6 @@ function startCreate(): void {
   formError.value = "";
   form.name = "";
   form.code = "";
-  form.eapPrefix = "";
 }
 
 function startEdit(item: CatalogItem): void {
@@ -76,7 +71,6 @@ function startEdit(item: CatalogItem): void {
   formError.value = "";
   form.name = item.name;
   form.code = item.code ?? "";
-  form.eapPrefix = item.eapPrefix ?? "";
 }
 
 function cancel(): void {
@@ -90,17 +84,10 @@ async function submit(): Promise<void> {
     formError.value = props.hasCode ? "Informe código e nome." : "Informe o nome.";
     return;
   }
-  const eapPrefix = form.eapPrefix.trim();
-  if (props.hasEapPrefix && eapPrefix && !EAP_PREFIX_PATTERN.test(eapPrefix)) {
-    formError.value = "Prefixo EAP deve conter só dígitos (ex.: 23).";
-    return;
-  }
   saving.value = true;
   formError.value = "";
   const payload: Record<string, unknown> = { name: form.name.trim() };
   if (props.hasCode) payload.code = form.code.trim();
-  // Campo vazio = ainda não definido: envia null (NULL no banco), nunca "".
-  if (props.hasEapPrefix) payload.eapPrefix = eapPrefix || null;
   try {
     if (editingId.value) await api.patch(`${props.itemPath ?? props.path}/${editingId.value}`, payload);
     else await api.post(props.path, { ...payload, ...(props.parent ?? {}) });
@@ -149,20 +136,6 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
       <form v-if="creating || editingId" class="catalog-form" @submit.prevent="submit">
         <label v-if="props.hasCode" class="field"><span>Código *</span><input v-model="form.code" maxlength="60" required></label>
         <label class="field"><span>Nome *</span><input v-model="form.name" maxlength="200" required></label>
-        <label v-if="props.hasEapPrefix" class="field">
-          <span>Prefixo EAP</span>
-          <input
-            v-model="form.eapPrefix"
-            maxlength="10"
-            inputmode="numeric"
-            placeholder="Não definido"
-            data-testid="catalog-eap-prefix"
-          >
-          <small class="field-help">
-            Código definido oficialmente para o projeto/fase. Não é gerado automaticamente.
-            Ex.: 23 + 01.A → 2301.A
-          </small>
-        </label>
         <div class="catalog-form-actions">
           <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
           <button type="submit" class="btn small primary" :disabled="saving">
@@ -181,9 +154,6 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
         <li v-for="item in items" :key="item.id" :data-testid="`catalog-item-${item.id}`">
           <span class="catalog-name">
             <strong v-if="item.code">{{ item.code }}</strong>{{ item.name }}
-            <span v-if="props.hasEapPrefix" class="eap-prefix" data-testid="catalog-item-eap-prefix">
-              Prefixo EAP: {{ item.eapPrefix ?? "Não definido" }}
-            </span>
           </span>
           <span class="catalog-actions">
             <span class="status" :class="item.active ? 'status--on' : 'status--off'">
@@ -222,7 +192,6 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
 .status--off { background: #eef2f7; color: #6b7a8f; }
 .text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: #304f7e; font-size: 11.5px; font-weight: 750; }
 .field-help { color: #8b96a5; font-size: 11px; line-height: 1.35; }
-.eap-prefix { color: #8b96a5; font-size: 11px; }
 .spinner-small { width: 14px; height: 14px; border-width: 2px; }
 @media (max-width: 620px) { .catalog-form { grid-template-columns: 1fr; } }
 </style>

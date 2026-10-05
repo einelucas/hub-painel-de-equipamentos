@@ -48,8 +48,7 @@ em `backend/tests/fixtures/eap/`.
 - `X<letra> <nome>` sem SETOR abre um bloco de **ISLAND**. O código é a letra da
   Árvore (`B`, `C`, `D`, `E`, `F`, `H`, `I`).
 - `X<NN>` é **PROCESS** e `X<NN>.<sub>` é **AREA**. O `X` é o marcador do
-  prefixo do projeto e não faz parte da identidade (`X01.A` → `01.A`). O
-  prefixo exibido vem de `ProjectContext.eap_prefix`.
+  prefixo do projeto e não faz parte da identidade (`X01.A` → `01.A`).
 - O pai de um PROCESS é a ilha do bloco em que ele está. O pai de uma AREA é o
   PROCESS indicado pelo próprio código.
 - Linhas sem código `X…` (Materiais, Eng. Administrativa, Fluxogramas etc.) são
@@ -84,27 +83,33 @@ três linhas são descrições/atribuições do mesmo agrupamento no documento
 - Essa resolução vale só para `00`. O outro código duplicado (`15.B`) foi
   resolvido depois, por decisão própria (P0.4.1, abaixo).
 
-## Prefixo EAP do projeto
+## EAP canônica, sem prefixo (P1.3.1)
 
-- O prefixo pertence ao **projeto/fase** (`ProjectContext.eap_prefix`), não à
-  unidade nem ao catálogo. A árvore EAP é corporativa e única. O prefixo é
-  o que diferencia o código exibido em cada obra.
-- É **informado manualmente** por quem tem `catalogs:manage`, em
-  *Área EAP Sintética 1 · Equipamentos → Catálogos → Contextos de projeto* (campo
-  "Prefixo EAP"), ou via `PATCH /project-contexts/{id}` com `{"eapPrefix": "23"}`.
-- **Não é sequencial nem calculado.** Rondonópolis F1 = `23` e F2 = `24` não
-  implica F3 = `25`. Projetos diferentes podem usar o mesmo prefixo (sem
-  unicidade).
-- Só dígitos, guardado como texto: `"03"` continua `"03"`. **Pode ser NULL**
-  ("Não definido"). `{"eapPrefix": null}` limpa o valor; string vazia é
-  rejeitada. Sem prefixo, o sistema funciona normalmente; só não é possível
-  compor o código completo.
-- **Código completo é derivado, nunca persistido:** `eap_prefix + EapNode.code`
-  (`23` + `01.A` → `2301.A`), via `build_full_eap_code()` em
-  `app/domain/eap.py`.
-- Cada alteração gera um AuditLog `catalog.update` (entidade `ProjectContext`,
-  `entityId` = id do contexto), com o valor anterior e o novo, o usuário e a
-  data.
+- **Decisão vigente:** o Hub usa **somente `EapNode.code`** ("03", "04.A",
+  "23.I") para identidade e exibição. Não existe composição "prefixo + EAP" —
+  nem da unidade, nem da obra, nem da fase. A decisão anterior (prefixo do
+  projeto em `ProjectContext.eap_prefix` + `build_full_eap_code()`) foi
+  **revogada**: a função e o código de issue `EAP_PREFIX_MISMATCH` foram removidos.
+- `ProjectContext.eap_prefix` é **LEGADO**: a coluna continua no banco (sem
+  migration) só por compatibilidade de schema, mas a API não a expõe nem a
+  grava (`eapPrefix` enviado por cliente antigo é ignorado) e a interface não
+  pede prefixo ao criar/editar uma obra.
+- Valores do Monday trazem um prefixo **contextual** da planilha ("2303 - …",
+  "2104.A …", "2323.I …"). `extract_eap_codes()` (`app/domain/eap.py`) remove
+  esse prefixo pelo formato reconhecido (2+ dígitos antes dos 2 dígitos do
+  processo): `2303` → `03`, `2104.A` e `2404.A` → `04.A`, `2323.I` → `23.I`,
+  `2300.` → `00`. Nada de `codigo[2:]` cego.
+- Um valor pode citar **várias EAPs** ("2309 X / 2319 Y" → `09`, `19`): todas
+  são detectadas e nenhuma é escolhida. O equipamento tem um único
+  `eap_node_id`; um vínculo N:N é decisão de domínio futura.
+- Valores **sem código** ("Diversos", "Pré-Obra", "Outros/Diversos") não viram EAP.
+- O importador valida o código contra `EapNode` ativo (PROCESS/AREA). Sem EAP
+  única e cadastrada, o equipamento fica com `eap_node_id = NULL` e a issue
+  explícita (`MULTIPLE_EAP_CANDIDATES`, `NO_EAP`, `EAP_NOT_FOUND`); o valor
+  bruto continua no staging. O usuário pode escolher uma EAP no mapeamento
+  (`eapNodes`). Nunca há correspondência por nome.
+- `Area`/`area_id` é legado: não é mais destino da localização em importações
+  novas; equipamentos existentes não têm `area_id` alterado.
 
 ## Carga (`seed`)
 

@@ -1,6 +1,8 @@
-"""Contratos HTTP da importação Monday pelo Hub (P1.3)."""
+"""Contratos HTTP da importação Monday pelo Hub (P1.3 / P1.3.1)."""
 
 from __future__ import annotations
+
+from typing import Literal
 
 from pydantic import Field
 
@@ -35,13 +37,28 @@ class ImportIssueOut(CamelModel):
     field: str | None = None
 
 
+class LocationValueOut(CamelModel):
+    """Valor de localização da origem e a EAP que ele resolve SEM intervenção.
+
+    RESOLVED: um único código, existente no catálogo. MULTIPLE: vários códigos
+    (nenhum escolhido). NONE: sem código EAP. NOT_FOUND: código fora do catálogo."""
+
+    value: str
+    status: Literal["RESOLVED", "MULTIPLE", "NONE", "NOT_FOUND"]
+    candidates: list[str]
+    eap_node_id: str | None = None
+    eap_code: str | None = None
+    eap_name: str | None = None
+    equipments: int
+
+
 class SourceValuesOut(CamelModel):
-    """Valores observados na origem que dependem do MappingFile (catálogos do Hub)."""
+    """Valores observados na origem que dependem do mapping (catálogos do Hub)."""
 
     responsibles: list[str]
-    areas: list[str]
     disciplines: list[str]
     work_packages: list[str]
+    locations: list[LocationValueOut]
 
 
 class ImportBatchOut(CamelModel):
@@ -54,6 +71,8 @@ class ImportBatchOut(CamelModel):
     board_title: str | None
     sheet_name: str
     profile: ImportProfileRef | None
+    # Grupos (fases) presentes no arquivo; fases vazias simplesmente não aparecem.
+    groups: list[str]
     equipments: int
     components: int
     warnings: int
@@ -61,22 +80,27 @@ class ImportBatchOut(CamelModel):
     unknown_fields: list[str]
     fragile_identities: int
     unknown_statuses: int
+    # Estados operacionais declarados pela origem (ex.: {"STANDBY": 5}).
+    operational_statuses: dict[str, int]
     # Erros do staging impedem avançar para o mapping/plan.
     can_proceed: bool
     issues: list[ImportIssueOut]
     source_values: SourceValuesOut
 
 
-# --- Checkpoint B: mapping + plan ------------------------------------------------------
+# --- mapping + plan (um conjunto de batches = uma importação) --------------------------
+
+MAX_BATCHES_PER_IMPORT = 50
 
 
 class ImportPlanIn(CamelModel):
-    """Mapping interativo: valores da origem -> IDs existentes no Hub.
+    """Um ou mais batches da MESMA obra (ex.: um XLSX por fase) e um único mapping.
 
-    Mesmo contrato do MappingFile do motor (responsibles, areas, disciplines,
-    workPackages). Nunca cria User/Area/Discipline/WorkPackage.
+    Mesmo contrato do MappingFile do motor (responsibles, disciplines,
+    workPackages, eapNodes). Nunca cria User/EAP/Discipline/WorkPackage.
     """
 
+    batch_ids: list[str] = Field(min_length=1, max_length=MAX_BATCHES_PER_IMPORT)
     mapping: MappingFileSchema = Field(default_factory=MappingFileSchema)
 
 
@@ -108,8 +132,17 @@ class PlanBlockedOut(CamelModel):
     issues: list[PlanIssueOut]
 
 
+class EapSummaryOut(CamelModel):
+    """Equipamentos do plano por situação da localização."""
+
+    resolved: int
+    multiple: int
+    none: int
+    not_found: int
+
+
 class ImportPlanOut(CamelModel):
-    batch_id: str
+    batch_ids: list[str]
     project_context_id: str
     mapping_sha256: str
     plan_sha256: str
@@ -117,17 +150,19 @@ class ImportPlanOut(CamelModel):
     groups: list[PlanGroupOut]
     blocked: list[PlanBlockedOut]
     warnings: list[PlanIssueOut]
+    eap: EapSummaryOut
     has_blocked: bool
     # Só aplica sem mapping inválido e sem nenhum item BLOCKED.
     can_apply: bool
 
 
-# --- Checkpoint D: apply + reconciliation ----------------------------------------------
+# --- apply + reconciliation ----------------------------------------------------------
 
 
 class ImportApplyIn(CamelModel):
-    """O backend reconstrói o plano com este mapping e só aplica se o hash bater."""
+    """O backend reconstrói o plano com estes batches e mapping e só aplica se o hash bater."""
 
+    batch_ids: list[str] = Field(min_length=1, max_length=MAX_BATCHES_PER_IMPORT)
     mapping: MappingFileSchema = Field(default_factory=MappingFileSchema)
     plan_sha256: str = Field(min_length=64, max_length=64)
 

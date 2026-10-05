@@ -10,7 +10,7 @@ import ProjectContextAdmin from "~/components/admin/ProjectContextAdmin.vue";
 const ROUTES: Record<string, unknown> = {
   "/units": { items: [{ id: "u-tst", code: "TST", name: "Unidade Teste", active: true }] },
   "/units/u-tst/project-contexts": {
-    items: [{ id: "pc-a", code: "PA", name: "Projeto Sintético A", unitId: "u-tst", eapPrefix: "03", active: true }],
+    items: [{ id: "pc-a", code: "PA", name: "Projeto Sintético A", unitId: "u-tst", active: true }],
   },
   "/areas": { items: [{ id: "a1", name: "Área Sintética", active: true }] },
   "/disciplines": { items: [] },

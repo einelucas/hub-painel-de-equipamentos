@@ -103,11 +103,11 @@ describe("CatalogAdmin", () => {
   });
 });
 
-describe("CatalogAdmin · prefixo EAP dos contextos", () => {
+describe("CatalogAdmin · contextos de projeto", () => {
   function contexts(): CatalogItem[] {
     return [
-      { id: "pc-1", name: "Fase 1", code: "F1", eapPrefix: "23", active: true },
-      { id: "pc-2", name: "Fase 2", code: "F2", eapPrefix: null, active: true },
+      { id: "pc-1", name: "Fase 1", code: "F1", active: true },
+      { id: "pc-2", name: "Fase 2", code: "F2", active: true },
     ];
   }
 
@@ -122,7 +122,6 @@ describe("CatalogAdmin · prefixo EAP dos contextos", () => {
         itemPath: "/project-contexts",
         label: "Contextos",
         hasCode: true,
-        hasEapPrefix: true,
       },
     });
     return { wrapper, get, patch, post };
@@ -136,51 +135,15 @@ describe("CatalogAdmin · prefixo EAP dos contextos", () => {
     await edit!.trigger("click");
   }
 
-  it("mostra o prefixo definido e 'Não definido' quando é nulo", async () => {
-    const { wrapper } = mountContexts();
-    await settle(wrapper);
-
-    expect(wrapper.get("[data-testid='catalog-item-pc-1']").text()).toContain("Prefixo EAP: 23");
-    expect(wrapper.get("[data-testid='catalog-item-pc-2']").text()).toContain("Prefixo EAP: Não definido");
-  });
-
-  it("edita o prefixo pela rota de contexto, preservando zero à esquerda", async () => {
+  it("não exibe nem edita prefixo EAP (legado removido na P1.3.1)", async () => {
     const { wrapper, patch } = mountContexts();
     await settle(wrapper);
+    expect(wrapper.text()).not.toContain("Prefixo EAP");
     await editItem(wrapper, "pc-2");
-
-    const input = wrapper.get("[data-testid='catalog-eap-prefix']");
-    expect((input.element as HTMLInputElement).value).toBe("");
-    await input.setValue("03");
+    expect(wrapper.find("[data-testid='catalog-eap-prefix']").exists()).toBe(false);
     await wrapper.get("form").trigger("submit");
     await settle(wrapper);
-
-    expect(patch).toHaveBeenCalledWith("/project-contexts/pc-2", { name: "Fase 2", code: "F2", eapPrefix: "03" });
-  });
-
-  it("limpar o campo envia null, nunca string vazia", async () => {
-    const { wrapper, patch } = mountContexts();
-    await settle(wrapper);
-    await editItem(wrapper, "pc-1");
-
-    await wrapper.get("[data-testid='catalog-eap-prefix']").setValue("  ");
-    await wrapper.get("form").trigger("submit");
-    await settle(wrapper);
-
-    expect(patch).toHaveBeenCalledWith("/project-contexts/pc-1", { name: "Fase 1", code: "F1", eapPrefix: null });
-  });
-
-  it("recusa prefixo com caracteres não numéricos sem chamar a API", async () => {
-    const { wrapper, patch } = mountContexts();
-    await settle(wrapper);
-    await editItem(wrapper, "pc-1");
-
-    await wrapper.get("[data-testid='catalog-eap-prefix']").setValue("23.A");
-    await wrapper.get("form").trigger("submit");
-    await settle(wrapper);
-
-    expect(patch).not.toHaveBeenCalled();
-    expect(wrapper.get("[role='alert']").text()).toContain("Prefixo EAP deve conter só dígitos");
+    expect(patch).toHaveBeenCalledWith("/project-contexts/pc-2", { name: "Fase 2", code: "F2" });
   });
 
   it("desativar contexto também usa a rota de edição do contexto", async () => {

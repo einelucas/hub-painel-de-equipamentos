@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.models.equipment import Equipment
 from app.models.monday_import import ExternalMapping, MondayImportBatch, MondayImportRecord
+from app.modules.monday_import.eap_resolution import EapResolver
 from app.modules.monday_import.mapping_file import ValidatedMapping
 from app.modules.monday_import.mappings import SOURCE_SYSTEM
 from app.modules.monday_import.plan import _as_date, _group_phase, _merge_group
@@ -147,6 +148,7 @@ async def reconcile_domain(
     )
 
     report = DomainReconciliationReport()
+    eap_resolver = await EapResolver.load(session, mapping.eap_nodes if mapping is not None else None)
     components_compared = 0
 
     for equipment_mapping in mappings:
@@ -154,7 +156,6 @@ async def reconcile_domain(
             select(Equipment)
             .where(Equipment.id == equipment_mapping.target_entity_id)
             .options(
-                joinedload(Equipment.area),
                 joinedload(Equipment.discipline),
                 joinedload(Equipment.responsible_user),
                 selectinload(Equipment.work_package_links),
@@ -225,13 +226,31 @@ async def reconcile_domain(
             )
         )
 
-        if mapping is not None:
-            resolved_area = mapping.resolve_area(normalized.get("area_name"))
+        source_operational = normalized.get("operational_status") or "ACTIVE"
+        if not (equipment.operational_status == "IN_SANITATION" and source_operational == "ACTIVE"):
             fields.append(
                 FieldComparison(
-                    "area", _compare(equipment.area_id, resolved_area), equipment.area_id, resolved_area
+                    "operational_status",
+                    _compare(equipment.operational_status, source_operational),
+                    equipment.operational_status,
+                    source_operational,
                 )
             )
+        # Localização: só a EAP canônica é comparável; sem EAP única na origem, o
+        # vínculo fica pendente (nunca é divergência inventada).
+        eap = eap_resolver.resolve(normalized.get("area_name"))
+        fields.append(
+            FieldComparison(
+                "eap",
+                _compare(equipment.eap_node_id, eap.eap_node_id)
+                if eap.status == "RESOLVED"
+                else "NOT_COMPARABLE",
+                equipment.eap_node_id,
+                eap.eap_node_id if eap.status == "RESOLVED" else eap.raw,
+            )
+        )
+
+        if mapping is not None:
             resolved_discipline = mapping.resolve_discipline(normalized.get("discipline_name"))
             fields.append(
                 FieldComparison(
@@ -264,7 +283,7 @@ async def reconcile_domain(
                 )
             )
         else:
-            for field_name in ("area", "discipline", "responsible", "work_packages"):
+            for field_name in ("discipline", "responsible", "work_packages"):
                 fields.append(FieldComparison(field_name, "PENDING_MAPPING"))
 
         hub_equalized = equipment.negotiation.equalized if equipment.negotiation else None

@@ -23,16 +23,14 @@ Regras (ordem = precedência):
      (`app/data/eap_aliases.json`, igualdade exata) → MATCH_APPROVED_ALIAS;
    - nenhum (ou só ilha, que não é elegível) → UNRESOLVED_GENERIC_VALUE.
 
-Prefixo: o esperado do projeto é desconhecido, então nunca há
-EAP_PREFIX_MISMATCH — o prefixo encontrado é só registrado como evidência
-(`observed_prefix`), separado do código corporativo.
+Prefixo: o prefixo contextual do valor ("23" em "2301.A") é removido e só
+registrado como evidência (`observed_prefix`); nunca compõe o código EAP.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -44,6 +42,7 @@ from app.domain.eap import (
     check_against_catalog,
     comparable_eap_name,
     parse_eap_reference,
+    structured_parts,
 )
 from app.modules.eap_catalog.catalog import DEFAULT_DATA_DIR, EapCatalog, require_private_file
 
@@ -119,9 +118,6 @@ def category_of(status: MatchStatus) -> str:
     return "REVIEW" if status.value.startswith("REVIEW") else "UNRESOLVED"
 
 
-# Separadores de várias EAPs num mesmo valor ("2108 Destilaria / 2106 Fermentação").
-# Só contam quando TODAS as partes são EAP estruturadas.
-_MULTI_SEPARATOR_RE = re.compile(r"\s*(?:/|;|\n)\s*")
 _ELIGIBLE_LEVELS = frozenset({EapLevel.PROCESS, EapLevel.AREA})
 
 
@@ -191,23 +187,13 @@ def _candidate_dict(candidate: NameCandidate) -> dict[str, Any]:
     }
 
 
-def _structured_parts(raw: str) -> list[str]:
-    parts = [part for part in _MULTI_SEPARATOR_RE.split(raw) if part.strip()]
-    if len(parts) < 2:
-        return []
-    parsed = [parse_eap_reference(part) for part in parts]
-    if all(ref is not None and ref.structured for ref in parsed):
-        return parts
-    return []
-
-
 def reconcile_value(raw_value: str | None, index: CatalogIndex) -> ValueReconciliation:
     if raw_value is None or not raw_value.strip():
         return ValueReconciliation(
             raw_value, MatchStatus.UNRESOLVED_GENERIC_VALUE, "Área/EAP vazia no Monday."
         )
 
-    parts = _structured_parts(raw_value)
+    parts = structured_parts(raw_value)
     if parts:
         resolved = [reconcile_value(part, index) for part in parts]
         codes = {item.parsed_code for item in resolved}
@@ -235,7 +221,7 @@ def reconcile_value(raw_value: str | None, index: CatalogIndex) -> ValueReconcil
             raw_value,
             MatchStatus.MATCH_CODE,
             "",
-            observed_prefix=reference.eap_prefix,
+            observed_prefix=reference.context_prefix,
             parsed_code=code,
             parsed_label=reference.label,
         )

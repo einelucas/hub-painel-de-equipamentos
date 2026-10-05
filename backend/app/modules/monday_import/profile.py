@@ -29,6 +29,10 @@ PROFILES_DIR = Path(__file__).resolve().parent / "profiles"
 DEFAULT_PROFILE_PATH = PROFILES_DIR / "monday-equipamentos-legacy.json"
 NOT_APPLICABLE: Literal["NOT_APPLICABLE"] = "NOT_APPLICABLE"
 STATUS_CONCEPT = "current_stage"
+# Estados operacionais do domínio (Equipment.operational_status) que um profile pode
+# declarar para um rótulo de status da origem. IN_SANITATION fica de fora: entrar em
+# saneamento reinicia a fase (regra do workflow), o que o importador não simula.
+OperationalStatus = Literal["STANDBY", "CANCELLED"]
 # Mesma regra histórica do parser: um dígito 0-8 isolado ("3.Contrato", "Fase 3").
 _STAGE_NUMBER_RE = re.compile(r"(?:^|\s)([0-8])(?:\.|\s|$)")
 
@@ -76,6 +80,10 @@ class SectionRules(_Strict):
     ignored_headers: tuple[str, ...] = ()
     # conceito que carrega o ID estável do item na origem (None = sem ID)
     external_id_concept: str | None = None
+    # Só Component. Layout sem ID do elemento: "none" deixa o subitem sem identidade
+    # idempotente (BLOCKED no plan); "parent_name_ordinal" identifica pelo equipamento
+    # pai + nome normalizado + ordem entre irmãos de mesmo nome (frágil, avisado).
+    identity_fallback: Literal["none", "parent_name_ordinal"] = "none"
 
     def alias_map(self) -> dict[str, str]:
         return {
@@ -123,6 +131,9 @@ class StatusRules(_Strict):
 
     # rótulo exato (comparação sem acento/caixa) -> estágio ou NOT_APPLICABLE
     values: dict[str, int | Literal["NOT_APPLICABLE"]] = Field(default_factory=dict)
+    # rótulo exato -> estado operacional do domínio. Não é fase: o estágio continua
+    # vindo do grupo (quando o profile permite), nunca de um número no rótulo.
+    operational_values: dict[str, OperationalStatus] = Field(default_factory=dict)
     # True: aceita o número do estágio no texto ("3.Contrato" -> 3)
     stage_number_in_text: bool = False
 
@@ -142,6 +153,7 @@ class StageResolution(_Strict):
     stage: int | None
     not_applicable: bool
     recognized: bool
+    operational_status: OperationalStatus | None = None
 
 
 class ImportProfile(_Strict):
@@ -164,7 +176,18 @@ class ImportProfile(_Strict):
             raise ImportProfileError("component: header_markers obrigatório (ex.: 'Subitems')")
         if self.equipment.header_markers:
             raise ImportProfileError("equipment: header_markers só se aplica a component")
+        if self.equipment.identity_fallback != "none":
+            raise ImportProfileError("equipment: identity_fallback só se aplica a component")
+        if self.component.identity_fallback != "none" and self.component.external_id_concept is None:
+            raise ImportProfileError("component: identity_fallback exige external_id_concept")
         keys: set[str] = set()
+        for label in self.status.operational_values:
+            key = canonical_text(label)
+            if not key:
+                raise ImportProfileError("status: rótulo operacional em branco")
+            if key in keys:
+                raise ImportProfileError(f"status: rótulo operacional repetido '{label}'")
+            keys.add(key)
         for label, stage in self.status.values.items():
             key = canonical_text(label)
             if not key:
@@ -174,7 +197,8 @@ class ImportProfile(_Strict):
             keys.add(key)
             if isinstance(stage, int) and not 0 <= stage <= 8:
                 raise ImportProfileError(f"status: estágio fora de 0..8 para '{label}'")
-        if self.status.values and STATUS_CONCEPT not in self.equipment.aliases:
+        has_status_rules = bool(self.status.values or self.status.operational_values)
+        if has_status_rules and STATUS_CONCEPT not in self.equipment.aliases:
             raise ImportProfileError("status: há valores mapeados, mas 'current_stage' não tem alias")
         return self
 
@@ -214,6 +238,14 @@ class ImportProfile(_Strict):
         text = clean_text(raw)
         if text is None:
             return StageResolution(stage=None, not_applicable=False, recognized=True)
+        operational = {
+            canonical_text(label): status for label, status in self.status.operational_values.items()
+        }.get(canonical_text(text))
+        if operational is not None:
+            # Ex.: "9.Em Definição/Standby" é estado operacional, nunca "fase 9".
+            return StageResolution(
+                stage=None, not_applicable=False, recognized=True, operational_status=operational
+            )
         mapped = {canonical_text(label): stage for label, stage in self.status.values.items()}.get(
             canonical_text(text)
         )

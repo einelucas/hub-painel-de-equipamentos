@@ -12,9 +12,7 @@ async def _unit_and_contexts(client, admin) -> tuple[str, str, str]:
     assert unit.status_code == 201, unit.text
     unit_id = unit.json()["id"]
     url = f"/api/v1/units/{unit_id}/project-contexts"
-    first = await client.post(
-        url, json={"code": "PA", "name": "Projeto Sintético A", "eapPrefix": "03"}, headers=admin
-    )
+    first = await client.post(url, json={"code": "PA", "name": "Projeto Sintético A"}, headers=admin)
     second = await client.post(url, json={"code": "PB", "name": "Projeto Sintético B"}, headers=admin)
     assert (first.status_code, second.status_code) == (201, 201)
     return unit_id, first.json()["id"], second.json()["id"]
@@ -57,12 +55,12 @@ async def test_project_context_deactivate_stays_visible_to_admin_and_reactivates
         "PB": True,
     }
 
-    # 6/7. reativar: volta a Ativo e reaparece na listagem padrão, prefixo preservado
+    # 6/7. reativar: volta a Ativo e reaparece na listagem padrão
     reactivated = await client.patch(
         f"/api/v1/project-contexts/{context_a}", json={"active": True}, headers=admin
     )
     assert reactivated.status_code == 200
-    assert (reactivated.json()["active"], reactivated.json()["eapPrefix"]) == (True, "03")
+    assert (reactivated.json()["active"], reactivated.json()["name"]) == (True, "Projeto Sintético A")
     assert _codes(await client.get(url, headers=admin)) == {"PA": True, "PB": True}
 
 

@@ -84,7 +84,7 @@ async def test_profile_b_pipeline_stage_plan_apply_reconcile(db_session) -> None
 
     batch = await db_session.get(MondayImportBatch, staged.batch_id)
     assert batch is not None
-    assert batch.parser_version == "monday-xlsx-v3"
+    assert batch.parser_version == "monday-xlsx-v4"
     assert batch.summary["import_profiles"] == [profile_b().identity()]
 
     mapping = await validate_mapping(db_session, _mapping(ids), project_context_id=ids["context_id"])
@@ -148,7 +148,8 @@ async def test_profile_b_pipeline_stage_plan_apply_reconcile(db_session) -> None
     }
     assert set(equipments) == {"Equipamento Sintético A", "Equipamento Sintético B"}
     assert equipments["Equipamento Sintético A"].current_stage == 2
-    assert equipments["Equipamento Sintético A"].area_id == ids["area_id"]
+    # P1.3.1: Area legada não é mais destino da localização
+    assert equipments["Equipamento Sintético A"].area_id is None
     assert equipments["Equipamento Sintético A"].responsible_user_id == ids["responsible_id"]
     components = (await db_session.execute(select(EquipmentComponent))).scalars().all()
     assert len(components) == 3
@@ -210,3 +211,25 @@ async def test_unknown_status_blocks_and_group_is_not_stage_authority(db_session
     assert all(item.action == "BLOCKED" for item in plan.equipments)
     # o grupo ("Stage 2 ...") NÃO foi usado como fase no lugar do status desconhecido
     assert "STAGE_CONFLICT" not in codes
+
+
+async def test_new_version_of_same_profile_restages_unapplied_batch(db_session) -> None:
+    """P1.3.1: profile versionado evoluiu → batch nunca aplicado é reanalisado no mesmo batch."""
+    ids = await _seed(db_session)
+    source = layout_b_xlsx()
+    first = await stage_import(
+        db_session, project_context_id=ids["context_id"], source=source, profile=profile_b()
+    )
+    newer = profile_b().model_copy(update={"version": 2, "description": "versão sintética 2"})
+    again = await stage_import(db_session, project_context_id=ids["context_id"], source=source, profile=newer)
+    assert (again.batch_id, again.created, again.restaged) == (first.batch_id, False, True)
+    assert again.records == first.records
+    batch = await db_session.get(MondayImportBatch, first.batch_id)
+    assert batch is not None and batch.summary["import_profiles"] == [newer.identity()]
+
+    # depois de aplicado, nem a nova versão reinterpreta o arquivo
+    batch.status = "APPLIED"
+    await db_session.flush()
+    newest = profile_b().model_copy(update={"version": 3, "description": "versão sintética 3"})
+    with pytest.raises(StagedWithDifferentProfileError):
+        await stage_import(db_session, project_context_id=ids["context_id"], source=source, profile=newest)

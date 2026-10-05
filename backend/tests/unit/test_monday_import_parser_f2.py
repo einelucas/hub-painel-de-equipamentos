@@ -104,8 +104,10 @@ def test_prefixed_f2_subitem_columns_map_to_the_c2_concepts() -> None:
     assert component.normalized["delivery_deadline"] == "2027-11-17"
     assert component.normalized["contract_delivery_at"] == "2027-10-01"
     assert component.raw["1.TAG"] == "SC-02"
-    # "Prazo" tem significado incerto: preservado só no bruto, sem mapeamento.
-    assert "Prazo" in parsed.unknown_component_fields
+    # P1.3.1: "Prazo" do subitem validado em UAT como o mesmo conceito de "Prazo Neg"
+    # (prazo de negociação − data da exportação, em todas as linhas analisadas).
+    assert "Prazo" not in parsed.unknown_component_fields
+    assert component.normalized["negotiation_days_remaining_observed"] == 244
     assert component.raw["Prazo"] == 244
 
 

@@ -1,4 +1,4 @@
-"""P1.3 — apply + reconciliation pela API (somente dados sintéticos e PostgreSQL local)."""
+"""P1.3 / P1.3.1 — apply + reconciliation pela API (somente dados sintéticos e PostgreSQL local)."""
 
 from __future__ import annotations
 
@@ -12,10 +12,11 @@ from app.models.monday_import import MondayMigrationRun
 from tests.integration.test_imports_plan import mapping, plan, seed, stage, synthetic_board
 
 
-async def apply(client, headers, batch_id: str, body: dict, plan_sha: str):
+async def apply(client, headers, batch_ids: str | list[str], body: dict, plan_sha: str):
+    ids = [batch_ids] if isinstance(batch_ids, str) else batch_ids
     return await client.post(
-        f"/api/v1/imports/monday/batches/{batch_id}/apply",
-        json={"mapping": body, "planSha256": plan_sha},
+        "/api/v1/imports/monday/apply",
+        json={"batchIds": ids, "mapping": body, "planSha256": plan_sha},
         headers=headers,
     )
 
@@ -28,7 +29,7 @@ async def _count(db_session, model) -> int:
 async def test_apply_creates_audits_actor_reconciles_and_reimport_is_noop(
     client, auth_header, db_session
 ) -> None:
-    ids = await seed(client, auth_header)
+    ids = await seed(client, auth_header, db_session)
     analyst = auth_header("ANALYST")
     content = synthetic_board()
     batch = await stage(client, analyst, ids["context"], content)
@@ -44,11 +45,12 @@ async def test_apply_creates_audits_actor_reconciles_and_reimport_is_noop(
     assert body["reconciliation"]["equipmentsCompared"] == 1
 
     equipment = (await db_session.execute(select(Equipment))).scalar_one()
-    assert (equipment.name, equipment.area_id, equipment.responsible_user_id) == (
+    assert (equipment.name, equipment.eap_node_id, equipment.responsible_user_id) == (
         "Equipamento Sintético A",
-        ids["area"],
+        ids["eap"],
         ids["responsible"],
     )
+    assert equipment.area_id is None  # Area legada não é mais destino da localização
     # ator vem da sessão autenticada (nunca informado pela UI)
     run = (await db_session.execute(select(MondayMigrationRun))).scalar_one()
     assert run.actor_id == ids["responsible"]  # o ANALYST autenticado
@@ -71,7 +73,7 @@ async def test_apply_creates_audits_actor_reconciles_and_reimport_is_noop(
 
 
 async def test_new_snapshot_updates_existing_equipment(client, auth_header, db_session) -> None:
-    ids = await seed(client, auth_header)
+    ids = await seed(client, auth_header, db_session)
     admin = auth_header("ADMIN")
     first = await stage(client, admin, ids["context"], synthetic_board())
     planned = (await plan(client, admin, first["batchId"], mapping(ids))).json()
@@ -94,7 +96,7 @@ async def test_new_snapshot_updates_existing_equipment(client, auth_header, db_s
 
 
 async def test_stale_plan_hash_is_rejected_with_409(client, auth_header, db_session) -> None:
-    ids = await seed(client, auth_header)
+    ids = await seed(client, auth_header, db_session)
     admin = auth_header("ADMIN")
     batch = await stage(client, admin, ids["context"], synthetic_board())
     planned = (await plan(client, admin, batch["batchId"], mapping(ids))).json()
@@ -114,7 +116,7 @@ async def test_stale_plan_hash_is_rejected_with_409(client, auth_header, db_sess
 
 
 async def test_blocked_plan_or_invalid_mapping_never_applies(client, auth_header, db_session) -> None:
-    ids = await seed(client, auth_header)
+    ids = await seed(client, auth_header, db_session)
     admin = auth_header("ADMIN")
     batch = await stage(client, admin, ids["context"], synthetic_board())
 
@@ -123,7 +125,9 @@ async def test_blocked_plan_or_invalid_mapping_never_applies(client, auth_header
     refused = await apply(client, admin, batch["batchId"], {}, blocked["planSha256"])
     assert refused.status_code == 422
 
-    invalid = mapping(ids) | {"areas": {"Área Origem": "00000000-0000-0000-0000-000000000000"}}
+    invalid = mapping(ids) | {
+        "eapNodes": {"2303 - Sistema Sintético": "00000000-0000-0000-0000-000000000000"}
+    }
     invalid_plan = (await plan(client, admin, batch["batchId"], invalid)).json()
     rejected = await apply(client, admin, batch["batchId"], invalid, invalid_plan["planSha256"])
     assert rejected.status_code == 422
@@ -131,7 +135,7 @@ async def test_blocked_plan_or_invalid_mapping_never_applies(client, auth_header
 
 
 async def test_apply_respects_unit_scope_and_permission(client, auth_header, db_session) -> None:
-    ids = await seed(client, auth_header)
+    ids = await seed(client, auth_header, db_session)
     admin = auth_header("ADMIN")
     batch = await stage(client, admin, ids["context"], synthetic_board())
     planned = (await plan(client, admin, batch["batchId"], mapping(ids))).json()

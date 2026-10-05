@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,19 +22,21 @@ from app.modules.monday_import.dry_run import build_dry_run_report
 from app.modules.monday_import.mappings import SOURCE_SYSTEM
 from app.modules.monday_import.parser import PARSER_VERSION, parse_monday_xlsx
 from app.modules.monday_import.profile import ImportProfile, default_profile
-from app.modules.monday_import.schemas import StageImportResult
+from app.modules.monday_import.schemas import ParsedWorkbook, StageImportResult
 
 
 class StagedWithDifferentProfileError(ValueError):
     """O mesmo arquivo já foi staged neste contexto com outro ImportProfile."""
 
 
-def _batch_profile_sha(summary: dict | None) -> str:
-    """Batches anteriores à P1.1 não registram profile: foram lidos pelo profile histórico."""
+def _batch_profile(summary: dict | None) -> tuple[str, str]:
+    """(profileId, sha256) usados no batch. Batches anteriores à P1.1 não registram
+    profile: foram lidos pelo profile histórico."""
     recorded = (summary or {}).get("import_profiles") or []
     if recorded:
-        return str(recorded[0].get("sha256"))
-    return default_profile().sha256
+        return str(recorded[0].get("profileId")), str(recorded[0].get("sha256"))
+    profile = default_profile()
+    return profile.profile_id, profile.sha256
 
 
 @dataclass(slots=True, frozen=True)
@@ -110,13 +112,36 @@ async def stage_import(
         )
         if existing is None:  # pragma: no cover - defesa contra anomalia transacional
             raise RuntimeError("conflito de batch sem registro recuperável")
-        if _batch_profile_sha(existing.summary) != profile.sha256:
+        staged_profile_id, staged_sha = _batch_profile(existing.summary)
+        if staged_sha == profile.sha256:
+            return await _existing_batch_result(session, existing.id)
+        if existing.status != "STAGED" or staged_profile_id != profile.profile_id:
+            # Outro profile, ou batch já usado para escrever no domínio: reinterpretar
+            # mudaria a evidência. Só uma NOVA VERSÃO do mesmo profile reanalisa.
             raise StagedWithDifferentProfileError(
                 f"arquivo já staged no batch {existing.id} com outro ImportProfile; "
                 "use o mesmo profile ou um contexto/arquivo novo"
             )
-        return await _existing_batch_result(session, existing.id)
+        # Batch nunca aplicado e nova versão do mesmo profile: a análise é refeita
+        # no MESMO batch, substituindo só o staging.
+        await session.execute(delete(MondayImportIssue).where(MondayImportIssue.batch_id == existing.id))
+        await session.execute(delete(MondayImportRecord).where(MondayImportRecord.batch_id == existing.id))
+        existing.source_filename = workbook.source_file
+        existing.board_title = workbook.board_title
+        existing.sheet_name = workbook.sheet_name
+        existing.parser_version = PARSER_VERSION
+        existing.summary = report_payload
+        await session.flush()
+        result = await _write_staging(session, existing.id, workbook)
+        return StageImportResult(
+            batch_id=existing.id, created=False, records=result.records, issues=result.issues, restaged=True
+        )
 
+    return await _write_staging(session, inserted_id, workbook)
+
+
+async def _write_staging(session: AsyncSession, batch_id: str, workbook: ParsedWorkbook) -> StageImportResult:
+    inserted_id = batch_id
     row_records: dict[int, str] = {}
     record_count = 0
     for equipment in workbook.equipments:

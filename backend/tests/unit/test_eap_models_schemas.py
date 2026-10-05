@@ -8,7 +8,6 @@ from sqlalchemy import CheckConstraint, Index
 
 from app.models.equipment import EapNode, Equipment, ProjectContext, ProjectEap, Unit
 from app.modules.catalogs.schemas import (
-    CatalogUpdateIn,
     EapNodeCreateIn,
     ProjectContextCreateIn,
     ProjectContextOut,
@@ -35,29 +34,20 @@ def test_unit_has_no_numeric_code_and_keeps_code_as_acronym() -> None:
     assert "numeric_code" not in UnitCreateIn.model_fields
 
 
-def test_project_context_eap_prefix_is_optional_digits_only_and_not_globally_unique() -> None:
+def test_project_context_eap_prefix_is_legacy_schema_only() -> None:
+    """Coluna mantida no banco (sem migration), mas fora de toda a API."""
     table = ProjectContext.__table__
     assert table.c.eap_prefix.nullable is True
-    assert "project_context_eap_prefix_check" in _checks(ProjectContext)
-    assert not any(
-        index.unique and [c.name for c in index.columns] == ["eap_prefix"] for index in table.indexes
+    assert "eap_prefix" not in ProjectContextOut.model_fields
+    assert "eap_prefix" not in ProjectContextCreateIn.model_fields
+    assert "eap_prefix" not in ProjectContextUpdateIn.model_fields
+
+
+def test_project_context_create_ignores_legacy_prefix_from_old_clients() -> None:
+    body = ProjectContextCreateIn.model_validate(
+        {"code": "PA", "name": "Projeto Sintético A", "eapPrefix": "23"}
     )
-    assert "eap_prefix" in ProjectContextOut.model_fields
-
-
-@pytest.mark.parametrize("prefix", ["23", "24", "03", "123"])
-def test_project_context_create_accepts_numeric_prefixes(prefix: str) -> None:
-    assert ProjectContextCreateIn(code="F1", name="Fase 1", eap_prefix=prefix).eap_prefix == prefix
-
-
-def test_project_context_create_keeps_prefix_optional() -> None:
-    assert ProjectContextCreateIn(code="C2", name="Caldeira 2").eap_prefix is None
-
-
-@pytest.mark.parametrize("prefix", ["", "ABC", "23A", "23.A", "RDN", "-1", "2A"])
-def test_project_context_create_rejects_non_numeric_prefixes(prefix: str) -> None:
-    with pytest.raises(ValidationError):
-        ProjectContextCreateIn(code="F1", name="Fase 1", eap_prefix=prefix)
+    assert body.model_dump() == {"code": "PA", "name": "Projeto Sintético A"}
 
 
 def test_eap_node_shape_hierarchy_and_unique_code() -> None:
@@ -90,11 +80,6 @@ def test_equipment_keeps_area_id_and_gains_optional_eap_node_id() -> None:
     assert "equipment_eap_node_id_idx" in _indexes(Equipment)
 
 
-def test_generic_catalog_update_does_not_change_eap_prefix() -> None:
-    """Alteração futura será uma operação administrativa específica e auditada."""
-    assert "eap_prefix" not in CatalogUpdateIn.model_fields
-
-
 def test_eap_node_create_accepts_corporate_codes() -> None:
     assert EapNodeCreateIn(code="01", name="Geração de Vapor", level="PROCESS").parent_id is None
     area = EapNodeCreateIn(code="01.A", name="Caldeira", level="AREA", parent_id="p-1")
@@ -116,29 +101,8 @@ def test_eap_node_create_rejects_invalid_payloads(payload: dict) -> None:
         EapNodeCreateIn(**payload)
 
 
-@pytest.mark.parametrize("prefix", ["03", "21", "23", "24", "123"])
-def test_project_context_update_accepts_digit_prefixes_as_text(prefix: str) -> None:
-    body = ProjectContextUpdateIn(eap_prefix=prefix)
-    assert body.model_dump(exclude_unset=True) == {"eap_prefix": prefix}
-
-
-def test_project_context_update_preserves_leading_zero() -> None:
-    assert ProjectContextUpdateIn.model_validate({"eapPrefix": "03"}).eap_prefix == "03"
-
-
-def test_project_context_update_explicit_null_clears_and_omitted_keeps() -> None:
-    cleared = ProjectContextUpdateIn.model_validate({"eapPrefix": None})
-    assert cleared.model_dump(exclude_unset=True) == {"eap_prefix": None}
-    renamed = ProjectContextUpdateIn.model_validate({"name": "Fase 2"})
-    assert "eap_prefix" not in renamed.model_dump(exclude_unset=True)
-
-
-@pytest.mark.parametrize("prefix", ["", "ABC", "23A", "23.A", "RDN", "-1", "2A", " 23", 23])
-def test_project_context_update_rejects_invalid_prefixes(prefix: object) -> None:
+def test_project_context_update_ignores_legacy_prefix() -> None:
+    renamed = ProjectContextUpdateIn.model_validate({"name": "Projeto Sintético B", "eapPrefix": "03"})
+    assert renamed.model_dump(exclude_unset=True) == {"name": "Projeto Sintético B"}
     with pytest.raises(ValidationError):
-        ProjectContextUpdateIn.model_validate({"eapPrefix": prefix})
-
-
-def test_project_context_update_requires_some_field() -> None:
-    with pytest.raises(ValidationError):
-        ProjectContextUpdateIn.model_validate({})
+        ProjectContextUpdateIn.model_validate({"eapPrefix": "03"})  # nenhum campo atualizável

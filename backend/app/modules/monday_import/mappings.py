@@ -95,7 +95,6 @@ DATE_FIELDS: Final = {
     "delivery_deadline",
     "startup_at",
     "contract_or_po_deadline",
-    "contract_delivery_mirror",
     "negotiated_at",
     "legal_opened_at",
     "contract_executed_at",
@@ -106,6 +105,9 @@ DATE_FIELDS: Final = {
     "collection_available_at",
     "formula_date_observed",
 }
+# Espelhos do Monday que listam as datas dos subitens ("2027-01-10, 2027-02-03"):
+# lista de datas distintas, nunca forçada a uma data única.
+DATE_LIST_FIELDS: Final = {"contract_delivery_mirror"}
 BOOLEAN_FIELDS: Final = {"equalized", "draft_prepared", "draft_approved"}
 NONNEGATIVE_INTEGER_FIELDS: Final = {
     "lead_time_days_mirror",
@@ -131,3 +133,13 @@ def provisional_equipment_key(name: str) -> str:
 def fallback_component_key(parent_key: str, name: str, row_number: int) -> str:
     digest = sha256(f"{parent_key}|{normalized_name(name)}|{row_number}".encode()).hexdigest()[:20]
     return f"missing-external-id:{digest}"
+
+
+def parent_name_ordinal_component_key(parent_key: str, name: str, ordinal: int) -> str:
+    """Identidade de subitem sem ID do elemento (profile `identity_fallback`).
+
+    Não depende da linha da planilha: o mesmo equipamento em outro arquivo de
+    fase, ou com outros equipamentos acima, mantém a mesma chave. O ordinal só
+    distingue irmãos com o MESMO nome normalizado, na ordem em que aparecem."""
+    digest = sha256(f"{parent_key}|{normalized_name(name)}|{ordinal}".encode()).hexdigest()[:20]
+    return f"parent-name-ordinal:{digest}"

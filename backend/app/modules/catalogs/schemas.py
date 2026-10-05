@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from app.domain.eap import AREA_CODE_RE, EAP_PREFIX_RE, PROCESS_CODE_RE, EapLevel
+from app.domain.eap import AREA_CODE_RE, PROCESS_CODE_RE, EapLevel
 from app.shared.schema import CamelModel
 
 
@@ -22,7 +22,6 @@ class ProjectContextOut(CamelModel):
     unit_id: str
     code: str
     name: str
-    eap_prefix: str | None
     active: bool
 
 
@@ -108,26 +107,11 @@ class ProjectEapListOut(CamelModel):
     items: list[ProjectEapOut]
 
 
-def _validate_eap_prefix(value: str | None) -> str | None:
-    """Só dígitos, mantido como texto ("03" continua "03"). None = ainda não
-    definido; string vazia é rejeitada para não virar um "" persistido."""
-    if value is None:
-        return None
-    if not EAP_PREFIX_RE.fullmatch(value):
-        raise ValueError("Prefixo EAP deve conter só dígitos (ex.: 23)")
-    return value
-
-
 class ProjectContextCreateIn(CamelModel):
+    # Uma obra precisa só de unidade, código e nome. Não há prefixo EAP: a EAP é
+    # propriedade da localização do equipamento (`EapNode.code`), sem composição.
     code: str = Field(min_length=1, max_length=60)
     name: str = Field(min_length=1, max_length=160)
-    # Informado explicitamente (ex.: "23", "24"); nunca calculado.
-    eap_prefix: str | None = Field(default=None, max_length=10)
-
-    @field_validator("eap_prefix")
-    @classmethod
-    def eap_prefix_digits(cls, value: str | None) -> str | None:
-        return _validate_eap_prefix(value)
 
 
 class AreaCreateIn(CamelModel):
@@ -161,16 +145,7 @@ class CatalogUpdateIn(CamelModel):
 
 
 class ProjectContextUpdateIn(CatalogUpdateIn):
-    """Atualização de contexto: os campos comuns + `eap_prefix`.
+    """Atualização de contexto: os campos comuns (nome, código, situação).
 
-    O prefixo é informado manualmente por quem administra catálogos — nunca
-    calculado nem sugerido a partir de outra fase. `eapPrefix: null` limpa o
-    valor (persistido como NULL); omitir o campo não o altera. Sem unicidade:
-    projetos diferentes podem usar o mesmo prefixo."""
-
-    eap_prefix: str | None = Field(default=None, max_length=10)
-
-    @field_validator("eap_prefix")
-    @classmethod
-    def eap_prefix_digits(cls, value: str | None) -> str | None:
-        return _validate_eap_prefix(value)
+    `eapPrefix` deixou de existir na API (P1.3.1); se um cliente antigo ainda o
+    enviar, o campo é ignorado e a coluna legada não é alterada."""

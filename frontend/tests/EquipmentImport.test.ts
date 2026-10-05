@@ -7,13 +7,13 @@ import ImportMappingStep from "~/components/imports/ImportMappingStep.vue";
 import ImportPlanStep from "~/components/imports/ImportPlanStep.vue";
 import ImportResultStep from "~/components/imports/ImportResultStep.vue";
 import ImportSourceStep from "~/components/imports/ImportSourceStep.vue";
-import { isXlsx } from "~/composables/useEquipmentImport";
+import { isXlsx, mergeSourceValues } from "~/composables/useEquipmentImport";
 import { ApiError } from "~/services/api/error";
 import type { ImportApplyResult, ImportBatch, ImportPlan } from "~/types/imports";
 
 // Dados 100% sintéticos.
 const UNITS = [{ id: "u-tst", code: "TST", name: "Unidade Teste", active: true }];
-const CONTEXTS = [{ id: "pc-a", code: "PA", name: "Projeto Sintético A", unitId: "u-tst", eapPrefix: "03", active: true }];
+const CONTEXTS = [{ id: "pc-a", code: "PA", name: "Projeto Sintético A", unitId: "u-tst", active: true }];
 const PROFILES = [{ profileId: "monday-equipamentos-legacy", version: 1, sourceSystem: "monday", description: "Board de equipamentos do Monday" }];
 
 function batch(overrides: Partial<ImportBatch> = {}): ImportBatch {
@@ -27,6 +27,7 @@ function batch(overrides: Partial<ImportBatch> = {}): ImportBatch {
     boardTitle: "Equipamentos - Projeto Sintético",
     sheetName: "Planilha",
     profile: { profileId: "monday-equipamentos-legacy", version: 1, sha256: "b".repeat(64) },
+    groups: ["Fase 0 - Nova Demanda"],
     equipments: 2,
     components: 3,
     warnings: 1,
@@ -34,18 +35,27 @@ function batch(overrides: Partial<ImportBatch> = {}): ImportBatch {
     unknownFields: ["equipment:Coluna Nova"],
     fragileIdentities: 1,
     unknownStatuses: 0,
+    operationalStatuses: {},
     canProceed: true,
     issues: [
       { severity: "warning", code: "fragile_equipment_identity", message: "Identidade por nome", rowNumber: 4, field: "name" },
     ],
-    sourceValues: { responsibles: ["Responsável Origem A"], areas: ["Área Origem"], disciplines: [], workPackages: [] },
+    sourceValues: {
+      responsibles: ["Responsável Origem A"],
+      disciplines: [],
+      workPackages: [],
+      locations: [
+        { value: "2303 - Sistema Sintético", status: "RESOLVED", candidates: ["03"], eapNodeId: "eap-03", eapCode: "03", eapName: "Sistema Sintético", equipments: 1 },
+        { value: "Diversos", status: "NONE", candidates: [], eapNodeId: null, eapCode: null, eapName: null, equipments: 1 },
+      ],
+    },
     ...overrides,
   };
 }
 
 function plan(overrides: Partial<ImportPlan> = {}): ImportPlan {
   return {
-    batchId: "b-1",
+    batchIds: ["b-1"],
     projectContextId: "pc-a",
     mappingSha256: "c".repeat(64),
     planSha256: "d".repeat(64),
@@ -56,6 +66,7 @@ function plan(overrides: Partial<ImportPlan> = {}): ImportPlan {
     ],
     blocked: [],
     warnings: [],
+    eap: { resolved: 1, multiple: 0, none: 1, notFound: 0 },
     hasBlocked: false,
     canApply: true,
     ...overrides,
@@ -76,7 +87,7 @@ function applyResult(overrides: Partial<ImportApplyResult> = {}): ImportApplyRes
 }
 
 interface ApiOverrides {
-  upload?: () => Promise<unknown>;
+  upload?: (form: FormData) => Promise<unknown>;
   plan?: () => Promise<unknown>;
   apply?: () => Promise<unknown>;
 }
@@ -88,14 +99,20 @@ function setup(permissions = ["equipments:write"], overrides: ApiOverrides = {},
       "/imports/monday/profiles": { items: PROFILES },
       "/units/u-tst/project-contexts": { items: CONTEXTS },
       "/responsibles": { items: [{ id: "user-a", name: "Usuário Sintético A", email: "usuario.a@example.test" }] },
-      "/areas": { items: [{ id: "area-a", name: "Área Sintética", active: true }] },
+      "/eap-nodes": {
+        items: [
+          { id: "eap-03", code: "03", name: "Sistema Sintético", level: "PROCESS" },
+          { id: "eap-19", code: "19", name: "Outro Sistema Sintético", level: "PROCESS" },
+          { id: "isl-1", code: "I-1", name: "Ilha Sintética", level: "ISLAND" },
+        ],
+      },
       "/disciplines": { items: [] },
       "/work-packages": { items: [] },
     };
     return table[path] ?? { items: [] };
   });
   const upload = vi.fn(
-    async (_path: string, _form: FormData, _method?: string) => (overrides.upload ?? (async () => batch()))(),
+    async (_path: string, form: FormData, _method?: string) => (overrides.upload ?? (async () => batch()))(form),
   );
   const post = vi.fn(async (path: string) => {
     if (path.endsWith("/plan")) return (overrides.plan ?? (async () => plan()))();
@@ -131,10 +148,15 @@ async function settle(wrapper: ReturnType<typeof mount>) {
   }
 }
 
-async function chooseFile(wrapper: ReturnType<typeof mount>, name = "board-sintetico.xlsx") {
+async function chooseFiles(wrapper: ReturnType<typeof mount>, names: string[]) {
   const input = wrapper.get("[data-testid='import-file']");
-  Object.defineProperty(input.element, "files", { value: [new File(["conteudo"], name)], configurable: true });
+  const files = names.map((name) => new File([`conteudo ${name}`], name));
+  Object.defineProperty(input.element, "files", { value: files, configurable: true });
   await input.trigger("change");
+}
+
+async function chooseFile(wrapper: ReturnType<typeof mount>, name = "board-sintetico.xlsx") {
+  await chooseFiles(wrapper, [name]);
 }
 
 async function openAndAnalyze(wrapper: ReturnType<typeof mount>) {
@@ -223,7 +245,7 @@ describe("Importar equipamentos", () => {
     expect(form.get("profileId")).toBe("monday-equipamentos-legacy");
     expect(wrapper.get("[data-testid='import-equipments']").text()).toBe("2");
     expect(wrapper.get("[data-testid='import-components']").text()).toBe("3");
-    expect(wrapper.get("[data-testid='import-warning-list']").text()).toContain("linha 4");
+    expect(wrapper.get("[data-testid='import-step-analysis']").text()).toContain("linha 4");
   });
 
   it("mostra carregamento durante a análise", async () => {
@@ -259,7 +281,7 @@ describe("Importar equipamentos", () => {
     });
     const wrapper = mountButton();
     await openAndAnalyze(wrapper);
-    expect(wrapper.get("[data-testid='import-error-list']").text()).toContain("Data inválida");
+    expect(wrapper.get("[data-testid='import-step-analysis']").text()).toContain("Data inválida");
     expect(wrapper.find("[data-testid='import-cannot-proceed']").exists()).toBe(true);
     expect((wrapper.get("[data-testid='import-to-mapping']").element as HTMLButtonElement).disabled).toBe(true);
   });
@@ -274,19 +296,29 @@ describe("Importar equipamentos", () => {
     expect(get).toHaveBeenCalledWith("/responsibles", { unit_id: "u-tst" });
     expect(get).toHaveBeenCalledWith("/work-packages", { project_context_id: "pc-a" });
     expect(wrapper.find("[data-testid='mapping-disciplines']").exists()).toBe(false); // sem valores na origem
+    expect(get).toHaveBeenCalledWith("/eap-nodes", { active: true });
+    expect(get).not.toHaveBeenCalledWith("/areas", expect.anything()); // Area não é destino da localização
     await wrapper.get("[data-testid='mapping-select-responsibles']").setValue("user-a");
-    await wrapper.get("[data-testid='mapping-select-areas']").setValue("area-a");
+
+    // EAP: valor com código único resolve sozinho; sem código fica pendente até escolha explícita
+    const eapSection = wrapper.get("[data-testid='mapping-eapNodes']");
+    expect(eapSection.get("[data-testid='eap-row-RESOLVED']").text()).toContain("Automático: 03 · Sistema Sintético");
+    expect(eapSection.get("[data-testid='eap-row-NONE']").text()).toContain("Sem EAP (pendente)");
+    expect(eapSection.text()).not.toContain("Ilha Sintética"); // ilha não é elegível para equipamento
+    await eapSection.get("[data-testid='eap-row-NONE'] select").setValue("eap-19");
     await wrapper.get("[data-testid='import-build-plan']").trigger("click");
     await settle(wrapper);
 
-    expect(post).toHaveBeenCalledWith("/imports/monday/batches/b-1/plan", {
+    expect(post).toHaveBeenCalledWith("/imports/monday/plan", {
+      batchIds: ["b-1"],
       mapping: {
         responsibles: { "Responsável Origem A": "user-a" },
-        areas: { "Área Origem": "area-a" },
         disciplines: {},
         workPackages: {},
+        eapNodes: { Diversos: "eap-19" },
       },
     });
+    expect(wrapper.get("[data-testid='plan-eap']").text()).toContain("EAP identificada: 1");
     expect(wrapper.get("[data-testid='plan-group-Equipamentos']").text()).toContain("2");
   });
 
@@ -298,13 +330,13 @@ describe("Importar equipamentos", () => {
           canApply: false,
           groups: [{ name: "Equipamentos", create: 1, update: 0, noop: 0, blocked: 1 }],
           blocked: [
-            { group: "Equipamentos", sourceKey: "k", label: "Equipamento Sintético B", issues: [{ code: "unmapped_area", message: "Área sem mapeamento" }] },
+            { group: "Equipamentos", sourceKey: "k", label: "Equipamento Sintético B", issues: [{ code: "unmapped_responsible", message: "Responsável sem mapeamento" }] },
           ],
         }),
     });
     const wrapper = mountButton();
     await goToPlan(wrapper);
-    expect(wrapper.get("[data-testid='plan-blocked']").text()).toContain("Área sem mapeamento");
+    expect(wrapper.get("[data-testid='plan-blocked']").text()).toContain("Responsável sem mapeamento");
     expect(wrapper.get("[data-testid='confirm-blocked']").text()).toBe("1");
     expect((wrapper.get("[data-testid='import-confirm']").element as HTMLButtonElement).disabled).toBe(true);
   });
@@ -315,13 +347,13 @@ describe("Importar equipamentos", () => {
     await goToPlan(wrapper);
     const summary = wrapper.get("[data-testid='import-confirm-summary']").text();
     expect(summary).toContain("PA · Projeto Sintético A");
-    expect(summary).toContain("board-sintetico.xlsx");
+    expect(wrapper.get("[data-testid='confirm-files']").text()).toBe("1");
 
     await wrapper.get("[data-testid='import-confirm']").trigger("click");
     await settle(wrapper);
     expect(post).toHaveBeenCalledWith(
-      "/imports/monday/batches/b-1/apply",
-      expect.objectContaining({ planSha256: "d".repeat(64) }),
+      "/imports/monday/apply",
+      expect.objectContaining({ batchIds: ["b-1"], planSha256: "d".repeat(64) }),
     );
     expect(wrapper.get("[data-testid='import-result-title']").text()).toBe("Importação concluída");
     expect(wrapper.get("[data-testid='result-created']").text()).toBe("5");
@@ -378,6 +410,90 @@ describe("Importar equipamentos", () => {
     await wrapper.get("[data-testid='nav-import']").trigger("click");
     await settle(wrapper);
     expect(wrapper.find("[data-testid='import-step-source']").exists()).toBe(true);
+  });
+
+  it("vários XLSX (um por fase, sem 2/4/5) viram um único plano e uma única confirmação", async () => {
+    const phases = ["Fase 0", "Fase 1", "Fase 3", "Fase 6", "Fase 7", "Fase 8"];
+    const names = phases.map((phase) => `board-sintetico-${phase.replace(" ", "-")}.xlsx`);
+    const { upload, post } = setup(["equipments:write"], {
+      upload: async (form) => {
+        const index = names.indexOf((form.get("file") as File).name);
+        return batch({
+          batchId: `b-${index}`,
+          fileName: names[index]!,
+          groups: [`${phases[index]} - Grupo Sintético`],
+          equipments: 1,
+          components: 2,
+          operationalStatuses: index === 0 ? { STANDBY: 1 } : {},
+        });
+      },
+    });
+    const wrapper = mountButton();
+    await wrapper.get("[data-testid='nav-import']").trigger("click");
+    await settle(wrapper);
+    await chooseFiles(wrapper, names);
+    expect(wrapper.get("[data-testid='import-file-list']").findAll("li")).toHaveLength(6);
+    expect(wrapper.get("[data-testid='import-analyze']").text()).toContain("Analisar 6 planilhas");
+    await wrapper.get("[data-testid='import-analyze']").trigger("click");
+    await settle(wrapper);
+
+    expect(upload).toHaveBeenCalledTimes(6); // um staging por arquivo; nenhum para fase vazia
+    const table = wrapper.get("[data-testid='import-batch-table']");
+    expect(table.findAll("tbody tr")).toHaveLength(6);
+    expect(table.text()).toContain("Fase 6 - Grupo Sintético");
+    expect(wrapper.get("[data-testid='import-equipments']").text()).toBe("6");
+    expect(wrapper.get("[data-testid='import-components']").text()).toBe("12");
+    expect(wrapper.get("[data-testid='import-standby']").text()).toContain("Standby");
+
+    await wrapper.get("[data-testid='import-to-mapping']").trigger("click");
+    await settle(wrapper);
+    // valores repetidos entre os arquivos aparecem uma vez só
+    expect(wrapper.findAll("[data-testid='mapping-select-responsibles']")).toHaveLength(1);
+    await wrapper.get("[data-testid='import-build-plan']").trigger("click");
+    await settle(wrapper);
+    expect(post).toHaveBeenCalledWith(
+      "/imports/monday/plan",
+      expect.objectContaining({ batchIds: ["b-0", "b-1", "b-2", "b-3", "b-4", "b-5"] }),
+    );
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(wrapper.get("[data-testid='confirm-files']").text()).toBe("6");
+  });
+
+  it("um arquivo com falha impede seguir (nada é importado parcialmente)", async () => {
+    setup(["equipments:write"], {
+      upload: async (form) => {
+        if ((form.get("file") as File).name === "quebrado.xlsx") throw new ApiError("Arquivo não é um XLSX válido", 422, {});
+        return batch();
+      },
+    });
+    const wrapper = mountButton();
+    await wrapper.get("[data-testid='nav-import']").trigger("click");
+    await settle(wrapper);
+    await chooseFiles(wrapper, ["board-sintetico.xlsx", "quebrado.xlsx"]);
+    await wrapper.get("[data-testid='import-analyze']").trigger("click");
+    await settle(wrapper);
+    expect(wrapper.get("[data-testid='import-file-failure']").text()).toContain("quebrado.xlsx");
+    expect((wrapper.get("[data-testid='import-to-mapping']").element as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("ZIP não é aceito no runtime: só os XLSX exportados", async () => {
+    const { upload } = setup();
+    const wrapper = mountButton();
+    await wrapper.get("[data-testid='nav-import']").trigger("click");
+    await settle(wrapper);
+    await chooseFiles(wrapper, ["fase-0.xlsx", "exportacao.zip"]);
+    expect(wrapper.get("[data-testid='import-error']").text()).toContain("exportacao.zip");
+    expect((wrapper.get("[data-testid='import-analyze']").element as HTMLButtonElement).disabled).toBe(true);
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it("mergeSourceValues une valores de vários arquivos sem repetir", () => {
+    const merged = mergeSourceValues([batch(), batch({ batchId: "b-2" })]);
+    expect(merged.responsibles).toEqual(["Responsável Origem A"]);
+    expect(merged.locations.map((item) => [item.value, item.equipments])).toEqual([
+      ["2303 - Sistema Sintético", 2],
+      ["Diversos", 2],
+    ]);
   });
 
   it("fixtures não contêm dado corporativo", () => {

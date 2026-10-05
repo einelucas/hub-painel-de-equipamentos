@@ -182,7 +182,9 @@ async def test_plan_does_not_write_and_blocks_unmapped_values(db_session) -> Non
     equipment_item = plan.equipments[0]
     assert equipment_item.action == "BLOCKED"
     codes = {issue.code for issue in equipment_item.issues}
-    assert {"unmapped_responsible", "unmapped_area", "unmapped_discipline", "unmapped_work_package"} <= codes
+    assert {"unmapped_responsible", "unmapped_discipline", "unmapped_work_package"} <= codes
+    # P1.3.1: localização não bloqueia; sem EAP válida o equipamento fica pendente
+    assert "unmapped_area" not in codes
     assert (await db_session.execute(select(func.count(Equipment.id)))).scalar_one() == 0
 
 
@@ -237,7 +239,8 @@ async def test_apply_creates_equipment_with_multiple_work_packages_and_component
     assert equipment.current_stage == 0
     assert equipment.startup_at == date(2026, 6, 1)
     assert equipment.responsible_user_id == ids["responsible_id"]
-    assert equipment.area_id == ids["area_id"]
+    # P1.3.1: Area legada não é mais destino da localização (sem EAP no catálogo: pendente)
+    assert equipment.area_id is None and equipment.eap_node_id is None
     assert equipment.discipline_id == ids["discipline_id"]
 
     # múltiplos Work Packages: N:N preenchido e a FK primária deixada em branco

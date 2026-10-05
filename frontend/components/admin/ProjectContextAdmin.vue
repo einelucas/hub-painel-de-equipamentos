@@ -30,12 +30,9 @@ const saving = ref(false);
 const error = ref("");
 const formError = ref("");
 const mode = ref<"idle" | "create" | "edit">("idle");
-const form = reactive({ code: "", name: "", eapPrefix: "", active: true });
+const form = reactive({ code: "", name: "", active: true });
 
 const summary = reactive({ loading: false, error: "", areas: 0, areasActive: 0, disciplines: 0, workPackages: 0 });
-
-/** Mesma regra do backend: só dígitos, como texto ("03" continua "03"). Nunca inferido. */
-const EAP_PREFIX_PATTERN = /^\d+$/;
 
 const selectedUnit = computed(() => units.value.find((unit) => unit.id === props.unitId) ?? null);
 const selected = computed(() => contexts.value.find((item) => item.id === selectedId.value) ?? null);
@@ -107,7 +104,7 @@ function selectUnit(event: Event): void {
 function startCreate(): void {
   mode.value = "create";
   formError.value = "";
-  Object.assign(form, { code: "", name: "", eapPrefix: "", active: true });
+  Object.assign(form, { code: "", name: "", active: true });
 }
 
 function startEdit(item: CatalogItem): void {
@@ -117,7 +114,6 @@ function startEdit(item: CatalogItem): void {
   Object.assign(form, {
     code: item.code ?? "",
     name: item.name,
-    eapPrefix: item.eapPrefix ?? "",
     active: item.active,
   });
 }
@@ -130,19 +126,14 @@ function cancel(): void {
 async function submit(): Promise<void> {
   const code = form.code.trim();
   const name = form.name.trim();
-  const eapPrefix = form.eapPrefix.trim();
   if (!code || !name) {
     formError.value = "Informe código e nome.";
     return;
   }
-  if (eapPrefix && !EAP_PREFIX_PATTERN.test(eapPrefix)) {
-    formError.value = "Prefixo EAP deve conter só dígitos (ex.: 03).";
-    return;
-  }
   saving.value = true;
   formError.value = "";
-  // Vazio = ainda não definido: envia null, nunca "" e nunca um valor calculado.
-  const payload: Record<string, unknown> = { code, name, eapPrefix: eapPrefix || null };
+  // A obra precisa só de código e nome; a EAP é da localização do equipamento (sem prefixo).
+  const payload: Record<string, unknown> = { code, name };
   try {
     if (mode.value === "edit" && selected.value) {
       if (form.active !== selected.value.active) payload.active = form.active;
@@ -245,20 +236,6 @@ watch(selectedId, loadSummary);
           <span>Nome *</span>
           <input v-model="form.name" maxlength="160" required data-testid="project-name">
         </label>
-        <label class="field">
-          <span>Prefixo EAP</span>
-          <input
-            v-model="form.eapPrefix"
-            type="text"
-            maxlength="10"
-            inputmode="numeric"
-            placeholder="Não definido"
-            data-testid="project-eap-prefix"
-          >
-          <small class="field-help">
-            O prefixo é definido oficialmente para o projeto/fase e não é gerado automaticamente.
-          </small>
-        </label>
         <label v-if="mode === 'edit'" class="project-active">
           <input v-model="form.active" type="checkbox" data-testid="project-active">
           <span>Ativo</span>
@@ -292,9 +269,6 @@ watch(selectedId, loadSummary);
               <span class="project-code">{{ item.code }}</span>
               <span class="project-name">{{ item.name }}</span>
               <span class="project-meta">
-                <span class="eap-chip" :class="{ 'eap-chip--empty': !item.eapPrefix }" data-testid="project-item-eap">
-                  Prefixo EAP {{ item.eapPrefix ?? "não definido" }}
-                </span>
                 <span class="status" :class="item.active ? 'status--on' : 'status--off'">
                   {{ item.active ? "Ativo" : "Inativo" }}
                 </span>
@@ -321,10 +295,6 @@ watch(selectedId, loadSummary);
             <div>
               <dt>Contexto</dt>
               <dd>{{ selected.code }} · {{ selected.active ? "Ativo" : "Inativo" }}</dd>
-            </div>
-            <div>
-              <dt>Prefixo EAP</dt>
-              <dd data-testid="readiness-eap">{{ selected.eapPrefix ? `Definido (${selected.eapPrefix})` : "Não definido" }}</dd>
             </div>
             <template v-if="summary.loading">
               <div><dt>Catálogos</dt><dd><span class="spinner spinner-small" /></dd></div>
@@ -408,8 +378,6 @@ watch(selectedId, loadSummary);
 .project-name { min-width: 0; overflow: hidden; color: #2b3e58; font-size: 12.5px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
 .project-meta { display: flex; flex-wrap: wrap; grid-column: 1 / -1; gap: 6px; }
 .project-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.eap-chip { border-radius: 999px; background: #e8f1fc; padding: 3px 8px; color: #27456f; font-size: 10.5px; font-weight: 750; }
-.eap-chip--empty { background: #f4f6f9; color: #7a879a; }
 .status { border-radius: 999px; padding: 3px 8px; font-size: 10.5px; font-weight: 750; }
 .status--on { background: #eaf4e5; color: #477a32; }
 .status--off { background: #eef2f7; color: #6b7a8f; }

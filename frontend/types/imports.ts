@@ -1,4 +1,4 @@
-/** Contratos da importação de equipamentos do Monday (P1.3). Toda regra fica no backend. */
+/** Contratos da importação de equipamentos do Monday (P1.3 / P1.3.1). Toda regra fica no backend. */
 
 export interface ImportProfile {
   profileId: string;
@@ -15,11 +15,24 @@ export interface ImportIssue {
   field: string | null;
 }
 
+/** RESOLVED: EAP única do catálogo; MULTIPLE: várias (nenhuma escolhida); NONE: sem código; NOT_FOUND: fora do catálogo. */
+export type EapLocationStatus = "RESOLVED" | "MULTIPLE" | "NONE" | "NOT_FOUND";
+
+export interface ImportLocationValue {
+  value: string;
+  status: EapLocationStatus;
+  candidates: string[];
+  eapNodeId: string | null;
+  eapCode: string | null;
+  eapName: string | null;
+  equipments: number;
+}
+
 export interface ImportSourceValues {
   responsibles: string[];
-  areas: string[];
   disciplines: string[];
   workPackages: string[];
+  locations: ImportLocationValue[];
 }
 
 export interface ImportBatch {
@@ -32,6 +45,8 @@ export interface ImportBatch {
   boardTitle: string | null;
   sheetName: string;
   profile: { profileId: string; version: number; sha256: string } | null;
+  /** Grupos (fases) presentes no arquivo; fases vazias não aparecem e não são exigidas. */
+  groups: string[];
   equipments: number;
   components: number;
   warnings: number;
@@ -39,12 +54,13 @@ export interface ImportBatch {
   unknownFields: string[];
   fragileIdentities: number;
   unknownStatuses: number;
+  operationalStatuses: Record<string, number>;
   canProceed: boolean;
   issues: ImportIssue[];
   sourceValues: ImportSourceValues;
 }
 
-export type MappingSection = "responsibles" | "areas" | "disciplines" | "workPackages";
+export type MappingSection = "responsibles" | "disciplines" | "workPackages" | "eapNodes";
 export type ImportMapping = Record<MappingSection, Record<string, string>>;
 
 export interface PlanGroup {
@@ -56,7 +72,7 @@ export interface PlanGroup {
 }
 
 export interface ImportPlan {
-  batchId: string;
+  batchIds: string[];
   projectContextId: string;
   mappingSha256: string;
   planSha256: string;
@@ -64,6 +80,7 @@ export interface ImportPlan {
   groups: PlanGroup[];
   blocked: { group: string; sourceKey: string; label: string; issues: { code: string; message: string }[] }[];
   warnings: { code: string; message: string }[];
+  eap: { resolved: number; multiple: number; none: number; notFound: number };
   hasBlocked: boolean;
   canApply: boolean;
 }
@@ -94,4 +111,10 @@ export interface ImportApplyResult {
 export interface ImportOption {
   id: string;
   label: string;
+}
+
+/** Falha de análise de um arquivo do conjunto (os demais seguem analisados). */
+export interface ImportFileFailure {
+  fileName: string;
+  message: string;
 }

@@ -9,6 +9,7 @@ Não há nenhuma regra específica de board neste módulo.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, BinaryIO, Literal
@@ -16,9 +17,11 @@ from typing import Any, BinaryIO, Literal
 from app.modules.monday_import.mappings import (
     BOOLEAN_FIELDS,
     DATE_FIELDS,
+    DATE_LIST_FIELDS,
     NONNEGATIVE_INTEGER_FIELDS,
     SIGNED_INTEGER_FIELDS,
     fallback_component_key,
+    parent_name_ordinal_component_key,
     provisional_equipment_key,
 )
 from app.modules.monday_import.normalization import (
@@ -28,10 +31,12 @@ from app.modules.monday_import.normalization import (
     json_value,
     normalize_boolean,
     normalize_date,
+    normalize_date_list,
     normalize_decimal,
     normalize_external_id,
     normalize_integer,
     normalize_multi_value,
+    normalized_name,
 )
 from app.modules.monday_import.profile import STATUS_CONCEPT, ImportProfile, SectionRules, default_profile
 from app.modules.monday_import.schemas import (
@@ -42,7 +47,7 @@ from app.modules.monday_import.schemas import (
 )
 from app.modules.monday_import.xlsx import XlsxRow, read_first_sheet
 
-PARSER_VERSION = "monday-xlsx-v3"
+PARSER_VERSION = "monday-xlsx-v4"
 
 
 def _source_bytes(
@@ -143,6 +148,8 @@ def _normalize_fields(
             value: Any
             if field in DATE_FIELDS:
                 value = normalize_date(raw_value, excel_epoch=epoch)
+            elif field in DATE_LIST_FIELDS:
+                value = normalize_date_list(raw_value, excel_epoch=epoch)
             elif field in BOOLEAN_FIELDS:
                 value = normalize_boolean(raw_value, empty=None)
             elif field in NONNEGATIVE_INTEGER_FIELDS:
@@ -161,7 +168,7 @@ def _normalize_fields(
                 value = clean_text(raw_value)
             normalized[field] = json_value(value)
         except NormalizationError as exc:
-            code = "invalid_date" if field in DATE_FIELDS else "invalid_value"
+            code = "invalid_date" if field in DATE_FIELDS | DATE_LIST_FIELDS else "invalid_value"
             issues.append(
                 ImportIssueData(
                     code=code,
@@ -243,6 +250,7 @@ def parse_monday_xlsx(
     equipment_keys: set[str] = set()
     equipment_ids: set[str] = set()
     component_ids: set[str] = set()
+    sibling_names: Counter[str] = Counter()
 
     for row in sheet.rows:
         values = _meaningful(row)
@@ -317,6 +325,9 @@ def parse_monday_xlsx(
             normalized["stage_not_applicable"] = stage.not_applicable or profile.group_is_not_applicable(
                 current_group
             )
+            if stage.operational_status is not None:
+                # Estado operacional declarado no profile; a fase segue a regra do grupo.
+                normalized["operational_status"] = stage.operational_status
             if not stage.recognized:
                 # Valor preservado no raw; nunca vira estágio 0 nem cai no grupo em silêncio.
                 normalized["current_stage_unrecognized"] = True
@@ -368,6 +379,7 @@ def parse_monday_xlsx(
                         )
                     )
                 equipment_keys.add(key)
+            sibling_names = Counter()
             current_equipment = ParsedEquipment(
                 source_file=filename,
                 sheet_name=sheet.name,
@@ -418,7 +430,21 @@ def parse_monday_xlsx(
             external_id = normalized.get(component_id_concept) if component_id_concept else None
             if not isinstance(external_id, str):
                 external_id = None
-            if external_id is None:
+            sibling_names[normalized_name(component_name)] += 1
+            ordinal = sibling_names[normalized_name(component_name)]
+            if external_id is None and profile.component.identity_fallback == "parent_name_ordinal":
+                source_key = parent_name_ordinal_component_key(
+                    current_equipment.source_key, component_name, ordinal
+                )
+                result.issues.append(
+                    ImportIssueData(
+                        code="fragile_component_identity",
+                        message="subitem sem ID do elemento; identidade pelo equipamento pai, nome e ordem",
+                        row_number=row.number,
+                        field=component_id_concept or "external_id",
+                    )
+                )
+            elif external_id is None:
                 source_key = fallback_component_key(current_equipment.source_key, component_name, row.number)
                 result.issues.append(
                     ImportIssueData(

@@ -11,8 +11,6 @@ export interface CatalogItem {
   code?: string | null;
   unitId?: string;
   projectContextId?: string;
-  /** Só contextos de projeto: prefixo EAP informado manualmente (null = não definido). */
-  eapPrefix?: string | null;
   active: boolean;
 }
 

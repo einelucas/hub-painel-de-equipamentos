@@ -1,4 +1,4 @@
-"""Fundação da EAP: ProjectContext.eap_prefix, catálogo eap_node e project_eap."""
+"""Fundação da EAP: catálogo eap_node e project_eap (o código é só EapNode.code)."""
 
 from __future__ import annotations
 
@@ -21,39 +21,18 @@ async def _seed_catalog(db_session) -> dict[str, str]:
     return {"process": process.id, "area": area.id, "destilaria": destilaria.id}
 
 
-async def test_project_context_eap_prefix_is_created_exposed_and_not_unique(client, auth_header) -> None:
+async def test_project_context_needs_no_eap_prefix(client, auth_header) -> None:
     admin = auth_header("ADMIN")
-    unit = await client.post("/api/v1/units", json={"code": "RDN", "name": "Rondonópolis"}, headers=admin)
+    unit = await client.post("/api/v1/units", json={"code": "TST", "name": "Unidade Teste"}, headers=admin)
     assert unit.status_code == 201, unit.text
     assert "numericCode" not in unit.json()
-    unit_id = unit.json()["id"]
-    contexts_url = f"/api/v1/units/{unit_id}/project-contexts"
+    contexts_url = f"/api/v1/units/{unit.json()['id']}/project-contexts"
 
-    f1 = await client.post(
-        contexts_url, json={"code": "F1", "name": "Fase 1", "eapPrefix": "23"}, headers=admin
+    created = await client.post(
+        contexts_url, json={"code": "PA", "name": "Projeto Sintético A"}, headers=admin
     )
-    f2 = await client.post(
-        contexts_url, json={"code": "F2", "name": "Fase 2", "eapPrefix": "24"}, headers=admin
-    )
-    legacy = await client.post(contexts_url, json={"code": "C2", "name": "Caldeira 2"}, headers=admin)
-    assert (f1.status_code, f2.status_code, legacy.status_code) == (201, 201, 201)
-    assert (f1.json()["eapPrefix"], f2.json()["eapPrefix"], legacy.json()["eapPrefix"]) == ("23", "24", None)
-
-    invalid = await client.post(
-        contexts_url, json={"code": "F3", "name": "Fase 3", "eapPrefix": "23A"}, headers=admin
-    )
-    assert invalid.status_code == 422
-
-    other_unit = await client.post("/api/v1/units", json={"code": "XYZ", "name": "Outra"}, headers=admin)
-    reused = await client.post(
-        f"/api/v1/units/{other_unit.json()['id']}/project-contexts",
-        json={"code": "F1", "name": "Fase 1", "eapPrefix": "23"},
-        headers=admin,
-    )
-    assert reused.status_code == 201, reused.text
-
-    listed = (await client.get(contexts_url, headers=admin)).json()["items"]
-    assert {item["code"]: item["eapPrefix"] for item in listed} == {"F1": "23", "F2": "24", "C2": None}
+    assert created.status_code == 201, created.text
+    assert "eapPrefix" not in created.json()
 
 
 async def test_list_eap_nodes_with_filters(client, auth_header, db_session) -> None:
@@ -77,10 +56,10 @@ async def test_list_eap_nodes_with_filters(client, auth_header, db_session) -> N
 
 async def test_project_eap_nodes_respect_context_scope(client, auth_header, db_session) -> None:
     ids = await _seed_catalog(db_session)
-    unit = Unit(code="RDN", name="Rondonópolis")
+    unit = Unit(code="TST", name="Unidade Teste")
     db_session.add(unit)
     await db_session.flush()
-    context = ProjectContext(unit_id=unit.id, code="F1", name="Fase 1", eap_prefix="23")
+    context = ProjectContext(unit_id=unit.id, code="PA", name="Projeto Sintético A")
     db_session.add(context)
     await db_session.flush()
     db_session.add(ProjectEap(project_context_id=context.id, eap_node_id=ids["area"]))

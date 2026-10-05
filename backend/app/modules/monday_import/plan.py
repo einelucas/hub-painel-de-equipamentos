@@ -23,6 +23,7 @@ from app.models.audit import AuditLog
 from app.models.equipment import Equipment, EquipmentComponent
 from app.models.monday_import import ExternalMapping, MondayImportBatch, MondayImportRecord
 from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
+from app.modules.monday_import.eap_resolution import EapResolver
 from app.modules.monday_import.mapping_file import ValidatedMapping
 from app.modules.monday_import.mappings import SOURCE_SYSTEM
 from app.modules.monday_import.normalization import canonical_text
@@ -30,6 +31,23 @@ from app.modules.monday_import.normalization import canonical_text
 EquipmentIdentityStrategy = "normalized-name-v1"
 EquipmentItemIdIdentityStrategy = "monday-item-id-v1"
 ComponentIdentityStrategy = "monday-item-id-v1"
+ComponentParentNameOrdinalStrategy = "parent-name-ordinal-v1"
+
+# Transições de estado operacional que o importador sabe reproduzir com o evento do
+# domínio (OperationalStatusEvent). Qualquer outra vira BLOCKED, nunca escrita direta.
+OPERATIONAL_TRANSITIONS: dict[tuple[str, str], str] = {
+    ("ACTIVE", "STANDBY"): "STANDBY_ENTERED",
+    ("STANDBY", "ACTIVE"): "STANDBY_LIFTED",
+    ("ACTIVE", "CANCELLED"): "CANCELLED",
+    ("STANDBY", "CANCELLED"): "CANCELLED",
+    ("IN_SANITATION", "CANCELLED"): "CANCELLED",
+}
+
+
+def component_identity_strategy(source_key: str) -> str:
+    if source_key.startswith("parent-name-ordinal:"):
+        return ComponentParentNameOrdinalStrategy
+    return ComponentIdentityStrategy
 
 
 def equipment_identity_strategy(source_key: str) -> str:
@@ -124,6 +142,9 @@ class MigrationPlan:
     purchase_requests: list[PlanItem] = field(default_factory=list)
     purchase_orders: list[PlanItem] = field(default_factory=list)
     warnings: list[PlanIssue] = field(default_factory=list)
+    # Resumo da localização por equipamento (RESOLVED/MULTIPLE/NONE/NOT_FOUND);
+    # informativo, fora do hash (o hash já cobre o eap_node_id gravado).
+    eap_summary: dict[str, int] = field(default_factory=dict)
 
     @property
     def all_groups(self) -> dict[str, list[PlanItem]]:
@@ -407,6 +428,7 @@ async def build_plan(
     plan = MigrationPlan(
         project_context_id=project_context_id, batch_ids=list(batch_ids), mapping_sha256=mapping.sha256
     )
+    eap_resolver = await EapResolver.load(session, mapping.eap_nodes)
 
     equipment_target_ids: dict[str, str | None] = {}
     equipment_blocked: dict[str, bool] = {}
@@ -444,10 +466,17 @@ async def build_plan(
                 )
             )
 
-        area_id = mapping.resolve_area(normalized.get("area_name"))
-        if normalized.get("area_name") and area_id is None:
+        # Localização → EAP (nunca Area). Sem EAP única e válida: segue sem vínculo,
+        # com issue explícita; o valor bruto continua no staging.
+        eap = eap_resolver.resolve(normalized.get("area_name"))
+        plan.eap_summary[eap.status] = plan.eap_summary.get(eap.status, 0) + 1
+        if eap.issue_code is not None:
             issues.append(
-                PlanIssue("unmapped_area", f"Área sem mapeamento: {normalized['area_name']}")
+                PlanIssue(
+                    eap.issue_code,
+                    eap.issue_message or "",
+                    detail={"sourceValue": eap.raw, "candidates": list(eap.codes)},
+                )
             )
         discipline_id = mapping.resolve_discipline(normalized.get("discipline_name"))
         if normalized.get("discipline_name") and discipline_id is None:
@@ -538,7 +567,7 @@ async def build_plan(
             "UNKNOWN_STAGE_VALUE",
             "missing_current_stage",
             "STAGE_NOT_APPLICABLE",
-            "unmapped_area",
+            "OPERATIONAL_STATUS_TRANSITION_UNSUPPORTED",
             "unmapped_discipline",
             "unmapped_responsible",
             "unmapped_work_package",
@@ -558,7 +587,7 @@ async def build_plan(
             "name": normalized.get("name"),
             "origin": normalized.get("origin"),
             "startup_at": _as_date(normalized.get("startup_at")),
-            "area_id": area_id,
+            "eap_node_id": eap.eap_node_id,
             "discipline_id": discipline_id,
             "responsible_user_id": responsible_id,
             "criticality": normalized.get("criticality_observed"),
@@ -570,8 +599,12 @@ async def build_plan(
         }
         payload = {key: value for key, value in payload.items() if value is not None}
         payload["work_package_ids"] = sorted(work_package_ids)
+        source_operational = normalized.get("operational_status")
 
         if target_id is None:
+            if source_operational is not None:
+                # Criado ACTIVE e levado ao estado da origem pelo evento do domínio.
+                payload["operational_status"] = source_operational
             plan.equipments.append(
                 PlanItem(
                     kind="equipment",
@@ -607,6 +640,34 @@ async def build_plan(
         changed = _diff(existing, compare_payload)
         if wp_changed:
             changed["work_package_ids"] = payload["work_package_ids"]
+        current_operational = existing.operational_status
+        # Saneamento é estado só do Hub (o Monday não o declara): não é desfeito pela origem.
+        target_operational = (
+            None
+            if source_operational is None and current_operational == "IN_SANITATION"
+            else source_operational or "ACTIVE"
+        )
+        if target_operational is not None and target_operational != current_operational:
+            if (current_operational, target_operational) not in OPERATIONAL_TRANSITIONS:
+                issues.append(
+                    PlanIssue(
+                        "OPERATIONAL_STATUS_TRANSITION_UNSUPPORTED",
+                        f"Estado operacional {current_operational} → {target_operational} não tem "
+                        "transição no domínio; resolva no Hub antes de importar.",
+                    )
+                )
+                plan.equipments.append(
+                    PlanItem(
+                        kind="equipment",
+                        source_key=source_key,
+                        action="BLOCKED",
+                        target_entity_id=target_id,
+                        issues=issues,
+                    )
+                )
+                equipment_blocked[source_key] = True
+                continue
+            changed["operational_status"] = target_operational
         if not changed:
             plan.equipments.append(
                 PlanItem(

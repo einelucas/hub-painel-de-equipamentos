@@ -2,63 +2,76 @@
 import { computed } from "vue";
 import { useImportState } from "~/composables/useImportState";
 
-/** Passo 2: resumo do staging e problemas por severidade. Erros impedem avançar. */
-const { batch, busy, loadMappingOptions, reset } = useImportState();
+/** Passo 2: staging de cada arquivo (fase, contagens, problemas). Erro em qualquer arquivo impede avançar. */
+const { batches, failures, totals, canProceed, busy, loadMappingOptions, reset } = useImportState();
 
-const errors = computed(() => batch.value?.issues.filter((issue) => issue.severity === "error") ?? []);
-const warnings = computed(() => batch.value?.issues.filter((issue) => issue.severity !== "error") ?? []);
+const unknownFields = computed(() => [...new Set(batches.value.flatMap((batch) => batch.unknownFields))].sort());
+const standby = computed(() =>
+  batches.value.reduce((sum, batch) => sum + (batch.operationalStatuses.STANDBY ?? 0), 0),
+);
 </script>
 
 <template>
-  <div v-if="batch" class="import-step" data-testid="import-step-analysis">
-    <p v-if="batch.alreadyStaged" class="import-note" data-testid="import-already-staged">
-      Este arquivo já tinha sido analisado nesta obra. A análise existente foi reaproveitada, sem duplicar dados.
+  <div class="import-step" data-testid="import-step-analysis">
+    <p v-if="batches.some((batch) => batch.alreadyStaged)" class="import-note" data-testid="import-already-staged">
+      Arquivos já analisados nesta obra foram reaproveitados, sem duplicar dados.
     </p>
 
-    <dl class="import-summary">
-      <div><dt>Arquivo</dt><dd>{{ batch.fileName }}</dd></div>
-      <div><dt>Board</dt><dd>{{ batch.boardTitle ?? "Não identificado" }}</dd></div>
-      <div><dt>Formato</dt><dd>{{ batch.profile ? `${batch.profile.profileId} v${batch.profile.version}` : "—" }}</dd></div>
-      <div><dt>Equipamentos</dt><dd data-testid="import-equipments">{{ batch.equipments }}</dd></div>
-      <div><dt>Componentes</dt><dd data-testid="import-components">{{ batch.components }}</dd></div>
-      <div><dt>Erros</dt><dd data-testid="import-errors">{{ batch.errors }}</dd></div>
-      <div><dt>Avisos</dt><dd data-testid="import-warnings">{{ batch.warnings }}</dd></div>
-      <div><dt>Identidade frágil</dt><dd>{{ batch.fragileIdentities }}</dd></div>
-      <div><dt>Status desconhecidos</dt><dd>{{ batch.unknownStatuses }}</dd></div>
-    </dl>
+    <table class="files-table" data-testid="import-batch-table">
+      <thead>
+        <tr><th>Arquivo</th><th>Fase / grupo</th><th>Equip.</th><th>Comp.</th><th>Avisos</th><th>Erros</th></tr>
+      </thead>
+      <tbody>
+        <tr v-for="batch in batches" :key="batch.batchId" :data-testid="`import-batch-${batch.batchId}`">
+          <td class="file-name">{{ batch.fileName }}</td>
+          <td>{{ batch.groups.join(", ") || "—" }}</td>
+          <td>{{ batch.equipments }}</td>
+          <td>{{ batch.components }}</td>
+          <td>{{ batch.warnings }}</td>
+          <td :class="{ 'has-errors': batch.errors > 0 }">{{ batch.errors }}</td>
+        </tr>
+        <tr v-for="failure in failures" :key="`f-${failure.fileName}`" class="failed" data-testid="import-file-failure">
+          <td class="file-name">{{ failure.fileName }}</td>
+          <td colspan="5">{{ failure.message }}</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Total ({{ batches.length }} arquivo{{ batches.length === 1 ? "" : "s" }})</td>
+          <td data-testid="import-equipments">{{ totals.equipments }}</td>
+          <td data-testid="import-components">{{ totals.components }}</td>
+          <td colspan="2" />
+        </tr>
+      </tfoot>
+    </table>
 
-    <section v-if="errors.length" class="issues issues--error" data-testid="import-error-list">
-      <h4>Erros ({{ errors.length }})</h4>
+    <p v-if="standby" class="import-hint" data-testid="import-standby">
+      {{ standby }} equipamento(s) em Standby na origem: serão importados com o estado operacional Standby.
+    </p>
+
+    <details v-for="batch in batches.filter((item) => item.issues.length)" :key="`i-${batch.batchId}`" class="import-details">
+      <summary>Problemas em {{ batch.fileName }} ({{ batch.issues.length }})</summary>
       <ul>
-        <li v-for="(issue, index) in errors" :key="`e${index}`">
+        <li v-for="(issue, index) in batch.issues" :key="index" :class="{ error: issue.severity === 'error' }">
           <strong>{{ issue.message }}</strong>
           <span class="issue-meta">{{ issue.code }}<template v-if="issue.rowNumber"> · linha {{ issue.rowNumber }}</template><template v-if="issue.field"> · {{ issue.field }}</template></span>
         </li>
       </ul>
-    </section>
-    <section v-if="warnings.length" class="issues issues--warning" data-testid="import-warning-list">
-      <h4>Avisos ({{ warnings.length }})</h4>
-      <ul>
-        <li v-for="(issue, index) in warnings" :key="`w${index}`">
-          <strong>{{ issue.message }}</strong>
-          <span class="issue-meta">{{ issue.code }}<template v-if="issue.rowNumber"> · linha {{ issue.rowNumber }}</template><template v-if="issue.field"> · {{ issue.field }}</template></span>
-        </li>
-      </ul>
-    </section>
-    <details v-if="batch.unknownFields.length" class="import-details">
-      <summary>Colunas não reconhecidas pelo formato ({{ batch.unknownFields.length }})</summary>
-      <ul><li v-for="name in batch.unknownFields" :key="name">{{ name }}</li></ul>
+    </details>
+    <details v-if="unknownFields.length" class="import-details" data-testid="import-unknown-fields">
+      <summary>Colunas não reconhecidas pelo formato ({{ unknownFields.length }})</summary>
+      <ul><li v-for="name in unknownFields" :key="name">{{ name }}</li></ul>
     </details>
 
-    <p v-if="!batch.canProceed" class="import-blocked" role="alert" data-testid="import-cannot-proceed">
-      A planilha tem erros. Corrija o arquivo no Monday e envie novamente.
+    <p v-if="!canProceed" class="import-blocked" role="alert" data-testid="import-cannot-proceed">
+      Há arquivo com erro. Corrija no Monday e envie o conjunto novamente; nada é importado parcialmente.
     </p>
     <div class="import-actions">
-      <button type="button" class="btn" @click="reset">Enviar outro arquivo</button>
+      <button type="button" class="btn" @click="reset">Enviar outros arquivos</button>
       <button
         type="button"
         class="btn primary"
-        :disabled="!batch.canProceed || busy"
+        :disabled="!canProceed || busy"
         data-testid="import-to-mapping"
         @click="loadMappingOptions"
       >
@@ -71,19 +84,18 @@ const warnings = computed(() => batch.value?.issues.filter((issue) => issue.seve
 <style scoped>
 .import-step { display: grid; gap: 12px; }
 .import-note { margin: 0; border-radius: 9px; background: #e8f1fc; padding: 8px 11px; color: #27456f; font-size: 12px; font-weight: 700; }
-.import-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; gap: 8px 14px; }
-.import-summary div { display: grid; gap: 2px; }
-.import-summary dt { color: #7a879a; font-size: 11px; }
-.import-summary dd { margin: 0; color: #2b3e58; font-size: 12.5px; font-weight: 750; overflow-wrap: anywhere; }
-.issues { border-radius: 10px; padding: 9px 12px; }
-.issues--error { background: #fbeeed; }
-.issues--warning { background: #fdf6e7; }
-.issues h4 { margin: 0 0 6px; color: #2b3e58; font-size: 12px; font-weight: 800; }
-.issues ul, .import-details ul { display: grid; margin: 0; padding: 0; gap: 5px; list-style: none; max-height: 160px; overflow-y: auto; }
-.issues li { display: grid; gap: 1px; font-size: 12px; color: #2b3e58; }
-.issue-meta { color: #7a879a; font-size: 11px; }
+.import-hint { margin: 0; color: #65748a; font-size: 12px; }
+.files-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.files-table th { color: #7a879a; font-size: 11px; font-weight: 750; text-align: left; }
+.files-table th, .files-table td { border-bottom: 1px solid #f0f3f7; padding: 5px 6px; color: #2b3e58; }
+.files-table tfoot td { font-weight: 800; }
+.file-name { font-weight: 700; overflow-wrap: anywhere; }
+.has-errors, .failed td { color: #a4453a; font-weight: 800; }
 .import-details { color: #65748a; font-size: 12px; }
+.import-details ul { display: grid; margin: 6px 0 0; padding: 0; gap: 5px; list-style: none; max-height: 160px; overflow-y: auto; }
+.import-details li { display: grid; gap: 1px; color: #2b3e58; }
+.import-details li.error strong { color: #a4453a; }
+.issue-meta { color: #7a879a; font-size: 11px; }
 .import-blocked { margin: 0; color: #a4453a; font-size: 12px; font-weight: 700; }
 .import-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-@media (max-width: 620px) { .import-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>

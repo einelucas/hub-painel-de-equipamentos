@@ -156,6 +156,8 @@ class StageImportResult:
     created: bool
     records: int
     issues: int
+    # True quando um batch nunca aplicado foi reanalisado com um profile novo.
+    restaged: bool = False
 
 
 def source_filename(source: str | Path) -> str:

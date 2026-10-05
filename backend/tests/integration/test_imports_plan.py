@@ -1,4 +1,4 @@
-"""P1.3 — mapping interativo + plan pela API (somente dados sintéticos)."""
+"""P1.3 / P1.3.1 — mapping interativo + plan pela API (somente dados sintéticos)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 from sqlalchemy import func, select
 
-from app.models.equipment import Equipment, EquipmentComponent
+from app.models.equipment import EapNode, Equipment, EquipmentComponent
 from tests.unit.monday_xlsx_fixture import build_xlsx
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -21,10 +21,15 @@ HEADER = [
     "0.Área",
     "0.Disciplina",
 ]
+LOCATION = "2303 - Sistema Sintético"
 
 
 def synthetic_board(
-    *, status: str = "0.Nova demanda", name: str = "Equipamento Sintético A", startup: str = "2027/10/27"
+    *,
+    status: str = "0.Nova demanda",
+    name: str = "Equipamento Sintético A",
+    startup: str = "2027/10/27",
+    location: str | None = LOCATION,
 ) -> bytes:
     rows: list[list[Any]] = [
         ["Equipamentos - Projeto Sintético"],
@@ -37,7 +42,7 @@ def synthetic_board(
             startup,
             "WP-S1",
             "Responsável Origem A",
-            "Área Origem",
+            location,
             "Disciplina Origem",
         ],
         [
@@ -54,8 +59,8 @@ def synthetic_board(
     return build_xlsx(rows)
 
 
-async def seed(client, auth_header) -> dict[str, str]:
-    """Unidade, obra e catálogos sintéticos via endpoints existentes (nada é criado pelo importador)."""
+async def seed(client, auth_header, db_session) -> dict[str, str]:
+    """Unidade, obra e catálogos sintéticos (nada é criado pelo importador)."""
     admin = auth_header("ADMIN")
     unit = (
         await client.post("/api/v1/units", json={"code": "TST", "name": "Unidade Teste"}, headers=admin)
@@ -65,11 +70,6 @@ async def seed(client, auth_header) -> dict[str, str]:
             f"/api/v1/units/{unit['id']}/project-contexts",
             json={"code": "PA", "name": "Projeto Sintético A"},
             headers=admin,
-        )
-    ).json()
-    area = (
-        await client.post(
-            "/api/v1/areas", json={"unitId": unit["id"], "name": "Área Sintética"}, headers=admin
         )
     ).json()
     discipline = (
@@ -84,6 +84,11 @@ async def seed(client, auth_header) -> dict[str, str]:
             headers=admin,
         )
     ).json()
+    # catálogo EAP sintético: o importador só VALIDA contra ele, nunca cria nós
+    process = EapNode(code="03", name="Sistema Sintético", level="PROCESS")
+    other = EapNode(code="19", name="Outro Sistema Sintético", level="PROCESS")
+    db_session.add_all([process, other])
+    await db_session.commit()
     analyst = (await client.get("/api/v1/auth/me", headers=auth_header("ANALYST"))).json()
     granted = await client.put(
         f"/api/v1/usuarios/{analyst['id']}/units", json={"unitIds": [unit["id"]]}, headers=admin
@@ -92,7 +97,8 @@ async def seed(client, auth_header) -> dict[str, str]:
     return {
         "unit": unit["id"],
         "context": context["id"],
-        "area": area["id"],
+        "eap": process.id,
+        "eap_other": other.id,
         "discipline": discipline["id"],
         "work_package": work_package["id"],
         "responsible": analyst["id"],
@@ -102,47 +108,57 @@ async def seed(client, auth_header) -> dict[str, str]:
 def mapping(ids: dict[str, str]) -> dict[str, Any]:
     return {
         "responsibles": {"Responsável Origem A": ids["responsible"]},
-        "areas": {"Área Origem": ids["area"]},
         "disciplines": {"Disciplina Origem": ids["discipline"]},
         "workPackages": {"WP-S1": ids["work_package"]},
     }
 
 
-async def stage(client, headers, context_id: str, content: bytes) -> dict[str, Any]:
+async def stage(client, headers, context_id: str, content: bytes, name: str = "board.xlsx") -> dict[str, Any]:
     response = await client.post(
         "/api/v1/imports/monday/batches",
         data={"projectContextId": context_id, "profileId": PROFILE_ID},
-        files={"file": ("board.xlsx", content, XLSX_MIME)},
+        files={"file": (name, content, XLSX_MIME)},
         headers=headers,
     )
     assert response.status_code == 200, response.text
     return response.json()
 
 
-async def plan(client, headers, batch_id: str, body: dict[str, Any]):
+async def plan(client, headers, batch_ids: str | list[str], body: dict[str, Any]):
+    ids = [batch_ids] if isinstance(batch_ids, str) else batch_ids
     return await client.post(
-        f"/api/v1/imports/monday/batches/{batch_id}/plan", json={"mapping": body}, headers=headers
+        "/api/v1/imports/monday/plan", json={"batchIds": ids, "mapping": body}, headers=headers
     )
 
 
 async def test_source_values_drive_mapping_and_valid_mapping_plans_create(
     client, auth_header, db_session
 ) -> None:
-    ids = await seed(client, auth_header)
+    ids = await seed(client, auth_header, db_session)
     analyst = auth_header("ANALYST")
     batch = await stage(client, analyst, ids["context"], synthetic_board())
-    assert batch["sourceValues"] == {
-        "responsibles": ["Responsável Origem A"],
-        "areas": ["Área Origem"],
-        "disciplines": ["Disciplina Origem"],
-        "workPackages": ["WP-S1"],
-    }
+    assert batch["groups"] == ["Fase 0 - Nova Demanda"]
+    values = batch["sourceValues"]
+    assert (values["responsibles"], values["disciplines"], values["workPackages"]) == (
+        ["Responsável Origem A"],
+        ["Disciplina Origem"],
+        ["WP-S1"],
+    )
+    [location] = values["locations"]
+    assert (location["value"], location["status"], location["eapCode"], location["eapNodeId"]) == (
+        LOCATION,
+        "RESOLVED",
+        "03",
+        ids["eap"],
+    )
 
     response = await plan(client, analyst, batch["batchId"], mapping(ids))
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["mappingIssues"] == []
     assert body["canApply"] is True and body["hasBlocked"] is False and body["blocked"] == []
+    assert body["batchIds"] == [batch["batchId"]]
+    assert body["eap"] == {"resolved": 1, "multiple": 0, "none": 0, "notFound": 0}
     groups = {group["name"]: group for group in body["groups"]}
     assert (groups["Equipamentos"]["create"], groups["Componentes"]["create"]) == (1, 1)
     assert len(body["planSha256"]) == 64
@@ -152,8 +168,8 @@ async def test_source_values_drive_mapping_and_valid_mapping_plans_create(
         assert (await db_session.execute(select(func.count()).select_from(model))).scalar_one() == 0
 
 
-async def test_unmapped_values_block_and_disable_apply(client, auth_header) -> None:
-    ids = await seed(client, auth_header)
+async def test_unmapped_values_block_and_disable_apply(client, auth_header, db_session) -> None:
+    ids = await seed(client, auth_header, db_session)
     analyst = auth_header("ANALYST")
     batch = await stage(client, analyst, ids["context"], synthetic_board())
 
@@ -162,27 +178,31 @@ async def test_unmapped_values_block_and_disable_apply(client, auth_header) -> N
     blocked = body["blocked"][0]
     assert blocked["group"] == "Equipamentos" and blocked["label"] == "Equipamento Sintético A"
     codes = {issue["code"] for issue in blocked["issues"]}
-    assert {"unmapped_responsible", "unmapped_area", "unmapped_discipline", "unmapped_work_package"} <= codes
+    assert {"unmapped_responsible", "unmapped_discipline", "unmapped_work_package"} <= codes
+    assert "unmapped_area" not in codes  # Area não é mais destino da localização
 
 
-async def test_invalid_mapping_is_reported_and_never_creates_catalogs(client, auth_header) -> None:
-    ids = await seed(client, auth_header)
+async def test_invalid_mapping_is_reported_and_never_creates_catalogs(
+    client, auth_header, db_session
+) -> None:
+    ids = await seed(client, auth_header, db_session)
     analyst = auth_header("ANALYST")
     batch = await stage(client, analyst, ids["context"], synthetic_board())
-    bad = mapping(ids) | {"areas": {"Área Origem": "00000000-0000-0000-0000-000000000000"}}
+    bad = mapping(ids) | {"eapNodes": {LOCATION: "00000000-0000-0000-0000-000000000000"}}
 
     body = (await plan(client, analyst, batch["batchId"], bad)).json()
     assert any(
-        issue["section"] == "areas" and issue["category"] == "error" for issue in body["mappingIssues"]
+        issue["section"] == "eapNodes" and issue["category"] == "error" for issue in body["mappingIssues"]
     )
     assert body["canApply"] is False
 
-    malformed = await plan(client, analyst, batch["batchId"], {"areas": {"Área Origem": "  "}})
+    malformed = await plan(client, analyst, batch["batchId"], {"eapNodes": {LOCATION: "  "}})
     assert malformed.status_code == 422
+    assert (await db_session.execute(select(func.count()).select_from(EapNode))).scalar_one() == 2
 
 
-async def test_unknown_status_blocks_plan(client, auth_header) -> None:
-    ids = await seed(client, auth_header)
+async def test_unknown_status_blocks_plan(client, auth_header, db_session) -> None:
+    ids = await seed(client, auth_header, db_session)
     analyst = auth_header("ANALYST")
     batch = await stage(client, analyst, ids["context"], synthetic_board(status="Status Inventado"))
 
@@ -191,8 +211,8 @@ async def test_unknown_status_blocks_plan(client, auth_header) -> None:
     assert "UNKNOWN_STAGE_VALUE" in {issue["code"] for issue in body["blocked"][0]["issues"]}
 
 
-async def test_staging_errors_prevent_plan_and_scope_is_enforced(client, auth_header) -> None:
-    ids = await seed(client, auth_header)
+async def test_staging_errors_prevent_plan_and_scope_is_enforced(client, auth_header, db_session) -> None:
+    ids = await seed(client, auth_header, db_session)
     admin = auth_header("ADMIN")
     broken = build_xlsx(
         [
@@ -213,3 +233,32 @@ async def test_staging_errors_prevent_plan_and_scope_is_enforced(client, auth_he
     revoke = (await client.get("/api/v1/auth/me", headers=auth_header("ANALYST"))).json()["id"]
     await client.put(f"/api/v1/usuarios/{revoke}/units", json={"unitIds": []}, headers=admin)
     assert (await plan(client, auth_header("ANALYST"), ok_batch["batchId"], mapping(ids))).status_code == 404
+
+
+async def test_eap_without_code_multiple_or_unknown_never_invents_a_link(
+    client, auth_header, db_session
+) -> None:
+    ids = await seed(client, auth_header, db_session)
+    admin = auth_header("ADMIN")
+    cases = {
+        "Equipamento Sintético Diversos": "Diversos",
+        "Equipamento Sintético Multi": "2303 Sistema X / 2319 Sistema Y",
+        "Equipamento Sintético Inexistente": "2377 - Sistema Inexistente",
+    }
+    batch_ids = [
+        (await stage(client, admin, ids["context"], synthetic_board(name=name, location=value), f"{n}.xlsx"))[
+            "batchId"
+        ]
+        for n, (name, value) in enumerate(cases.items())
+    ]
+    body = (await plan(client, admin, batch_ids, mapping(ids))).json()
+    # nenhum bloqueia a importação; todos ficam explicitamente pendentes
+    assert body["canApply"] is True, body["blocked"]
+    assert body["eap"] == {"resolved": 0, "multiple": 1, "none": 1, "notFound": 1}
+    codes = {warning["code"] for warning in body["warnings"]}
+    assert codes.isdisjoint({"unmapped_area"})
+
+    # escolha explícita do usuário resolve o caso múltiplo (sem escolha automática)
+    chosen = mapping(ids) | {"eapNodes": {cases["Equipamento Sintético Multi"]: ids["eap_other"]}}
+    body = (await plan(client, admin, batch_ids, chosen)).json()
+    assert body["eap"] == {"resolved": 1, "multiple": 0, "none": 1, "notFound": 1}

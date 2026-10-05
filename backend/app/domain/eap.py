@@ -1,24 +1,21 @@
 """EAP corporativa (Ilha de Processo → Processo → Área) — regras puras, sem banco.
 
-Identidade: o código da EAP NÃO inclui prefixo. "01.A" é a Caldeira em
-qualquer obra; o que o usuário vê ("2301.A", "2401.A") é derivado de
-`project_context.eap_prefix + eap.code` e nunca persistido. O prefixo é do
-PROJETO (Rondonópolis F1 = 23, F2 = 24), informado explicitamente no cadastro
-do contexto — nunca derivado da unidade nem incrementado entre fases.
+Identidade e exibição: o Hub usa SOMENTE `EapNode.code` ("03", "04.A",
+"23.I"). Não existe composição "prefixo + EAP" — nem da unidade, nem da obra,
+nem da fase (decisão P1.3.1; `ProjectContext.eap_prefix` é legado e não é lido).
 
-Parser de valores históricos do Monday: o código corporativo é lido pelo
-SUFIXO do bloco numérico — os 2 últimos dígitos são o processo (01, 04,
-08...), opcionalmente seguidos de ".X" (área/sub-EAP); o que vem antes é o
-prefixo do projeto, com 2 ou mais dígitos (23, 24 ou futuro 123) — o
-mínimo de 2 evita ler números curtos soltos ("210 ...") como EAP.
-O prefixo é opcional: "01.A Caldeira" e "08 Destilaria" são EAP sem prefixo
-(`eap_prefix=None`); o parser só representa o que está no valor bruto.
-Valores que não seguem esse formato NÃO são forçados a virar EAP — voltam
-como não estruturados, com diagnóstico.
+Valores históricos do Monday carregam um prefixo CONTEXTUAL da planilha
+("2303 - ...", "2104.A ...", "2323.I ..."). O parser lê o código corporativo
+pelo SUFIXO do bloco numérico — os 2 últimos dígitos são o processo,
+opcionalmente seguidos de ".X" (área/sub-EAP); o que vem antes (2+ dígitos) é
+o prefixo contextual, descartado: "2104.A" e "2404.A" são a mesma EAP "04.A".
+O mínimo de 2 dígitos no prefixo evita ler números curtos soltos ("210 ...").
+Valores fora desse formato NÃO são forçados a virar EAP ("Diversos",
+"Pré-Obra"). Nenhuma correspondência por nome é feita aqui.
 
-Pendente (task futura): há equipamentos com várias EAPs na origem
-("2108 Destilaria / 2106 Fermentação"); hoje `equipment.eap_node_id` é 0..1 e
-um vínculo N:N (EquipmentEap) ainda será modelado.
+Um valor pode citar várias EAPs ("2309 X / 2319 Y"): `extract_eap_codes`
+devolve todas, sem escolher. O modelo atual tem um único `equipment.eap_node_id`;
+um vínculo N:N é decisão de domínio futura.
 """
 
 from __future__ import annotations
@@ -38,7 +35,6 @@ class EapLevel(StrEnum):
 
 class EapIssueCode(StrEnum):
     # Detectados pelo parser puro.
-    EAP_PREFIX_MISMATCH = "EAP_PREFIX_MISMATCH"
     UNSTRUCTURED_EAP_VALUE = "UNSTRUCTURED_EAP_VALUE"
     # Dependem do catálogo (ver `check_against_catalog`).
     UNKNOWN_EAP_CODE = "UNKNOWN_EAP_CODE"
@@ -55,20 +51,19 @@ ALLOWED_PARENT_LEVELS: Mapping[EapLevel, frozenset[EapLevel | None]] = {
 
 PROCESS_CODE_RE = re.compile(r"^\d{2}$")
 AREA_CODE_RE = re.compile(r"^\d{2}\.[A-Z0-9]+$")
-EAP_PREFIX_RE = re.compile(r"^\d+$")
 
 # Níveis que um equipamento pode referenciar: a origem real tem tanto
 # processo ("2108 Destilaria") quanto área ("2101.A Caldeira"). Ilha nunca.
 EQUIPMENT_EAP_LEVELS: frozenset[EapLevel] = frozenset({EapLevel.PROCESS, EapLevel.AREA})
 
 # "2301.A Caldeira" | "2304.A - Casa de Força" | "2408 Destilaria" | "12301.A Caldeira"
-# | "01.A Caldeira" | "08 Destilaria"
-# [<prefix: 2+ dígitos>]<process: 2 dígitos>[.<sub>] — a divisão é feita pelo sufixo.
+# | "01.A Caldeira" | "08 Destilaria" | "2300. Geral"
+# [<prefixo contextual: 2+ dígitos>]<process: 2 dígitos>[.<sub> | .] — a divisão é feita pelo sufixo.
 _REFERENCE_RE = re.compile(
     r"""^\s*
     (?P<prefix>\d{2,}?)?
     (?P<process>\d{2})
-    (?:\.(?P<sub>[A-Za-z0-9]+))?
+    (?:\.(?P<sub>[A-Za-z0-9]+)|\.(?=\s|$))?
     (?=\s|[-–—:]|$)
     \s*(?:[-–—:]\s*)?
     (?P<label>.*?)\s*$""",
@@ -100,7 +95,9 @@ class EapReference:
 
     raw: str
     structured: bool
-    eap_prefix: str | None = None
+    # Prefixo contextual encontrado e DESCARTADO ("23" em "2303 - ..."): só
+    # evidência; nunca compõe nem distingue o código EAP.
+    context_prefix: str | None = None
     eap_code: str | None = None
     label: str | None = None
     issues: tuple[EapIssue, ...] = field(default_factory=tuple)
@@ -109,26 +106,11 @@ class EapReference:
         return any(issue.code == code for issue in self.issues)
 
 
-def build_full_eap_code(eap_prefix: str, eap_code: str) -> str:
-    """Código exibido ao usuário: prefixo do projeto + código corporativo.
-    Nenhuma regra de sequência entre projetos."""
-    prefix = (eap_prefix or "").strip()
-    code = (eap_code or "").strip()
-    if not EAP_PREFIX_RE.fullmatch(prefix):
-        raise ValueError(f"prefixo EAP inválido: {eap_prefix!r}")
-    if not code:
-        raise ValueError("código da EAP vazio")
-    return f"{prefix}{code}"
+def parse_eap_reference(value: str | None) -> EapReference | None:
+    """Interpreta UM valor do Monday sem consultar banco e sem criar nada.
 
-
-def parse_eap_reference(value: str | None, *, expected_eap_prefix: str | None = None) -> EapReference | None:
-    """Interpreta um valor do Monday sem consultar banco e sem criar nada.
-
-    Nunca corrige o prefixo: divergência com o prefixo esperado do projeto
-    vira `EAP_PREFIX_MISMATCH`, mantendo os valores encontrados. Sem prefixo no
-    valor bruto, `eap_prefix` fica None (nunca copiado do esperado) e não há
-    divergência a reportar — o código completo é derivado depois com
-    `build_full_eap_code` e o código deve passar por `check_against_catalog`."""
+    O prefixo contextual é removido (`context_prefix` guarda a evidência);
+    `eap_code` é o código canônico a validar contra `EapNode.code`."""
     if value is None:
         return None
     raw = str(value)
@@ -149,28 +131,70 @@ def parse_eap_reference(value: str | None, *, expected_eap_prefix: str | None = 
                 ),
             ),
         )
-    prefix = match.group("prefix")
     eap_code = match.group("process")
     if match.group("sub"):
         eap_code = f"{eap_code}.{match.group('sub').upper()}"
-    issues: list[EapIssue] = []
-    if prefix is not None and expected_eap_prefix is not None and prefix != expected_eap_prefix.strip():
-        issues.append(
-            EapIssue(
-                EapIssueCode.EAP_PREFIX_MISMATCH,
-                "prefixo EAP diferente do esperado para este projeto",
-                expected=expected_eap_prefix.strip(),
-                found=prefix,
-            )
-        )
     return EapReference(
         raw=raw,
         structured=True,
-        eap_prefix=prefix,
+        context_prefix=match.group("prefix"),
         eap_code=eap_code,
         label=match.group("label") or None,
-        issues=tuple(issues),
     )
+
+
+# Separadores de várias EAPs num mesmo valor ("2108 Destilaria / 2106 Fermentação").
+# Só contam quando TODAS as partes são EAP estruturadas: "Outros/Diversos" ou
+# "2304.A - Casa de Força/Subestação" não são listas de EAP.
+_MULTI_SEPARATOR_RE = re.compile(r"\s*(?:/|;|\n)\s*")
+
+
+def structured_parts(raw: str) -> list[str]:
+    """Partes de um valor com várias EAPs; [] quando não é uma lista de EAPs."""
+    parts = [part for part in _MULTI_SEPARATOR_RE.split(raw) if part.strip()]
+    if len(parts) < 2:
+        return []
+    parsed = [parse_eap_reference(part) for part in parts]
+    if all(ref is not None and ref.structured for ref in parsed):
+        return parts
+    return []
+
+
+class EapLocationKind(StrEnum):
+    NONE = "NONE"  # vazio ou sem código EAP ("Diversos", "Pré-Obra")
+    SINGLE = "SINGLE"
+    MULTIPLE = "MULTIPLE"
+
+
+@dataclass(slots=True, frozen=True)
+class EapLocation:
+    """Todos os códigos EAP canônicos citados por um valor bruto de localização."""
+
+    raw: str | None
+    codes: tuple[str, ...] = ()
+
+    @property
+    def kind(self) -> EapLocationKind:
+        if not self.codes:
+            return EapLocationKind.NONE
+        return EapLocationKind.SINGLE if len(self.codes) == 1 else EapLocationKind.MULTIPLE
+
+
+def extract_eap_codes(value: str | None) -> EapLocation:
+    """valor bruto → candidatos → prefixo contextual removido → códigos canônicos.
+
+    Não valida contra o catálogo (isso exige `EapNode`) e nunca escolhe um
+    candidato quando há mais de um. Códigos repetidos no mesmo valor contam uma vez."""
+    if value is None or not str(value).strip():
+        return EapLocation(raw=value)
+    raw = str(value)
+    parts = structured_parts(raw) or [raw]
+    codes: list[str] = []
+    for part in parts:
+        reference = parse_eap_reference(part)
+        if reference is not None and reference.eap_code and reference.eap_code not in codes:
+            codes.append(reference.eap_code)
+    return EapLocation(raw=raw, codes=tuple(codes))
 
 
 def comparable_eap_name(name: str) -> str:

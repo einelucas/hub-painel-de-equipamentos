@@ -6,7 +6,7 @@ import { useImportState } from "~/composables/useImportState";
  * Passo 4: plano do motor + confirmação explícita. Com item BLOCKED (ou mapping
  * inválido) o botão de confirmar fica desabilitado; nada é aplicado automaticamente.
  */
-const { plan, batch, selectedContext, busy, stale, apply, step } = useImportState();
+const { plan, batches, totals: sourceTotals, selectedContext, busy, stale, apply, step } = useImportState();
 
 const totals = computed(() => {
   const groups = plan.value?.groups ?? [];
@@ -49,6 +49,15 @@ const totals = computed(() => {
           </li>
         </ul>
       </section>
+      <section class="plan-list plan-list--info" data-testid="plan-eap">
+        <h4>EAP dos equipamentos</h4>
+        <ul>
+          <li>EAP identificada: <strong>{{ plan.eap.resolved }}</strong></li>
+          <li>Várias EAPs no valor (sem vínculo): <strong>{{ plan.eap.multiple }}</strong></li>
+          <li>Sem código EAP (sem vínculo): <strong>{{ plan.eap.none }}</strong></li>
+          <li>EAP fora do catálogo (sem vínculo): <strong>{{ plan.eap.notFound }}</strong></li>
+        </ul>
+      </section>
       <section v-if="plan.warnings.length" class="plan-list plan-list--warning">
         <h4>Avisos ({{ plan.warnings.length }})</h4>
         <ul><li v-for="(warning, index) in plan.warnings" :key="index">{{ warning.message }}</li></ul>
@@ -58,9 +67,9 @@ const totals = computed(() => {
         <h4>Confirmação</h4>
         <dl>
           <div><dt>Obra</dt><dd>{{ selectedContext ? `${selectedContext.code} · ${selectedContext.name}` : "—" }}</dd></div>
-          <div><dt>Arquivo</dt><dd>{{ batch?.fileName }}</dd></div>
-          <div><dt>Equipamentos</dt><dd>{{ batch?.equipments }}</dd></div>
-          <div><dt>Componentes</dt><dd>{{ batch?.components }}</dd></div>
+          <div><dt>Arquivos</dt><dd data-testid="confirm-files">{{ batches.length }}</dd></div>
+          <div><dt>Equipamentos</dt><dd>{{ sourceTotals.equipments }}</dd></div>
+          <div><dt>Componentes</dt><dd>{{ sourceTotals.components }}</dd></div>
           <div><dt>Criar</dt><dd>{{ totals.create }}</dd></div>
           <div><dt>Atualizar</dt><dd>{{ totals.update }}</dd></div>
           <div><dt>Sem alteração</dt><dd>{{ totals.noop }}</dd></div>
@@ -95,6 +104,7 @@ const totals = computed(() => {
 .plan-list { border-radius: 10px; padding: 9px 12px; }
 .plan-list--error { background: #fbeeed; }
 .plan-list--warning { background: #fdf6e7; }
+.plan-list--info { background: #f2f6fb; }
 .plan-list h4, .confirm h4 { margin: 0 0 6px; color: #2b3e58; font-size: 12px; font-weight: 800; }
 .plan-list ul { display: grid; margin: 0; padding: 0; gap: 5px; list-style: none; max-height: 150px; overflow-y: auto; font-size: 12px; color: #2b3e58; }
 .plan-list li { display: grid; gap: 1px; }

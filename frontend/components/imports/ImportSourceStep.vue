@@ -3,16 +3,23 @@ import { computed } from "vue";
 import { FileUp } from "lucide-vue-next";
 import { useImportState } from "~/composables/useImportState";
 
-/** Passo 1: obra (Unidade → ProjectContext ativo), formato da planilha e arquivo .xlsx. */
-const { units, contexts, profiles, selection, file, busy, loadContexts, selectFile, analyze } = useImportState();
+/**
+ * Passo 1: obra (Unidade → ProjectContext ativo), formato da planilha e um ou
+ * mais .xlsx (o Monday exporta um arquivo por grupo/fase ocupada).
+ */
+const { units, contexts, profiles, selection, files, busy, loadContexts, selectFiles, analyze } = useImportState();
 
 const canAnalyze = computed(
-  () => Boolean(selection.contextId && selection.profileId && file.value) && !busy.value,
+  () => Boolean(selection.contextId && selection.profileId && files.value.length) && !busy.value,
 );
 
-function onFile(event: Event): void {
+function onFiles(event: Event): void {
   const input = event.target as HTMLInputElement;
-  selectFile(input.files?.[0] ?? null);
+  selectFiles(Array.from(input.files ?? []));
+}
+
+function size(bytes: number): string {
+  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 </script>
 
@@ -52,14 +59,24 @@ function onFile(event: Event): void {
     </p>
 
     <label class="import-file field">
-      <span>Arquivo exportado do Monday (.xlsx)</span>
-      <input type="file" accept=".xlsx" data-testid="import-file" @change="onFile">
-      <small class="import-hint">O arquivo é analisado no servidor e não é armazenado.</small>
+      <span>Arquivos exportados do Monday (.xlsx)</span>
+      <input type="file" accept=".xlsx" multiple data-testid="import-file" @change="onFiles">
+      <small class="import-hint">
+        Selecione todos os arquivos da obra de uma vez (um por fase com equipamentos). Fases vazias não têm
+        arquivo e não precisam ser enviadas. Os arquivos são analisados no servidor e não são armazenados.
+      </small>
     </label>
+
+    <ul v-if="files.length" class="import-files" data-testid="import-file-list">
+      <li v-for="item in files" :key="`${item.name}:${item.size}`">
+        <span>{{ item.name }}</span><small>{{ size(item.size) }}</small>
+      </li>
+    </ul>
 
     <div class="import-actions">
       <button type="button" class="btn primary" :disabled="!canAnalyze" data-testid="import-analyze" @click="analyze">
-        <FileUp :size="15" /> {{ busy ? "Analisando..." : "Analisar planilha" }}
+        <FileUp :size="15" />
+        {{ busy ? "Analisando..." : files.length > 1 ? `Analisar ${files.length} planilhas` : "Analisar planilha" }}
       </button>
     </div>
   </div>
@@ -69,6 +86,9 @@ function onFile(event: Event): void {
 .import-step { display: grid; gap: 12px; }
 .import-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .import-hint { margin: 0; color: #8b96a5; font-size: 11.5px; }
+.import-files { display: grid; margin: 0; padding: 0; gap: 4px; list-style: none; max-height: 140px; overflow-y: auto; }
+.import-files li { display: flex; justify-content: space-between; gap: 8px; border-radius: 8px; background: #f5f8fb; padding: 5px 9px; color: #2b3e58; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.import-files small { color: #7a879a; font-weight: 600; white-space: nowrap; }
 .import-actions { display: flex; justify-content: flex-end; }
 @media (max-width: 620px) { .import-grid { grid-template-columns: 1fr; } }
 </style>

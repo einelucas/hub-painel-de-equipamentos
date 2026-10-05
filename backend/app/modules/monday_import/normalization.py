@@ -104,6 +104,24 @@ def normalize_date(
     return epoch + timedelta(days=int(numeric))
 
 
+def normalize_date_list(value: Any, *, excel_epoch: Literal["1900", "1904"] = "1900") -> list[str]:
+    """Datas distintas e ordenadas (ISO) de um espelho do Monday; uma data só vira lista de 1."""
+    if value is None:
+        return []
+    if isinstance(value, date | datetime | int | float | Decimal) and not isinstance(value, bool):
+        single = normalize_date(value, excel_epoch=excel_epoch)
+        return [] if single is None else [single.isoformat()]
+    text = clean_text(value)
+    if text is None:
+        return []
+    dates: set[date] = set()
+    for part in re.split(r"[,;]", text):
+        parsed = normalize_date(part.strip() or None, excel_epoch=excel_epoch)
+        if parsed is not None:
+            dates.add(parsed)
+    return [item.isoformat() for item in sorted(dates)]
+
+
 def normalize_integer(value: Any, *, allow_negative: bool = True) -> int | None:
     if value is None:
         return None
