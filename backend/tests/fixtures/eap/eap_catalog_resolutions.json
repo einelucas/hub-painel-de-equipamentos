@@ -1,0 +1,61 @@
+{
+  "format_version": 1,
+  "description": "Decisões SINTÉTICAS de extração para testes (mesmo formato das decisões reais, que são privadas).",
+  "resolutions": [
+    {
+      "code": "00",
+      "level": "PROCESS",
+      "canonical_name": "Geral",
+      "parent_code": null,
+      "source_names": [
+        "Geral Sintético",
+        "Layout Sintético",
+        "Bloco Sintético"
+      ],
+      "decision": "Decisão sintética: três linhas X00 formam um único PROCESS raiz.",
+      "approved": "2000-01-01"
+    },
+    {
+      "code": "15.B",
+      "level": "AREA",
+      "canonical_name": "Área Sintética Delta",
+      "parent_code": "15",
+      "source_names": [
+        "Área Sintética Delta",
+        "Área Sintética Delta - executivo"
+      ],
+      "decision": "Decisão sintética: X15.B repetido é um único nó.",
+      "approved": "2000-01-01"
+    }
+  ],
+  "source_corrections": [
+    {
+      "source_area": "XX21",
+      "canonical_area": "X21",
+      "expected_name": "Processo Sintético Ar",
+      "decision": "Correção sintética de digitação.",
+      "approved": "2000-01-01"
+    },
+    {
+      "source_area": "XX21.A",
+      "canonical_area": "X21.A",
+      "expected_name": "Área Sintética Épsilon",
+      "decision": "Correção sintética de digitação.",
+      "approved": "2000-01-01"
+    },
+    {
+      "source_area": "X02.G",
+      "canonical_area": "X06.G",
+      "expected_name": "Área Sintética Gama-Executivo",
+      "decision": "Correção sintética de digitação.",
+      "approved": "2000-01-01"
+    }
+  ],
+  "ignored_headers": [
+    {
+      "text": "X GERAL",
+      "decision": "Título visual sintético.",
+      "approved": "2000-01-01"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "description": "Decisões SINTÉTICAS de reconciliação para testes (mesmo formato das decisões reais, que são privadas).",
+  "aliases": [
+    {
+      "alias": "Rede Sintética",
+      "eap_code": "00.C",
+      "decision": "Alias sintético aprovado.",
+      "source": "Board sintético",
+      "approved": "2000-01-01"
+    }
+  ],
+  "non_linkable_values": [
+    {
+      "value": "Geral",
+      "decision": "Valor genérico sintético.",
+      "approved": "2000-01-01"
+    }
+  ]
+}

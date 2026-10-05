@@ -1,0 +1,210 @@
+{
+  "format_version": 1,
+  "description": "Catálogo EAP SINTÉTICO para testes. Nenhum nome corresponde à Árvore de Localização real; só o formato dos códigos é preservado.",
+  "source": {
+    "file": "ARVORE-SINTETICA-TESTE.xlsx",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "sheet": "Sintética",
+    "eap_rows": 17,
+    "island_rows": 2,
+    "non_eap_rows": [],
+    "resolutions_file": "eap_catalog_resolutions.json",
+    "resolutions_applied": [
+      "00",
+      "15.B"
+    ],
+    "source_corrections_applied": [
+      "X02.G",
+      "XX21",
+      "XX21.A"
+    ],
+    "ignored_header_rows": [
+      2
+    ]
+  },
+  "summary": {
+    "distinct_eap_codes": 17,
+    "nodes": 19,
+    "island": 2,
+    "process": 8,
+    "area": 9,
+    "review_required": 0
+  },
+  "nodes": [
+    {
+      "level": "ISLAND",
+      "code": "S",
+      "name": "Ilha Sintética A",
+      "parent_code": null,
+      "source_rows": [
+        3
+      ]
+    },
+    {
+      "level": "ISLAND",
+      "code": "T",
+      "name": "Ilha Sintética B",
+      "parent_code": null,
+      "source_rows": [
+        12
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "00",
+      "name": "Geral",
+      "parent_code": null,
+      "source_rows": [
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.A",
+      "name": "Estrutura Sintética",
+      "parent_code": "00",
+      "source_rows": [
+        7
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "00.C",
+      "name": "Rede Sintética (trecho a, trecho b)",
+      "parent_code": "00",
+      "source_rows": [
+        8
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "01",
+      "name": "Processo Sintético A",
+      "parent_code": "S",
+      "source_rows": [
+        9
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "01.A",
+      "name": "Área Sintética Alfa",
+      "parent_code": "01",
+      "source_rows": [
+        10
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "04",
+      "name": "Processo Sintético B",
+      "parent_code": "S",
+      "source_rows": [
+        11
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "04.A",
+      "name": "Galpão Sintético",
+      "parent_code": "04",
+      "source_rows": [
+        12
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "21",
+      "name": "Processo Sintético Ar",
+      "parent_code": "S",
+      "source_rows": [
+        13
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "21.A",
+      "name": "Área Sintética Épsilon",
+      "parent_code": "21",
+      "source_rows": [
+        14
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "06",
+      "name": "Processo Sintético C",
+      "parent_code": "T",
+      "source_rows": [
+        16
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "06.G",
+      "name": "Área Sintética Gama-Executivo",
+      "parent_code": "06",
+      "source_rows": [
+        17
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "15",
+      "name": "Processo Sintético D",
+      "parent_code": "T",
+      "source_rows": [
+        18
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "15.B",
+      "name": "Área Sintética Delta",
+      "parent_code": "15",
+      "source_rows": [
+        19,
+        20
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "26",
+      "name": "Processo Sintético E",
+      "parent_code": null,
+      "source_rows": [
+        21
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "26.A",
+      "name": "Sala Sintética Comum",
+      "parent_code": "26",
+      "source_rows": [
+        22
+      ]
+    },
+    {
+      "level": "PROCESS",
+      "code": "27",
+      "name": "Processo Sintético F",
+      "parent_code": null,
+      "source_rows": [
+        23
+      ]
+    },
+    {
+      "level": "AREA",
+      "code": "27.A",
+      "name": "Sala Sintética Comum",
+      "parent_code": "27",
+      "source_rows": [
+        24
+      ]
+    }
+  ],
+  "review_required": []
+}

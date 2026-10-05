@@ -1,14 +1,20 @@
-"""Catálogo EAP canônico versionado (`app/data/eap_catalog.json`) — leitura e validação.
+"""Catálogo EAP canônico (`eap_catalog.json`) — leitura e validação.
 
 Sem banco e sem XLSX: é o artefato que a carga (`seed.py`) consome. Os nós em
 `review_required` documentam o que a Árvore não permite representar de forma
 inequívoca; eles nunca são carregados.
+
+A EAP corporativa é PRIVADA e não é versionada. Os caminhos vêm de
+`EAP_CATALOG_PATH` / `EAP_RESOLUTIONS_PATH` (padrão: `app/data/`, ignorado
+pelo Git). A API HTTP não depende desses arquivos; só as CLIs de catálogo e
+reconciliação.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,8 +22,11 @@ from typing import Any
 
 from app.domain.eap import EapLevel, validate_eap_node
 
-CATALOG_PATH = Path(__file__).resolve().parents[2] / "data" / "eap_catalog.json"
-RESOLUTIONS_PATH = CATALOG_PATH.with_name("eap_catalog_resolutions.json")
+DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+CATALOG_PATH = Path(os.environ.get("EAP_CATALOG_PATH") or DEFAULT_DATA_DIR / "eap_catalog.json")
+RESOLUTIONS_PATH = Path(
+    os.environ.get("EAP_RESOLUTIONS_PATH") or DEFAULT_DATA_DIR / "eap_catalog_resolutions.json"
+)
 CATALOG_FORMAT_VERSION = 1
 # Ilha: letras da própria Árvore ("B", "D"...). Nunca dígitos — um código
 # numérico aqui poderia ser confundido com prefixo de projeto.
@@ -28,6 +37,16 @@ _LEVEL_ORDER = {EapLevel.ISLAND: 0, EapLevel.PROCESS: 1, EapLevel.AREA: 2}
 
 class EapCatalogError(ValueError):
     pass
+
+
+def require_private_file(path: Path, env_var: str) -> Path:
+    """Erro claro quando o arquivo EAP privado não está disponível localmente."""
+    if not path.is_file():
+        raise EapCatalogError(
+            f"Arquivo EAP privado não encontrado: {path}. A EAP corporativa não é versionada; "
+            f"coloque o arquivo nesse caminho ou defina {env_var} apontando para a cópia privada."
+        )
+    return path
 
 
 @dataclass(slots=True, frozen=True)
@@ -80,7 +99,7 @@ def parse_catalog(document: dict[str, Any], *, sha256: str | None = None) -> Eap
 
 
 def load_catalog(path: Path = CATALOG_PATH) -> EapCatalog:
-    raw = path.read_bytes()
+    raw = require_private_file(path, "EAP_CATALOG_PATH").read_bytes()
     try:
         document = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -160,7 +179,7 @@ def load_resolutions(path: Path = RESOLUTIONS_PATH) -> dict[str, Any]:
     """Decisões de domínio aprovadas (código -> EapResolution) usadas na extração."""
     from app.modules.eap_catalog.tree import EapResolution
 
-    document = json.loads(path.read_text(encoding="utf-8"))
+    document = json.loads(require_private_file(path, "EAP_RESOLUTIONS_PATH").read_text(encoding="utf-8"))
     if document.get("format_version") != 1:
         raise EapCatalogError(f"format_version inesperado em {path}")
     resolutions: dict[str, Any] = {}
@@ -185,7 +204,7 @@ def load_tree_decisions(
     de digitação por texto da célula ÁREA e cabeçalhos visuais a ignorar."""
     from app.modules.eap_catalog.tree import IgnoredHeader, SourceCorrection
 
-    document = json.loads(path.read_text(encoding="utf-8"))
+    document = json.loads(require_private_file(path, "EAP_RESOLUTIONS_PATH").read_text(encoding="utf-8"))
     corrections: dict[str, Any] = {}
     for item in document.get("source_corrections", []):
         if item["source_area"] in corrections:

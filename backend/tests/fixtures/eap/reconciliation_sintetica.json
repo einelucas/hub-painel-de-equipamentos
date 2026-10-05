@@ -1,0 +1,88 @@
+{
+  "format_version": 1,
+  "description": "Artefato de reconciliação EAP SINTÉTICO (testes). Gerado de exports e catálogo fictícios.",
+  "project": "OBRA SINTÉTICA",
+  "metrics": {
+    "total_equipment": 7,
+    "matched_code_and_name": 2,
+    "matched_code": 1,
+    "matched_unique_name": 1,
+    "matched_approved_alias": 1,
+    "review_name_mismatch": 0,
+    "review_catalog": 0,
+    "review_multiple_eap": 0,
+    "unresolved_unknown_code": 0,
+    "unresolved_generic": 1,
+    "unresolved_ambiguous_name": 1,
+    "auto_match_safe_total": 5
+  },
+  "observed_prefixes": [
+    {
+      "prefix": "21",
+      "occurrences": 3,
+      "equipments": [
+        "Equipamento Sintético A",
+        "Equipamento Sintético E",
+        "Equipamento Sintético G"
+      ]
+    }
+  ],
+  "candidate_project_eap_codes": [
+    "00.A",
+    "00.C",
+    "01.A",
+    "04.A"
+  ],
+  "multiple_eap_equipments": [],
+  "records": [
+    {
+      "externalId": "normalized-name:equipamento sintetico a",
+      "equipmentName": "Equipamento Sintético A",
+      "rawEapValue": "2101.A Área Sintética Alfa",
+      "status": "MATCH_CODE_AND_NAME",
+      "matchedEapCode": "01.A"
+    },
+    {
+      "externalId": "normalized-name:equipamento sintetico b",
+      "equipmentName": "Equipamento Sintético B",
+      "rawEapValue": "Estrutura Sintética",
+      "status": "MATCH_UNIQUE_NAME",
+      "matchedEapCode": "00.A"
+    },
+    {
+      "externalId": "normalized-name:equipamento sintetico c",
+      "equipmentName": "Equipamento Sintético C",
+      "rawEapValue": "Rede Sintética",
+      "status": "MATCH_APPROVED_ALIAS",
+      "matchedEapCode": "00.C"
+    },
+    {
+      "externalId": "normalized-name:equipamento sintetico d",
+      "equipmentName": "Equipamento Sintético D",
+      "rawEapValue": "Geral",
+      "status": "UNRESOLVED_GENERIC_VALUE",
+      "matchedEapCode": null
+    },
+    {
+      "externalId": "normalized-name:equipamento sintetico e",
+      "equipmentName": "Equipamento Sintético E",
+      "rawEapValue": "2104.A",
+      "status": "MATCH_CODE",
+      "matchedEapCode": "04.A"
+    },
+    {
+      "externalId": "normalized-name:equipamento sintetico f",
+      "equipmentName": "Equipamento Sintético F",
+      "rawEapValue": "Sala Sintética Comum",
+      "status": "UNRESOLVED_AMBIGUOUS_NAME",
+      "matchedEapCode": null
+    },
+    {
+      "externalId": "normalized-name:equipamento sintetico g",
+      "equipmentName": "Equipamento Sintético G",
+      "rawEapValue": "2104.A Galpão Sintético",
+      "status": "MATCH_CODE_AND_NAME",
+      "matchedEapCode": "04.A"
+    }
+  ]
+}

@@ -5,10 +5,9 @@ out/
 build/
 *.tsbuildinfo
 .env
-.env.local
-.env.test
-.env.*.local
+.env.*
 !.env.example
+!.env.test.example
 .DS_Store
 *.log
 coverage/
@@ -17,6 +16,40 @@ test-results/
 .vercel
 scripts.zip
 *.zip
+*.dump
+*.bak
+
+# ---------------------------------------------------------------------------
+# Dados corporativos reais — NUNCA versionar (REPO-SEC-01B).
+# Ficam só localmente / no backup privado. Fixtures de teste são sintéticas.
+# ---------------------------------------------------------------------------
+/references/
+/private/
+/local-data/
+# Planilhas e documentos de escritório (exports Monday, auditorias, LGE...).
+*.xlsx
+*.xls
+*.xlsm
+*.docx
+/docs/auditoria-lge-v1.md
+# EAP corporativa real (caminhos padrão; ver docs/eap-catalogo.md).
+/backend/app/data/eap_catalog.json
+/backend/app/data/eap_catalog_resolutions.json
+/backend/app/data/eap_aliases.json
+/backend/app/data/reconciliation/
+# Artefatos reais de migração/reconciliação/auditoria do C2.
+/docs/migration/c2-*.json
+/docs/migration/c2-apply-report.md
+/docs/migration/c2-cadastros-notes.md
+/docs/reconciliation/lem-c2-eap.md
+/docs/validation/audit_db_result.json
+/docs/validation/*_observed.txt
+/docs/validation/c2-functional-validation.md
+# Scripts específicos do C2 (IDs reais; mantidos só localmente).
+/backend/scripts/seed_c2_catalog.py
+/backend/scripts/audit_c2_db.py
+/backend/scripts/inspect_*_observed.py
+/backend/scripts/verify_*_c2_regression.py
 
 # Python (backend/)
 .venv/

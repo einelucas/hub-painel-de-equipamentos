@@ -31,6 +31,7 @@ EAP_PREFIX_MISMATCH — o prefixo encontrado é só registrado como evidência
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -44,9 +45,10 @@ from app.domain.eap import (
     comparable_eap_name,
     parse_eap_reference,
 )
-from app.modules.eap_catalog.catalog import CATALOG_PATH, EapCatalog
+from app.modules.eap_catalog.catalog import DEFAULT_DATA_DIR, EapCatalog, require_private_file
 
-ALIASES_PATH = CATALOG_PATH.with_name("eap_aliases.json")
+# Decisões reais são privadas (não versionadas): `EAP_ALIASES_PATH` ou `app/data/` ignorado pelo Git.
+ALIASES_PATH = Path(os.environ.get("EAP_ALIASES_PATH") or DEFAULT_DATA_DIR / "eap_aliases.json")
 
 
 class MatchStatus(StrEnum):
@@ -93,7 +95,7 @@ class ReconciliationDecisions:
 
 
 def load_decisions(path: Path = ALIASES_PATH) -> ReconciliationDecisions:
-    document = json.loads(path.read_text(encoding="utf-8"))
+    document = json.loads(require_private_file(path, "EAP_ALIASES_PATH").read_text(encoding="utf-8"))
     if document.get("format_version") != 1:
         raise EapAliasError(f"format_version inesperado em {path}")
     aliases: dict[str, ApprovedAlias] = {}
