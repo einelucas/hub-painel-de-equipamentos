@@ -62,8 +62,11 @@ async function loadContexts(): Promise<void> {
   loading.value = true;
   error.value = "";
   try {
+    // Administração vê ativos e inativos (exige catalogs:manage); telas operacionais seguem só com ativos.
     contexts.value = (
-      await api.get<CatalogList<CatalogItem>>(`/units/${props.unitId}/project-contexts`)
+      await api.get<CatalogList<CatalogItem>>(`/units/${props.unitId}/project-contexts`, {
+        include_inactive: "true",
+      })
     ).items;
     if (!contexts.value.some((item) => item.id === selectedId.value)) {
       selectedId.value = contexts.value[0]?.id ?? "";
@@ -159,11 +162,10 @@ async function submit(): Promise<void> {
 
 /**
  * Mesmo padrão dos catálogos: desativar pede confirmação; reativar não.
- * A listagem atual da API só devolve contextos ativos, então o desativado
- * também sai desta lista — a mensagem deixa isso explícito.
+ * O contexto inativo continua nesta lista (visão administrativa) para ser reativado.
  */
 async function toggleActive(item: CatalogItem): Promise<void> {
-  const message = `Desativar "${item.name}"? Ele deixa de aparecer nos formulários e nesta lista.`;
+  const message = `Desativar "${item.name}"? Ele deixa de aparecer nos formulários, mas continua aqui para reativação.`;
   if (item.active && !confirm(message)) return;
   saving.value = true;
   error.value = "";

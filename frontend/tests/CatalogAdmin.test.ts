@@ -32,7 +32,8 @@ describe("CatalogAdmin", () => {
     const { wrapper, get } = mountAdmin();
     await settle(wrapper);
 
-    expect(get).toHaveBeenCalledWith("/disciplines", undefined);
+    // Visão administrativa: inclui inativos para permitir reativar.
+    expect(get).toHaveBeenCalledWith("/disciplines", { include_inactive: "true" });
     expect(wrapper.get("[data-testid='catalog-item-c-1']").text()).toContain("Ativo");
     expect(wrapper.get("[data-testid='catalog-item-c-2']").text()).toContain("Inativo");
   });

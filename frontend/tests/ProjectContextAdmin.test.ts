@@ -97,7 +97,7 @@ describe("ProjectContextAdmin", () => {
     const wrapper = mountAdmin();
     await settle(wrapper);
 
-    expect(get).toHaveBeenCalledWith("/units/u-tst/project-contexts");
+    expect(get).toHaveBeenCalledWith("/units/u-tst/project-contexts", { include_inactive: "true" });
     const active = wrapper.get("[data-testid='project-item-pc-a']").text();
     expect(active).toContain("PA");
     expect(active).toContain("Projeto Sintético A");
@@ -244,6 +244,55 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(patch).toHaveBeenCalledWith("/project-contexts/pc-b", { active: true });
+  });
+
+  it("ciclo completo: criar → desativar → continua visível como Inativo → reativar → Ativo", async () => {
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    // API com estado: a visão administrativa (include_inactive) devolve ativos e inativos.
+    let store: CatalogItem[] = [];
+    const get = vi.fn(async (path: string, query?: Record<string, string>) => {
+      if (path === "/units") return { items: UNITS };
+      if (path === "/units/u-tst/project-contexts") {
+        return { items: query?.include_inactive === "true" ? store : store.filter((item) => item.active) };
+      }
+      return { items: [] };
+    });
+    const post = vi.fn(async (_path: string, body: Record<string, unknown>) => {
+      const created = { id: "pc-new", unitId: "u-tst", active: true, ...(body as object) } as CatalogItem;
+      store = [...store, created];
+      return created;
+    });
+    const patch = vi.fn(async (path: string, body: Record<string, unknown>) => {
+      const id = path.split("/").pop();
+      store = store.map((item) => (item.id === id ? { ...item, ...(body as object) } : item));
+      return store.find((item) => item.id === id);
+    });
+    vi.stubGlobal("useApi", () => ({ get, post, patch }));
+    stubAuth();
+    const wrapper = mountAdmin();
+    await settle(wrapper);
+
+    await wrapper.get("[data-testid='project-new']").trigger("click");
+    await wrapper.get("[data-testid='project-code']").setValue("PC");
+    await wrapper.get("[data-testid='project-name']").setValue("Projeto Sintético C");
+    await wrapper.get("[data-testid='project-eap-prefix']").setValue("05");
+    await wrapper.get("[data-testid='project-form']").trigger("submit");
+    await settle(wrapper);
+    expect(wrapper.get("[data-testid='project-item-pc-new']").text()).toContain("Ativo");
+
+    await itemButton(wrapper, "pc-new", "Desativar")!.trigger("click");
+    await settle(wrapper);
+    const inactive = wrapper.get("[data-testid='project-item-pc-new']");
+    expect(inactive.text()).toContain("Inativo");
+    expect(inactive.classes()).toContain("inactive");
+    expect(wrapper.get("[data-testid='readiness-eap']").text()).toBe("Definido (05)");
+
+    await itemButton(wrapper, "pc-new", "Reativar")!.trigger("click");
+    await settle(wrapper);
+    const reactivated = wrapper.get("[data-testid='project-item-pc-new']");
+    expect(reactivated.text()).toContain("Ativo");
+    expect(reactivated.classes()).not.toContain("inactive");
+    expect(patch).toHaveBeenLastCalledWith("/project-contexts/pc-new", { active: true });
   });
 
   it("mostra carregamento enquanto a lista não chega", async () => {

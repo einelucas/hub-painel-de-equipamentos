@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
-from app.core.permissions import Permission
+from app.core.permissions import Permission, assert_can
 from app.domain.eap import EapLevel
 from app.models.equipment import Area, Discipline, ProjectContext, Unit, WorkPackage
 from app.modules.catalogs import services
@@ -31,13 +31,28 @@ from app.modules.catalogs.schemas import (
 
 router = APIRouter(tags=["catálogos"])
 
+_INCLUDE_INACTIVE_HELP = (
+    "Administração: inclui registros inativos (padrão: só ativos, como nas telas operacionais). "
+    "Exige catalogs:manage."
+)
+
+
+def _admin_listing(actor: CurrentUser, include_inactive: bool) -> bool:
+    """Inativos só aparecem para quem administra catálogos; o padrão segue só com ativos."""
+    if include_inactive:
+        assert_can(actor.role, Permission.CATALOGS_MANAGE)
+    return include_inactive
+
 
 @router.get("/units", response_model=CatalogListOut)
 async def get_units(
+    include_inactive: bool = Query(False, description=_INCLUDE_INACTIVE_HELP),
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    items = await services.list_units(session, actor)
+    items = await services.list_units(
+        session, actor, include_inactive=_admin_listing(actor, include_inactive)
+    )
     return CatalogListOut(items=[UnitOut.model_validate(item) for item in items])
 
 
@@ -54,10 +69,13 @@ async def post_unit(
 @router.get("/units/{unit_id}/project-contexts", response_model=CatalogListOut)
 async def get_project_contexts(
     unit_id: str,
+    include_inactive: bool = Query(False, description=_INCLUDE_INACTIVE_HELP),
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    items = await services.list_project_contexts(session, actor, unit_id)
+    items = await services.list_project_contexts(
+        session, actor, unit_id, include_inactive=_admin_listing(actor, include_inactive)
+    )
     return CatalogListOut(items=[ProjectContextOut.model_validate(item) for item in items])
 
 
@@ -102,10 +120,13 @@ async def get_project_eap_nodes(
 @router.get("/areas", response_model=CatalogListOut)
 async def get_areas(
     unit_id: str = Query(alias="unit_id"),
+    include_inactive: bool = Query(False, description=_INCLUDE_INACTIVE_HELP),
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    items = await services.list_areas(session, actor, unit_id)
+    items = await services.list_areas(
+        session, actor, unit_id, include_inactive=_admin_listing(actor, include_inactive)
+    )
     return CatalogListOut(items=[AreaOut.model_validate(item) for item in items])
 
 
@@ -122,12 +143,14 @@ async def post_area(
 
 @router.get("/disciplines", response_model=CatalogListOut)
 async def get_disciplines(
+    include_inactive: bool = Query(False, description=_INCLUDE_INACTIVE_HELP),
     session: AsyncSession = Depends(get_session),
-    _: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    return CatalogListOut(
-        items=[DisciplineOut.model_validate(item) for item in await services.list_disciplines(session)]
+    items = await services.list_disciplines(
+        session, include_inactive=_admin_listing(actor, include_inactive)
     )
+    return CatalogListOut(items=[DisciplineOut.model_validate(item) for item in items])
 
 
 @router.post("/disciplines", response_model=DisciplineOut, status_code=status.HTTP_201_CREATED)
@@ -144,10 +167,13 @@ async def post_discipline(
 @router.get("/work-packages", response_model=CatalogListOut)
 async def get_work_packages(
     project_context_id: str = Query(alias="project_context_id"),
+    include_inactive: bool = Query(False, description=_INCLUDE_INACTIVE_HELP),
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
-    items = await services.list_work_packages(session, actor, project_context_id)
+    items = await services.list_work_packages(
+        session, actor, project_context_id, include_inactive=_admin_listing(actor, include_inactive)
+    )
     return CatalogListOut(items=[WorkPackageOut.model_validate(item) for item in items])
 
 

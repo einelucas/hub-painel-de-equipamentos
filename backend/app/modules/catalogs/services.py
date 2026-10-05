@@ -30,24 +30,35 @@ async def _list(session: AsyncSession, model: type[Any], *filters: Any) -> list[
     return list((await session.execute(stmt)).scalars().all())
 
 
-async def list_units(session: AsyncSession, actor: CurrentUser) -> list[Unit]:
+def _situation(model: type[Any], include_inactive: bool) -> tuple[Any, ...]:
+    """Padrão: só ativos (telas operacionais). Inativos só na visão de administração,
+    cuja permissão é checada no controller."""
+    return () if include_inactive else (model.active.is_(True),)
+
+
+async def list_units(
+    session: AsyncSession, actor: CurrentUser, *, include_inactive: bool = False
+) -> list[Unit]:
     """Só as unidades que o usuário pode ver — a base do filtro global."""
     allowed = await allowed_unit_ids(session, actor)
     if allowed is None:
-        return await _list(session, Unit, Unit.active.is_(True))
+        return await _list(session, Unit, *_situation(Unit, include_inactive))
     if not allowed:
         return []
-    return await _list(session, Unit, Unit.active.is_(True), Unit.id.in_(allowed))
+    return await _list(session, Unit, *_situation(Unit, include_inactive), Unit.id.in_(allowed))
 
 
 async def list_project_contexts(
-    session: AsyncSession, actor: CurrentUser, unit_id: str
+    session: AsyncSession, actor: CurrentUser, unit_id: str, *, include_inactive: bool = False
 ) -> list[ProjectContext]:
     if await session.get(Unit, unit_id) is None:
         raise NotFoundError("Unidade não encontrada")
     await assert_unit_allowed(session, actor, unit_id)
     return await _list(
-        session, ProjectContext, ProjectContext.unit_id == unit_id, ProjectContext.active.is_(True)
+        session,
+        ProjectContext,
+        ProjectContext.unit_id == unit_id,
+        *_situation(ProjectContext, include_inactive),
     )
 
 
@@ -79,25 +90,27 @@ async def list_project_eap_nodes(
     return list((await session.execute(stmt)).scalars().all())
 
 
-async def list_areas(session: AsyncSession, actor: CurrentUser, unit_id: str) -> list[Area]:
+async def list_areas(
+    session: AsyncSession, actor: CurrentUser, unit_id: str, *, include_inactive: bool = False
+) -> list[Area]:
     await assert_unit_allowed(session, actor, unit_id)
-    return await _list(session, Area, Area.unit_id == unit_id, Area.active.is_(True))
+    return await _list(session, Area, Area.unit_id == unit_id, *_situation(Area, include_inactive))
 
 
-async def list_disciplines(session: AsyncSession) -> list[Discipline]:
+async def list_disciplines(session: AsyncSession, *, include_inactive: bool = False) -> list[Discipline]:
     """Disciplinas são globais: não pertencem a uma unidade."""
-    return await _list(session, Discipline, Discipline.active.is_(True))
+    return await _list(session, Discipline, *_situation(Discipline, include_inactive))
 
 
 async def list_work_packages(
-    session: AsyncSession, actor: CurrentUser, project_context_id: str
+    session: AsyncSession, actor: CurrentUser, project_context_id: str, *, include_inactive: bool = False
 ) -> list[WorkPackage]:
     await assert_context_allowed(session, actor, project_context_id)
     return await _list(
         session,
         WorkPackage,
         WorkPackage.project_context_id == project_context_id,
-        WorkPackage.active.is_(True),
+        *_situation(WorkPackage, include_inactive),
     )
 
 

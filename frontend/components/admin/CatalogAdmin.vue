@@ -50,7 +50,10 @@ async function load(): Promise<void> {
   loading.value = true;
   error.value = "";
   try {
-    items.value = (await api.get<CatalogList<CatalogItem>>(props.path, props.query)).items;
+    // Visão administrativa: inclui inativos para permitir reativar (exige catalogs:manage).
+    items.value = (
+      await api.get<CatalogList<CatalogItem>>(props.path, { ...props.query, include_inactive: "true" })
+    ).items;
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : `Não foi possível carregar ${props.label}.`;
   } finally {
