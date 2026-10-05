@@ -1,5 +1,10 @@
 # MIG-001 — Fundação do importador Monday
 
+> **Atualização P1.1.** Os aliases de colunas, regras de board/grupo, status e identidade
+> saíram de `mappings.py`/`parser.py` para o **ImportProfile** declarativo, e a reconciliação
+> fixa do C2 saiu do dry-run padrão. Ver [`docs/import/monday-import-profiles.md`](../import/monday-import-profiles.md).
+> O restante deste documento registra a etapa MIG-001 como foi entregue.
+
 ## Escopo desta etapa
 
 Esta etapa prepara uma migração futura, mas **não realiza o corte do Monday**. Os XLSX em

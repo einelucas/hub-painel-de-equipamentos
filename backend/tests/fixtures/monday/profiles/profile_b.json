@@ -1,0 +1,109 @@
+{
+  "profile_id": "synthetic-asset-board-b",
+  "version": 1,
+  "source_system": "monday",
+  "description": "Layout SINTÉTICO B (testes): 'Asset/Phase/Sector', grupos 'Etapa N'.",
+  "board": {
+    "title_prefixes": [
+      "Quadro Sintético de Ativos"
+    ],
+    "title_required": true
+  },
+  "groups": {
+    "stage_prefixes": [
+      "Etapa"
+    ],
+    "other_titles": [],
+    "not_applicable_titles": [
+      "Fora do Escopo"
+    ],
+    "stage_fallback_from_group": false
+  },
+  "equipment": {
+    "header_signature": [
+      "name",
+      "current_stage",
+      "area_name"
+    ],
+    "required": [
+      "name",
+      "current_stage",
+      "area_name"
+    ],
+    "aliases": {
+      "name": [
+        "Asset"
+      ],
+      "external_id": [
+        "Asset Code"
+      ],
+      "current_stage": [
+        "Phase"
+      ],
+      "area_name": [
+        "Sector"
+      ],
+      "responsible_name": [
+        "Responsible Person"
+      ],
+      "discipline_name": [
+        "Trade"
+      ],
+      "startup_at": [
+        "Go-Live"
+      ],
+      "work_package_codes": [
+        "Packages"
+      ]
+    },
+    "ignored_headers": [],
+    "external_id_concept": "external_id"
+  },
+  "component": {
+    "header_markers": [
+      "Sub-assets"
+    ],
+    "header_signature": [
+      "name"
+    ],
+    "required": [
+      "name"
+    ],
+    "aliases": {
+      "subitems_marker": [
+        "Sub-assets"
+      ],
+      "name": [
+        "Part"
+      ],
+      "external_id": [
+        "Part Code"
+      ],
+      "startup_at": [
+        "Part Go-Live"
+      ],
+      "lead_time_days": [
+        "Manufacturing Days"
+      ],
+      "freight_days": [
+        "Shipping Days"
+      ],
+      "pre_start_days": [
+        "Lead Before Go-Live"
+      ]
+    },
+    "ignored_headers": [],
+    "external_id_concept": "external_id"
+  },
+  "status": {
+    "values": {
+      "P0 Intake": 0,
+      "P1 Design": 1,
+      "P2 Sourcing": 2,
+      "P5 Signed": 5,
+      "P8 Closed": 8
+    },
+    "stage_number_in_text": false
+  },
+  "expected_counts": null
+}

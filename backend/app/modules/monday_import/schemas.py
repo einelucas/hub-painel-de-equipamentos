@@ -70,6 +70,8 @@ class ParsedWorkbook:
     issues: list[ImportIssueData] = field(default_factory=list)
     unknown_equipment_fields: set[str] = field(default_factory=set)
     unknown_component_fields: set[str] = field(default_factory=set)
+    # {"profileId", "version", "sha256"} do ImportProfile usado no parse.
+    import_profile: dict[str, Any] | None = None
 
     @property
     def component_count(self) -> int:
@@ -81,6 +83,7 @@ class ParsedWorkbook:
             "file_sha256": self.file_sha256,
             "board_title": self.board_title,
             "sheet_name": self.sheet_name,
+            "import_profile": self.import_profile,
             "equipments": [item.to_dict() for item in self.equipments],
             "issues": [item.to_dict() for item in self.issues],
             "unknown_equipment_fields": sorted(self.unknown_equipment_fields),
@@ -122,9 +125,14 @@ class DryRunReport:
     warnings: int
     errors: int
     issues: list[ImportIssueData]
+    import_profiles: list[dict[str, Any]] = field(default_factory=list)
+    # Só existe quando contagens esperadas foram informadas (profile ou argumento).
+    expected_counts_check: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "import_profiles": self.import_profiles,
+            "expected_counts_check": self.expected_counts_check,
             "files": self.files,
             "board_titles": self.board_titles,
             "equipments": self.equipments,

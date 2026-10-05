@@ -29,7 +29,7 @@ from app.modules.monday_import.domain_reconciliation import (
     reconcile_domain,
     render_human,
 )
-from app.modules.monday_import.dry_run import build_dry_run_report, merge_workbooks
+from app.modules.monday_import.dry_run import build_dry_run_report
 from app.modules.monday_import.mapping_file import (
     EMPTY_MAPPING_SCHEMA,
     ValidatedMapping,
@@ -38,11 +38,21 @@ from app.modules.monday_import.mapping_file import (
 )
 from app.modules.monday_import.parser import parse_monday_xlsx
 from app.modules.monday_import.plan import MigrationPlan, build_plan
-from app.modules.monday_import.reconciliation import C2_EXPECTED, count_records, reconcile_counts
+from app.modules.monday_import.profile import (
+    ExpectedCounts,
+    ImportProfile,
+    ImportProfileError,
+    default_profile,
+    load_profile,
+)
 from app.modules.monday_import.safety import UnsafeMigrationTargetError, guard_write_target
-from app.modules.monday_import.service import stage_import
+from app.modules.monday_import.service import StagedWithDifferentProfileError, stage_import
 
 _SUBCOMMANDS = {"dry-run", "stage", "plan", "apply", "reconcile"}
+_PROFILE_HELP = (
+    "ImportProfile JSON do layout do board (padrão: profile histórico versionado). "
+    "plan/apply/reconcile usam o profile registrado em cada batch."
+)
 
 
 def _files(inputs: Sequence[str]) -> list[Path]:
@@ -61,8 +71,29 @@ def _files(inputs: Sequence[str]) -> list[Path]:
     return list(unique)
 
 
-def _human_dry_run(report: dict, reconciliation: dict) -> str:
+def _profile(path: Path | None) -> ImportProfile:
+    if path is None:
+        return default_profile()
+    try:
+        return load_profile(path)
+    except ImportProfileError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
+def _expected(path: Path | None, profile: ImportProfile) -> ExpectedCounts | None:
+    """Argumento explícito > contagens do profile > nenhuma (sem verificação)."""
+    if path is None:
+        return profile.expected_counts
+    try:
+        return ExpectedCounts.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"--expected-counts inválido: {exc}") from exc
+
+
+def _human_dry_run(report: dict) -> str:
+    profiles = ", ".join(f"{item['profileId']} v{item['version']}" for item in report["import_profiles"])
     lines = [
+        f"Profile: {profiles or 'não informado'}",
         f"Arquivos: {', '.join(report['files'])}",
         f"Boards: {', '.join(report['board_titles']) or 'não identificado'}",
         f"Equipamentos encontrados: {report['equipments']}",
@@ -81,11 +112,15 @@ def _human_dry_run(report: dict, reconciliation: dict) -> str:
             f"Registros repetidos entre snapshots: {report['duplicate_records']}",
             f"Avisos: {report['warnings']}",
             f"Erros: {report['errors']}",
-            f"Reconciliação C2 (41/164): {'OK' if reconciliation['matched'] else 'DIVERGENTE'}",
         ]
     )
-    for mismatch in reconciliation["mismatches"]:
-        lines.append("  {scope} {metric}: origem={source}, esperado={destination}".format(**mismatch))
+    check = report["expected_counts_check"]
+    if check is None:
+        lines.append("Contagens esperadas: não configuradas (nenhuma verificação)")
+    else:
+        lines.append(f"Contagens esperadas: {'OK' if check['matched'] else 'DIVERGENTE'}")
+        for mismatch in check["mismatches"]:
+            lines.append("  {scope} {metric}: origem={source}, esperado={destination}".format(**mismatch))
     return "\n".join(lines)
 
 
@@ -96,22 +131,26 @@ def _cmd_dry_run(args: argparse.Namespace) -> int:
         raise SystemExit(str(exc)) from exc
     if not paths:
         raise SystemExit("nenhum arquivo .xlsx encontrado")
-    workbooks = [parse_monday_xlsx(path) for path in paths]
-    report = build_dry_run_report(workbooks)
-    equipments, _ = merge_workbooks(workbooks)
-    reconciliation = reconcile_counts(count_records(equipments), C2_EXPECTED)
+    profile = _profile(args.profile)
+    workbooks = [parse_monday_xlsx(path, profile=profile) for path in paths]
+    report = build_dry_run_report(workbooks, expected=_expected(args.expected_counts, profile))
     payload = report.to_dict()
-    payload["c2_reconciliation"] = reconciliation.to_dict()
     serialized = json.dumps(payload, ensure_ascii=False, indent=2)
     if args.json_out is not None:
         args.json_out.write_text(serialized + "\n", encoding="utf-8")
-    print(serialized if args.json else _human_dry_run(report.to_dict(), reconciliation.to_dict()))
-    return 0 if report.errors == 0 else 1
+    print(serialized if args.json else _human_dry_run(payload))
+    check = report.expected_counts_check
+    return 0 if report.errors == 0 and (check is None or check["matched"]) else 1
 
 
-async def _stage_one(project_context_id: str, path: Path) -> dict[str, object]:
+async def _stage_one(project_context_id: str, path: Path, profile: ImportProfile) -> dict[str, object]:
     async with SessionLocal() as session:
-        result = await stage_import(session, project_context_id=project_context_id, source=path)
+        try:
+            result = await stage_import(
+                session, project_context_id=project_context_id, source=path, profile=profile
+            )
+        except StagedWithDifferentProfileError as exc:
+            raise SystemExit(str(exc)) from exc
         await session.commit()
         return {
             "file": path.name,
@@ -137,7 +176,9 @@ def _cmd_stage(args: argparse.Namespace) -> int:
     if not paths:
         raise SystemExit("nenhum arquivo .xlsx encontrado")
 
-    results = [asyncio.run(_stage_one(args.project_context_id, path)) for path in paths]
+    profile = _profile(args.profile)
+    print(f"[monday_import] Profile: {profile.profile_id} v{profile.version} ({profile.sha256[:12]})")
+    results = [asyncio.run(_stage_one(args.project_context_id, path, profile)) for path in paths]
     print(json.dumps(results, ensure_ascii=False, indent=2))
     return 0
 
@@ -281,11 +322,19 @@ def build_parser() -> argparse.ArgumentParser:
     dry_run.add_argument("inputs", nargs="+", help="Arquivo(s) XLSX ou diretório com exports")
     dry_run.add_argument("--json-out", type=Path, help="Grava o relatório JSON neste caminho")
     dry_run.add_argument("--json", action="store_true", help="Imprime JSON no stdout")
+    dry_run.add_argument("--profile", type=Path, default=None, help=_PROFILE_HELP)
+    dry_run.add_argument(
+        "--expected-counts",
+        type=Path,
+        default=None,
+        help="JSON opcional {equipments, components, groups}; sem ele não há verificação de contagem",
+    )
     dry_run.set_defaults(func=_cmd_dry_run)
 
     stage = subparsers.add_parser("stage", help="Grava raw+normalizado no staging (idempotente)")
     stage.add_argument("inputs", nargs="+", help="Arquivo(s) XLSX ou diretório com exports")
     stage.add_argument("--project-context-id", required=True)
+    stage.add_argument("--profile", type=Path, default=None, help=_PROFILE_HELP)
     stage.set_defaults(func=_cmd_stage)
 
     plan = subparsers.add_parser("plan", help="Compara staging+mapping+banco; não grava")

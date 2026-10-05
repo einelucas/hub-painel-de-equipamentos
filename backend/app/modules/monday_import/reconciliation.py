@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from app.modules.monday_import.normalization import canonical_text
+from app.modules.monday_import.profile import ExpectedCounts
 from app.modules.monday_import.schemas import GroupCount, ParsedEquipment
 
 
@@ -62,14 +63,17 @@ def count_records(equipments: Iterable[ParsedEquipment]) -> ReconciliationCounts
     )
 
 
-def reconcile_counts(source: ReconciliationCounts, destination: ReconciliationCounts) -> ReconciliationReport:
+def reconcile_counts(
+    source: ReconciliationCounts, destination: ReconciliationCounts, *, compare_groups: bool = True
+) -> ReconciliationReport:
     mismatches: list[ReconciliationMismatch] = []
     for metric in ("equipments", "components"):
         source_value = getattr(source, metric)
         destination_value = getattr(destination, metric)
         if source_value != destination_value:
             mismatches.append(ReconciliationMismatch("TOTAL", metric, source_value, destination_value))
-    for group in sorted(source.groups.keys() | destination.groups.keys()):
+    groups = sorted(source.groups.keys() | destination.groups.keys()) if compare_groups else []
+    for group in groups:
         source_count = source.groups.get(group, GroupCount())
         destination_count = destination.groups.get(group, GroupCount())
         for metric in ("equipments", "components"):
@@ -80,13 +84,14 @@ def reconcile_counts(source: ReconciliationCounts, destination: ReconciliationCo
     return ReconciliationReport(not mismatches, mismatches)
 
 
-C2_EXPECTED = ReconciliationCounts(
-    equipments=41,
-    components=164,
-    groups={
-        "Fase 0": GroupCount(31, 55),
-        "Fase 4": GroupCount(6, 8),
-        "Fase 6": GroupCount(3, 77),
-        "Fase 8": GroupCount(1, 24),
-    },
-)
+def expected_counts(expected: ExpectedCounts) -> ReconciliationCounts:
+    """Contagens esperadas OPCIONAIS (profile ou argumento explícito).
+
+    Não há contagem fixa de nenhuma obra no código: sem expectativa informada,
+    o dry-run não marca divergência.
+    """
+    return ReconciliationCounts(
+        equipments=expected.equipments,
+        components=expected.components,
+        groups={name: GroupCount(item.equipments, item.components) for name, item in expected.groups.items()},
+    )

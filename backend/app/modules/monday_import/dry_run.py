@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from app.modules.monday_import.normalization import canonical_text
-from app.modules.monday_import.reconciliation import count_records
+from app.modules.monday_import.profile import ExpectedCounts
+from app.modules.monday_import.reconciliation import count_records, expected_counts, reconcile_counts
 from app.modules.monday_import.schemas import (
     DryRunReport,
     ImportIssueData,
@@ -43,13 +44,29 @@ def _unmapped(values: Iterable[str | None], known: frozenset[str]) -> list[str]:
 
 
 def build_dry_run_report(
-    workbooks: Iterable[ParsedWorkbook], mapping_catalog: MappingCatalog | None = None
+    workbooks: Iterable[ParsedWorkbook],
+    mapping_catalog: MappingCatalog | None = None,
+    *,
+    expected: ExpectedCounts | None = None,
 ) -> DryRunReport:
+    """`expected` é opcional: sem ele, nenhuma contagem é considerada divergente."""
     parsed = list(workbooks)
     catalog = mapping_catalog or MappingCatalog()
     equipments, duplicate_records = merge_workbooks(parsed)
     issues: list[ImportIssueData] = [issue for item in parsed for issue in item.issues]
     counts = count_records(equipments)
+    profiles: list[dict] = []
+    for item in parsed:
+        if item.import_profile is not None and item.import_profile not in profiles:
+            profiles.append(item.import_profile)
+    # Sem grupos declarados, só os totais são verificados.
+    expected_check = (
+        None
+        if expected is None
+        else reconcile_counts(
+            counts, expected_counts(expected), compare_groups=bool(expected.groups)
+        ).to_dict()
+    )
     responsibles = [
         value
         for equipment in equipments
@@ -88,4 +105,6 @@ def build_dry_run_report(
         warnings=sum(issue.severity == "warning" for issue in issues),
         errors=sum(issue.severity == "error" for issue in issues),
         issues=issues,
+        import_profiles=profiles,
+        expected_counts_check=expected_check,
     )

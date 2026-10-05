@@ -21,7 +21,20 @@ from app.models.monday_import import (
 from app.modules.monday_import.dry_run import build_dry_run_report
 from app.modules.monday_import.mappings import SOURCE_SYSTEM
 from app.modules.monday_import.parser import PARSER_VERSION, parse_monday_xlsx
+from app.modules.monday_import.profile import ImportProfile, default_profile
 from app.modules.monday_import.schemas import StageImportResult
+
+
+class StagedWithDifferentProfileError(ValueError):
+    """O mesmo arquivo já foi staged neste contexto com outro ImportProfile."""
+
+
+def _batch_profile_sha(summary: dict | None) -> str:
+    """Batches anteriores à P1.1 não registram profile: foram lidos pelo profile histórico."""
+    recorded = (summary or {}).get("import_profiles") or []
+    if recorded:
+        return str(recorded[0].get("sha256"))
+    return default_profile().sha256
 
 
 @dataclass(slots=True, frozen=True)
@@ -50,15 +63,21 @@ async def stage_import(
     project_context_id: str,
     source: bytes | bytearray | str | Path | BinaryIO,
     source_name: str | None = None,
+    profile: ImportProfile | None = None,
 ) -> StageImportResult:
-    """Grava raw + normalizado uma vez por contexto e SHA-256 do arquivo."""
+    """Grava raw + normalizado uma vez por contexto e SHA-256 do arquivo.
+
+    O profile usado fica registrado no `summary` do batch (`import_profiles`),
+    então plan/apply/reconcile não reinterpretam o arquivo com outro profile.
+    """
     context_exists = await session.scalar(
         select(ProjectContext.id).where(ProjectContext.id == project_context_id)
     )
     if context_exists is None:
         raise ValueError("project_context não encontrado")
 
-    workbook = parse_monday_xlsx(source, source_name=source_name)
+    profile = profile or default_profile()
+    workbook = parse_monday_xlsx(source, source_name=source_name, profile=profile)
     report_payload = build_dry_run_report([workbook]).to_dict()
     report_payload.pop("issues", None)
     proposed_batch_id = str(uuid.uuid4())
@@ -82,16 +101,21 @@ async def stage_import(
         )
     ).scalar_one_or_none()
     if inserted_id is None:
-        existing_id = await session.scalar(
-            select(MondayImportBatch.id).where(
+        existing = await session.scalar(
+            select(MondayImportBatch).where(
                 MondayImportBatch.project_context_id == project_context_id,
                 MondayImportBatch.source_system == SOURCE_SYSTEM,
                 MondayImportBatch.file_sha256 == workbook.file_sha256,
             )
         )
-        if existing_id is None:  # pragma: no cover - defesa contra anomalia transacional
+        if existing is None:  # pragma: no cover - defesa contra anomalia transacional
             raise RuntimeError("conflito de batch sem registro recuperável")
-        return await _existing_batch_result(session, existing_id)
+        if _batch_profile_sha(existing.summary) != profile.sha256:
+            raise StagedWithDifferentProfileError(
+                f"arquivo já staged no batch {existing.id} com outro ImportProfile; "
+                "use o mesmo profile ou um contexto/arquivo novo"
+            )
+        return await _existing_batch_result(session, existing.id)
 
     row_records: dict[int, str] = {}
     record_count = 0
@@ -130,6 +154,8 @@ async def stage_import(
             row_records[component.row_number] = component_record_id
             record_count += 1
 
+    # Registros antes das issues: issue.record_id é FK para monday_import_record.
+    await session.flush()
     for issue in workbook.issues:
         session.add(
             MondayImportIssue(

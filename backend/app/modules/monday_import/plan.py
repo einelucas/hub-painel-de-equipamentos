@@ -28,7 +28,15 @@ from app.modules.monday_import.mappings import SOURCE_SYSTEM
 from app.modules.monday_import.normalization import canonical_text
 
 EquipmentIdentityStrategy = "normalized-name-v1"
+EquipmentItemIdIdentityStrategy = "monday-item-id-v1"
 ComponentIdentityStrategy = "monday-item-id-v1"
+
+
+def equipment_identity_strategy(source_key: str) -> str:
+    """ID estável da origem quando o profile o declara; senão, fallback por nome."""
+    if source_key.startswith("monday-item-id:"):
+        return EquipmentItemIdIdentityStrategy
+    return EquipmentIdentityStrategy
 
 PlanAction = Literal["CREATE", "UPDATE", "NOOP", "BLOCKED"]
 PlanKind = Literal[
@@ -467,7 +475,22 @@ async def build_plan(
                 work_package_ids.append(resolved)
 
         observed_stage = normalized.get("current_stage")
-        phase_stage = _group_phase(entries[0][1].group_name)
+        # O grupo é contexto estrutural: só vale como fallback quando o profile permite
+        # (batches anteriores à P1.1 não têm a marca e mantêm o comportamento histórico).
+        phase_stage = (
+            None
+            if normalized.get("stage_from_group_allowed") is False
+            or normalized.get("current_stage_unrecognized")
+            else _group_phase(entries[0][1].group_name)
+        )
+        if normalized.get("current_stage_unrecognized"):
+            issues.append(
+                PlanIssue(
+                    "UNKNOWN_STAGE_VALUE",
+                    "Status da origem não reconhecido pelo ImportProfile; não é convertido para "
+                    "nenhuma fase. Ajuste o profile (status.values) ou a origem.",
+                )
+            )
         if observed_stage is not None and phase_stage is not None and observed_stage != phase_stage:
             issues.append(
                 PlanIssue(
@@ -485,7 +508,7 @@ async def build_plan(
                     "não é convertida para fase 0. Representação no Hub pendente de decisão.",
                 )
             )
-        elif current_stage is None:
+        elif current_stage is None and not normalized.get("current_stage_unrecognized"):
             issues.append(PlanIssue("missing_current_stage", "Nenhuma etapa identificada na origem"))
 
         existing_mapping = await _existing_mapping(
@@ -512,6 +535,7 @@ async def build_plan(
         blocking_codes = {
             "IMPORT_CONFLICT",
             "STAGE_CONFLICT",
+            "UNKNOWN_STAGE_VALUE",
             "missing_current_stage",
             "STAGE_NOT_APPLICABLE",
             "unmapped_area",

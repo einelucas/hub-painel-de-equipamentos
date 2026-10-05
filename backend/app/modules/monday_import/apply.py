@@ -21,10 +21,10 @@ from app.models.monday_import import MondayImportBatch, MondayImportRecord, Mond
 from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
 from app.modules.monday_import.plan import (
     ComponentIdentityStrategy,
-    EquipmentIdentityStrategy,
     MigrationPlan,
     PlanItem,
     _json_safe,
+    equipment_identity_strategy,
 )
 from app.modules.monday_import.service import register_external_mapping
 from app.shared.audit import record_audit
@@ -109,7 +109,7 @@ async def _apply_equipment(
             project_context_id=plan.project_context_id,
             source_entity_type="equipment",
             external_id=item.source_key,
-            identity_strategy=EquipmentIdentityStrategy,
+            identity_strategy=equipment_identity_strategy(item.source_key),
             target_entity_type="Equipment",
             target_entity_id=equipment.id,
         )
@@ -120,7 +120,9 @@ async def _apply_equipment(
             entity="Equipment",
             entity_id=equipment.id,
             new_data=_json_safe({**columns, "workPackageIds": work_package_ids}),
-            metadata=_plan_metadata(plan, run_id, item.source_key, EquipmentIdentityStrategy),
+            metadata=_plan_metadata(
+                plan, run_id, item.source_key, equipment_identity_strategy(item.source_key)
+            ),
         )
         return equipment.id
 
@@ -163,7 +165,7 @@ async def _apply_equipment(
         entity_id=existing_equipment.id,
         previous_data=_json_safe(previous),
         new_data=_json_safe(item.payload),
-        metadata=_plan_metadata(plan, run_id, item.source_key, EquipmentIdentityStrategy),
+        metadata=_plan_metadata(plan, run_id, item.source_key, equipment_identity_strategy(item.source_key)),
     )
     return existing_equipment.id
 

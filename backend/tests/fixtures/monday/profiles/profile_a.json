@@ -1,0 +1,117 @@
+{
+  "profile_id": "synthetic-equipment-board-a",
+  "version": 1,
+  "source_system": "monday",
+  "description": "Layout SINTÉTICO A (testes): cabeçalhos em inglês, grupos 'Stage N'.",
+  "board": {
+    "title_prefixes": [
+      "Synthetic Equipment Board"
+    ],
+    "title_required": true
+  },
+  "groups": {
+    "stage_prefixes": [
+      "Stage"
+    ],
+    "other_titles": [
+      "Backlog"
+    ],
+    "not_applicable_titles": [
+      "Out of Scope"
+    ],
+    "stage_fallback_from_group": false
+  },
+  "equipment": {
+    "header_signature": [
+      "name",
+      "current_stage"
+    ],
+    "required": [
+      "name",
+      "current_stage"
+    ],
+    "aliases": {
+      "name": [
+        "Equipment"
+      ],
+      "external_id": [
+        "Item ID"
+      ],
+      "current_stage": [
+        "Status"
+      ],
+      "area_name": [
+        "Area"
+      ],
+      "responsible_name": [
+        "Owner"
+      ],
+      "discipline_name": [
+        "Discipline"
+      ],
+      "startup_at": [
+        "Startup"
+      ],
+      "work_package_codes": [
+        "Work Packages"
+      ],
+      "subelements_raw": [
+        "Subitems Summary"
+      ]
+    },
+    "ignored_headers": [
+      "Notes"
+    ],
+    "external_id_concept": "external_id"
+  },
+  "component": {
+    "header_markers": [
+      "Subitems"
+    ],
+    "header_signature": [
+      "name"
+    ],
+    "required": [
+      "name"
+    ],
+    "aliases": {
+      "subitems_marker": [
+        "Subitems"
+      ],
+      "name": [
+        "Component"
+      ],
+      "external_id": [
+        "Component ID"
+      ],
+      "startup_at": [
+        "Component Startup"
+      ],
+      "lead_time_days": [
+        "Lead Time"
+      ],
+      "freight_days": [
+        "Freight"
+      ],
+      "pre_start_days": [
+        "Days Before Startup"
+      ]
+    },
+    "ignored_headers": [
+      "Attachments"
+    ],
+    "external_id_concept": "external_id"
+  },
+  "status": {
+    "values": {
+      "Backlog": 0,
+      "Engineering": 1,
+      "Negotiation": 2,
+      "Contract": 5,
+      "Delivered": 8,
+      "Not Applicable": "NOT_APPLICABLE"
+    },
+    "stage_number_in_text": false
+  },
+  "expected_counts": null
+}

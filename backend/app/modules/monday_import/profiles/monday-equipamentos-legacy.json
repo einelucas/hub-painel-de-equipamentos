@@ -1,0 +1,260 @@
+{
+  "profile_id": "monday-equipamentos-legacy",
+  "version": 1,
+  "source_system": "monday",
+  "description": "Layout histórico do board 'Equipamentos' (variações C2/F2). Contém apenas nomes de colunas e rótulos estruturais; nenhum valor de registro. É o profile padrão quando nenhum outro é informado, preservando o comportamento anterior do parser.",
+  "board": {
+    "title_prefixes": [
+      "Equipamentos"
+    ],
+    "title_required": false
+  },
+  "groups": {
+    "stage_prefixes": [
+      "Fase"
+    ],
+    "other_titles": [],
+    "not_applicable_titles": [
+      "Não se Aplica"
+    ],
+    "stage_fallback_from_group": true
+  },
+  "equipment": {
+    "header_signature": [
+      "name",
+      "subelements_raw",
+      "current_stage"
+    ],
+    "required": [
+      "name"
+    ],
+    "aliases": {
+      "name": [
+        "Name"
+      ],
+      "subelements_raw": [
+        "Subelementos"
+      ],
+      "negotiation_status_observed": [
+        "Status Negociação"
+      ],
+      "negotiation_deadline": [
+        "F.Data Limite Negociação"
+      ],
+      "work_need_status_observed": [
+        "Status Necessidade Obra"
+      ],
+      "delivery_deadline": [
+        "F.Limite Entrega Obra"
+      ],
+      "current_stage": [
+        "A.Status"
+      ],
+      "suppliers_raw": [
+        "0.Fornecedores",
+        "0.Fornecedor"
+      ],
+      "supplier_corporate_code": [
+        "Cód. Fornecedor. CS"
+      ],
+      "origin": [
+        "0.Origem"
+      ],
+      "startup_at": [
+        "0.Startup/Grãos"
+      ],
+      "discipline_name": [
+        "0.Disciplina"
+      ],
+      "contract_or_po_deadline": [
+        "F.Data Limite para contrato/OC"
+      ],
+      "criticality_observed": [
+        "0.Criticidade"
+      ],
+      "contract_delivery_mirror": [
+        "E.Data de Entrega contrato"
+      ],
+      "responsible_name": [
+        "0.Responsável",
+        "0.Responsável (padrão)"
+      ],
+      "responsible_legacy_text": [
+        "z.0.Responsável (texto antigo)"
+      ],
+      "area_name": [
+        "0.Área",
+        "0.Área (padrão)"
+      ],
+      "area_legacy_text": [
+        "z.0.Área",
+        "z.0.Área (texto antigo)"
+      ],
+      "work_package_codes": [
+        "Work Package"
+      ],
+      "equalized": [
+        "1.Equalização"
+      ],
+      "negotiated_at": [
+        "2.Data da Negociação"
+      ],
+      "legal_opened_at": [
+        "3.Data de Abertura do Chamado"
+      ],
+      "legal_ticket_number": [
+        "3.Chamado Jurídico"
+      ],
+      "draft_prepared": [
+        "3.Elab. Minuta"
+      ],
+      "draft_approved": [
+        "4.Minuta Aprovada"
+      ],
+      "contract_executed_at": [
+        "5.Data Escrituração"
+      ],
+      "contract_number": [
+        "5.Numero Contrato",
+        "5.Número Contrato"
+      ],
+      "contract_delivery_at": [
+        "5.Data de Entrega pelo contrato"
+      ],
+      "purchase_request_at": [
+        "6.Data de SC/OCI"
+      ],
+      "purchase_request_number": [
+        "6.Numero SC/OCI",
+        "6.Número SC/OCI"
+      ],
+      "purchase_order_at": [
+        "7.Data OC"
+      ],
+      "purchase_order_number": [
+        "7.Numero OC",
+        "7.Número OC"
+      ],
+      "lead_time_days_mirror": [
+        "E.Lead Time de Fabricação",
+        "E.Lead Time de Fabricação (máx)"
+      ],
+      "formula2_observed": [
+        "Espelho/Fórmula2"
+      ],
+      "pre_start_days_mirror": [
+        "E.Dias Antes do Startup"
+      ],
+      "freight_days_mirror": [
+        "ESPELHO-FORMULA-FRETE"
+      ],
+      "kickoff_at": [
+        "Kickoff"
+      ],
+      "negotiation_lead_time_observed": [
+        "Leadtime Negociação"
+      ],
+      "negotiation_max_days_observed": [
+        "Prazo Máximo Negociação"
+      ],
+      "capex_estimated": [
+        "CAPEX Estimado"
+      ],
+      "planned_cost_candidate": [
+        "Custo Previsto"
+      ]
+    },
+    "ignored_headers": [],
+    "external_id_concept": null
+  },
+  "component": {
+    "header_markers": [
+      "Subitems",
+      "Subitem"
+    ],
+    "header_signature": [
+      "name"
+    ],
+    "required": [
+      "name"
+    ],
+    "aliases": {
+      "subitems_marker": [
+        "Subitems"
+      ],
+      "name": [
+        "Name"
+      ],
+      "tag": [
+        "TAG",
+        "1.TAG"
+      ],
+      "startup_at": [
+        "0.Startup/Grãos"
+      ],
+      "delivery_deadline": [
+        "Data Limite de Entrega em Obra",
+        "F.Data Limite de Entrega em Obra"
+      ],
+      "sector": [
+        "Setor"
+      ],
+      "negotiation_days_remaining_observed": [
+        "Prazo Neg"
+      ],
+      "contract_or_po_deadline": [
+        "Data limite para contrato/OC",
+        "F.Data limite para contrato/OC"
+      ],
+      "lead_time_days": [
+        "Lead Time de Fabricação",
+        "0.Lead Time de Fabricação"
+      ],
+      "collection_available_at": [
+        "Disponivel Coleta",
+        "Disponível Coleta",
+        "F.Disponivel Coleta"
+      ],
+      "pre_start_days": [
+        "0.Dias Antes do Startup"
+      ],
+      "contract_delivery_at": [
+        "Data de Entrega pelo contrato",
+        "5.Data de Entrega pelo contrato"
+      ],
+      "delivery_margin_days_observed": [
+        "Entrega planejada vs negociada",
+        "F.Entrega planejada vs negociada"
+      ],
+      "delivery_status_observed": [
+        "Status da Data de Entrega",
+        "F.Status da Data de Entrega"
+      ],
+      "files_raw": [
+        "Arquivos"
+      ],
+      "freight_days": [
+        "Frete (Dias)",
+        "0.Frete (Dias)"
+      ],
+      "formula_date_observed": [
+        "FÓRMULA-NÃO MEXER"
+      ],
+      "negotiation_deadline": [
+        "F.Data Limite Negociação_calc"
+      ],
+      "external_id": [
+        "ID do elemento"
+      ]
+    },
+    "ignored_headers": [],
+    "external_id_concept": "external_id"
+  },
+  "status": {
+    "values": {
+      "Não se Aplica": "NOT_APPLICABLE"
+    },
+    "stage_number_in_text": true
+  },
+  "expected_counts": null
+}
