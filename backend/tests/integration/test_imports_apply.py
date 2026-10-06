@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from app.models.audit import AuditLog
 from app.models.equipment import Equipment, EquipmentComponent
 from app.models.monday_import import MondayMigrationRun
+from app.models.supplier import EquipmentSupplier, Supplier
 from tests.integration.test_imports_plan import mapping, plan, seed, stage, synthetic_board
 
 
@@ -93,6 +94,74 @@ async def test_new_snapshot_updates_existing_equipment(client, auth_header, db_s
     equipment = (await db_session.execute(select(Equipment))).scalar_one()
     await db_session.refresh(equipment)
     assert equipment.startup_at == date(2027, 11, 30)
+
+
+async def test_supplier_requires_explicit_confirmation_and_reimport_does_not_duplicate_history(
+    client, auth_header, db_session
+) -> None:
+    ids = await seed(client, auth_header, db_session)
+    admin = auth_header("ADMIN")
+    supplier = Supplier(corporate_code="9001", legal_name="Fornecedor Confirmado SA")
+    db_session.add(supplier)
+    await db_session.commit()
+    supplier_id = supplier.id
+
+    # A origem é preservada e gera sugestão, mas aplicar sem decisão não vincula.
+    unconfirmed = await stage(
+        client,
+        admin,
+        ids["context"],
+        synthetic_board(name="Sem confirmação", supplier="9001"),
+        "sem-confirmacao.xlsx",
+    )
+    unconfirmed_plan = (await plan(client, admin, unconfirmed["batchId"], mapping(ids))).json()
+    assert unconfirmed_plan["supplierSuggestions"][0]["supplierId"] == supplier_id
+    response = await apply(
+        client,
+        admin,
+        unconfirmed["batchId"],
+        mapping(ids),
+        unconfirmed_plan["planSha256"],
+    )
+    assert response.status_code == 200
+    assert await _count(db_session, EquipmentSupplier) == 0
+
+    confirmed = await stage(
+        client,
+        admin,
+        ids["context"],
+        synthetic_board(name="Com confirmação", supplier="9001"),
+        "com-confirmacao.xlsx",
+    )
+    base_mapping = mapping(ids)
+    first_plan = (await plan(client, admin, confirmed["batchId"], base_mapping)).json()
+    source_key = first_plan["supplierSuggestions"][0]["sourceKey"]
+    confirmed_mapping = base_mapping | {
+        "supplierSelections": {
+            source_key: {"action": "USE", "supplierId": supplier_id},
+        }
+    }
+    confirmed_plan = (await plan(client, admin, confirmed["batchId"], confirmed_mapping)).json()
+    result = await apply(
+        client,
+        admin,
+        confirmed["batchId"],
+        confirmed_mapping,
+        confirmed_plan["planSha256"],
+    )
+    assert result.status_code == 200
+    assert await _count(db_session, EquipmentSupplier) == 1
+
+    again = (await plan(client, admin, confirmed["batchId"], confirmed_mapping)).json()
+    second = await apply(
+        client,
+        admin,
+        confirmed["batchId"],
+        confirmed_mapping,
+        again["planSha256"],
+    )
+    assert second.status_code == 200
+    assert await _count(db_session, EquipmentSupplier) == 1
 
 
 async def test_stale_plan_hash_is_rejected_with_409(client, auth_header, db_session) -> None:

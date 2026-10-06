@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { RefreshCw, Trash2 } from "lucide-vue-next";
 import type { CatalogList, EquipmentSupplier, Supplier } from "~/types/equipment";
+import { formatDateTime } from "~/utils/format";
 
 const props = defineProps<{ equipmentId: string }>();
 const api = useApi();
@@ -16,10 +17,13 @@ const actionError = ref("");
 const showLink = ref(false);
 const chosen = ref("");
 const role = ref("");
+const reason = ref("");
 
 const canWrite = computed(() => auth.can("suppliers:write"));
-/** Etapa 7A: no máximo um fornecedor por equipamento. */
-const current = computed<EquipmentSupplier | null>(() => links.value[0] ?? null);
+const current = computed<EquipmentSupplier | null>(
+  () => links.value.find((item) => item.endedAt === null) ?? null,
+);
+const history = computed(() => links.value.filter((item) => item.endedAt !== null));
 const available = computed(() =>
   catalog.value.filter((item) => item.id !== current.value?.supplier.id),
 );
@@ -43,6 +47,7 @@ async function openLink(): Promise<void> {
   actionError.value = "";
   chosen.value = "";
   role.value = "";
+  reason.value = "";
   showLink.value = true;
   catalog.value = (await api.get<CatalogList<Supplier>>("/suppliers")).items;
 }
@@ -62,7 +67,12 @@ async function run(action: () => Promise<unknown>, fallback: string): Promise<vo
 
 async function confirmLink(): Promise<void> {
   if (!chosen.value) return;
-  const payload = { supplierId: chosen.value, role: role.value.trim() || null, isPrimary: true };
+  const payload = {
+    supplierId: chosen.value,
+    role: role.value.trim() || null,
+    changeReason: reason.value.trim() || null,
+    isPrimary: true,
+  };
   await run(
     () =>
       current.value
@@ -89,8 +99,8 @@ onMounted(load);
   <section class="surface">
     <div class="surface-header">
       <div>
-        <h2>Fornecedor</h2>
-        <p>Etapa 7A: um equipamento tem no máximo um fornecedor vinculado — todos os contratos usam este mesmo fornecedor.</p>
+        <h2>Fornecedor atual</h2>
+        <p>Um equipamento pode trocar de fornecedor, mantendo no máximo um vínculo ativo por vez.</p>
       </div>
       <button v-if="canWrite && !current" class="btn primary" :disabled="busy" @click="openLink">
         Vincular fornecedor
@@ -113,33 +123,38 @@ onMounted(load);
         <h2>Nenhum fornecedor vinculado</h2>
         <p>O processo não é bloqueado por isso nesta etapa, mas é obrigatório para concluir (Fase 7 → 8).</p>
       </div>
-      <div v-else class="table-wrap">
+      <div v-else class="current-supplier" data-testid="current-supplier">
+        <strong>{{ current.supplier.legalName }}</strong>
+        <span>Desde: {{ formatDateTime(current.startedAt) }}</span>
+        <span>Fase de entrada: {{ current.startStage ?? "—" }}</span>
+        <span v-if="current.role">Papel: {{ current.role }}</span>
+        <button
+          v-if="canWrite"
+          class="text-button danger"
+          :disabled="busy"
+          @click="unlink(current.supplier.id)"
+        >
+          <Trash2 :size="13" /> Encerrar vínculo
+        </button>
+      </div>
+
+      <div v-if="history.length" class="table-wrap" data-testid="supplier-history">
+        <h3>Histórico de fornecedores</h3>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Fornecedor</TableHead>
-              <TableHead>Nome fantasia</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>Papel</TableHead>
-              <TableHead />
+              <TableHead>Período</TableHead>
+              <TableHead>Fases</TableHead>
+              <TableHead>Motivo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow :data-testid="`supplier-${current.supplier.id}`">
-              <TableCell class="font-semibold">{{ current.supplier.legalName }}</TableCell>
-              <TableCell>{{ current.supplier.tradeName ?? "—" }}</TableCell>
-              <TableCell>{{ current.supplier.taxId ?? "—" }}</TableCell>
-              <TableCell>{{ current.role ?? "—" }}</TableCell>
-              <TableCell>
-                <button
-                  v-if="canWrite"
-                  class="text-button danger"
-                  :disabled="busy"
-                  @click="unlink(current.supplier.id)"
-                >
-                  <Trash2 :size="13" /> Desvincular
-                </button>
-              </TableCell>
+            <TableRow v-for="item in history" :key="item.id" :data-testid="`supplier-history-${item.id}`">
+              <TableCell class="font-semibold">{{ item.supplier.legalName }}</TableCell>
+              <TableCell>{{ formatDateTime(item.startedAt) }} → {{ formatDateTime(item.endedAt) }}</TableCell>
+              <TableCell>{{ item.startStage ?? "—" }} → {{ item.endStage ?? "—" }}</TableCell>
+              <TableCell>{{ item.changeReason ?? "—" }}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -165,6 +180,7 @@ onMounted(load);
           <NuxtLink to="/fornecedores">Fornecedores</NuxtLink>.
         </p>
         <label class="field"><span>Papel</span><input v-model="role" maxlength="80" placeholder="Opcional"></label>
+        <label class="field"><span>Motivo da alteração</span><textarea v-model="reason" maxlength="500" rows="3" placeholder="Opcional"></textarea></label>
         <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
         <div class="form-actions">
           <button type="button" class="btn" @click="showLink = false">Cancelar</button>
@@ -180,6 +196,9 @@ onMounted(load);
 <style scoped>
 .supplier-state { display: flex; min-height: 160px; align-items: center; justify-content: center; gap: 12px; color: #748197; }
 .supplier-notice { margin: 14px 18px 0; }
+.current-supplier { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0 18px 14px; border: 1px solid #dfe7f1; border-radius: 10px; padding: 13px; color: #53657c; font-size: 12px; }
+.current-supplier strong { width: 100%; color: #213a5c; font-size: 15px; }
+.table-wrap h3 { margin: 0 0 10px; color: #2b3e58; font-size: 13px; }
 .table-wrap { padding: 0 18px 18px; overflow-x: auto; }
 .table-empty { margin: auto; padding-bottom: 28px; }
 .text-button { display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }

@@ -1,10 +1,11 @@
 """Arquivo explícito de mapeamento de catálogos Monday -> Hub.
 
 Carrega e valida um arquivo JSON que resolve valores textuais da origem para IDs
-já existentes no domínio. O importador nunca cria usuário. EAP, disciplina, Work
-Package e fornecedor podem ser criados pelo plan/apply quando há evidência
+já existentes no domínio. O importador nunca cria usuário ou fornecedor. EAP,
+disciplina e Work Package podem ser criados pelo plan/apply quando há evidência
 suficiente (ver `catalog_evidence`); `catalogEvidence` neste arquivo é a
-evidência manual, usada só como fallback.
+evidência manual, usada só como fallback. A seção legada `suppliers` continua
+aceita no schema por compatibilidade, mas não cria nem vincula Supplier.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.scope import user_can_access_unit
 from app.domain.eap import EQUIPMENT_EAP_LEVELS
 from app.models.equipment import Area, Discipline, EapNode, ProjectContext, WorkPackage
+from app.models.supplier import Supplier
 from app.models.user import User
 from app.modules.monday_import.normalization import canonical_text
 
@@ -68,6 +70,21 @@ class CatalogEvidenceIn(_EvidenceModel):
         return not (self.disciplines or self.work_packages or self.eap_processes or self.suppliers)
 
 
+class SupplierSelectionIn(_EvidenceModel):
+    """Decisão humana por equipamento. Ausência significa apenas sugestão."""
+
+    action: Literal["USE", "NONE"]
+    supplier_id: str | None = Field(default=None, alias="supplierId")
+
+    @model_validator(mode="after")
+    def validate_action(self) -> SupplierSelectionIn:
+        if self.action == "USE" and not self.supplier_id:
+            raise ValueError("supplierId é obrigatório para USE")
+        if self.action == "NONE" and self.supplier_id is not None:
+            raise ValueError("supplierId deve ficar vazio para NONE")
+        return self
+
+
 class MappingFileSchema(BaseModel):
     """Schema validado do arquivo JSON de mapeamento."""
 
@@ -79,6 +96,9 @@ class MappingFileSchema(BaseModel):
     work_packages: dict[str, str] = Field(default_factory=dict, alias="workPackages")
     # valor de localização da origem -> EapNode escolhido explicitamente pelo usuário
     eap_nodes: dict[str, str] = Field(default_factory=dict, alias="eapNodes")
+    supplier_selections: dict[str, SupplierSelectionIn] = Field(
+        default_factory=dict, alias="supplierSelections"
+    )
     # Opcional e retrocompatível: ausente/vazio não altera o mappingSha256.
     catalog_evidence: CatalogEvidenceIn = Field(default_factory=CatalogEvidenceIn, alias="catalogEvidence")
 
@@ -134,6 +154,7 @@ class ValidatedMapping:
     disciplines: dict[str, str] = field(default_factory=dict)
     work_packages: dict[str, str] = field(default_factory=dict)
     eap_nodes: dict[str, str] = field(default_factory=dict)
+    supplier_selections: dict[str, SupplierSelectionIn] = field(default_factory=dict)
     issues: list[MappingIssue] = field(default_factory=list)
     # Evidência manual (fallback) para criar catálogos; já validada em formato.
     catalog_evidence: CatalogEvidenceIn = field(default_factory=CatalogEvidenceIn)
@@ -163,6 +184,7 @@ class ValidatedMapping:
                 "disciplines": len(self.disciplines),
                 "workPackages": len(self.work_packages),
                 "eapNodes": len(self.eap_nodes),
+                "supplierSelections": len(self.supplier_selections),
                 "catalogEvidence": {
                     "disciplines": len(self.catalog_evidence.disciplines),
                     "workPackages": len(self.catalog_evidence.work_packages),
@@ -181,6 +203,9 @@ def load_mapping_file(path: str | Path) -> MappingFileSchema:
 
 def mapping_file_sha256(schema: MappingFileSchema) -> str:
     dumped = schema.model_dump(by_alias=True)
+    if not schema.supplier_selections:
+        # Compatibilidade com mappings anteriores à revisão explícita.
+        dumped.pop("supplierSelections", None)
     if schema.catalog_evidence.is_empty():
         # Mantém o hash de mappings anteriores à evidência manual.
         dumped.pop("catalogEvidence", None)
@@ -334,6 +359,33 @@ async def validate_mapping(
         else:
             resolved_work_packages[canonical_text(source)] = work_package_id
 
+    resolved_supplier_selections: dict[str, SupplierSelectionIn] = {}
+    for source_key, selection in schema.supplier_selections.items():
+        if not source_key.strip():
+            issues.append(
+                MappingIssue(
+                    "blank_supplier_source_key",
+                    "error",
+                    "supplierSelections",
+                    "Identidade do equipamento não pode ficar vazia",
+                )
+            )
+            continue
+        if selection.action == "USE":
+            supplier = await session.get(Supplier, selection.supplier_id)
+            if supplier is None or not supplier.active:
+                issues.append(
+                    MappingIssue(
+                        "unknown_supplier",
+                        "error",
+                        "supplierSelections",
+                        f"fornecedor {selection.supplier_id} inválido ou inativo",
+                        source_key,
+                    )
+                )
+                continue
+        resolved_supplier_selections[source_key] = selection
+
     return ValidatedMapping(
         project_context_id=project_context_id,
         sha256=mapping_file_sha256(schema),
@@ -342,6 +394,7 @@ async def validate_mapping(
         disciplines=resolved_disciplines,
         work_packages=resolved_work_packages,
         eap_nodes=resolved_eap_nodes,
+        supplier_selections=resolved_supplier_selections,
         issues=issues,
         catalog_evidence=schema.catalog_evidence,
     )

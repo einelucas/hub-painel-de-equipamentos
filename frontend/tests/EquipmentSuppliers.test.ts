@@ -5,6 +5,7 @@ import type { EquipmentSupplier } from "~/types/equipment";
 
 function supplier(id: string, legalName: string, isPrimary: boolean): EquipmentSupplier {
   return {
+    id: `link-${id}`,
     supplier: {
       id,
       legalName,
@@ -16,6 +17,13 @@ function supplier(id: string, legalName: string, isPrimary: boolean): EquipmentS
     },
     role: isPrimary ? "Fabricante" : null,
     isPrimary,
+    startStage: 1,
+    endStage: null,
+    startedAt: "2026-09-20T00:00:00",
+    endedAt: null,
+    changeReason: null,
+    source: "MANUAL",
+    changedByUserId: "user-1",
     createdAt: "2026-09-20T00:00:00",
   };
 }
@@ -67,7 +75,7 @@ describe("EquipmentSuppliers", () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.text()).toContain("Principal SA");
-    expect(wrapper.get("[data-testid='supplier-s-1']").text()).toContain("Principal SA");
+    expect(wrapper.get("[data-testid='current-supplier']").text()).toContain("Principal SA");
     expect(wrapper.find("[data-testid='replace-supplier']").exists()).toBe(true);
   });
 
@@ -85,6 +93,7 @@ describe("EquipmentSuppliers", () => {
     expect(put).toHaveBeenCalledWith("/equipments/eq-1/suppliers", {
       supplierId: "s-2",
       role: null,
+      changeReason: null,
       isPrimary: true,
     });
   });
@@ -98,7 +107,7 @@ describe("EquipmentSuppliers", () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.text()).not.toContain("Vincular fornecedor");
-    expect(wrapper.text()).not.toContain("Desvincular");
+    expect(wrapper.text()).not.toContain("Encerrar vínculo");
   });
 
   it("mostra estado vazio sem bloquear o processo", async () => {
@@ -109,5 +118,22 @@ describe("EquipmentSuppliers", () => {
     expect(wrapper.get("[data-testid='suppliers-empty']").text()).toContain(
       "Nenhum fornecedor vinculado",
     );
+  });
+
+  it("separa o fornecedor atual do histórico encerrado", async () => {
+    const old = supplier("s-old", "Fornecedor Anterior", false);
+    old.endStage = 4;
+    old.endedAt = "2026-10-01T00:00:00";
+    old.changeReason = "Nova contratação";
+    const { wrapper } = mountWith(
+      [supplier("s-1", "Fornecedor Atual", true), old],
+      () => true,
+    );
+    await new Promise((resolve) => setTimeout(resolve));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.get("[data-testid='current-supplier']").text()).toContain("Fornecedor Atual");
+    expect(wrapper.get("[data-testid='supplier-history']").text()).toContain("Fornecedor Anterior");
+    expect(wrapper.get("[data-testid='supplier-history']").text()).toContain("Nova contratação");
   });
 });

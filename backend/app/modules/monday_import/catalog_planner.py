@@ -1,7 +1,7 @@
 """Resolução de catálogos por equipamento durante o `plan` da migração.
 
-Carrega uma vez os catálogos do Hub (EAP, disciplinas, Work Packages do contexto,
-fornecedores, usuários) e, para cada equipamento, decide EXISTING/CREATE/CONFLICT/
+Carrega uma vez os catálogos do Hub (EAP, disciplinas, Work Packages do contexto
+e usuários) e, para cada equipamento, decide EXISTING/CREATE/CONFLICT/
 UNRESOLVED com base nas evidências agregadas (`catalog_evidence`).
 
 O resultado de cada equipamento traz:
@@ -23,18 +23,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.scope import user_can_access_unit
 from app.models.equipment import Discipline, ProjectContext, ProjectEap, WorkPackage
-from app.models.supplier import Supplier, SupplierAlias
 from app.models.user import User
 from app.modules.monday_import.catalog_evidence import CatalogEvidence
 from app.modules.monday_import.catalog_taxonomy import (
     CatalogAction,
     DisciplineEntry,
-    SupplierEntry,
-    SupplierIndex,
     WorkPackageEntry,
     decide_discipline,
     decide_project_eap,
-    decide_supplier,
     decide_work_package,
     discipline_target_name,
 )
@@ -42,7 +38,7 @@ from app.modules.monday_import.eap_resolution import EapResolver
 from app.modules.monday_import.mapping_file import ValidatedMapping
 from app.modules.monday_import.normalization import canonical_text
 
-CatalogKind = Literal["eap_node", "project_eap", "discipline", "work_package", "supplier"]
+CatalogKind = Literal["eap_node", "project_eap", "discipline", "work_package"]
 
 
 @dataclass(slots=True, frozen=True)
@@ -79,7 +75,6 @@ class EquipmentCatalogs:
     eap_node_id: str | None = None
     discipline_id: str | None = None
     responsible_user_id: str | None = None
-    supplier_id: str | None = None
     work_package_ids: list[str] = field(default_factory=list)
     # Todos os códigos de WP da origem foram resolvidos (EXISTING/CREATE)? Se não,
     # o plan não propõe remover vínculos existentes (sem perda acidental).
@@ -100,7 +95,6 @@ class CatalogPlanner:
         eap_resolver: EapResolver,
         disciplines: tuple[dict[str, DisciplineEntry], dict[str, DisciplineEntry]],
         work_packages: dict[str, WorkPackageEntry],
-        suppliers: SupplierIndex,
         users_by_name: dict[str, list[str]],
         linked_eap_node_ids: set[str],
     ) -> None:
@@ -111,7 +105,6 @@ class CatalogPlanner:
         self.eap_resolver = eap_resolver
         self.discipline_by_name, self.discipline_by_code = disciplines
         self.work_package_by_code = work_packages
-        self.suppliers = suppliers
         self.users_by_name = users_by_name
         self.linked_eap_node_ids = linked_eap_node_ids
         self._items: dict[tuple[str, str], CatalogPlanItem] = {}
@@ -146,7 +139,6 @@ class CatalogPlanner:
             eap_resolver=await EapResolver.load(session, mapping.eap_nodes, evidence),
             disciplines=await _discipline_index(session),
             work_packages=await _work_package_index(session, project_context_id),
-            suppliers=await _supplier_index(session),
             users_by_name=await _users_by_name(session),
             linked_eap_node_ids=linked,
         )
@@ -164,7 +156,9 @@ class CatalogPlanner:
         self._resolve_discipline(normalized, result)
         await self._resolve_responsible(session, normalized, result)
         self._resolve_work_packages(normalized, result)
-        self._resolve_supplier(normalized, result)
+        # Fornecedor é apenas sugestão durante a importação. A resolução fica
+        # disponível para a revisão HTTP, mas nunca entra no payload de apply
+        # sem `supplierSelections` explícito do usuário.
         return result
 
     # -- EAP + ProjectEap ----------------------------------------------------------
@@ -366,36 +360,6 @@ class CatalogPlanner:
         if create_codes:
             result.refs["workPackageCodes"] = sorted(create_codes)
 
-    # -- Supplier ------------------------------------------------------------------
-
-    def _resolve_supplier(self, normalized: dict[str, Any], result: EquipmentCatalogs) -> None:
-        raw_names = [str(name) for name in normalized.get("suppliers_raw") or [] if name]
-        decision = decide_supplier(
-            normalized.get("supplier_corporate_code"), raw_names, self.suppliers, self.evidence.supplier
-        )
-        if decision is None:
-            return
-        self._record(
-            CatalogPlanItem(
-                kind="supplier",
-                key=decision.key,
-                action=decision.action,
-                target_id=decision.supplier_id,
-                payload=dict(decision.payload),
-                evidence_source=decision.evidence_source,
-                issue_code=decision.issue_code,
-                message=decision.message,
-                detail=dict(decision.detail),
-            )
-        )
-        if decision.issue_code is not None:
-            result.issues.append((decision.issue_code, decision.message or "", dict(decision.detail) or None))
-        if decision.action is CatalogAction.EXISTING:
-            result.supplier_id = decision.supplier_id
-        elif decision.action is CatalogAction.CREATE:
-            result.refs["supplierCode"] = decision.key
-
-
 async def _discipline_index(
     session: AsyncSession,
 ) -> tuple[dict[str, DisciplineEntry], dict[str, DisciplineEntry]]:
@@ -421,54 +385,6 @@ async def _work_package_index(session: AsyncSession, project_context_id: str) ->
     return {
         canonical_text(row.code): WorkPackageEntry(row.id, row.code, row.name, row.active) for row in rows
     }
-
-
-def _unique(pairs: list[tuple[str, SupplierEntry]]) -> dict[str, SupplierEntry]:
-    """Chave que aponta para mais de um fornecedor é ambígua e fica de fora."""
-    found: dict[str, SupplierEntry] = {}
-    ambiguous: set[str] = set()
-    for key, entry in pairs:
-        if not key:
-            continue
-        if key in found and found[key].id != entry.id:
-            ambiguous.add(key)
-        found.setdefault(key, entry)
-    return {key: entry for key, entry in found.items() if key not in ambiguous}
-
-
-async def _supplier_index(session: AsyncSession) -> SupplierIndex:
-    suppliers = (
-        await session.execute(
-            select(
-                Supplier.id,
-                Supplier.corporate_code,
-                Supplier.legal_name,
-                Supplier.trade_name,
-                Supplier.active,
-            )
-        )
-    ).all()
-    entries = {
-        row.id: SupplierEntry(row.id, row.corporate_code, row.legal_name, row.trade_name, row.active)
-        for row in suppliers
-    }
-    aliases = (await session.execute(select(SupplierAlias.alias, SupplierAlias.supplier_id))).all()
-    names: list[tuple[str, SupplierEntry]] = []
-    for entry in entries.values():
-        names.append((canonical_text(entry.legal_name), entry))
-        if entry.trade_name:
-            names.append((canonical_text(entry.trade_name), entry))
-    return SupplierIndex(
-        by_code={entry.corporate_code: entry for entry in entries.values() if entry.corporate_code},
-        by_alias=_unique(
-            [
-                (canonical_text(row.alias), entries[row.supplier_id])
-                for row in aliases
-                if row.supplier_id in entries
-            ]
-        ),
-        by_name=_unique(names),
-    )
 
 
 async def _users_by_name(session: AsyncSession) -> dict[str, list[str]]:

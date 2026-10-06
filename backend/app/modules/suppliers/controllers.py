@@ -98,6 +98,7 @@ async def post_equipment_supplier(
         supplier_id=body.supplier_id,
         role=body.role,
         is_primary=body.is_primary,
+        change_reason=body.change_reason,
         actor=actor,
     )
 
@@ -116,6 +117,7 @@ async def put_equipment_supplier(
         equipment_id=equipment_id,
         supplier_id=body.supplier_id,
         role=body.role,
+        change_reason=body.change_reason,
         actor=actor,
     )
 

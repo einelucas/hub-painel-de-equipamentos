@@ -170,6 +170,20 @@ class ResponsibleSummaryOut(CamelModel):
     unresolved: int = 0
 
 
+class SupplierSuggestionOut(CamelModel):
+    source_key: str
+    equipment_name: str
+    source_value: str | None
+    supplier_id: str | None
+    supplier_name: str | None
+    corporate_code: str | None
+    confidence: Literal["HIGH", "MEDIUM", "LOW", "NONE"]
+    evidence: list[str]
+    requires_registration: bool = False
+    selected_action: Literal["USE", "NONE"] | None = None
+    selected_supplier_id: str | None = None
+
+
 class ImportPlanOut(CamelModel):
     batch_ids: list[str]
     project_context_id: str
@@ -186,6 +200,7 @@ class ImportPlanOut(CamelModel):
     # Itens de catálogo do plano, para a UI mostrar EXISTENTE/NOVO/CONFLITO/PENDENTE.
     catalogs: list[CatalogItemOut] = []
     responsibles: ResponsibleSummaryOut = ResponsibleSummaryOut()
+    supplier_suggestions: list[SupplierSuggestionOut] = []
     eap: EapSummaryOut
     has_blocked: bool
     # Só aplica sem mapping inválido e sem nenhum item BLOCKED.

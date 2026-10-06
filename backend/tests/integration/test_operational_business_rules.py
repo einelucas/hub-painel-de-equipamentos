@@ -351,7 +351,9 @@ async def test_supplier_is_limited_to_one_and_replaceable(client, auth_header) -
     assert replaced.json()["supplier"]["id"] == second.json()["id"]
 
     listed = await client.get(f"/api/v1/equipments/{equipment_id}/suppliers", headers=auth_header("VIEWER"))
-    assert len(listed.json()["items"]) == 1
+    items = listed.json()["items"]
+    assert len(items) == 2
+    assert sum(item["endedAt"] is None for item in items) == 1
 
 
 async def test_contracts_purchase_requests_and_orders_are_one_to_many(client, auth_header) -> None:

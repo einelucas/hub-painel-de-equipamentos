@@ -6,7 +6,8 @@ from typing import Any
 
 from sqlalchemy import func, select
 
-from app.models.equipment import EapNode, Equipment, EquipmentComponent
+from app.models.equipment import EapNode, Equipment, EquipmentComponent, ProjectContext, Unit
+from app.models.supplier import EquipmentSupplier, Supplier
 from tests.unit.monday_xlsx_fixture import build_xlsx
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -20,6 +21,7 @@ HEADER = [
     "0.Responsável",
     "0.Área",
     "0.Disciplina",
+    "Cód. Fornecedor. CS",
 ]
 LOCATION = "2303 - Sistema Sintético"
 
@@ -30,6 +32,7 @@ def synthetic_board(
     name: str = "Equipamento Sintético A",
     startup: str = "2027/10/27",
     location: str | None = LOCATION,
+    supplier: str | None = None,
 ) -> bytes:
     rows: list[list[Any]] = [
         ["Equipamentos - Projeto Sintético"],
@@ -44,6 +47,7 @@ def synthetic_board(
             "Responsável Origem A",
             location,
             "Disciplina Origem",
+            supplier,
         ],
         [
             "Subitems",
@@ -186,6 +190,81 @@ async def test_unmapped_catalog_values_warn_without_blocking(client, auth_header
     assert catalogs[("discipline", "Disciplina Origem")] == "UNRESOLVED"
     assert body["responsibles"] == {"resolved": 0, "unresolved": 1}
     assert "unmapped_area" not in codes  # Area não é mais destino da localização
+
+
+async def test_supplier_from_source_is_only_a_high_confidence_suggestion(
+    client, auth_header, db_session
+) -> None:
+    ids = await seed(client, auth_header, db_session)
+    supplier = Supplier(corporate_code="9001", legal_name="Fornecedor Global SA")
+    db_session.add(supplier)
+    await db_session.commit()
+    batch = await stage(
+        client,
+        auth_header("ANALYST"),
+        ids["context"],
+        synthetic_board(supplier="9001"),
+    )
+
+    body = (await plan(client, auth_header("ANALYST"), batch["batchId"], mapping(ids))).json()
+    [suggestion] = body["supplierSuggestions"]
+    assert suggestion["sourceValue"] == "9001"
+    assert suggestion["supplierId"] == supplier.id
+    assert suggestion["confidence"] == "HIGH"
+    assert suggestion["selectedAction"] is None
+
+
+async def test_import_without_supplier_uses_history_but_no_evidence_invents_nothing(
+    client, auth_header, db_session
+) -> None:
+    ids = await seed(client, auth_header, db_session)
+    supplier = Supplier(legal_name="Fornecedor Histórico SA")
+    other_unit = Unit(code="HIST", name="Unidade Histórica")
+    db_session.add_all([supplier, other_unit])
+    await db_session.flush()
+    other_context = ProjectContext(unit_id=other_unit.id, code="OLD", name="Projeto anterior")
+    db_session.add(other_context)
+    await db_session.flush()
+    historical = Equipment(
+        project_context_id=other_context.id,
+        name="Equipamento com histórico",
+        current_stage=3,
+    )
+    db_session.add(historical)
+    await db_session.flush()
+    db_session.add(
+        EquipmentSupplier(equipment_id=historical.id, supplier_id=supplier.id, is_primary=True)
+    )
+    await db_session.commit()
+
+    historical_batch = await stage(
+        client,
+        auth_header("ANALYST"),
+        ids["context"],
+        synthetic_board(name="Equipamento com histórico"),
+        "historico.xlsx",
+    )
+    historical_plan = (
+        await plan(client, auth_header("ANALYST"), historical_batch["batchId"], mapping(ids))
+    ).json()
+    [suggestion] = historical_plan["supplierSuggestions"]
+    assert suggestion["supplierId"] == supplier.id
+    assert suggestion["confidence"] in {"MEDIUM", "HIGH"}
+    assert "equipamentos equivalentes" in suggestion["evidence"][0]
+
+    unknown_batch = await stage(
+        client,
+        auth_header("ANALYST"),
+        ids["context"],
+        synthetic_board(name="Equipamento sem qualquer evidência"),
+        "sem-evidencia.xlsx",
+    )
+    unknown_plan = (
+        await plan(client, auth_header("ANALYST"), unknown_batch["batchId"], mapping(ids))
+    ).json()
+    [unknown] = unknown_plan["supplierSuggestions"]
+    assert unknown["supplierId"] is None
+    assert unknown["confidence"] == "NONE"
 
 
 async def test_invalid_mapping_is_reported_and_never_creates_catalogs(

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from sqlalchemy import func, select
 
 from app.core.auth import CurrentUser
@@ -15,7 +14,6 @@ from app.models.user import Role as UserRole
 from app.models.user import User
 from app.modules.monday_import.mappings import SOURCE_SYSTEM, provisional_equipment_key
 from app.modules.supplier_import.database import (
-    SupplierImportBlockedError,
     apply_supplier_import,
     reconcile_with_database,
     resolve_project_context,
@@ -77,7 +75,7 @@ async def test_dry_run_writes_nothing_and_apply_is_idempotent(db_session) -> Non
     preview = await reconcile_with_database(db_session, plan, project_context_id=context_id)
     assert preview.count("suppliers", "CREATE") == 2
     assert preview.count("aliases", "CREATE") == 3
-    assert preview.count("links", "CREATE") == 3
+    assert preview.count("links", "SUGGESTION") == 3
     assert await _count(db_session, Supplier.id) == 0
     assert await _count(db_session, SupplierAlias.id) == 0
 
@@ -94,28 +92,20 @@ async def test_dry_run_writes_nothing_and_apply_is_idempotent(db_session) -> Non
         ("FORNECEDOR A (MM)", suppliers["90001"].id, "MONDAY", "LEM_F2"),
         ("FORNECEDOR B", suppliers["90002"].id, "MONDAY", "LEM_F2"),
     ]
-    equipments: dict[str, str] = ids["equipments"]  # type: ignore[assignment]
-    links = {
-        link.equipment_id: link.supplier_id
-        for link in (await db_session.scalars(select(EquipmentSupplier))).all()
-    }
-    assert links == {
-        equipments["Secador de grãos"]: suppliers["90001"].id,
-        equipments["Elevador de canecas"]: suppliers["90001"].id,
-        equipments["Decanter"]: suppliers["90002"].id,
-    }
+    assert await _count(db_session, EquipmentSupplier.id) == 0
     audit_actions = {row.action for row in (await db_session.scalars(select(AuditLog))).all()}
-    assert {"supplier.import_create", "equipment_supplier.import_link"} <= audit_actions
+    assert "supplier.import_create" in audit_actions
+    assert "equipment_supplier.import_link" not in audit_actions
 
     second = await apply_supplier_import(
         db_session, _plan(), project_context_id=context_id, actor=ids["actor"]
     )
     assert second.count("suppliers", "NOOP") == 2
     assert second.count("aliases", "NOOP") == 3
-    assert second.count("links", "NOOP") == 3
+    assert second.count("links", "SUGGESTION") == 3
     assert await _count(db_session, Supplier.id) == 2
     assert await _count(db_session, SupplierAlias.id) == 3
-    assert await _count(db_session, EquipmentSupplier.id) == 3
+    assert await _count(db_session, EquipmentSupplier.id) == 0
 
 
 async def test_existing_supplier_is_updated_by_corporate_code_not_duplicated(db_session) -> None:
@@ -135,7 +125,7 @@ async def test_existing_supplier_is_updated_by_corporate_code_not_duplicated(db_
     assert rows[0].legal_name == "FORNECEDOR SINTETICO A LTDA"
 
 
-async def test_conflicts_block_the_whole_load_and_missing_equipment_is_reported(db_session) -> None:
+async def test_existing_link_is_never_replaced_and_missing_equipment_is_reported(db_session) -> None:
     ids = await _seed(db_session)
     other = Supplier(legal_name="Fornecedor manual", tax_id=None)
     db_session.add(other)
@@ -147,14 +137,20 @@ async def test_conflicts_block_the_whole_load_and_missing_equipment_is_reported(
     await db_session.commit()
 
     preview = await reconcile_with_database(db_session, _plan(), project_context_id=ids["context_id"])
-    assert [c for c in preview.conflicts if "Decanter" in c]
-    with pytest.raises(SupplierImportBlockedError):
-        await apply_supplier_import(
-            db_session, _plan(), project_context_id=ids["context_id"], actor=ids["actor"]
+    decanter = next(link for link in preview.links if link.equipment_name == "Decanter")
+    assert decanter.action == "SUGGESTION"
+    assert "outro fornecedor ativo" in (decanter.detail or "")
+    assert preview.conflicts == []
+    await apply_supplier_import(
+        db_session, _plan(), project_context_id=ids["context_id"], actor=ids["actor"]
+    )
+    active = (
+        await db_session.scalars(
+            select(EquipmentSupplier).where(EquipmentSupplier.ended_at.is_(None))
         )
-    await db_session.rollback()
-    assert await _count(db_session, SupplierAlias.id) == 0
-    assert await _count(db_session, Supplier.id) == 1
+    ).all()
+    assert len(active) == 1
+    assert active[0].supplier_id == other.id
 
     no_context = await reconcile_with_database(db_session, _plan(), project_context_id=None)
     assert no_context.count("links", "EQUIPMENT_NOT_FOUND") == 3

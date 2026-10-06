@@ -108,6 +108,20 @@ function setup(permissions = ["equipments:write"], overrides: ApiOverrides = {},
       },
       "/disciplines": { items: [] },
       "/work-packages": { items: [] },
+      "/suppliers": {
+        items: [
+          {
+            id: "supplier-1",
+            corporateCode: "9001",
+            legalName: "Fornecedor Sintético SA",
+            tradeName: null,
+            taxId: null,
+            active: true,
+            createdAt: "2026-10-01T00:00:00",
+            updatedAt: "2026-10-01T00:00:00",
+          },
+        ],
+      },
     };
     return table[path] ?? { items: [] };
   });
@@ -136,7 +150,10 @@ function mountButton() {
         ImportPlanStep,
         ImportResultStep,
       },
-      stubs: { AppModal: { props: ["open", "title"], emits: ["close"], template: "<div v-if='open'><button data-testid='modal-close' @click=\"$emit('close')\" /><slot /></div>" } },
+      stubs: {
+        AppModal: { props: ["open", "title"], emits: ["close"], template: "<div v-if='open'><button data-testid='modal-close' @click=\"$emit('close')\" /><slot /></div>" },
+        NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+      },
     },
   });
 }
@@ -316,6 +333,7 @@ describe("Importar equipamentos", () => {
         disciplines: {},
         workPackages: {},
         eapNodes: { Diversos: "eap-19" },
+        supplierSelections: {},
       },
     });
     expect(wrapper.get("[data-testid='plan-eap']").text()).toContain("EAP identificada: 1");
@@ -339,6 +357,48 @@ describe("Importar equipamentos", () => {
     expect(wrapper.get("[data-testid='plan-blocked']").text()).toContain("Responsável sem mapeamento");
     expect(wrapper.get("[data-testid='confirm-blocked']").text()).toBe("1");
     expect((wrapper.get("[data-testid='import-confirm']").element as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("exige revisar o plano depois da confirmação explícita do fornecedor", async () => {
+    const { post } = setup(["equipments:write"], {
+      plan: async () =>
+        plan({
+          supplierSuggestions: [
+            {
+              sourceKey: "normalized-name:compressor",
+              equipmentName: "Compressor",
+              sourceValue: "9001",
+              supplierId: "supplier-1",
+              supplierName: "Fornecedor Sintético SA",
+              corporateCode: "9001",
+              confidence: "HIGH",
+              evidence: ["Código corporativo exato."],
+              requiresRegistration: false,
+              selectedAction: null,
+              selectedSupplierId: null,
+            },
+          ],
+        }),
+    });
+    const wrapper = mountButton();
+    await goToPlan(wrapper);
+
+    const review = wrapper.get("[data-testid='supplier-review']");
+    expect(review.text()).toContain("Origem: 9001");
+    expect(review.text()).toContain("Confiança HIGH");
+    await review.get("select").setValue("supplier-1");
+    expect((wrapper.get("[data-testid='import-confirm']").element as HTMLButtonElement).disabled).toBe(true);
+    await review.get("button").trigger("click");
+    await settle(wrapper);
+
+    expect(post).toHaveBeenLastCalledWith("/imports/monday/plan", {
+      batchIds: ["b-1"],
+      mapping: expect.objectContaining({
+        supplierSelections: {
+          "normalized-name:compressor": { action: "USE", supplierId: "supplier-1" },
+        },
+      }),
+    });
   });
 
   it("confirmação mostra o resumo e aplica com o hash do plano", async () => {

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.models.access import UserUnitAccess
 from app.models.audit import AuditLog
+from app.models.equipment import Equipment
 from app.models.supplier import EquipmentSupplier, Supplier
 from tests.helpers import grant_unit
 
@@ -305,9 +308,7 @@ async def test_viewer_cannot_write_supplier(client, auth_header) -> None:
 async def test_equipment_supplier_is_limited_to_one_and_replaceable(
     client, auth_header, db_session
 ) -> None:
-    """Etapa 7A: um equipamento tem no máximo UM fornecedor. Um segundo
-    vínculo (mesmo ou outro fornecedor) é sempre rejeitado; a troca é uma
-    substituição explícita (`PUT`), nunca um segundo `POST`."""
+    """Há no máximo um vínculo ativo; PUT encerra o anterior sem apagá-lo."""
     ids = await _unit(client, auth_header, "SUP")
     await grant_unit(client, auth_header, ids["unit"])
     equipment_id = await _equipment(client, auth_header, ids["context"], "Com fornecedores")
@@ -344,9 +345,21 @@ async def test_equipment_supplier_is_limited_to_one_and_replaceable(
     )
     assert second_rejected.status_code == 409
 
-    replaced = await client.put(
+    forbidden = await client.put(
         f"/api/v1/equipments/{equipment_id}/suppliers",
         json={"supplierId": second},
+        headers=auth_header("VIEWER"),
+    )
+    assert forbidden.status_code == 403
+
+    equipment = await db_session.get(Equipment, equipment_id)
+    assert equipment is not None
+    equipment.current_stage = 4
+    await db_session.commit()
+
+    replaced = await client.put(
+        f"/api/v1/equipments/{equipment_id}/suppliers",
+        json={"supplierId": second, "changeReason": "Nova contratação"},
         headers=auth_header("ANALYST"),
     )
     assert replaced.status_code == 200
@@ -357,7 +370,46 @@ async def test_equipment_supplier_is_limited_to_one_and_replaceable(
             select(EquipmentSupplier).where(EquipmentSupplier.equipment_id == equipment_id)
         )
     ).scalars().all()
-    assert [link.supplier_id for link in links] == [second]
+    assert len(links) == 2
+    active = next(link for link in links if link.ended_at is None)
+    previous = next(link for link in links if link.ended_at is not None)
+    assert active.supplier_id == second
+    assert active.start_stage == 4
+    assert previous.supplier_id == first
+    assert previous.end_stage == 4
+    assert previous.change_reason == "Nova contratação"
+
+    listed = (
+        await client.get(
+            f"/api/v1/equipments/{equipment_id}/suppliers", headers=auth_header("VIEWER")
+        )
+    ).json()["items"]
+    assert listed[0]["supplier"]["id"] == second
+    assert listed[0]["endedAt"] is None
+    assert listed[1]["supplier"]["id"] == first
+    assert listed[1]["endedAt"] is not None
+
+
+async def test_database_blocks_two_active_suppliers_for_same_equipment(
+    client, auth_header, db_session
+) -> None:
+    ids = await _unit(client, auth_header, "UNIQ")
+    equipment_id = await _equipment(client, auth_header, ids["context"], "Índice fornecedor ativo")
+    first = Supplier(legal_name="Primeiro ativo")
+    second = Supplier(legal_name="Segundo ativo")
+    db_session.add_all([first, second])
+    await db_session.flush()
+    db_session.add(
+        EquipmentSupplier(equipment_id=equipment_id, supplier_id=first.id, is_primary=True)
+    )
+    await db_session.flush()
+
+    with pytest.raises(IntegrityError):
+        async with db_session.begin_nested():
+            db_session.add(
+                EquipmentSupplier(equipment_id=equipment_id, supplier_id=second.id, is_primary=True)
+            )
+            await db_session.flush()
 
 
 async def test_unlink_supplier_keeps_master_record(client, auth_header, db_session) -> None:
@@ -386,7 +438,9 @@ async def test_unlink_supplier_keeps_master_record(client, auth_header, db_sessi
             f"/api/v1/equipments/{equipment_id}/suppliers", headers=auth_header("VIEWER")
         )
     ).json()
-    assert remaining["items"] == []
+    assert len(remaining["items"]) == 1
+    assert remaining["items"][0]["supplier"]["id"] == supplier_id
+    assert remaining["items"][0]["endedAt"] is not None
     assert await db_session.get(Supplier, supplier_id) is not None
 
 

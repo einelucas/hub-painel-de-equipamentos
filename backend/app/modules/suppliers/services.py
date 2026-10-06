@@ -1,7 +1,7 @@
 """Fornecedores e o vínculo N:N com equipamentos.
 
 O fornecedor mestre nunca é apagado fisicamente: é desativado. O DELETE do
-vínculo remove apenas a associação com o equipamento.
+vínculo encerra a associação ativa e preserva o histórico do equipamento.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload
 from app.core.auth import CurrentUser
 from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.scope import assert_equipment_allowed
+from app.models.common import utcnow
 from app.models.supplier import EquipmentSupplier, Supplier
 from app.modules.suppliers.schemas import (
     EquipmentSupplierOut,
@@ -131,9 +132,17 @@ async def update_supplier(
 
 def _link_out(link: EquipmentSupplier) -> EquipmentSupplierOut:
     return EquipmentSupplierOut(
+        id=link.id,
         supplier=SupplierOut.model_validate(link.supplier),
         role=link.role,
         is_primary=link.is_primary,
+        start_stage=link.start_stage,
+        end_stage=link.end_stage,
+        started_at=link.created_at,
+        ended_at=link.ended_at,
+        change_reason=link.change_reason,
+        source=link.source,
+        changed_by_user_id=link.changed_by_user_id,
         created_at=link.created_at,
     )
 
@@ -148,7 +157,10 @@ async def list_equipment_suppliers(
                 select(EquipmentSupplier)
                 .where(EquipmentSupplier.equipment_id == equipment_id)
                 .options(joinedload(EquipmentSupplier.supplier))
-                .order_by(EquipmentSupplier.is_primary.desc(), EquipmentSupplier.created_at.asc())
+                .order_by(
+                    EquipmentSupplier.ended_at.asc().nulls_first(),
+                    EquipmentSupplier.created_at.desc(),
+                )
             )
         )
         .scalars()
@@ -176,18 +188,20 @@ async def link_supplier(
     supplier_id: str,
     role: str | None,
     is_primary: bool,
+    change_reason: str | None,
     actor: CurrentUser,
 ) -> EquipmentSupplierOut:
-    """Etapa 7A: um equipamento tem no máximo UM fornecedor — um segundo
-    vínculo (com este ou outro fornecedor) é sempre rejeitado. Substituir o
-    fornecedor é uma operação explícita: `replace_supplier`."""
-    await assert_equipment_allowed(session, actor, equipment_id)
+    """Cria o primeiro vínculo confirmado; histórico nunca é reutilizado."""
+    equipment = await assert_equipment_allowed(session, actor, equipment_id)
     supplier = await get_supplier(session, supplier_id)
     if not supplier.active:
         raise DomainError("Fornecedor inativo não pode ser vinculado")
     existing = (
         await session.execute(
-            select(EquipmentSupplier.id).where(EquipmentSupplier.equipment_id == equipment_id)
+            select(EquipmentSupplier.id).where(
+                EquipmentSupplier.equipment_id == equipment_id,
+                EquipmentSupplier.ended_at.is_(None),
+            )
         )
     ).scalar_one_or_none()
     if existing is not None:
@@ -202,7 +216,11 @@ async def link_supplier(
         equipment_id=equipment_id,
         supplier_id=supplier_id,
         role=_clean(role),
-        is_primary=is_primary,
+        is_primary=True,
+        start_stage=equipment.current_stage,
+        change_reason=_clean(change_reason),
+        source="MANUAL",
+        changed_by_user_id=actor.id,
     )
     session.add(link)
     await session.flush()
@@ -212,7 +230,14 @@ async def link_supplier(
         action="equipment_supplier.link",
         entity="EquipmentSupplier",
         entity_id=link.id,
-        new_data={"supplier_id": supplier_id, "role": link.role, "is_primary": is_primary},
+        new_data={
+            "supplier_id": supplier_id,
+            "role": link.role,
+            "is_primary": True,
+            "start_stage": link.start_stage,
+            "change_reason": link.change_reason,
+            "source": link.source,
+        },
         metadata={"equipmentId": equipment_id},
     )
     await session.commit()
@@ -229,6 +254,7 @@ async def _link_or_404(
             .where(
                 EquipmentSupplier.equipment_id == equipment_id,
                 EquipmentSupplier.supplier_id == supplier_id,
+                EquipmentSupplier.ended_at.is_(None),
             )
             .options(joinedload(EquipmentSupplier.supplier))
         )
@@ -279,24 +305,42 @@ async def replace_supplier(
     equipment_id: str,
     supplier_id: str,
     role: str | None,
+    change_reason: str | None,
     actor: CurrentUser,
+    source: str = "MANUAL",
 ) -> EquipmentSupplierOut:
-    """Substituição explícita (Etapa 7A): remove o vínculo atual (se
-    houver) e cria o novo, na mesma transação — nunca um segundo INSERT
-    acumulando fornecedores."""
-    await assert_equipment_allowed(session, actor, equipment_id)
+    """Encerra o vínculo ativo e cria o próximo na mesma transação."""
+    equipment = await assert_equipment_allowed(session, actor, equipment_id)
     supplier = await get_supplier(session, supplier_id)
     if not supplier.active:
         raise DomainError("Fornecedor inativo não pode ser vinculado")
 
     current = (
         await session.execute(
-            select(EquipmentSupplier).where(EquipmentSupplier.equipment_id == equipment_id)
+            select(EquipmentSupplier).where(
+                EquipmentSupplier.equipment_id == equipment_id,
+                EquipmentSupplier.ended_at.is_(None),
+            )
         )
     ).scalar_one_or_none()
     previous_supplier_id = current.supplier_id if current else None
+    previous_ended_at: str | None = None
+    if current is not None and current.supplier_id == supplier_id:
+        current.role = _clean(role)
+        current.change_reason = _clean(change_reason)
+        current.changed_by_user_id = actor.id
+        current.source = source
+        await session.commit()
+        await session.refresh(current, ["supplier"])
+        return _link_out(current)
     if current is not None:
-        await session.delete(current)
+        ended_at = utcnow()
+        current.ended_at = ended_at
+        previous_ended_at = ended_at.isoformat()
+        current.end_stage = equipment.current_stage
+        current.is_primary = False
+        current.change_reason = _clean(change_reason)
+        current.changed_by_user_id = actor.id
         await session.flush()
 
     link = EquipmentSupplier(
@@ -304,6 +348,10 @@ async def replace_supplier(
         supplier_id=supplier_id,
         role=_clean(role),
         is_primary=True,
+        start_stage=equipment.current_stage,
+        change_reason=_clean(change_reason),
+        source=source,
+        changed_by_user_id=actor.id,
     )
     session.add(link)
     await session.flush()
@@ -313,8 +361,18 @@ async def replace_supplier(
         action="equipment_supplier.replace",
         entity="EquipmentSupplier",
         entity_id=link.id,
-        previous_data={"supplier_id": previous_supplier_id},
-        new_data={"supplier_id": supplier_id, "role": link.role},
+        previous_data={
+            "supplier_id": previous_supplier_id,
+            "ended_at": previous_ended_at,
+            "end_stage": current.end_stage if current else None,
+        },
+        new_data={
+            "supplier_id": supplier_id,
+            "role": link.role,
+            "start_stage": link.start_stage,
+            "change_reason": link.change_reason,
+            "source": source,
+        },
         metadata={"equipmentId": equipment_id},
     )
     await session.commit()
@@ -323,13 +381,23 @@ async def replace_supplier(
 
 
 async def unlink_supplier(
-    session: AsyncSession, *, equipment_id: str, supplier_id: str, actor: CurrentUser
+    session: AsyncSession,
+    *,
+    equipment_id: str,
+    supplier_id: str,
+    actor: CurrentUser,
+    change_reason: str | None = None,
 ) -> None:
-    """Remove só o vínculo — o fornecedor mestre permanece cadastrado."""
-    await assert_equipment_allowed(session, actor, equipment_id)
+    """Encerra o vínculo; não apaga o histórico nem o fornecedor mestre."""
+    equipment = await assert_equipment_allowed(session, actor, equipment_id)
     link = await _link_or_404(session, equipment_id, supplier_id)
     link_id = link.id
-    await session.delete(link)
+    ended_at = utcnow()
+    link.ended_at = ended_at
+    link.end_stage = equipment.current_stage
+    link.is_primary = False
+    link.change_reason = _clean(change_reason)
+    link.changed_by_user_id = actor.id
     await session.flush()
     await record_audit(
         session,
@@ -337,7 +405,13 @@ async def unlink_supplier(
         action="equipment_supplier.unlink",
         entity="EquipmentSupplier",
         entity_id=link_id,
-        previous_data={"supplier_id": supplier_id},
+        previous_data={"supplier_id": supplier_id, "active": True},
+        new_data={
+            "ended_at": ended_at.isoformat(),
+            "end_stage": link.end_stage,
+            "change_reason": link.change_reason,
+            "active": False,
+        },
         metadata={"equipmentId": equipment_id},
     )
     await session.commit()
@@ -357,7 +431,10 @@ async def primary_suppliers(
         (
             await session.execute(
                 select(EquipmentSupplier)
-                .where(EquipmentSupplier.equipment_id.in_(equipment_ids))
+                .where(
+                    EquipmentSupplier.equipment_id.in_(equipment_ids),
+                    EquipmentSupplier.ended_at.is_(None),
+                )
                 .options(joinedload(EquipmentSupplier.supplier))
             )
         )

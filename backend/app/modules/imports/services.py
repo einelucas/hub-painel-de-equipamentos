@@ -40,6 +40,7 @@ from app.modules.imports.schemas import (
     PlanIssueOut,
     ResponsibleSummaryOut,
     SourceValuesOut,
+    SupplierSuggestionOut,
 )
 from app.modules.monday_import.apply import (
     PlanBlockedError,
@@ -60,6 +61,7 @@ from app.modules.monday_import.profile import (
 )
 from app.modules.monday_import.service import StagedWithDifferentProfileError, stage_import
 from app.modules.monday_import.xlsx import XlsxReadError
+from app.modules.suppliers.suggestions import SupplierSuggestionResolver
 
 logger = logging.getLogger(__name__)
 
@@ -354,6 +356,52 @@ async def _labels(session: AsyncSession, batch_ids: list[str]) -> dict[str, str]
     }
 
 
+async def _supplier_suggestions(
+    session: AsyncSession,
+    batch_ids: list[str],
+    mapping: ValidatedMapping,
+) -> list[SupplierSuggestionOut]:
+    records = (
+        await session.scalars(
+            select(MondayImportRecord).where(
+                MondayImportRecord.batch_id.in_(batch_ids),
+                MondayImportRecord.record_kind == "equipment",
+            )
+        )
+    ).all()
+    resolver = await SupplierSuggestionResolver.load(session)
+    result: list[SupplierSuggestionOut] = []
+    for record in sorted(records, key=lambda item: item.source_key):
+        payload = record.normalized_payload
+        equipment_name = str(payload.get("name") or record.source_key)
+        raw_names = [str(value) for value in payload.get("suppliers_raw") or [] if value]
+        source_name = raw_names[0] if len(raw_names) == 1 else None
+        source_code = payload.get("supplier_corporate_code")
+        source_value = str(source_code) if source_code else ("; ".join(raw_names) or None)
+        suggestion = resolver.suggest(
+            equipment_name,
+            source_code=str(source_code) if source_code else None,
+            source_name=source_name,
+        )
+        selected = mapping.supplier_selections.get(record.source_key)
+        result.append(
+            SupplierSuggestionOut(
+                source_key=record.source_key,
+                equipment_name=equipment_name,
+                source_value=source_value,
+                supplier_id=suggestion.supplier_id if suggestion else None,
+                supplier_name=suggestion.supplier_name if suggestion else None,
+                corporate_code=suggestion.corporate_code if suggestion else None,
+                confidence=suggestion.confidence if suggestion else "NONE",
+                evidence=suggestion.evidence if suggestion else ["Nenhuma evidência controlada encontrada."],
+                requires_registration=suggestion.requires_registration if suggestion else False,
+                selected_action=selected.action if selected else None,
+                selected_supplier_id=selected.supplier_id if selected else None,
+            )
+        )
+    return result
+
+
 _GROUP_LABELS = {
     "equipments": "Equipamentos",
     "components": "Componentes",
@@ -445,6 +493,7 @@ async def plan_batches(
         ),
         catalogs=[_catalog_item_out(item) for item in plan.catalog_items],
         responsibles=ResponsibleSummaryOut(**plan.responsible_summary),
+        supplier_suggestions=await _supplier_suggestions(session, unique_ids, validated),
         has_blocked=plan.has_blocked,
         can_apply=not plan.has_blocked and not validated.has_errors,
     )

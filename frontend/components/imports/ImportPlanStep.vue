@@ -7,7 +7,20 @@ import { useImportState } from "~/composables/useImportState";
  * Passo 4: plano do motor + confirmação explícita. Com item BLOCKED (ou mapping
  * inválido) o botão de confirmar fica desabilitado; nada é aplicado automaticamente.
  */
-const { plan, batches, totals: sourceTotals, selectedContext, busy, stale, apply, step } = useImportState();
+const {
+  plan,
+  batches,
+  totals: sourceTotals,
+  selectedContext,
+  suppliers,
+  mappingDirty,
+  busy,
+  stale,
+  apply,
+  buildPlan,
+  setSupplierSelection,
+  step,
+} = useImportState();
 
 const totals = computed(() => {
   const groups = plan.value?.groups ?? [];
@@ -21,6 +34,16 @@ const totals = computed(() => {
 
 const catalogCreates = computed(() => (plan.value?.catalogs ?? []).filter((item) => item.action === "CREATE").length);
 const equipmentWarnings = computed(() => plan.value?.equipmentWarnings ?? []);
+const supplierSuggestions = computed(() => plan.value?.supplierSuggestions ?? []);
+
+function selectionValue(item: (typeof supplierSuggestions.value)[number]): string {
+  if (item.selectedAction === "NONE") return "__NONE__";
+  return item.selectedSupplierId ?? "";
+}
+
+function changeSupplier(sourceKey: string, event: Event): void {
+  setSupplierSelection(sourceKey, (event.target as HTMLSelectElement).value);
+}
 </script>
 
 <template>
@@ -71,6 +94,42 @@ const equipmentWarnings = computed(() => plan.value?.equipmentWarnings ?? []);
         :responsibles="plan.responsibles"
       />
 
+      <section v-if="supplierSuggestions.length" class="supplier-review" data-testid="supplier-review">
+        <div class="supplier-review-header">
+          <div>
+            <h4>Revisão de fornecedores</h4>
+            <p>Sugestões nunca são vinculadas sem uma escolha explícita.</p>
+          </div>
+          <NuxtLink class="btn" to="/fornecedores">+ Cadastrar fornecedor</NuxtLink>
+        </div>
+        <article v-for="item in supplierSuggestions" :key="item.sourceKey" class="supplier-suggestion">
+          <div>
+            <strong>{{ item.equipmentName }}</strong>
+            <span>Origem: {{ item.sourceValue ?? "não informado" }}</span>
+            <span>
+              Sugestão: {{ item.supplierName ?? "sem sugestão" }} · Confiança {{ item.confidence }}
+            </span>
+            <small v-for="evidence in item.evidence" :key="evidence">{{ evidence }}</small>
+            <small v-if="item.requiresRegistration">Referência ainda não cadastrada como Supplier global.</small>
+          </div>
+          <select
+            :value="selectionValue(item)"
+            :aria-label="`Decisão de fornecedor para ${item.equipmentName}`"
+            @change="changeSupplier(item.sourceKey, $event)"
+          >
+            <option value="">Sem decisão — não vincular</option>
+            <option v-if="item.supplierId" :value="item.supplierId">Usar sugerido: {{ item.supplierName }}</option>
+            <option value="__NONE__">Manter sem fornecedor</option>
+            <option v-for="supplier in suppliers.filter((entry) => entry.id !== item.supplierId)" :key="supplier.id" :value="supplier.id">
+              {{ supplier.corporateCode ? `${supplier.corporateCode} · ` : "" }}{{ supplier.legalName }}
+            </option>
+          </select>
+        </article>
+        <button v-if="mappingDirty" type="button" class="btn" :disabled="busy" @click="buildPlan">
+          Atualizar plano com as decisões
+        </button>
+      </section>
+
       <section v-if="equipmentWarnings.length" class="plan-list plan-list--warning" data-testid="plan-equipment-warnings">
         <h4>Pendências que não bloqueiam ({{ equipmentWarnings.length }} equipamentos)</h4>
         <ul>
@@ -106,7 +165,7 @@ const equipmentWarnings = computed(() => plan.value?.equipmentWarnings ?? []);
       <button
         type="button"
         class="btn primary"
-        :disabled="!plan?.canApply || busy"
+        :disabled="!plan?.canApply || mappingDirty || busy"
         data-testid="import-confirm"
         @click="apply"
       >
@@ -131,6 +190,14 @@ const equipmentWarnings = computed(() => plan.value?.equipmentWarnings ?? []);
 .plan-list h4, .confirm h4 { margin: 0 0 6px; color: #2b3e58; font-size: 12px; font-weight: 800; }
 .plan-list ul { display: grid; margin: 0; padding: 0; gap: 5px; list-style: none; max-height: 150px; overflow-y: auto; font-size: 12px; color: #2b3e58; }
 .plan-list li { display: grid; gap: 1px; }
+.supplier-review { display: grid; gap: 9px; border: 1px solid #dfe7f1; border-radius: 10px; padding: 11px; }
+.supplier-review-header { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.supplier-review h4, .supplier-review p { margin: 0; }
+.supplier-review p { color: #718096; font-size: 11px; }
+.supplier-suggestion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 0.55fr); gap: 12px; border-top: 1px solid #edf1f5; padding-top: 9px; }
+.supplier-suggestion > div { display: grid; gap: 2px; color: #52657c; font-size: 12px; }
+.supplier-suggestion strong { color: #263d5d; }
+.supplier-suggestion small { color: #7a879a; }
 .issue-meta { color: #7a879a; font-size: 11px; }
 .confirm { border: 1px solid #e4e9f0; border-radius: 10px; padding: 10px 12px; background: #f8fafc; }
 .confirm dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; gap: 6px 12px; }

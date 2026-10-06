@@ -567,9 +567,17 @@ export interface Supplier {
 }
 
 export interface EquipmentSupplier {
+  id: string;
   supplier: Supplier;
   role: string | null;
   isPrimary: boolean;
+  startStage: number | null;
+  endStage: number | null;
+  startedAt: string;
+  endedAt: string | null;
+  changeReason: string | null;
+  source: string;
+  changedByUserId: string | null;
   createdAt: string;
 }
 

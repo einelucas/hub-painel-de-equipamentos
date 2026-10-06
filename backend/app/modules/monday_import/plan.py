@@ -663,8 +663,10 @@ async def build_plan(
             equipment_target_ids[source_key] = target_id
             continue
         payload["work_package_ids"] = sorted(resolved.work_package_ids)
-        if resolved.supplier_id is not None:
-            payload["supplier_id"] = resolved.supplier_id
+        supplier_selection = mapping.supplier_selections.get(source_key)
+        if supplier_selection is not None and supplier_selection.action == "USE":
+            assert supplier_selection.supplier_id is not None
+            payload["supplier_id"] = supplier_selection.supplier_id
         if resolved.refs:
             # Catálogos que o apply cria na mesma transação e liga a este equipamento.
             payload["catalog_refs"] = dict(sorted(resolved.refs.items()))
@@ -720,31 +722,14 @@ async def build_plan(
             changed["work_package_ids"] = source_work_packages
         if catalog_refs:
             changed["catalog_refs"] = catalog_refs
-        if supplier_id is not None or "supplierCode" in catalog_refs:
+        if supplier_selection is not None and supplier_selection.action == "USE":
             current_supplier = await session.scalar(
-                select(EquipmentSupplier.supplier_id).where(EquipmentSupplier.equipment_id == target_id)
+                select(EquipmentSupplier.supplier_id).where(
+                    EquipmentSupplier.equipment_id == target_id,
+                    EquipmentSupplier.ended_at.is_(None),
+                )
             )
-            if current_supplier is not None and current_supplier != supplier_id:
-                # O Hub já tem outro fornecedor vinculado: nunca sobrescrever.
-                issues.append(
-                    PlanIssue(
-                        "SUPPLIER_CONFLICT",
-                        "Equipamento já vinculado a outro fornecedor no Hub; não sobrescrito.",
-                        detail={"hubSupplierId": current_supplier, "sourceSupplierId": supplier_id},
-                    )
-                )
-                plan.equipments.append(
-                    PlanItem(
-                        kind="equipment",
-                        source_key=source_key,
-                        action="BLOCKED",
-                        target_entity_id=target_id,
-                        issues=issues,
-                    )
-                )
-                equipment_blocked[source_key] = True
-                continue
-            if current_supplier is None and supplier_id is not None:
+            if current_supplier != supplier_id:
                 changed["supplier_id"] = supplier_id
         current_operational = existing.operational_status
         # Saneamento é estado só do Hub (o Monday não o declara): não é desfeito pela origem.

@@ -55,6 +55,7 @@ class EquipmentSupplierLinkIn(CamelModel):
     supplier_id: str
     role: str | None = Field(default=None, max_length=80)
     is_primary: bool = False
+    change_reason: str | None = Field(default=None, max_length=500)
 
 
 class EquipmentSupplierUpdateIn(CamelModel):
@@ -69,9 +70,17 @@ class EquipmentSupplierUpdateIn(CamelModel):
 
 
 class EquipmentSupplierOut(CamelModel):
+    id: str
     supplier: SupplierOut
     role: str | None
     is_primary: bool
+    start_stage: int | None
+    end_stage: int | None
+    started_at: datetime
+    ended_at: datetime | None
+    change_reason: str | None
+    source: str
+    changed_by_user_id: str | None
     created_at: datetime
 
 

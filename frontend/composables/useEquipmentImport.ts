@@ -1,6 +1,6 @@
 import { computed, reactive, ref } from "vue";
 import { ApiError } from "~/services/api/error";
-import type { CatalogItem, CatalogList, EapNodeItem, Responsible, Unit } from "~/types/equipment";
+import type { CatalogItem, CatalogList, EapNodeItem, Responsible, Supplier, Unit } from "~/types/equipment";
 import type {
   ImportApplyResult,
   ImportBatch,
@@ -44,7 +44,13 @@ export function isXlsx(fileName: string): boolean {
 }
 
 function emptyMapping(): ImportMapping {
-  return { responsibles: {}, disciplines: {}, workPackages: {}, eapNodes: {} };
+  return {
+    responsibles: {},
+    disciplines: {},
+    workPackages: {},
+    eapNodes: {},
+    supplierSelections: {},
+  };
 }
 
 function message(caught: unknown, fallback: string): string {
@@ -94,6 +100,8 @@ export function useEquipmentImport() {
     eapNodes: [],
   });
   const plan = ref<ImportPlan | null>(null);
+  const suppliers = ref<Supplier[]>([]);
+  const mappingDirty = ref(false);
   const result = ref<ImportApplyResult | null>(null);
   const busy = ref(false);
   const error = ref("");
@@ -188,12 +196,14 @@ export function useEquipmentImport() {
     busy.value = true;
     error.value = "";
     try {
-      const [responsibles, disciplines, workPackages, eapNodes] = await Promise.all([
+      const [responsibles, disciplines, workPackages, eapNodes, supplierList] = await Promise.all([
         api.get<CatalogList<Responsible>>("/responsibles", { unit_id: selection.unitId }),
         api.get<CatalogList<CatalogItem>>("/disciplines"),
         api.get<CatalogList<CatalogItem>>("/work-packages", { project_context_id: selection.contextId }),
         api.get<CatalogList<EapNodeItem>>("/eap-nodes", { active: true }),
+        api.get<CatalogList<Supplier>>("/suppliers"),
       ]);
+      suppliers.value = supplierList.items;
       const label = (item: CatalogItem) => (item.code ? `${item.code} · ${item.name}` : item.name);
       options.value = {
         responsibles: responsibles.items.map((item) => ({ id: item.id, label: item.name })),
@@ -210,6 +220,16 @@ export function useEquipmentImport() {
     } finally {
       busy.value = false;
     }
+  }
+
+  function setSupplierSelection(sourceKey: string, value: string): void {
+    const next = Object.fromEntries(
+      Object.entries(mapping.value.supplierSelections).filter(([key]) => key !== sourceKey),
+    );
+    if (value === "__NONE__") next[sourceKey] = { action: "NONE" };
+    else if (value) next[sourceKey] = { action: "USE", supplierId: value };
+    mapping.value = { ...mapping.value, supplierSelections: next };
+    mappingDirty.value = true;
   }
 
   function setMapping(section: MappingSection, source: string, targetId: string): void {
@@ -232,6 +252,7 @@ export function useEquipmentImport() {
     stale.value = false;
     try {
       plan.value = await api.post<ImportPlan>(`${BASE}/plan`, { batchIds: batchIds(), mapping: mapping.value });
+      mappingDirty.value = false;
       step.value = "plan";
     } catch (caught) {
       error.value = message(caught, "Não foi possível montar o plano.");
@@ -242,7 +263,7 @@ export function useEquipmentImport() {
 
   /** O backend reconstrói o plano e compara o hash: mudou algo, volta para revisão (PLAN_STALE). */
   async function apply(): Promise<void> {
-    if (!batches.value.length || !plan.value?.canApply) return;
+    if (!batches.value.length || !plan.value?.canApply || mappingDirty.value) return;
     busy.value = true;
     error.value = "";
     stale.value = false;
@@ -273,6 +294,8 @@ export function useEquipmentImport() {
     failures.value = [];
     mapping.value = emptyMapping();
     plan.value = null;
+    suppliers.value = [];
+    mappingDirty.value = false;
     result.value = null;
     error.value = "";
     stale.value = false;
@@ -290,6 +313,8 @@ export function useEquipmentImport() {
     mapping,
     options,
     plan,
+    suppliers,
+    mappingDirty,
     result,
     busy,
     error,
@@ -305,6 +330,7 @@ export function useEquipmentImport() {
     analyze,
     loadMappingOptions,
     setMapping,
+    setSupplierSelection,
     buildPlan,
     apply,
     reset,

@@ -70,7 +70,13 @@ export interface ImportBatch {
 }
 
 export type MappingSection = "responsibles" | "disciplines" | "workPackages" | "eapNodes";
-export type ImportMapping = Record<MappingSection, Record<string, string>>;
+export interface SupplierSelection {
+  action: "USE" | "NONE";
+  supplierId?: string | null;
+}
+export type ImportMapping = Record<MappingSection, Record<string, string>> & {
+  supplierSelections: Record<string, SupplierSelection>;
+};
 
 export interface PlanGroup {
   name: string;
@@ -108,9 +114,24 @@ export interface ImportPlan {
   catalogCounts?: Record<string, Record<string, number>>;
   catalogs?: CatalogItem[];
   responsibles?: { resolved: number; unresolved: number };
+  supplierSuggestions?: SupplierSuggestion[];
   eap: { resolved: number; multiple: number; none: number; notFound: number; create?: number; conflict?: number; unresolved?: number };
   hasBlocked: boolean;
   canApply: boolean;
+}
+
+export interface SupplierSuggestion {
+  sourceKey: string;
+  equipmentName: string;
+  sourceValue: string | null;
+  supplierId: string | null;
+  supplierName: string | null;
+  corporateCode: string | null;
+  confidence: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+  evidence: string[];
+  requiresRegistration: boolean;
+  selectedAction: "USE" | "NONE" | null;
+  selectedSupplierId: string | null;
 }
 
 export interface ImportDivergence {

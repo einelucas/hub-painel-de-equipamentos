@@ -1,24 +1,21 @@
-"""Fornecedores e o vínculo com equipamentos.
+"""Fornecedores, histórico de vínculos e evidências de recomendação.
 
 `role` é texto livre: o catálogo oficial de papéis do fornecedor ainda não foi
 validado pelo negócio, então nenhum enum fechado é assumido aqui.
 
-Etapa 7A: a tabela de vínculo (`EquipmentSupplier`) continua N:N na
-estrutura — evita migração destrutiva desnecessária — mas a regra de
-negócio nova é "um equipamento tem no máximo um fornecedor". Isso é
-garantido no banco por um índice único em `equipment_id` sozinho (não mais
-só no par `equipment_id, supplier_id`): um segundo vínculo é sempre
-rejeitado; substituir o fornecedor é sempre uma operação explícita
-(remover o vínculo atual, criar o novo), nunca um segundo INSERT.
-`is_primary` fica sem função nova (sempre verdadeiro, já que só existe uma
-linha) — mantido para não descartar dado/índice existente sem necessidade.
+`EquipmentSupplier` é o histórico confirmado. Pode haver vários vínculos ao
+longo do tempo, mas o índice parcial garante no máximo um com `ended_at IS
+NULL`. `SupplierRecommendationEvidence` é apenas evidência para sugestão e
+nunca representa vínculo com equipamento.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, String
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Integer, Numeric, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -97,17 +94,68 @@ class EquipmentSupplier(Base):
         ForeignKey("supplier.id", ondelete="RESTRICT"), nullable=False
     )
     role: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # Legado: vínculos ativos continuam marcados como principais. A fonte de
+    # verdade para atividade é `ended_at IS NULL`.
     is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    start_stage: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    end_stage: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(Timestamp3, nullable=True)
+    change_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    source: Mapped[str] = mapped_column(String(40), nullable=False, default="MANUAL")
+    changed_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("User.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        Timestamp3, nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     equipment: Mapped[Equipment] = relationship(back_populates="supplier_links")
     supplier: Mapped[Supplier] = relationship(back_populates="equipment_links")
 
     __table_args__ = (
-        # Etapa 7A: no máximo UM vínculo por equipamento, ponto — garantido
-        # pelo banco. Substitui a regra antiga (múltiplos fornecedores,
-        # só um `is_primary`).
-        Index("equipment_supplier_single_key", "equipment_id", unique=True),
-        Index("equipment_supplier_pair_key", "equipment_id", "supplier_id", unique=True),
+        CheckConstraint(
+            "(ended_at IS NULL AND end_stage IS NULL) OR ended_at IS NOT NULL",
+            name="equipment_supplier_end_check",
+        ),
+        Index(
+            "equipment_supplier_active_key",
+            "equipment_id",
+            unique=True,
+            postgresql_where=ended_at.is_(None),
+        ),
         Index("equipment_supplier_equipment_id_idx", "equipment_id"),
+        Index("equipment_supplier_supplier_id_idx", "supplier_id"),
+    )
+
+
+class SupplierRecommendationEvidence(Base):
+    """Evidência corporativa para sugestão; nunca cria vínculo automaticamente."""
+
+    __tablename__ = "supplier_recommendation_evidence"
+
+    id: Mapped[str] = uuid_pk()
+    equipment_key: Mapped[str] = mapped_column(String(240), nullable=False)
+    equipment_label: Mapped[str] = mapped_column(String(240), nullable=False)
+    supplier_reference: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    corporate_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    evidence_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    confidence: Mapped[str] = mapped_column(String(20), nullable=False)
+    occurrences: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_occurrences: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    share: Mapped[Decimal | None] = mapped_column(Numeric(8, 5), nullable=True)
+    source: Mapped[str] = mapped_column(String(80), nullable=False)
+    source_key: Mapped[str] = mapped_column(String(300), nullable=False)
+    review_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    details: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False, default=dict)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        Timestamp3, nullable=False, default=utcnow, onupdate=utcnow
+    )
+
+    __table_args__ = (
+        Index("supplier_evidence_source_key", "source", "source_key", unique=True),
+        Index("supplier_evidence_equipment_key_idx", "equipment_key"),
+        Index("supplier_evidence_corporate_code_idx", "corporate_code"),
     )

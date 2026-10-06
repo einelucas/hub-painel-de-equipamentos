@@ -5,8 +5,8 @@ Não simula o workflow 0-8: `current_stage` é inicializado diretamente pelo
 serviço de migração, sem `WorkflowTransition` fictício. Toda escrita gera
 `AuditLog` com `action="migration.import"`.
 
-Catálogos planejados como CREATE (EAP PROCESS → AREA, Discipline, WorkPackage,
-Supplier, ProjectEap) são criados na MESMA transação, antes dos equipamentos; os
+Catálogos planejados como CREATE (EAP PROCESS → AREA, Discipline, WorkPackage e
+ProjectEap) são criados na MESMA transação, antes dos equipamentos; os
 IDs novos substituem as `catalog_refs` do payload. Qualquer falha desfaz tudo.
 """
 
@@ -31,7 +31,7 @@ from app.models.equipment import (
 )
 from app.models.monday_import import MondayImportBatch, MondayImportRecord, MondayMigrationRun
 from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
-from app.models.supplier import EquipmentSupplier, Supplier
+from app.models.supplier import EquipmentSupplier
 from app.modules.monday_import.catalog_taxonomy import CatalogAction
 from app.modules.monday_import.plan import (
     OPERATIONAL_TRANSITIONS,
@@ -84,7 +84,6 @@ class _CreatedCatalogs:
     eap: dict[str, str] = field(default_factory=dict)
     discipline: dict[str, str] = field(default_factory=dict)
     work_package: dict[str, str] = field(default_factory=dict)
-    supplier: dict[str, str] = field(default_factory=dict)
 
 
 _EAP_LEVEL_ORDER = {"PROCESS": 0, "AREA": 1}
@@ -188,24 +187,6 @@ async def _apply_catalogs(
             item=item, data={"code": code, "name": work_package.name},
         )
 
-    for item in (item for item in creates if item.kind == "supplier"):
-        code = str(item.payload["corporate_code"])
-        if await session.scalar(select(Supplier.id).where(Supplier.corporate_code == code)) is not None:
-            raise PlanStaleError(f"Fornecedor {code} passou a existir após o plano. Gere o plano novamente.")
-        supplier = Supplier(
-            corporate_code=code,
-            legal_name=str(item.payload["legal_name"]),
-            trade_name=item.payload.get("trade_name"),
-            tax_id=item.payload.get("tax_id"),
-        )
-        session.add(supplier)
-        await session.flush()
-        created.supplier[item.key] = supplier.id
-        await _audit_catalog(
-            session, plan=plan, run_id=run_id, actor=actor, entity="Supplier", entity_id=supplier.id,
-            item=item, data=dict(item.payload),
-        )
-
     for item in (item for item in creates if item.kind == "project_eap"):
         node_id = item.target_id or created.eap.get(item.key)
         if node_id is None:
@@ -240,8 +221,6 @@ def _materialize(item: PlanItem, created: _CreatedCatalogs) -> PlanItem:
     if "workPackageCodes" in refs and "work_package_ids" in payload:
         new_ids = {created.work_package[code] for code in refs["workPackageCodes"]}
         payload["work_package_ids"] = sorted(set(payload["work_package_ids"]) | new_ids)
-    if "supplierCode" in refs:
-        payload["supplier_id"] = created.supplier[refs["supplierCode"]]
     return replace(item, payload=payload)
 
 
@@ -322,7 +301,14 @@ async def _apply_equipment(
             session.add(EquipmentWorkPackage(equipment_id=equipment.id, work_package_id=work_package_id))
         if supplier_id is not None:
             session.add(
-                EquipmentSupplier(equipment_id=equipment.id, supplier_id=supplier_id, is_primary=True)
+                EquipmentSupplier(
+                    equipment_id=equipment.id,
+                    supplier_id=supplier_id,
+                    is_primary=True,
+                    start_stage=equipment.current_stage,
+                    source="MONDAY_CONFIRMED",
+                    changed_by_user_id=actor.id,
+                )
             )
         await register_external_mapping(
             session,
@@ -387,10 +373,33 @@ async def _apply_equipment(
             )
         existing_equipment.work_package_id = work_package_ids[0] if len(work_package_ids) == 1 else None
     if supplier_id is not None:
-        # O plan só propõe vínculo quando o equipamento ainda não tem fornecedor.
-        session.add(
-            EquipmentSupplier(equipment_id=existing_equipment.id, supplier_id=supplier_id, is_primary=True)
+        # A seleção veio explicitamente de `supplierSelections`. A troca
+        # preserva a linha anterior e abre um único vínculo ativo.
+        current_supplier = await session.scalar(
+            select(EquipmentSupplier).where(
+                EquipmentSupplier.equipment_id == existing_equipment.id,
+                EquipmentSupplier.ended_at.is_(None),
+            )
         )
+        previous["supplier_id"] = current_supplier.supplier_id if current_supplier else None
+        if current_supplier is not None and current_supplier.supplier_id != supplier_id:
+            current_supplier.ended_at = utcnow()
+            current_supplier.end_stage = existing_equipment.current_stage
+            current_supplier.is_primary = False
+            current_supplier.change_reason = "Substituído durante revisão da importação Monday"
+            current_supplier.changed_by_user_id = actor.id
+            await session.flush()
+        if current_supplier is None or current_supplier.supplier_id != supplier_id:
+            session.add(
+                EquipmentSupplier(
+                    equipment_id=existing_equipment.id,
+                    supplier_id=supplier_id,
+                    is_primary=True,
+                    start_stage=existing_equipment.current_stage,
+                    source="MONDAY_CONFIRMED",
+                    changed_by_user_id=actor.id,
+                )
+            )
     await session.flush()
     await record_audit(
         session,
@@ -635,7 +644,7 @@ async def apply_plan(
                     ("eapNodes", created.eap),
                     ("disciplines", created.discipline),
                     ("workPackages", created.work_package),
-                    ("suppliers", created.supplier),
+                    ("suppliers", {}),
                 )
             }
             run.status = "APPLIED"

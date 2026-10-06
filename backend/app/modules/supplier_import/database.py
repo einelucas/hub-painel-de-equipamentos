@@ -2,15 +2,13 @@
 
 - Fornecedor: localizado SOMENTE por `corporate_code` (CREATE/UPDATE/NOOP).
 - Alias: único por (source, context, alias); já existente = NOOP.
-- Vínculo: equipamento localizado pela identidade de origem registrada pelo
-  importador Monday (`external_mapping`, chave `normalized-name:<nome>`); um
-  equipamento já vinculado ao mesmo fornecedor = NOOP.
+- Equipamento: quando localizado, o fornecedor vira apenas SUGGESTION. Esta
+  carga nunca cria nem substitui EquipmentSupplier.
 
-Qualquer conflito (documento de outro fornecedor, alias apontando para outro
-fornecedor, equipamento com OUTRO fornecedor) bloqueia a aplicação inteira: a
-carga nunca substitui dado existente por conta própria. Equipamento não
-localizado não bloqueia — o vínculo é reportado e fica para uma próxima
-execução (idempotente) depois que o equipamento for importado.
+Conflitos cadastrais (documento de outro fornecedor ou alias apontando para
+outro fornecedor) bloqueiam a aplicação inteira. Um EquipmentSupplier ativo,
+por outro lado, nunca é alterado: a carga apenas reporta a sugestão. Equipamento
+não localizado também não bloqueia e fica reportado para revisão posterior.
 """
 
 from __future__ import annotations
@@ -53,7 +51,7 @@ class AliasAction:
 class LinkAction:
     equipment_name: str
     corporate_code: str
-    action: str  # CREATE | NOOP | EQUIPMENT_NOT_FOUND | CONFLICT
+    action: str  # SUGGESTION | ALREADY_CONFIRMED | EQUIPMENT_NOT_FOUND
     equipment_id: str | None = None
     detail: str | None = None
 
@@ -186,7 +184,8 @@ async def _reconcile_links(
         for row in (
             await session.scalars(
                 select(EquipmentSupplier).where(
-                    EquipmentSupplier.equipment_id.in_(list(equipment_ids.values()))
+                    EquipmentSupplier.equipment_id.in_(list(equipment_ids.values())),
+                    EquipmentSupplier.ended_at.is_(None),
                 )
             )
         ).all()
@@ -202,12 +201,12 @@ async def _reconcile_links(
         if equipment_id is None:
             action, detail = "EQUIPMENT_NOT_FOUND", missing_detail
         elif equipment_id not in linked:
-            action, detail = "CREATE", None
+            action, detail = "SUGGESTION", "exige confirmação humana antes do vínculo"
         elif linked[equipment_id] == supplier_ids.get(link.corporate_code):
-            action, detail = "NOOP", None
+            action, detail = "ALREADY_CONFIRMED", None
         else:
-            action = "CONFLICT"
-            detail = "equipamento já vinculado a outro fornecedor; a carga não substitui vínculos"
+            action = "SUGGESTION"
+            detail = "equipamento tem outro fornecedor ativo; sugestão não altera o vínculo"
         actions.append(LinkAction(link.equipment_name, link.corporate_code, action, equipment_id, detail))
     return actions
 
@@ -294,24 +293,7 @@ async def apply_supplier_import(
             )
     await session.flush()
 
-    for link_action in reconciliation.links:
-        if link_action.action != "CREATE":
-            continue
-        assert link_action.equipment_id is not None
-        supplier_id = supplier_ids[link_action.corporate_code]
-        link = EquipmentSupplier(
-            equipment_id=link_action.equipment_id, supplier_id=supplier_id, is_primary=True
-        )
-        session.add(link)
-        await session.flush()
-        await record_audit(
-            session,
-            user_id=actor.id,
-            action="equipment_supplier.import_link",
-            entity="EquipmentSupplier",
-            entity_id=link.id,
-            new_data={"supplier_id": supplier_id, "is_primary": True},
-            metadata={**metadata, "equipmentId": link_action.equipment_id},
-        )
+    # `reconciliation.links` é deliberadamente informativo: sugestões não
+    # viram EquipmentSupplier sem decisão explícita no fluxo de revisão.
     await session.commit()
     return reconciliation
