@@ -356,6 +356,16 @@ async def test_apply_rejects_stale_plan_hash(db_session) -> None:
 
 async def test_apply_refuses_plan_with_blocked_items(db_session) -> None:
     ids = await _seed_context(db_session, "BLOCK")
+    # Bloqueio explícito e estável: mesma identidade/nome já existe no Hub sem
+    # ExternalMapping, portanto o importador não pode mesclar automaticamente.
+    db_session.add(
+        Equipment(
+            project_context_id=ids["context_id"],
+            name="Bomba Apply",
+            current_stage=0,
+        )
+    )
+    await db_session.flush()
     staged = await stage_import(
         db_session, project_context_id=ids["context_id"], source=_rich_equipment_xlsx(), source_name="a.xlsx"
     )
@@ -370,7 +380,7 @@ async def test_apply_refuses_plan_with_blocked_items(db_session) -> None:
         raise AssertionError("deveria ter recusado plano bloqueado")
     except PlanBlockedError as exc:
         assert len(exc.blocked) >= 1
-    assert (await db_session.execute(select(func.count(Equipment.id)))).scalar_one() == 0
+    assert (await db_session.execute(select(func.count(Equipment.id)))).scalar_one() == 1
 
 
 async def test_parent_identity_conflict_blocks_without_merging(db_session) -> None:

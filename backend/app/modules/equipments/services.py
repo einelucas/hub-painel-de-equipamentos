@@ -18,6 +18,7 @@ from app.core.scope import (
     restrict_to_units,
     user_can_access_unit,
 )
+from app.domain.eap import EQUIPMENT_EAP_LEVELS, EapLevel
 from app.domain.equipment_calculations import (
     ComponentDeadlineValues,
     ComponentSchedule,
@@ -33,10 +34,12 @@ from app.models.equipment import (
     STAGES,
     Area,
     Discipline,
+    EapNode,
     Equipment,
     EquipmentComponent,
     EquipmentWorkPackage,
     ProjectContext,
+    ProjectEap,
     WorkflowTransition,
     WorkPackage,
 )
@@ -47,6 +50,7 @@ from app.modules.equipments.schemas import (
     ComponentOut,
     EquipmentCalculatedOut,
     EquipmentDetailOut,
+    EquipmentEapNodeOut,
     EquipmentListOut,
     EquipmentOut,
     NamedRefOut,
@@ -68,6 +72,7 @@ def _base_load_options() -> tuple[Any, ...]:
     return (
         joinedload(Equipment.project_context).joinedload(ProjectContext.unit),
         joinedload(Equipment.area),
+        joinedload(Equipment.eap_node),
         joinedload(Equipment.discipline),
         joinedload(Equipment.work_package),
         selectinload(Equipment.work_package_links).joinedload(EquipmentWorkPackage.work_package),
@@ -219,6 +224,17 @@ def _equipment_out(equipment: Equipment, components_count: int | None = None) ->
             if equipment.discipline
             else None
         ),
+        eap_node=(
+            EquipmentEapNodeOut(
+                id=equipment.eap_node.id,
+                code=equipment.eap_node.code,
+                name=equipment.eap_node.name,
+                level=equipment.eap_node.level,
+                active=equipment.eap_node.active,
+            )
+            if equipment.eap_node
+            else None
+        ),
         area=(NamedRefOut(id=equipment.area.id, name=equipment.area.name) if equipment.area else None),
         work_package=(
             NamedRefOut(
@@ -265,6 +281,7 @@ async def _validate_relations(
     session: AsyncSession,
     *,
     project_context_id: str,
+    eap_node_id: str | None,
     area_id: str | None,
     discipline_id: str | None,
     responsible_user_id: str | None,
@@ -272,6 +289,24 @@ async def _validate_relations(
     context = await session.get(ProjectContext, project_context_id)
     if context is None or not context.active:
         raise DomainError("Contexto de projeto inválido ou inativo")
+    if eap_node_id:
+        node = await session.get(EapNode, eap_node_id)
+        if node is None or not node.active:
+            raise DomainError("Localização EAP inválida ou inativa")
+        if EapLevel(node.level) not in EQUIPMENT_EAP_LEVELS:
+            raise DomainError("Equipamento só pode usar EAP de nível PROCESS ou AREA")
+        linked_ids = set(
+            (
+                await session.scalars(
+                    select(ProjectEap.eap_node_id).where(
+                        ProjectEap.project_context_id == project_context_id,
+                        ProjectEap.active.is_(True),
+                    )
+                )
+            ).all()
+        )
+        if linked_ids and eap_node_id not in linked_ids:
+            raise DomainError("A localização EAP não está disponível para esta obra")
     if area_id:
         area = await session.get(Area, area_id)
         if area is None or not area.active:
@@ -456,6 +491,7 @@ async def create_equipment(
     await _validate_relations(
         session,
         project_context_id=values["project_context_id"],
+        eap_node_id=values.get("eap_node_id"),
         area_id=values.get("area_id"),
         discipline_id=values.get("discipline_id"),
         responsible_user_id=values.get("responsible_user_id"),
@@ -540,6 +576,7 @@ async def update_equipment(
     await assert_equipment_allowed(session, actor, equipment_id)
     equipment = await get_equipment_model(session, equipment_id)
     new_context = changes.get("project_context_id", equipment.project_context_id)
+    eap_node_id_provided = "eap_node_id" in changes
     if new_context != equipment.project_context_id:
         await assert_context_allowed(session, actor, new_context)
 
@@ -553,6 +590,7 @@ async def update_equipment(
     await _validate_relations(
         session,
         project_context_id=new_context,
+        eap_node_id=changes.get("eap_node_id", equipment.eap_node_id),
         area_id=changes.get("area_id", equipment.area_id),
         discipline_id=changes.get("discipline_id", equipment.discipline_id),
         responsible_user_id=changes.get("responsible_user_id", equipment.responsible_user_id),
@@ -601,6 +639,10 @@ async def update_equipment(
         # a coleção força `get_equipment_out` (abaixo) a recarregá-la de fato
         # via o `selectinload` de `get_equipment_model`.
         session.expire(equipment, ["work_package_links"])
+    if eap_node_id_provided:
+        # A relação já foi carregada por `get_equipment_model`; após trocar o FK,
+        # recarrega o nó para a resposta do PATCH refletir a EAP nova.
+        session.expire(equipment, ["eap_node"])
     return await get_equipment_out(session, equipment.id)
 
 

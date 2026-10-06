@@ -66,6 +66,18 @@ def test_normalizes_multivalue_without_losing_raw_value() -> None:
     assert normalize_multi_value(raw) == ["CAL012", "CIV014", "CIV015", "CIV012"]
 
 
+def test_normalizes_six_comma_separated_work_packages() -> None:
+    raw = "CIV004, CIV012, CIV015, CAL003, CAL005, CAL006"
+    assert normalize_multi_value(raw) == [
+        "CIV004",
+        "CIV012",
+        "CIV015",
+        "CAL003",
+        "CAL005",
+        "CAL006",
+    ]
+
+
 def test_reports_duplicate_external_id() -> None:
     parsed = parse_monday_xlsx(representative_xlsx(duplicate_component=True))
     assert len(parsed.equipments[0].components) == 2

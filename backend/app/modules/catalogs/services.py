@@ -83,7 +83,11 @@ async def list_project_eap_nodes(
     stmt = (
         select(ProjectEap)
         .join(EapNode, ProjectEap.eap_node_id == EapNode.id)
-        .where(ProjectEap.project_context_id == project_context_id)
+        .where(
+            ProjectEap.project_context_id == project_context_id,
+            ProjectEap.active.is_(True),
+            EapNode.active.is_(True),
+        )
         .options(selectinload(ProjectEap.eap_node))
         .order_by(EapNode.code.asc())
     )

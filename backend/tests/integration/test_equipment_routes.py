@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import select
 
 from app.models.audit import AuditLog
-from app.models.equipment import WorkflowTransition
+from app.models.equipment import EapNode, ProjectEap, WorkflowTransition
 from tests.helpers import grant_unit
 
 
@@ -84,6 +84,104 @@ async def _equipment(client, auth_header, catalogs: dict[str, str], name: str = 
         },
         headers=auth_header("ANALYST"),
     )
+
+
+async def _eap_nodes(db_session, context_id: str, suffix: str) -> dict[str, str]:
+    island_code = chr(ord("A") + int(suffix) % 26)
+    island = EapNode(code=island_code, name=f"Ilha {suffix}", level="ISLAND")
+    process = EapNode(code=suffix, name=f"Processo {suffix}", level="PROCESS")
+    db_session.add_all([island, process])
+    await db_session.flush()
+    process.parent_id = island.id
+    area = EapNode(
+        code=f"{suffix}.A", name=f"Área EAP {suffix}", level="AREA", parent_id=process.id
+    )
+    db_session.add(area)
+    await db_session.flush()
+    db_session.add_all(
+        [
+            ProjectEap(project_context_id=context_id, eap_node_id=process.id),
+            ProjectEap(project_context_id=context_id, eap_node_id=area.id),
+        ]
+    )
+    await db_session.commit()
+    return {"island": island.id, "process": process.id, "area": area.id}
+
+
+async def test_equipment_uses_process_or_area_eap_and_preserves_legacy_area(
+    client, auth_header, db_session
+) -> None:
+    catalogs = await _catalogs(client, auth_header, "71")
+    eap = await _eap_nodes(db_session, catalogs["context"], "71")
+
+    created = await client.post(
+        "/api/v1/equipments",
+        json={
+            "projectContextId": catalogs["context"],
+            "name": "Equipamento com processo",
+            "eapNodeId": eap["process"],
+            "areaId": catalogs["area"],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["eapNode"] == {
+        "id": eap["process"],
+        "code": "71",
+        "name": "Processo 71",
+        "level": "PROCESS",
+        "active": True,
+    }
+    legacy_area = created.json()["area"]
+
+    changed = await client.patch(
+        f"/api/v1/equipments/{created.json()['id']}",
+        json={"eapNodeId": eap["area"]},
+        headers=auth_header("ANALYST"),
+    )
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["eapNode"]["level"] == "AREA"
+    assert changed.json()["eapNode"]["id"] == eap["area"]
+    assert changed.json()["area"] == legacy_area
+
+    renamed = await client.patch(
+        f"/api/v1/equipments/{created.json()['id']}",
+        json={"name": "Equipamento renomeado"},
+        headers=auth_header("ANALYST"),
+    )
+    assert renamed.status_code == 200
+    assert renamed.json()["eapNode"]["id"] == eap["area"]
+
+
+async def test_equipment_rejects_island_and_eap_from_another_project(
+    client, auth_header, db_session
+) -> None:
+    first = await _catalogs(client, auth_header, "72")
+    second = await _catalogs(client, auth_header, "73")
+    first_eap = await _eap_nodes(db_session, first["context"], "72")
+    second_eap = await _eap_nodes(db_session, second["context"], "73")
+
+    island = await client.post(
+        "/api/v1/equipments",
+        json={
+            "projectContextId": first["context"],
+            "name": "Ilha inválida",
+            "eapNodeId": first_eap["island"],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert island.status_code == 422
+
+    wrong_project = await client.post(
+        "/api/v1/equipments",
+        json={
+            "projectContextId": first["context"],
+            "name": "EAP de outra obra",
+            "eapNodeId": second_eap["area"],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert wrong_project.status_code == 422
 
 
 async def test_catalog_creation_and_read_permissions(client, auth_header) -> None:

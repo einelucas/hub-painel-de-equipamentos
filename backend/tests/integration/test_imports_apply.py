@@ -120,6 +120,10 @@ async def test_blocked_plan_or_invalid_mapping_never_applies(client, auth_header
     admin = auth_header("ADMIN")
     batch = await stage(client, admin, ids["context"], synthetic_board())
 
+    db_session.add(
+        Equipment(project_context_id=ids["context"], name="Equipamento Sintético A", current_stage=0)
+    )
+    await db_session.commit()
     blocked = (await plan(client, admin, batch["batchId"], {})).json()
     assert blocked["hasBlocked"] is True
     refused = await apply(client, admin, batch["batchId"], {}, blocked["planSha256"])
@@ -131,7 +135,7 @@ async def test_blocked_plan_or_invalid_mapping_never_applies(client, auth_header
     invalid_plan = (await plan(client, admin, batch["batchId"], invalid)).json()
     rejected = await apply(client, admin, batch["batchId"], invalid, invalid_plan["planSha256"])
     assert rejected.status_code == 422
-    assert await _count(db_session, Equipment) == 0
+    assert await _count(db_session, Equipment) == 1
 
 
 async def test_apply_respects_unit_scope_and_permission(client, auth_header, db_session) -> None:

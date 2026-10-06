@@ -1,6 +1,6 @@
 import { computed, reactive, ref } from "vue";
 import { ApiError } from "~/services/api/error";
-import type { CatalogItem, CatalogList, Responsible, Unit } from "~/types/equipment";
+import type { CatalogItem, CatalogList, EapNodeItem, Responsible, Unit } from "~/types/equipment";
 import type {
   ImportApplyResult,
   ImportBatch,
@@ -38,13 +38,6 @@ export const MAPPING_SECTIONS: { key: MappingSection; label: string }[] = [
 ];
 
 const BASE = "/imports/monday";
-
-interface EapNodeItem {
-  id: string;
-  code: string;
-  name: string;
-  level: string;
-}
 
 export function isXlsx(fileName: string): boolean {
   return fileName.toLowerCase().endsWith(".xlsx");

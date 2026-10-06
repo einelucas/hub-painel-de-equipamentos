@@ -16,6 +16,11 @@ class NamedRefOut(CamelModel):
     code: str | None = None
 
 
+class EquipmentEapNodeOut(NamedRefOut):
+    level: str
+    active: bool
+
+
 class UserRefOut(CamelModel):
     id: str
     name: str
@@ -92,6 +97,8 @@ class EquipmentCreateIn(CamelModel):
     origin: str | None = Field(default=None, max_length=160)
     startup_at: date | None = None
     discipline_id: str | None = None
+    eap_node_id: str | None = None
+    # Legado: aceito por compatibilidade, sem sincronização com `eap_node_id`.
     area_id: str | None = None
     # `work_package_ids` é o contrato oficial (0..N, relação N:N via
     # `equipment_work_package`). O campo legado singular `work_package_id`
@@ -142,6 +149,8 @@ class EquipmentUpdateIn(CamelModel):
     origin: str | None = Field(default=None, max_length=160)
     startup_at: date | None = None
     discipline_id: str | None = None
+    eap_node_id: str | None = None
+    # Legado: só muda quando enviado explicitamente.
     area_id: str | None = None
     # Ausente no PATCH -> vínculos N:N não são tocados. `[]` explícito ->
     # remove todos os vínculos. Ver nota acima sobre `work_package_id` legado.
@@ -231,6 +240,8 @@ class EquipmentOut(CamelModel):
     project_context: NamedRefOut
     unit: NamedRefOut
     discipline: NamedRefOut | None
+    eap_node: EquipmentEapNodeOut | None
+    # Legado: mantido na resposta durante a transição, sem sincronização.
     area: NamedRefOut | None
     # DEPRECATED: espelho do FK legado `equipment.work_package_id` (0..1).
     # Não é mais escrito por create/update; só existe porque a migração do

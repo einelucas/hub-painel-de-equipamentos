@@ -230,7 +230,7 @@ class Equipment(Base):
     # Legado: mantido durante a transição para a EAP corporativa. Não há
     # sincronização automática entre area_id e eap_node_id.
     area_id: Mapped[str | None] = mapped_column(ForeignKey("area.id", ondelete="SET NULL"), nullable=True)
-    # Futura fonte de verdade da localização (PROCESS ou AREA da EAP).
+    # Fonte de verdade da localização (PROCESS ou AREA da EAP).
     eap_node_id: Mapped[str | None] = mapped_column(
         ForeignKey("eap_node.id", ondelete="SET NULL"), nullable=True
     )

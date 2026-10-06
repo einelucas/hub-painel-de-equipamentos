@@ -343,12 +343,10 @@ def test_work_package_create_with_evidenced_name() -> None:
     assert (decision.name, decision.evidence_source) == ("Pacote Novo", "MANUAL_MAPPING")
 
 
-def test_work_package_code_only_is_unresolved_and_code_is_not_used_as_name() -> None:
+def test_work_package_code_only_creates_controlled_catalog_entry() -> None:
     decision = decide_work_package("WP-S2", NONE, _wp_index())
-    assert decision.action is CatalogAction.UNRESOLVED
-    assert decision.issue_code == "WORK_PACKAGE_UNRESOLVED"
-    assert decision.name is None
-    assert not is_blocking_issue("WORK_PACKAGE_UNRESOLVED")
+    assert decision.action is CatalogAction.CREATE
+    assert decision.name == "WP-S2"
 
 
 def test_work_package_conflict_same_code_other_name() -> None:
@@ -361,7 +359,7 @@ def test_work_package_conflict_same_code_other_name() -> None:
 def test_work_package_wrong_context_is_not_reused() -> None:
     # O índice é escopado ao contexto atual: WP de outro contexto não está nele.
     decision = decide_work_package("WP-S1", NONE, {})
-    assert decision.action is CatalogAction.UNRESOLVED
+    assert decision.action is CatalogAction.CREATE
     assert decision.work_package_id is None
 
 

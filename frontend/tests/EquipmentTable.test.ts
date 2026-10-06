@@ -15,6 +15,7 @@ const equipment = {
   projectContext: { id: "ctx", code: "C2", name: "Contexto C2" },
   unit: { id: "unit", code: "LEM", name: "Lucas do Rio Verde" },
   discipline: null,
+  eapNode: null,
   area: null,
   workPackage: null,
   workPackages: [],

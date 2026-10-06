@@ -28,6 +28,8 @@ async def test_seed_loads_catalog_and_is_idempotent(db_session) -> None:
     assert first.summary() == {
         "applied": True,
         "created": 19,
+        "updated": 0,
+        "updated_in_use": 0,
         "unchanged": 0,
         "conflicts": 0,
         "skipped_review_required": len(catalog.review_required),

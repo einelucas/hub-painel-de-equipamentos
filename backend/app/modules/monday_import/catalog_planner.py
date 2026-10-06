@@ -316,7 +316,15 @@ class CatalogPlanner:
     # -- Work Package --------------------------------------------------------------
 
     def _resolve_work_packages(self, normalized: dict[str, Any], result: EquipmentCatalogs) -> None:
-        codes = [str(code) for code in normalized.get("work_package_codes") or [] if str(code).strip()]
+        codes: list[str] = []
+        seen: set[str] = set()
+        for raw_code in normalized.get("work_package_codes") or []:
+            code = str(raw_code).strip()
+            key = canonical_text(code)
+            if not code or key in seen:
+                continue
+            seen.add(key)
+            codes.append(code)
         result.has_work_package_source = bool(codes)
         create_codes: list[str] = []
         for code in codes:

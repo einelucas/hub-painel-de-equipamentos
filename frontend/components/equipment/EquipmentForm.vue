@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { computed, onMounted, reactive, ref } from "vue";
 import type {
   CatalogItem,
   CatalogList,
+  EapNodeItem,
   Equipment,
+  ProjectEapItem,
   Responsible,
 } from "~/types/equipment";
 
@@ -19,7 +22,7 @@ const emit = defineEmits<{
 const api = useApi();
 
 const contexts = ref<CatalogItem[]>([]);
-const areas = ref<CatalogItem[]>([]);
+const eapNodes = ref<EapNodeItem[]>([]);
 const disciplines = ref<CatalogItem[]>([]);
 const workPackages = ref<CatalogItem[]>([]);
 const responsibles = ref<Responsible[]>([]);
@@ -34,7 +37,7 @@ const form = reactive({
   origin: props.equipment?.origin ?? "",
   startupAt: props.equipment?.startupAt ?? "",
   disciplineId: props.equipment?.discipline?.id ?? "",
-  areaId: props.equipment?.area?.id ?? "",
+  eapNodeId: props.equipment?.eapNode?.id ?? "",
 
   // Relação N:N com pacotes de trabalho.
   workPackageIds: props.equipment?.workPackages.map((item) => item.id) ?? [],
@@ -95,18 +98,46 @@ async function loadWorkPackages(): Promise<void> {
   );
 }
 
+async function loadEapNodes(): Promise<void> {
+  eapNodes.value = [];
+
+  if (!form.projectContextId) {
+    form.eapNodeId = "";
+    return;
+  }
+
+  const linked = await api.get<CatalogList<ProjectEapItem>>(
+    `/project-contexts/${form.projectContextId}/eap-nodes`,
+  );
+  const candidates = linked.items.length
+    ? linked.items.map((item) => item.eapNode)
+    : (
+        await api.get<CatalogList<EapNodeItem>>("/eap-nodes", {
+          active: true,
+        })
+      ).items;
+
+  eapNodes.value = candidates.filter(
+    (item) => item.active && (item.level === "PROCESS" || item.level === "AREA"),
+  );
+  if (!eapNodes.value.some((item) => item.id === form.eapNodeId)) {
+    form.eapNodeId = "";
+  }
+}
+
+async function loadContextCatalogs(): Promise<void> {
+  await Promise.all([loadEapNodes(), loadWorkPackages()]);
+}
+
 async function loadCatalogs(): Promise<void> {
   loading.value = true;
 
   try {
-    const [contextResult, areaResult, disciplineResult, responsibleResult] =
+    const [contextResult, disciplineResult, responsibleResult] =
       await Promise.all([
         api.get<CatalogList<CatalogItem>>(
           `/units/${props.unitId}/project-contexts`,
         ),
-        api.get<CatalogList<CatalogItem>>("/areas", {
-          unit_id: props.unitId,
-        }),
         api.get<CatalogList<CatalogItem>>("/disciplines"),
         api.get<CatalogList<Responsible>>("/responsibles", {
           unit_id: props.unitId,
@@ -114,7 +145,6 @@ async function loadCatalogs(): Promise<void> {
       ]);
 
     contexts.value = contextResult.items;
-    areas.value = areaResult.items;
     disciplines.value = disciplineResult.items;
     responsibles.value = responsibleResult.items;
 
@@ -129,7 +159,7 @@ async function loadCatalogs(): Promise<void> {
       form.projectContextId = contexts.value[0]!.id;
     }
 
-    await loadWorkPackages();
+    await loadContextCatalogs();
   } catch (caught) {
     error.value =
       caught instanceof Error
@@ -155,7 +185,7 @@ async function submit(): Promise<void> {
     origin: form.origin || null,
     startupAt: form.startupAt || null,
     disciplineId: form.disciplineId || null,
-    areaId: form.areaId || null,
+    eapNodeId: form.eapNodeId || null,
     workPackageIds: form.workPackageIds,
     criticality: form.criticality || null,
     capexEstimated:
@@ -210,7 +240,7 @@ onMounted(loadCatalogs);
         <select
           v-model="form.projectContextId"
           required
-          @change="loadWorkPackages"
+          @change="loadContextCatalogs"
         >
           <option value="">Selecione</option>
 
@@ -227,13 +257,13 @@ onMounted(loadCatalogs);
       </label>
 
       <label class="field">
-        <span>Área</span>
+        <span>Localização EAP</span>
 
-        <select v-model="form.areaId">
+        <select v-model="form.eapNodeId" data-testid="eap-node-select">
           <option value="">Não informada</option>
 
-          <option v-for="item in areas" :key="item.id" :value="item.id">
-            {{ item.name }}
+          <option v-for="item in eapNodes" :key="item.id" :value="item.id">
+            {{ item.code }} · {{ item.name }}
           </option>
         </select>
       </label>

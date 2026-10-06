@@ -48,7 +48,12 @@ HEADER = [
 ]
 
 
-def _board(*, responsible: str = "Responsável Sintético", supplier: str = "9001") -> bytes:
+def _board(
+    *,
+    responsible: str = "Responsável Sintético",
+    supplier: str = "9001",
+    work_packages: str = "WPN1",
+) -> bytes:
     return build_xlsx(
         [
             ["Equipamentos - Projeto Sintético"],
@@ -59,7 +64,7 @@ def _board(*, responsible: str = "Responsável Sintético", supplier: str = "900
                 "Componente Sintético",
                 "0.Nova demanda",
                 "2027/10/27",
-                "WPN1",
+                work_packages,
                 responsible,
                 "2377.A - Área Sintética Nova",
                 "Disciplina Nova Sintética",
@@ -105,7 +110,9 @@ def _actor(actor_id: str) -> CurrentUser:
 
 async def _plan(db_session, ids: dict[str, str], batch_id: str, schema: dict[str, Any] | None = None):
     mapping = await validate_mapping(
-        db_session, MappingFileSchema.model_validate(schema or EVIDENCE), project_context_id=ids["context_id"]
+        db_session,
+        MappingFileSchema.model_validate(EVIDENCE if schema is None else schema),
+        project_context_id=ids["context_id"],
     )
     return await build_plan(
         db_session, project_context_id=ids["context_id"], batch_ids=[batch_id], mapping=mapping
@@ -201,6 +208,85 @@ async def test_reimport_is_existing_and_noop_without_duplicates(db_session) -> N
         assert await _count(db_session, model) == expected, model.__name__
 
 
+async def test_apply_creates_and_links_six_code_only_work_packages_in_same_context(
+    db_session,
+) -> None:
+    ids = await _seed(db_session)
+    codes = ["CIV004", "CIV012", "CIV015", "CAL003", "CAL005", "CAL006"]
+    staged = await stage_import(
+        db_session,
+        project_context_id=ids["context_id"],
+        source=_board(work_packages=", ".join(codes)),
+        source_name="seis-wps.xlsx",
+    )
+    evidence_without_wp = {
+        "catalogEvidence": {
+            key: value
+            for key, value in EVIDENCE["catalogEvidence"].items()
+            if key != "workPackages"
+        }
+    }
+    # Sem catalogEvidence de Work Package: o código explícito do Monday cria
+    # uma entrada controlada no contexto escolhido, usando o código como rótulo provisório.
+    plan = await _plan(
+        db_session,
+        ids,
+        staged.batch_id,
+        evidence_without_wp,
+    )
+
+    planned = {
+        item.key
+        for item in plan.catalog_items
+        if item.kind == "work_package" and item.action.value == "CREATE"
+    }
+    assert planned == set(codes)
+    assert plan.equipments[0].payload["catalog_refs"]["workPackageCodes"] == sorted(codes)
+
+    context_count_before = await _count(db_session, ProjectContext)
+    await apply_plan(
+        db_session,
+        plan=plan,
+        expected_plan_sha256=plan.plan_sha256,
+        actor=_actor(ids["actor_id"]),
+    )
+
+    packages = (
+        await db_session.execute(
+            select(WorkPackage).where(WorkPackage.project_context_id == ids["context_id"])
+        )
+    ).scalars().all()
+    assert {(item.code, item.name) for item in packages} == {(code, code) for code in codes}
+    equipment = (await db_session.execute(select(Equipment))).scalar_one()
+    links = (
+        await db_session.execute(
+            select(EquipmentWorkPackage).where(
+                EquipmentWorkPackage.equipment_id == equipment.id
+            )
+        )
+    ).scalars().all()
+    assert {link.work_package_id for link in links} == {item.id for item in packages}
+    assert equipment.work_package_id is None
+    assert await _count(db_session, ProjectContext) == context_count_before
+
+    second = await _plan(
+        db_session,
+        ids,
+        staged.batch_id,
+        evidence_without_wp,
+    )
+    assert second.equipments[0].action == "NOOP"
+    await apply_plan(
+        db_session,
+        plan=second,
+        expected_plan_sha256=second.plan_sha256,
+        actor=_actor(ids["actor_id"]),
+    )
+    assert await _count(db_session, WorkPackage) == 6
+    assert await _count(db_session, EquipmentWorkPackage) == 6
+    assert await _count(db_session, ProjectContext) == context_count_before
+
+
 async def test_failure_after_catalog_creation_rolls_back_everything(db_session, monkeypatch) -> None:
     ids = await _seed(db_session)
     staged = await stage_import(
@@ -221,7 +307,9 @@ async def test_failure_after_catalog_creation_rolls_back_everything(db_session, 
         assert await _count(db_session, model) == 0, model.__name__
 
 
-async def test_unresolved_catalogs_do_not_block_and_leave_links_empty(db_session) -> None:
+async def test_unresolved_catalogs_do_not_block_and_code_only_work_package_is_linked(
+    db_session,
+) -> None:
     ids = await _seed(db_session)
     board = _board(responsible="Pessoa Sem Usuário", supplier="???")
     staged = await stage_import(
@@ -232,14 +320,13 @@ async def test_unresolved_catalogs_do_not_block_and_leave_links_empty(db_session
     actions = _actions(plan)
     assert actions[("eap_node", "77.A")] == "UNRESOLVED"  # pai sem nome comprovado
     assert actions[("discipline", "Disciplina Nova Sintética")] == "UNRESOLVED"
-    assert actions[("work_package", "WPN1")] == "UNRESOLVED"
+    assert actions[("work_package", "WPN1")] == "CREATE"
     assert actions[("supplier", "???")] == "UNRESOLVED"
     assert plan.has_blocked is False
     codes = {issue.code for issue in plan.equipments[0].issues}
     assert {
         "EAP_PARENT_REQUIRED",
         "DISCIPLINE_CODE_REQUIRED",
-        "WORK_PACKAGE_UNRESOLVED",
         "SUPPLIER_UNRESOLVED",
         "RESPONSIBLE_UNRESOLVED",
     } <= codes
@@ -253,5 +340,9 @@ async def test_unresolved_catalogs_do_not_block_and_leave_links_empty(db_session
         None,
         None,
     )
-    for model in (EapNode, Discipline, WorkPackage, Supplier, EquipmentSupplier):
+    work_package = (await db_session.execute(select(WorkPackage))).scalar_one()
+    link = (await db_session.execute(select(EquipmentWorkPackage))).scalar_one()
+    assert (work_package.code, work_package.name) == ("WPN1", "WPN1")
+    assert (link.equipment_id, link.work_package_id) == (equipment.id, work_package.id)
+    for model in (EapNode, Discipline, Supplier, EquipmentSupplier):
         assert await _count(db_session, model) == 0, model.__name__

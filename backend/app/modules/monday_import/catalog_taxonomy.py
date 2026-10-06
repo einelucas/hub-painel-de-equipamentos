@@ -468,7 +468,9 @@ def decide_work_package(
     by_code: Mapping[str, WorkPackageEntry],
 ) -> WorkPackageDecision:
     """`by_code` contém só os WPs do ProjectContext atual (WP de outro contexto nunca
-    é reutilizado). O código nunca é usado como nome."""
+    é reutilizado). Um código informado explicitamente pelo Monday é suficiente para
+    a criação controlada; enquanto não houver nome separado, o próprio código é o
+    rótulo provisório e auditável do catálogo."""
     code_clean = code.strip()
     entry = by_code.get(canonical_text(code_clean))
 
@@ -502,12 +504,7 @@ def decide_work_package(
             detail=_evidence_conflict_detail(name_evidence),
         )
     if not name_evidence.found or name_evidence.value is None:
-        return WorkPackageDecision(
-            CatalogAction.UNRESOLVED,
-            code=code_clean,
-            issue_code="WORK_PACKAGE_UNRESOLVED",
-            message="Work Package novo sem nome comprovado; vínculo não criado.",
-        )
+        return WorkPackageDecision(CatalogAction.CREATE, code=code_clean, name=code_clean)
     return WorkPackageDecision(
         CatalogAction.CREATE,
         code=code_clean,

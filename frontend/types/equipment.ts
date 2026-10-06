@@ -14,6 +14,35 @@ export interface CatalogItem {
   active: boolean;
 }
 
+export type EapLevel = "ISLAND" | "PROCESS" | "AREA";
+
+export interface EapNodeItem {
+  id: string;
+  code: string;
+  name: string;
+  level: EapLevel;
+  parentId: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EquipmentEapNode {
+  id: string;
+  code: string;
+  name: string;
+  level: EapLevel;
+  active: boolean;
+}
+
+export interface ProjectEapItem {
+  id: string;
+  projectContextId: string;
+  eapNode: EapNodeItem;
+  active: boolean;
+  createdAt: string;
+}
+
 export interface NamedRef {
   id: string;
   name: string;
@@ -101,6 +130,9 @@ export interface Equipment {
   projectContext: NamedRef;
   unit: NamedRef;
   discipline: NamedRef | null;
+  /** Localização canônica. Equipamentos aceitam somente PROCESS ou AREA. */
+  eapNode: EquipmentEapNode | null;
+  /** @deprecated Localização legada; não é sincronizada com `eapNode`. */
   area: NamedRef | null;
   /** Etapa 7A: um equipamento tem no máximo um fornecedor vinculado. */
   supplier: NamedRef | null;
