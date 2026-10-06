@@ -2,6 +2,7 @@
   "name": "painel-de-equipamentos-frontend",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@11.19.0",
   "type": "module",
   "scripts": {
     "dev": "nuxt dev --port 3000",
