@@ -52,6 +52,22 @@ python -m app.modules.monday_import ../references/monday_exports
 
 Para testes de integração, copie `.env.test.example` para `.env.test`, use um banco cujo nome termine em `_test`, aplique `alembic upgrade head` e execute `python -m pytest`.
 
+## Catálogo global de fornecedores
+
+A planilha aprovada é convertida em um artefato JSON versionado e validável sem banco. A carga consulta
+o banco em `--dry-run`; a escrita só é liberada em DEV/TESTE com confirmação e nome exato do banco.
+
+```bash
+python -m app.modules.supplier_catalog extract fornecedores_hub_oficiais.xlsx
+python -m app.modules.supplier_catalog validate
+python -m app.modules.supplier_catalog seed --dry-run --env-file .env.test
+python -m app.modules.supplier_catalog seed --apply --sync --confirm \
+  --expect-database neondb_test --env-file .env.test
+```
+
+A carga altera somente `Supplier`, aliases oficiais em `SupplierAlias` e `AuditLog`; ela não cria vínculos
+com equipamentos. Use `--sync` somente após revisar o dry-run, para atualizar campos oficiais divergentes.
+
 ## Rotas iniciais
 
 - `GET /api/v1/health/live`

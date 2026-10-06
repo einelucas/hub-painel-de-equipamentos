@@ -1,0 +1,1592 @@
+{
+  "format_version": 1,
+  "description": "Catálogo global de fornecedores oficiais aprovado para carga no Hub.",
+  "source": {
+    "file": "fornecedores_hub_oficiais.xlsx",
+    "sha256": "e241e39f97295e7e436143353f70031865154e84dea21d0ff61dbb51427b07ad",
+    "sheet": "Fornecedores_Hub"
+  },
+  "summary": {
+    "suppliers": 122,
+    "active": 120,
+    "inactive": 2,
+    "aliases": 56
+  },
+  "suppliers": [
+    {
+      "corporate_code": "10304",
+      "legal_name": "NOVATEC COMERCIO E SERVICOS DE COMUNICACOES LTDA EPP",
+      "trade_name": null,
+      "tax_id": "18403195000186",
+      "active": true,
+      "aliases": [],
+      "source_row": 84,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1044",
+      "legal_name": "WAYNE INDUSTRIA E COMERCIO LTDA",
+      "trade_name": null,
+      "tax_id": "42120394000676",
+      "active": true,
+      "aliases": [],
+      "source_row": 118,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1061",
+      "legal_name": "TECNAL IND. COM. IMP. E ESP. DE EQUIP. LABORATORIO LTDA",
+      "trade_name": null,
+      "tax_id": "47010566000168",
+      "active": true,
+      "aliases": [
+        "TECNAL"
+      ],
+      "source_row": 104,
+      "evidence": "LGE",
+      "equipment_count": 33,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1065",
+      "legal_name": "SARTORIUS DO BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "03437141000164",
+      "active": true,
+      "aliases": [
+        "SARTORIUS"
+      ],
+      "source_row": 93,
+      "evidence": "LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "10729",
+      "legal_name": "PETRO TANQUE METALURGICA LTDA.",
+      "trade_name": null,
+      "tax_id": "02324640000182",
+      "active": true,
+      "aliases": [],
+      "source_row": 86,
+      "evidence": "MONDAY",
+      "equipment_count": 4,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "10794",
+      "legal_name": "TRANE EXPORT LLC",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "TRANE"
+      ],
+      "source_row": 109,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "10987",
+      "legal_name": "DRYERATION INDUSTRIA COMERCIO E PROJETOS LTDA",
+      "trade_name": null,
+      "tax_id": "87744546000135",
+      "active": true,
+      "aliases": [],
+      "source_row": 34,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1133",
+      "legal_name": "SMART HEAT DO BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "12915384000151",
+      "active": true,
+      "aliases": [],
+      "source_row": 100,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "11444",
+      "legal_name": "COONTROL TECNOLOGIA EM COMBUSTÃO LTDA",
+      "trade_name": null,
+      "tax_id": "17286644000190",
+      "active": true,
+      "aliases": [],
+      "source_row": 28,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "11843",
+      "legal_name": "NOVA ERA EQUIPAMENTOS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "04308662000184",
+      "active": true,
+      "aliases": [],
+      "source_row": 83,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "12250",
+      "legal_name": "CUMMINS VENDAS E SERVICOS DE MOTORES E GERADORES LTDA",
+      "trade_name": null,
+      "tax_id": "61838884000304",
+      "active": true,
+      "aliases": [],
+      "source_row": 30,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "12903",
+      "legal_name": "MERC - COMERCIO DE MATERIAIS PARA CONSTRUCAO LTDA",
+      "trade_name": null,
+      "tax_id": "08760239000171",
+      "active": true,
+      "aliases": [
+        "MERC - COMERCIO DE MATERIAIS PARA CONSTRUCAO LTDA"
+      ],
+      "source_row": 76,
+      "evidence": "OC/LGE + LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1303",
+      "legal_name": "ENDRESS+HAUSER CONTROLE E AUTOMAÇÃO LTDA.",
+      "trade_name": null,
+      "tax_id": "49423619000106",
+      "active": true,
+      "aliases": [
+        "ENDRESS HAUSER"
+      ],
+      "source_row": 38,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1304",
+      "legal_name": "METALMAG PRODUTOS MAGNÉTICOS LTDA",
+      "trade_name": null,
+      "tax_id": "43369974000150",
+      "active": true,
+      "aliases": [],
+      "source_row": 78,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 4,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "135",
+      "legal_name": "WEG EQUIPAMENTOS ELETRICOS S/A",
+      "trade_name": null,
+      "tax_id": "07175725001050",
+      "active": true,
+      "aliases": [
+        "WEG"
+      ],
+      "source_row": 120,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "136",
+      "legal_name": "TIBRE INDUSTRIA METALURGICA LTDA",
+      "trade_name": null,
+      "tax_id": "88209176000280",
+      "active": true,
+      "aliases": [],
+      "source_row": 107,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 9,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "13974",
+      "legal_name": "AGI BRASIL INDUSTRIA E COMERCIO S.A.",
+      "trade_name": null,
+      "tax_id": "58764309000138",
+      "active": true,
+      "aliases": [
+        "AGI"
+      ],
+      "source_row": 7,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 11,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "13978",
+      "legal_name": "IMTAB EQUIPAMENTOS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "14164437000175",
+      "active": true,
+      "aliases": [],
+      "source_row": 60,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1402",
+      "legal_name": "BERMO VALVULAS E EQUIPAMENTOS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "82662263000120",
+      "active": true,
+      "aliases": [
+        "BERMO"
+      ],
+      "source_row": 20,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "14250",
+      "legal_name": "WEG EQUIPAMENTOS E LOGISTICA LTDDA",
+      "trade_name": null,
+      "tax_id": "10953379000108",
+      "active": true,
+      "aliases": [],
+      "source_row": 119,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "14318",
+      "legal_name": "ABERKO VASOS DE PRESSAO LTDA",
+      "trade_name": null,
+      "tax_id": "57571697000178",
+      "active": true,
+      "aliases": [],
+      "source_row": 3,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "14476",
+      "legal_name": "CSB ARMAZENS E SERVICOS LTDA",
+      "trade_name": null,
+      "tax_id": "45992456000113",
+      "active": true,
+      "aliases": [],
+      "source_row": 29,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1469",
+      "legal_name": "SCANJET MARINE AND SYSTEMS AB",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "SCANJET"
+      ],
+      "source_row": 95,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "15723",
+      "legal_name": "WEG TURBINAS E SOLAR LTDA",
+      "trade_name": null,
+      "tax_id": "84584994000716",
+      "active": true,
+      "aliases": [],
+      "source_row": 121,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "161",
+      "legal_name": "APLUS ENGENHARIA LTDA.",
+      "trade_name": null,
+      "tax_id": "21558706000143",
+      "active": true,
+      "aliases": [
+        "APLUS"
+      ],
+      "source_row": 14,
+      "evidence": "LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "16905",
+      "legal_name": "APS COMPONENTES ELETRICOS SA",
+      "trade_name": null,
+      "tax_id": "04031962000169",
+      "active": true,
+      "aliases": [
+        "APS COMPONENTES"
+      ],
+      "source_row": 15,
+      "evidence": "LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "17295",
+      "legal_name": "PAQUES BRASIL SISTEMAS PARA TRATAMENTO DE EFLUENTES LTDA",
+      "trade_name": null,
+      "tax_id": "14666357000118",
+      "active": true,
+      "aliases": [],
+      "source_row": 85,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "175",
+      "legal_name": "VIBROMAQ SISTEMA DE VENTILAÇÃO LTDA",
+      "trade_name": null,
+      "tax_id": "07135696000102",
+      "active": true,
+      "aliases": [
+        "VIBROMAQ"
+      ],
+      "source_row": 117,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 6,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "17825",
+      "legal_name": "FINATI COMERCIO E INDUSTRIA DE EQUIPAMENTOS ELETROMECANICOS",
+      "trade_name": null,
+      "tax_id": "33223551000173",
+      "active": true,
+      "aliases": [],
+      "source_row": 45,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "17846",
+      "legal_name": "ROMAO TECNOLOGIAS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "02807845000119",
+      "active": true,
+      "aliases": [],
+      "source_row": 91,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "189",
+      "legal_name": "VETTOR TORRES DE RESFRIAMENTO LTDA",
+      "trade_name": null,
+      "tax_id": "02825612000149",
+      "active": true,
+      "aliases": [
+        "VETTOR"
+      ],
+      "source_row": 116,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "19348",
+      "legal_name": "IBS TECNOLOGIA S.A.",
+      "trade_name": null,
+      "tax_id": "88979067000160",
+      "active": true,
+      "aliases": [],
+      "source_row": 59,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "194",
+      "legal_name": "FOCKINK INDUSTRIAS ELETRICAS LTDA",
+      "trade_name": null,
+      "tax_id": "03021334000130",
+      "active": true,
+      "aliases": [],
+      "source_row": 49,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "1960",
+      "legal_name": "EXTRUAL LIMITADA",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "EXTRUAL"
+      ],
+      "source_row": 42,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 9,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "19660",
+      "legal_name": "FERRAZ MAQUINAS E ENGENHARIA LTDA",
+      "trade_name": null,
+      "tax_id": "43490424000194",
+      "active": true,
+      "aliases": [
+        "FERRAZ"
+      ],
+      "source_row": 44,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "2019",
+      "legal_name": "MACOFREN TECNOLOGIAS QUIMICAS LTDA",
+      "trade_name": null,
+      "tax_id": "19031125000107",
+      "active": false,
+      "aliases": [],
+      "source_row": 72,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR INATIVO PARA HISTÓRICO; NÃO SUGERIR"
+    },
+    {
+      "corporate_code": "20388",
+      "legal_name": "HIDROPEL HIDROGEOLOGIA E PERFURAÇÕES LTDA.",
+      "trade_name": null,
+      "tax_id": "91851154000142",
+      "active": true,
+      "aliases": [],
+      "source_row": 56,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "204",
+      "legal_name": "NG METALURGICA S.A.",
+      "trade_name": null,
+      "tax_id": "01939979000392",
+      "active": true,
+      "aliases": [
+        "NG METALÚRGICA"
+      ],
+      "source_row": 82,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "208",
+      "legal_name": "ALFA LAVAL LTDA",
+      "trade_name": null,
+      "tax_id": "43474212000385",
+      "active": true,
+      "aliases": [
+        "ALFA LAVAL"
+      ],
+      "source_row": 10,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "21093",
+      "legal_name": "MESSIAS FERNANDES NETO",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [],
+      "source_row": 77,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "21239",
+      "legal_name": "UWT DO BRASIL INSTRUMENTOS DE MEDIÇÃO LTDA",
+      "trade_name": null,
+      "tax_id": "37111162000107",
+      "active": true,
+      "aliases": [
+        "UWT INSTRUMENTOS"
+      ],
+      "source_row": 113,
+      "evidence": "LGE",
+      "equipment_count": 12,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "21558",
+      "legal_name": "TRANE TECHNOLOGIES LATIN AMERICA B.V.",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "TRANE TECHNOLOGIES LATIN AMERICA B.V."
+      ],
+      "source_row": 110,
+      "evidence": "OC/LGE + LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "217",
+      "legal_name": "ENGEDELTA ENGENHARIA E CONSTRUÇÃO LTDA",
+      "trade_name": null,
+      "tax_id": "72244114000350",
+      "active": true,
+      "aliases": [],
+      "source_row": 40,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "21711",
+      "legal_name": "GRANFINALE SISTEMAS AGRÍCOLAS LTDA.",
+      "trade_name": null,
+      "tax_id": "04703272000109",
+      "active": true,
+      "aliases": [],
+      "source_row": 53,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "21729",
+      "legal_name": "AEROAR INDUSTRIA MECÂNICA LTDA",
+      "trade_name": null,
+      "tax_id": "79387858000100",
+      "active": true,
+      "aliases": [],
+      "source_row": 6,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "21820",
+      "legal_name": "GEORGE & FILHO INDUSTRIA COMERCIO E PRESTAÇÃO DE SERVIÇOS LTDA",
+      "trade_name": null,
+      "tax_id": "00908685000179",
+      "active": true,
+      "aliases": [
+        "GEORGE & FILHO"
+      ],
+      "source_row": 51,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "21964",
+      "legal_name": "AGUIA SOLUCOES TECNOLOGICAS EM ACO INOX LTDA",
+      "trade_name": null,
+      "tax_id": "08236152000108",
+      "active": true,
+      "aliases": [
+        "AGUIA INOX",
+        "Aguia Solucoes Tecnologicas em Aco Inox LTDA"
+      ],
+      "source_row": 9,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 8,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "22078",
+      "legal_name": "HCI HIDRAULICA CONEXOES INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "62312426000723",
+      "active": true,
+      "aliases": [],
+      "source_row": 54,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "22230",
+      "legal_name": "BERMAD BRASIL INDUSTRIA DE VALVULAS LTDA.",
+      "trade_name": null,
+      "tax_id": "01000334000128",
+      "active": true,
+      "aliases": [],
+      "source_row": 19,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "22321",
+      "legal_name": "LS EQUIPAMENTOS DE FORÇA E SEGURANÇA LTDA",
+      "trade_name": null,
+      "tax_id": "40950413000151",
+      "active": true,
+      "aliases": [],
+      "source_row": 71,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "22775",
+      "legal_name": "SUPPORT PAINÉIS ELÉTRICOS LTDA",
+      "trade_name": null,
+      "tax_id": "52085108000128",
+      "active": true,
+      "aliases": [],
+      "source_row": 103,
+      "evidence": "MONDAY",
+      "equipment_count": 4,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "261",
+      "legal_name": "PROMOEN EQUIPAMENTOS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "00250937000115",
+      "active": true,
+      "aliases": [],
+      "source_row": 88,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "26961",
+      "legal_name": "METALURGICA VARB INDUSTRIA E COMERCIO LTDA",
+      "trade_name": null,
+      "tax_id": "43830462000149",
+      "active": true,
+      "aliases": [],
+      "source_row": 79,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "2707",
+      "legal_name": "GH DO BRASIL INDUSTRIA E COMERCIO LTDA",
+      "trade_name": null,
+      "tax_id": "04407579000162",
+      "active": true,
+      "aliases": [],
+      "source_row": 52,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "271",
+      "legal_name": "SULZER PUMPS WASTEWATER BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "77153260001365",
+      "active": true,
+      "aliases": [
+        "SULZER"
+      ],
+      "source_row": 102,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "27114",
+      "legal_name": "AURA VISION LTDA",
+      "trade_name": null,
+      "tax_id": "55046154000106",
+      "active": true,
+      "aliases": [],
+      "source_row": 17,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "27371",
+      "legal_name": "SIEMENS BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "34776007000200",
+      "active": true,
+      "aliases": [],
+      "source_row": 99,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "2778",
+      "legal_name": "BRASIL SUL MICROFUSAO DE ACOS EIRELI",
+      "trade_name": null,
+      "tax_id": "17825586000126",
+      "active": true,
+      "aliases": [],
+      "source_row": 21,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "279",
+      "legal_name": "VAN AARSEN INTERNATIONAL B.V.",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "VAN AARSEN"
+      ],
+      "source_row": 114,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 5,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "281",
+      "legal_name": "FLUID-QUIP, INC.",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "FLUID QUIP"
+      ],
+      "source_row": 47,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "282",
+      "legal_name": "JIANGSU GRAND DRYING AND CONCENTRATING EQUIPMENT CO., LTD",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "JIANGSU GRAND"
+      ],
+      "source_row": 64,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 6,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "2930",
+      "legal_name": "MKG EQUIPAMENTOS LTDA",
+      "trade_name": null,
+      "tax_id": "05115921000113",
+      "active": true,
+      "aliases": [],
+      "source_row": 80,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "29453",
+      "legal_name": "CONDUZ KABEL IND. COM. LTDA.",
+      "trade_name": null,
+      "tax_id": "45182736000166",
+      "active": true,
+      "aliases": [],
+      "source_row": 26,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "3026",
+      "legal_name": "FLOTTWEG SE",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "FLOTTWEG"
+      ],
+      "source_row": 46,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "3043",
+      "legal_name": "KSB BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "60680873000114",
+      "active": true,
+      "aliases": [
+        "KSB"
+      ],
+      "source_row": 69,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "31006",
+      "legal_name": "ENERGY SUBSTATION SERVICES LTDA",
+      "trade_name": null,
+      "tax_id": "20714257000112",
+      "active": true,
+      "aliases": [],
+      "source_row": 39,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "315",
+      "legal_name": "ATLAS COPCO BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "57029431004780",
+      "active": true,
+      "aliases": [
+        "ATLAS COPCO"
+      ],
+      "source_row": 16,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "316",
+      "legal_name": "KOCH-GLITSCH, LP",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [],
+      "source_row": 68,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "3189",
+      "legal_name": "AUTI AUTOMACAO INDUSTRIAL LTDA",
+      "trade_name": null,
+      "tax_id": "02322570000123",
+      "active": true,
+      "aliases": [],
+      "source_row": 18,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "32211",
+      "legal_name": "MECVISO INDUSTRIA E COMERCIO LTDA",
+      "trade_name": null,
+      "tax_id": "60237213000163",
+      "active": true,
+      "aliases": [
+        "MECVISO"
+      ],
+      "source_row": 74,
+      "evidence": "LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "327",
+      "legal_name": "SAUR EQUIPAMENTOS S.A.",
+      "trade_name": null,
+      "tax_id": "92253095000173",
+      "active": true,
+      "aliases": [],
+      "source_row": 94,
+      "evidence": "MONDAY",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "3307",
+      "legal_name": "AMPLA INDUSTRIA METALURGICA LTDA",
+      "trade_name": null,
+      "tax_id": "89660757000115",
+      "active": true,
+      "aliases": [
+        "AMPLA"
+      ],
+      "source_row": 12,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 7,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "3557",
+      "legal_name": "MELFEX INDUSTRIA E COMERCIO DE MATERIAIS ELETRICOS EIRELI",
+      "trade_name": null,
+      "tax_id": "06746643000165",
+      "active": true,
+      "aliases": [],
+      "source_row": 75,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "358",
+      "legal_name": "AMBORETTO BOMBAS LTDA",
+      "trade_name": null,
+      "tax_id": "01705998000354",
+      "active": true,
+      "aliases": [],
+      "source_row": 11,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "365",
+      "legal_name": "HITER CONTROLS ENGENHARIA LTDA",
+      "trade_name": null,
+      "tax_id": "24743237000120",
+      "active": true,
+      "aliases": [
+        "HITER"
+      ],
+      "source_row": 57,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 4,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "3721",
+      "legal_name": "ADVANTECH BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "03800074000281",
+      "active": true,
+      "aliases": [],
+      "source_row": 4,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "3766",
+      "legal_name": "MARTIN SPROCKET & GEAR BRASIL ENGRENAGENS LTDA",
+      "trade_name": null,
+      "tax_id": "11755916000178",
+      "active": true,
+      "aliases": [
+        "MARTIN SPROCKET"
+      ],
+      "source_row": 73,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 7,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "3843",
+      "legal_name": "DRIVETECH SOLUÇÕES TECNOLOGICAS LTDA",
+      "trade_name": null,
+      "tax_id": "09183422000114",
+      "active": true,
+      "aliases": [],
+      "source_row": 32,
+      "evidence": "MONDAY",
+      "equipment_count": 5,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "393",
+      "legal_name": "ABB LTDA",
+      "trade_name": null,
+      "tax_id": "61074829008701",
+      "active": true,
+      "aliases": [
+        "ABB"
+      ],
+      "source_row": 2,
+      "evidence": "LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "394",
+      "legal_name": "ENGEVAL ARARAS-ENGENHARIA DE VALVULAS E EQUIPAMENTOS LTDA",
+      "trade_name": null,
+      "tax_id": "00200093000106",
+      "active": true,
+      "aliases": [],
+      "source_row": 41,
+      "evidence": "MONDAY",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "4155",
+      "legal_name": "ADVANTECH BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "03800074000109",
+      "active": true,
+      "aliases": [],
+      "source_row": 5,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "418",
+      "legal_name": "SPIRAX SARCO IND COM LT",
+      "trade_name": null,
+      "tax_id": "61193074000186",
+      "active": true,
+      "aliases": [],
+      "source_row": 101,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "445",
+      "legal_name": "HIDRO-THERMAL CORP",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [
+        "HIDRO-THERMAL"
+      ],
+      "source_row": 55,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "448",
+      "legal_name": "INDUSTRIAL DUJUA MAQUINAS E EQUIPAMENTOS LTDA",
+      "trade_name": null,
+      "tax_id": "82091018000100",
+      "active": true,
+      "aliases": [],
+      "source_row": 61,
+      "evidence": "MONDAY",
+      "equipment_count": 5,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "451",
+      "legal_name": "GARDNER DENVER NASH BRASIL INDÚSTRIA E COMÉRCIO DE BOMBAS LT",
+      "trade_name": null,
+      "tax_id": "60882776000104",
+      "active": true,
+      "aliases": [
+        "GARDNER NASH"
+      ],
+      "source_row": 50,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "4590",
+      "legal_name": "TWT EQUIPAMENTOS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "08974695000114",
+      "active": true,
+      "aliases": [
+        "TWT"
+      ],
+      "source_row": 112,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "466",
+      "legal_name": "ANDRITZ SEPARATION IND. E COM. DE EQUIPS. DE FILTRAÇÃO LTDA",
+      "trade_name": null,
+      "tax_id": "06349916000138",
+      "active": true,
+      "aliases": [
+        "ANDRITZ"
+      ],
+      "source_row": 13,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "473",
+      "legal_name": "BRAY CONTROLS INDÚSTRIA DE VÁLVULAS LTDA",
+      "trade_name": null,
+      "tax_id": "06979206000191",
+      "active": true,
+      "aliases": [],
+      "source_row": 22,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "4765",
+      "legal_name": "SENGEFAR SISTEMAS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "29688761000160",
+      "active": true,
+      "aliases": [
+        "SENGEFAR"
+      ],
+      "source_row": 97,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "4967",
+      "legal_name": "CONEX ELETROMECANICA INDUSTRIA E COMERCIO LTDA",
+      "trade_name": null,
+      "tax_id": "54601612000169",
+      "active": true,
+      "aliases": [
+        "CONEX"
+      ],
+      "source_row": 27,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "499",
+      "legal_name": "VEOLIA TECNOLOGIAS E SOLUCOES PARA TRATAMENTO DE AGUAS LTDA",
+      "trade_name": null,
+      "tax_id": "28234708000126",
+      "active": true,
+      "aliases": [
+        "VEOLIA"
+      ],
+      "source_row": 115,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 6,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "506",
+      "legal_name": "SEEMIL SERVICE LTDA",
+      "trade_name": null,
+      "tax_id": "21372291000119",
+      "active": true,
+      "aliases": [],
+      "source_row": 96,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "5142",
+      "legal_name": "INTEGRASUL SOLUÇÕES EM INFORMÁTICA LTDA",
+      "trade_name": null,
+      "tax_id": "06249471000114",
+      "active": true,
+      "aliases": [],
+      "source_row": 63,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "52051",
+      "legal_name": "TMSA - TECNOLOGIA EM MOVIMENTAÇÃO SA",
+      "trade_name": null,
+      "tax_id": "92782705000126",
+      "active": true,
+      "aliases": [
+        "TMSA"
+      ],
+      "source_row": 108,
+      "evidence": "LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "527",
+      "legal_name": "DURCON EQUIPAMENTOS INDUSTRIAIS LIMITADA",
+      "trade_name": null,
+      "tax_id": "57948762000131",
+      "active": true,
+      "aliases": [],
+      "source_row": 35,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "5381",
+      "legal_name": "DW SERVICE AUTOMACAO INDUSTRIAL LTDA",
+      "trade_name": null,
+      "tax_id": "36099089000132",
+      "active": true,
+      "aliases": [],
+      "source_row": 36,
+      "evidence": "MONDAY",
+      "equipment_count": 4,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "573",
+      "legal_name": "PROMINENT BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "38875381000125",
+      "active": true,
+      "aliases": [
+        "PROMINENT"
+      ],
+      "source_row": 87,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "63",
+      "legal_name": "CALDEMA-EQUIPAMENTOS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "45372893000134",
+      "active": true,
+      "aliases": [
+        "CALDEMA"
+      ],
+      "source_row": 23,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "6734",
+      "legal_name": "IBAM INDÚSTRIA BRASILEIRA DE ARTEFATOS DE METAIS EIRELI",
+      "trade_name": null,
+      "tax_id": "29478545000190",
+      "active": true,
+      "aliases": [],
+      "source_row": 58,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "692",
+      "legal_name": "WILLY INSTRUMENTOS DE MEDICAO E CONTROLE LTDA.",
+      "trade_name": null,
+      "tax_id": "07645541000116",
+      "active": true,
+      "aliases": [],
+      "source_row": 122,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "70",
+      "legal_name": "DELL COMPUTADORES DO BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "72381189001001",
+      "active": true,
+      "aliases": [],
+      "source_row": 31,
+      "evidence": "MONDAY + OC/LGE + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "707",
+      "legal_name": "ZEOCHEM LLC",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [],
+      "source_row": 123,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "709",
+      "legal_name": "AGIMIX SOLUCOES E EQUIPAMENTOS INDUSTRIAIS LTDA",
+      "trade_name": null,
+      "tax_id": "14295834000186",
+      "active": true,
+      "aliases": [
+        "AGIMIX"
+      ],
+      "source_row": 8,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "7303",
+      "legal_name": "LALLEMAND BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "49979842000126",
+      "active": true,
+      "aliases": [
+        "LALLEMAND"
+      ],
+      "source_row": 70,
+      "evidence": "LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "7316",
+      "legal_name": "TECNO AIR VENTILADORES INDUSTRIAIS E SISTEMAS EIRELI",
+      "trade_name": null,
+      "tax_id": "32676885000130",
+      "active": true,
+      "aliases": [
+        "TECNO AIR"
+      ],
+      "source_row": 105,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "732",
+      "legal_name": "SANDPLAST COMERCIO DE PLÁSTICOS LTDA",
+      "trade_name": null,
+      "tax_id": "17586131000103",
+      "active": true,
+      "aliases": [
+        "SANDPLAST PLASTICOS"
+      ],
+      "source_row": 92,
+      "evidence": "LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "751",
+      "legal_name": "EMERSON PROCESS MANAGEMENT LTDA",
+      "trade_name": null,
+      "tax_id": "43213776000100",
+      "active": true,
+      "aliases": [
+        "EMERSON PROCESS"
+      ],
+      "source_row": 37,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 4,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "7543",
+      "legal_name": "TELBRA INDÚSTRIA E COMERCIO LTDA",
+      "trade_name": null,
+      "tax_id": "03578248000122",
+      "active": true,
+      "aliases": [],
+      "source_row": 106,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "7593",
+      "legal_name": "FAST INDÚSTRIA E COMÉRCIO LTDA",
+      "trade_name": null,
+      "tax_id": "00771598000112",
+      "active": true,
+      "aliases": [
+        "FAST"
+      ],
+      "source_row": 43,
+      "evidence": "LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "763",
+      "legal_name": "DRYERATION - INDUSTRIA, COMERCIO E PROJETOS LTDA",
+      "trade_name": null,
+      "tax_id": "87744546000305",
+      "active": false,
+      "aliases": [],
+      "source_row": 33,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR INATIVO PARA HISTÓRICO; NÃO SUGERIR"
+    },
+    {
+      "corporate_code": "7729",
+      "legal_name": "INDUSUL INDUSTRIA DE TRANSFORMADORES LTDA",
+      "trade_name": null,
+      "tax_id": "08018660000101",
+      "active": true,
+      "aliases": [],
+      "source_row": 62,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "780",
+      "legal_name": "NETZSCH DO BRASIL INDUSTRIA E COMERCIO LTDA",
+      "trade_name": null,
+      "tax_id": "82749987000106",
+      "active": true,
+      "aliases": [
+        "NETZSCH"
+      ],
+      "source_row": 81,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "79843",
+      "legal_name": "RKF SOLUCOES EM ENERGIA LTDA",
+      "trade_name": null,
+      "tax_id": "26510017000263",
+      "active": true,
+      "aliases": [],
+      "source_row": 90,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "80134",
+      "legal_name": "FMW FÖRDERANLAGEN",
+      "trade_name": null,
+      "tax_id": null,
+      "active": true,
+      "aliases": [],
+      "source_row": 48,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "8033",
+      "legal_name": "KELVION INTERCAMBIADORES LTDA",
+      "trade_name": null,
+      "tax_id": "47344197000140",
+      "active": true,
+      "aliases": [
+        "KELVION"
+      ],
+      "source_row": 66,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "81589",
+      "legal_name": "CITROTEC INDUSTRIA E COMERCIO LTDA",
+      "trade_name": null,
+      "tax_id": "03727941000110",
+      "active": true,
+      "aliases": [
+        "CITROTEC"
+      ],
+      "source_row": 24,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "862",
+      "legal_name": "COMIL SILOS E SECADORES LTDA",
+      "trade_name": null,
+      "tax_id": "76061480000162",
+      "active": true,
+      "aliases": [],
+      "source_row": 25,
+      "evidence": "MONDAY",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "887",
+      "legal_name": "SHIMADZU DO BRASIL COMERCIO LTDA.",
+      "trade_name": null,
+      "tax_id": "58752460000156",
+      "active": true,
+      "aliases": [
+        "SHIMADZU"
+      ],
+      "source_row": 98,
+      "evidence": "LGE",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "913",
+      "legal_name": "KIDDE BRASIL LTDA",
+      "trade_name": null,
+      "tax_id": "66220047000179",
+      "active": true,
+      "aliases": [
+        "KIDDE"
+      ],
+      "source_row": 67,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "927",
+      "legal_name": "JUNIOR FLEX INDUSTRIA E PARTICIPAÇÕES LTDA",
+      "trade_name": null,
+      "tax_id": "02600415000121",
+      "active": true,
+      "aliases": [],
+      "source_row": 65,
+      "evidence": "MONDAY",
+      "equipment_count": 1,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "967",
+      "legal_name": "REDLANDS DO BRASIL INDUSTRIA E COMERCIO EIRELI",
+      "trade_name": null,
+      "tax_id": "01203871000175",
+      "active": true,
+      "aliases": [
+        "REDLANDS"
+      ],
+      "source_row": 89,
+      "evidence": "MONDAY + LGE",
+      "equipment_count": 3,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    },
+    {
+      "corporate_code": "9793",
+      "legal_name": "TSPRO FABRICACAO DISTRIBUICAO E REPRESENTACAO DE EQUIPAMENTO",
+      "trade_name": null,
+      "tax_id": "13108393000101",
+      "active": true,
+      "aliases": [],
+      "source_row": 111,
+      "evidence": "MONDAY",
+      "equipment_count": 2,
+      "source_action": "IMPORTAR COMO SUPPLIER GLOBAL"
+    }
+  ]
+}
