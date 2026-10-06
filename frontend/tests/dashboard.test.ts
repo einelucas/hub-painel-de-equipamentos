@@ -16,7 +16,7 @@ function workflow(counts: Partial<Record<number, number>>): StageDistribution[] 
 
 function summary(overrides: Partial<DashboardSummary> = {}): DashboardSummary {
   return {
-    context: { unitId: null, equipmentId: null },
+    context: { unitId: null, projectContextId: null, equipmentId: null },
     totals: {
       equipments: 0,
       components: 0,

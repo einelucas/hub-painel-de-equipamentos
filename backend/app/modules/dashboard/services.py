@@ -18,7 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.auth import CurrentUser
-from app.core.scope import allowed_unit_ids, assert_unit_allowed, restrict_to_units
+from app.core.scope import (
+    allowed_unit_ids,
+    assert_context_allowed,
+    assert_unit_allowed,
+    restrict_to_units,
+)
 from app.domain.equipment_calculations import (
     EquipmentDeadlineAggregates,
     NegotiationStatus,
@@ -95,6 +100,7 @@ def apply_dashboard_filters[T: tuple[Any, ...]](stmt: Select[T], filters: Dashbo
 
 def _scope(
     unit_id: str | None,
+    project_context_id: str | None,
     equipment_id: str | None,
     allowed: set[str] | None,
     filters: DashboardFilters,
@@ -109,6 +115,8 @@ def _scope(
     stmt = restrict_to_units(stmt, allowed)
     if unit_id:
         stmt = stmt.where(ProjectContext.unit_id == unit_id)
+    if project_context_id:
+        stmt = stmt.where(Equipment.project_context_id == project_context_id)
     if equipment_id:
         stmt = stmt.where(Equipment.id == equipment_id)
     return apply_dashboard_filters(stmt, filters)
@@ -119,13 +127,22 @@ async def get_summary(
     *,
     actor: CurrentUser,
     unit_id: str | None,
+    project_context_id: str | None,
     equipment_id: str | None,
     filters: DashboardFilters | None = None,
 ) -> DashboardSummaryOut:
     if unit_id:
         await assert_unit_allowed(session, actor, unit_id)
+    if project_context_id:
+        await assert_context_allowed(session, actor, project_context_id)
     allowed = await allowed_unit_ids(session, actor)
-    scope = _scope(unit_id, equipment_id, allowed, filters or DashboardFilters()).subquery()
+    scope = _scope(
+        unit_id,
+        project_context_id,
+        equipment_id,
+        allowed,
+        filters or DashboardFilters(),
+    ).subquery()
 
     stage_rows = (
         await session.execute(
@@ -182,7 +199,11 @@ async def get_summary(
     )
 
     return DashboardSummaryOut(
-        context=DashboardContextOut(unit_id=unit_id, equipment_id=equipment_id),
+        context=DashboardContextOut(
+            unit_id=unit_id,
+            project_context_id=project_context_id,
+            equipment_id=equipment_id,
+        ),
         totals=DashboardTotalsOut(
             equipments=total,
             components=components,

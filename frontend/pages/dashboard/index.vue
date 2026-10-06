@@ -29,6 +29,8 @@ async function syncQuery(): Promise<void> {
   const query: Record<string, string> = { ...(route.query as Record<string, string>) };
   if (context.selectedUnit) query.unit = context.selectedUnit;
   else delete query.unit;
+  if (context.selectedProjectContext) query.project = context.selectedProjectContext;
+  else delete query.project;
   if (context.selectedEquipment) query.equipment = context.selectedEquipment;
   else delete query.equipment;
   dashboard.writeRouteQuery(query);
@@ -106,6 +108,7 @@ onMounted(async () => {
   }
   await context.initialize({
     unit: typeof route.query.unit === "string" ? route.query.unit : undefined,
+    project: typeof route.query.project === "string" ? route.query.project : undefined,
     equipment: typeof route.query.equipment === "string" ? route.query.equipment : undefined,
   });
   dashboard.readRouteQuery(route.query);
@@ -125,7 +128,7 @@ onMounted(async () => {
       <h2>Sem permissão</h2><p>Seu perfil não tem acesso à leitura de equipamentos deste módulo.</p>
     </div>
     <div v-else class="stack">
-      <ModuleFilters :refreshing="refreshing" @change="reload">
+      <ModuleFilters show-project-context :refreshing="refreshing" @change="reload">
         <DashboardFilters
           v-model:area-id="dashboard.filters.areaId"
           v-model:discipline-id="dashboard.filters.disciplineId"

@@ -137,7 +137,11 @@ async def test_summary_totals_and_workflow_distribution(client, auth_header) -> 
     assert response.status_code == 200
     body = response.json()
 
-    assert body["context"] == {"unitId": ids["unit"], "equipmentId": None}
+    assert body["context"] == {
+        "unitId": ids["unit"],
+        "projectContextId": None,
+        "equipmentId": None,
+    }
     assert body["totals"]["equipments"] == 2
     assert body["totals"]["components"] == 1
     assert body["totals"]["inProgress"] == 2
@@ -157,6 +161,14 @@ async def test_summary_respects_unit_and_equipment_filters(client, auth_header) 
     target = await _create(client, auth_header, first["context"], "Alvo filtro")
     await _create(client, auth_header, first["context"], "Outro da unidade")
     await _create(client, auth_header, second["context"], "De outra unidade")
+    second_context_response = await client.post(
+        f"/api/v1/units/{first['unit']}/project-contexts",
+        json={"name": "Segunda obra da unidade"},
+        headers=auth_header("ADMIN"),
+    )
+    assert second_context_response.status_code == 201, second_context_response.text
+    second_context = second_context_response.json()
+    await _create(client, auth_header, second_context["id"], "Equipamento da segunda obra")
 
     by_unit = (
         await client.get(f"/api/v1/dashboard/summary?unit_id={first['unit']}", headers=auth_header("VIEWER"))
@@ -167,10 +179,19 @@ async def test_summary_respects_unit_and_equipment_filters(client, auth_header) 
             headers=auth_header("VIEWER"),
         )
     ).json()
+    by_project = (
+        await client.get(
+            "/api/v1/dashboard/summary"
+            f"?unit_id={first['unit']}&project_context_id={first['context']}",
+            headers=auth_header("VIEWER"),
+        )
+    ).json()
 
-    assert by_unit["totals"]["equipments"] == 2
+    assert by_unit["totals"]["equipments"] == 3
     assert by_equipment["totals"]["equipments"] == 1
     assert by_equipment["context"]["equipmentId"] == target
+    assert by_project["totals"]["equipments"] == 2
+    assert by_project["context"]["projectContextId"] == first["context"]
 
 
 # --- Filtros globais do painel: Área AND Disciplina AND Fase ---------------
@@ -276,7 +297,11 @@ async def test_summary_combines_area_discipline_and_stage_with_and(client, auth_
     assert area_and_discipline["totals"]["equipments"] == 2
     assert area_only["totals"]["equipments"] == 3
     assert unfiltered["totals"]["equipments"] == 3
-    assert combined["context"] == {"unitId": ids["unit"], "equipmentId": None}
+    assert combined["context"] == {
+        "unitId": ids["unit"],
+        "projectContextId": None,
+        "equipmentId": None,
+    }
 
 
 async def test_summary_filter_without_matches_returns_empty_totals(client, auth_header) -> None:

@@ -1,15 +1,25 @@
 <script setup lang="ts">
 import { RefreshCw } from "lucide-vue-next";
 
-const props = withDefaults(defineProps<{ refreshing?: boolean; showRefresh?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  refreshing?: boolean;
+  showRefresh?: boolean;
+  showProjectContext?: boolean;
+}>(), {
   refreshing: false,
   showRefresh: true,
+  showProjectContext: false,
 });
 const emit = defineEmits<{ change: [] }>();
 const context = useModuleContextStore();
 
 async function onUnit(event: Event): Promise<void> {
   await context.setUnit((event.target as HTMLSelectElement).value);
+  emit("change");
+}
+
+async function onProjectContext(event: Event): Promise<void> {
+  await context.setProjectContext((event.target as HTMLSelectElement).value);
   emit("change");
 }
 
@@ -33,6 +43,24 @@ function onEquipment(event: Event): void {
           <option v-if="context.units.length !== 1" value="">Todas as unidades</option>
           <option v-for="unit in context.units" :key="unit.id" :value="unit.id">
             {{ unit.name }}
+          </option>
+        </select>
+      </label>
+      <label v-if="props.showProjectContext" class="field">
+        <span>Obra</span>
+        <select
+          :value="context.selectedProjectContext"
+          :disabled="!context.selectedUnit || context.loading"
+          data-testid="filter-project-context"
+          @change="onProjectContext"
+        >
+          <option value="">Todas as obras</option>
+          <option
+            v-for="projectContext in context.projectContexts"
+            :key="projectContext.id"
+            :value="projectContext.id"
+          >
+            {{ projectContext.name }}
           </option>
         </select>
       </label>

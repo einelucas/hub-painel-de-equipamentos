@@ -14,6 +14,7 @@ class StageDistributionOut(CamelModel):
 
 class DashboardContextOut(CamelModel):
     unit_id: str | None
+    project_context_id: str | None
     equipment_id: str | None
 
 

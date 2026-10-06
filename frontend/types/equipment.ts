@@ -202,7 +202,11 @@ export interface StartupSummary {
 }
 
 export interface DashboardSummary {
-  context: { unitId: string | null; equipmentId: string | null };
+  context: {
+    unitId: string | null;
+    projectContextId: string | null;
+    equipmentId: string | null;
+  };
   totals: DashboardTotals;
   workflow: StageDistribution[];
   negotiation: NegotiationSummary;

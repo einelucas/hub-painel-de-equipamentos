@@ -75,11 +75,9 @@ async function loadAreaAndWorkPackageOptions(): Promise<void> {
       unit_id: context.selectedUnit,
     })
   ).items;
-  const contexts = (
-    await api.get<CatalogList<CatalogItem>>(
-      `/units/${context.selectedUnit}/project-contexts`,
-    )
-  ).items;
+  const contexts = context.selectedProjectContext
+    ? context.projectContexts.filter((item) => item.id === context.selectedProjectContext)
+    : context.projectContexts;
   const perContext = await Promise.all(
     contexts.map((item) =>
       api.get<CatalogList<CatalogItem>>("/work-packages", {
@@ -98,6 +96,7 @@ async function adminChanged(): Promise<void> {
   disciplines.value = (
     await api.get<CatalogList<CatalogItem>>("/disciplines")
   ).items;
+  await context.loadProjectContexts();
   await context.loadEquipmentOptions();
   if (context.selectedUnit) {
     responsibles.value = (
@@ -116,6 +115,8 @@ async function syncQuery(): Promise<void> {
   };
   if (context.selectedUnit) query.unit = context.selectedUnit;
   else delete query.unit;
+  if (context.selectedProjectContext) query.project = context.selectedProjectContext;
+  else delete query.project;
   if (context.selectedEquipment) query.equipment = context.selectedEquipment;
   else delete query.equipment;
   await router.replace({ query });
@@ -165,7 +166,7 @@ async function reload(): Promise<void> {
   await load();
 }
 
-/** Unidade/Equipamento globais mudaram: recarrega Área/WP antes da lista,
+/** Unidade/Obra/Equipamento globais mudaram: recarrega Área/WP antes da lista,
  * para nunca filtrar por uma seleção que já deixou de existir na unidade
  * nova. */
 async function onGlobalFilterChange(): Promise<void> {
@@ -248,6 +249,10 @@ onMounted(async () => {
   }
   await context.initialize({
     unit: typeof route.query.unit === "string" ? route.query.unit : undefined,
+    project:
+      typeof route.query.project === "string"
+        ? route.query.project
+        : undefined,
     equipment:
       typeof route.query.equipment === "string"
         ? route.query.equipment
@@ -280,7 +285,7 @@ onMounted(async () => {
       <p>Seu perfil não tem acesso à leitura de equipamentos.</p>
     </div>
     <div v-else class="stack">
-      <ModuleFilters :refreshing="refreshing" @change="onGlobalFilterChange">
+      <ModuleFilters show-project-context :refreshing="refreshing" @change="onGlobalFilterChange">
         <form class="field field-wide" @submit.prevent="reload">
           <span>Busca</span>
           <div class="search-control">
