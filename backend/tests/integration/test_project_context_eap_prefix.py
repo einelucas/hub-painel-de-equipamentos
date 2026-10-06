@@ -41,6 +41,21 @@ async def test_project_context_api_has_no_eap_prefix(client, auth_header, db_ses
     assert listed and all("eapPrefix" not in item for item in listed)
 
 
+async def test_unit_and_project_context_can_be_created_without_codes(client, auth_header) -> None:
+    admin = auth_header("ADMIN")
+    unit = await client.post("/api/v1/units", json={"name": "Unidade sem código"}, headers=admin)
+    assert unit.status_code == 201, unit.text
+    assert "code" not in unit.json()
+
+    context = await client.post(
+        f"/api/v1/units/{unit.json()['id']}/project-contexts",
+        json={"name": "Obra sem código"},
+        headers=admin,
+    )
+    assert context.status_code == 201, context.text
+    assert context.json()["code"] is None
+
+
 async def test_patch_ignores_legacy_prefix_and_keeps_existing_value(client, auth_header, db_session) -> None:
     admin = auth_header("ADMIN")
     _, context_id = await _context(client, admin)

@@ -15,7 +15,7 @@ defineProps<{ row: EngineeringRow; showResponsible: boolean }>();
 <template>
   <TableRow>
     <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
-    <TableCell>{{ row.unit.code }}</TableCell>
+    <TableCell>{{ row.unit.name }}</TableCell>
     <TableCell><StageBadge :stage="row.currentStage" :name="row.currentStageName" /></TableCell>
     <TableCell>{{ row.discipline?.name ?? "—" }}</TableCell>
     <TableCell>{{ row.area?.name ?? "—" }}</TableCell>

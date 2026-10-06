@@ -25,11 +25,13 @@ def _checks(model) -> set[str]:
     return {c.name for c in model.__table__.constraints if isinstance(c, CheckConstraint)}
 
 
-def test_unit_has_no_numeric_code_and_keeps_code_as_acronym() -> None:
+def test_unit_code_is_legacy_optional_and_absent_from_catalog_api() -> None:
     table = Unit.__table__
     assert "numeric_code" not in table.c
-    assert table.c.code.nullable is False
+    assert table.c.code.nullable is True
     assert not any("numeric_code" in (index.name or "") for index in table.indexes)
+    assert "code" not in UnitOut.model_fields
+    assert "code" not in UnitCreateIn.model_fields
     assert "numeric_code" not in UnitOut.model_fields
     assert "numeric_code" not in UnitCreateIn.model_fields
 
@@ -48,6 +50,12 @@ def test_project_context_create_ignores_legacy_prefix_from_old_clients() -> None
         {"code": "PA", "name": "Projeto Sintético A", "eapPrefix": "23"}
     )
     assert body.model_dump() == {"code": "PA", "name": "Projeto Sintético A"}
+
+
+def test_project_context_code_is_optional() -> None:
+    assert ProjectContext.__table__.c.code.nullable is True
+    body = ProjectContextCreateIn.model_validate({"name": "Projeto sem código"})
+    assert body.model_dump() == {"code": None, "name": "Projeto sem código"}
 
 
 def test_eap_node_shape_hierarchy_and_unique_code() -> None:

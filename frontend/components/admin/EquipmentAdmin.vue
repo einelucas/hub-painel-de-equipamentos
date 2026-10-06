@@ -132,7 +132,7 @@ watch(
           v-if="catalog === 'units'"
           path="/units"
           label="Unidades"
-          :has-code="true"
+          :has-code="false"
           @changed="onChanged"
         />
         <CatalogAdmin
@@ -158,7 +158,7 @@ watch(
             <select v-model="selectedContext" data-testid="wp-context">
               <option value="">Selecione</option>
               <option v-for="item in contexts" :key="item.id" :value="item.id">
-                {{ item.code }} · {{ item.name }}
+                {{ item.code ? `${item.code} · ${item.name}` : item.name }}
               </option>
             </select>
           </label>

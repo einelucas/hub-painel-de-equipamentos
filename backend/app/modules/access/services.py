@@ -70,10 +70,7 @@ async def get_user_units(session: AsyncSession, user_id: str) -> UserUnitsOut:
         user_id=user_id,
         role=role.value,
         all_units=role is Role.ADMIN,
-        units=[
-            UnitRefOut(id=unit.id, code=unit.code, name=unit.name)
-            for unit in sorted(units, key=lambda item: item.code)
-        ],
+        units=[UnitRefOut(id=unit.id, name=unit.name) for unit in sorted(units, key=lambda item: item.name)],
     )
 
 

@@ -209,7 +209,7 @@ def _equipment_out(equipment: Equipment, components_count: int | None = None) ->
         stage_name=STAGES[equipment.current_stage],
         capex_estimated=equipment.capex_estimated,
         project_context=NamedRefOut(id=context.id, code=context.code, name=context.name),
-        unit=NamedRefOut(id=context.unit.id, code=context.unit.code, name=context.unit.name),
+        unit=NamedRefOut(id=context.unit.id, name=context.unit.name),
         discipline=(
             NamedRefOut(
                 id=equipment.discipline.id,

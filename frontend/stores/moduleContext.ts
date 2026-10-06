@@ -17,7 +17,7 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
 
   const selectedUnitLabel = computed(() => {
     const unit = units.value.find((item) => item.id === selectedUnit.value);
-    return unit ? `${unit.code} · ${unit.name}` : "Todas as unidades";
+    return unit?.name ?? "Todas as unidades";
   });
 
   /** Filtros que vão para a API; chaves omitidas quando não há seleção. */

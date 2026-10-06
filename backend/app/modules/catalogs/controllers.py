@@ -25,6 +25,7 @@ from app.modules.catalogs.schemas import (
     ProjectEapOut,
     UnitCreateIn,
     UnitOut,
+    UnitUpdateIn,
     WorkPackageCreateIn,
     WorkPackageOut,
 )
@@ -88,7 +89,7 @@ async def post_project_context(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
 ) -> ProjectContextOut:
-    values = body.model_dump() | {"unit_id": unit_id}
+    values = body.model_dump(exclude_none=True) | {"unit_id": unit_id}
     item = await services.create_catalog(session, ProjectContext, values=values, actor=actor)
     return ProjectContextOut.model_validate(item)
 
@@ -195,7 +196,7 @@ _manage = require_permission(Permission.CATALOGS_MANAGE)
 @router.patch("/units/{item_id}", response_model=UnitOut)
 async def patch_unit(
     item_id: str,
-    body: CatalogUpdateIn,
+    body: UnitUpdateIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_manage),
 ) -> UnitOut:

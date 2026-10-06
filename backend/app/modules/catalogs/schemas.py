@@ -10,7 +10,6 @@ from app.shared.schema import CamelModel
 
 class UnitOut(CamelModel):
     id: str
-    code: str
     name: str
     active: bool
     created_at: datetime
@@ -20,7 +19,7 @@ class UnitOut(CamelModel):
 class ProjectContextOut(CamelModel):
     id: str
     unit_id: str
-    code: str
+    code: str | None
     name: str
     active: bool
 
@@ -52,7 +51,6 @@ class CatalogListOut(CamelModel):
 
 
 class UnitCreateIn(CamelModel):
-    code: str = Field(min_length=1, max_length=40)
     name: str = Field(min_length=1, max_length=160)
 
 
@@ -108,9 +106,9 @@ class ProjectEapListOut(CamelModel):
 
 
 class ProjectContextCreateIn(CamelModel):
-    # Uma obra precisa só de unidade, código e nome. Não há prefixo EAP: a EAP é
+    # Uma obra precisa só de unidade e nome. O código é opcional. Não há prefixo EAP: a EAP é
     # propriedade da localização do equipamento (`EapNode.code`), sem composição.
-    code: str = Field(min_length=1, max_length=60)
+    code: str | None = Field(default=None, min_length=1, max_length=60)
     name: str = Field(min_length=1, max_length=160)
 
 
@@ -147,5 +145,19 @@ class CatalogUpdateIn(CamelModel):
 class ProjectContextUpdateIn(CatalogUpdateIn):
     """Atualização de contexto: os campos comuns (nome, código, situação).
 
-    `eapPrefix` deixou de existir na API (P1.3.1); se um cliente antigo ainda o
-    enviar, o campo é ignorado e a coluna legada não é alterada."""
+    O código pode ser removido com `null`. `eapPrefix` deixou de existir na API
+    (P1.3.1); se um cliente antigo ainda o enviar, o campo é ignorado e a coluna
+    legada não é alterada."""
+
+    code: str | None = Field(default=None, min_length=1, max_length=60)
+
+
+class UnitUpdateIn(CamelModel):
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    active: bool | None = None
+
+    @model_validator(mode="after")
+    def has_update(self) -> UnitUpdateIn:
+        if not self.model_fields_set:
+            raise ValueError("Informe ao menos um campo para atualizar")
+        return self

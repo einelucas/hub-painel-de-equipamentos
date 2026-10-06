@@ -75,7 +75,7 @@ describe("LegalTable", () => {
     const wrapper = mount(LegalTable, { props: { rows: [row()] }, global: globalStubs });
     const cells = cellsOf(wrapper);
     expect(cells[0]).toBe("Bomba Sintética A");
-    expect(cells[1]).toBe("LEM");
+    expect(cells[1]).toBe("Luís Eduardo Magalhães");
     expect(cells[2]).toBe("Analista Sintético A");
     expect(cells[3]).toBe("4 · Aprovação da minuta");
     expect(cells[4]).toBe("CH-1234");

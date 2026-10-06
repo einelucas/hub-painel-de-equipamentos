@@ -215,7 +215,7 @@ onMounted(loadCatalogs);
           <option value="">Selecione</option>
 
           <option v-for="item in contexts" :key="item.id" :value="item.id">
-            {{ item.code }} · {{ item.name }}
+            {{ item.code ? `${item.code} · ${item.name}` : item.name }}
           </option>
         </select>
       </label>

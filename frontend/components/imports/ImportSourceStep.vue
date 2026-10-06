@@ -30,14 +30,14 @@ function size(bytes: number): string {
         <span>Unidade</span>
         <select v-model="selection.unitId" data-testid="import-unit" @change="loadContexts">
           <option value="">Selecione</option>
-          <option v-for="unit in units" :key="unit.id" :value="unit.id">{{ unit.code }} · {{ unit.name }}</option>
+          <option v-for="unit in units" :key="unit.id" :value="unit.id">{{ unit.name }}</option>
         </select>
       </label>
       <label class="field">
         <span>Obra / contexto de projeto</span>
         <select v-model="selection.contextId" :disabled="!selection.unitId" data-testid="import-context">
           <option value="">Selecione</option>
-          <option v-for="item in contexts" :key="item.id" :value="item.id">{{ item.code }} · {{ item.name }}</option>
+          <option v-for="item in contexts" :key="item.id" :value="item.id">{{ item.code ? `${item.code} · ${item.name}` : item.name }}</option>
         </select>
       </label>
     </div>

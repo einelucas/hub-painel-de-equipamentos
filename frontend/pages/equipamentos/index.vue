@@ -213,8 +213,8 @@ async function exportAll(): Promise<void> {
       `equipamentos-${new Date().toISOString().slice(0, 10)}`,
       rows.map((item) => ({
         Equipamento: item.name,
-        Unidade: item.unit.code,
-        Contexto: item.projectContext.code,
+        Unidade: item.unit.name,
+        Contexto: item.projectContext.code ?? item.projectContext.name,
         Área: item.area?.name ?? "",
         Disciplina: item.discipline?.name ?? "",
         "Pacotes de Trabalho": item.workPackages

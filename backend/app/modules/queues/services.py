@@ -282,7 +282,7 @@ def _base_fields(
     return {
         "equipment_id": equipment.id,
         "equipment_name": equipment.name,
-        "unit": NamedRefOut(id=context.unit.id, name=context.unit.name, code=context.unit.code),
+        "unit": NamedRefOut(id=context.unit.id, name=context.unit.name),
         "project_context": NamedRefOut(id=context.id, name=context.name, code=context.code),
         "current_stage": stage,
         "current_stage_name": STAGES[stage],

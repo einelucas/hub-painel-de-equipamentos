@@ -310,13 +310,13 @@ onMounted(async () => {
                   <div class="card-context">
                     <span class="context-chip">
                       <Building2 :size="12" />
-                      {{ item.unit.code }}
+                      {{ item.unit.name }}
                     </span>
 
                     <span class="context-separator" />
 
                     <span>
-                      {{ item.projectContext.code }}
+                      {{ item.projectContext.code ?? item.projectContext.name }}
                     </span>
                   </div>
 

@@ -9,7 +9,7 @@ defineProps<{ row: ProcurementRow }>();
 <template>
   <TableRow>
     <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
-    <TableCell>{{ row.unit.code }}</TableCell>
+    <TableCell>{{ row.unit.name }}</TableCell>
     <TableCell>{{ row.responsibleUser?.name ?? "—" }}</TableCell>
     <TableCell><StageBadge :stage="row.currentStage" :name="row.currentStageName" /></TableCell>
     <TableCell>{{ row.kind ?? "—" }}</TableCell>

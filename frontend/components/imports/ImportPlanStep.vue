@@ -88,7 +88,7 @@ const equipmentWarnings = computed(() => plan.value?.equipmentWarnings ?? []);
       <section class="confirm" data-testid="import-confirm-summary" aria-label="Resumo da importação">
         <h4>Confirmação</h4>
         <dl>
-          <div><dt>Obra</dt><dd>{{ selectedContext ? `${selectedContext.code} · ${selectedContext.name}` : "—" }}</dd></div>
+          <div><dt>Obra</dt><dd>{{ selectedContext ? (selectedContext.code ? `${selectedContext.code} · ${selectedContext.name}` : selectedContext.name) : "—" }}</dd></div>
           <div><dt>Arquivos</dt><dd data-testid="confirm-files">{{ batches.length }}</dd></div>
           <div><dt>Equipamentos</dt><dd>{{ sourceTotals.equipments }}</dd></div>
           <div><dt>Componentes</dt><dd>{{ sourceTotals.components }}</dd></div>

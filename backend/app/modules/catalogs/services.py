@@ -181,7 +181,7 @@ async def update_catalog(
         raise ConflictError("Nome do catálogo é obrigatório")
 
     for field in ("code", "name"):
-        if field not in changes or not hasattr(model, field):
+        if field not in changes or not hasattr(model, field) or changes[field] is None:
             continue
         conditions = [getattr(model, field) == changes[field], model.id != item_id]
         if hasattr(model, "unit_id"):

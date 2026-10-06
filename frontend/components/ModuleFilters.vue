@@ -32,7 +32,7 @@ function onEquipment(event: Event): void {
         >
           <option v-if="context.units.length !== 1" value="">Todas as unidades</option>
           <option v-for="unit in context.units" :key="unit.id" :value="unit.id">
-            {{ unit.code }} · {{ unit.name }}
+            {{ unit.name }}
           </option>
         </select>
       </label>

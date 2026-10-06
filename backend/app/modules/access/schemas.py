@@ -17,7 +17,6 @@ class ResponsibleListOut(CamelModel):
 
 class UnitRefOut(CamelModel):
     id: str
-    code: str
     name: str
 
 

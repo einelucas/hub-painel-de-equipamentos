@@ -72,7 +72,7 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     const options = wrapper.get("[data-testid='project-unit']").findAll("option").map((o) => o.text());
-    expect(options).toEqual(["Selecione", "TST · Unidade Teste", "TS2 · Unidade Teste 2"]);
+    expect(options).toEqual(["Selecione", "Unidade Teste", "Unidade Teste 2"]);
 
     await wrapper.get("[data-testid='project-unit']").setValue("u-tst2");
     expect(wrapper.emitted("update:unitId")?.[0]).toEqual(["u-tst2"]);
@@ -127,7 +127,7 @@ describe("ProjectContextAdmin", () => {
     expect(wrapper.find("[data-testid='project-readiness'] [role='alert']").exists()).toBe(false);
   });
 
-  it("cria contexto na unidade selecionada só com código e nome (sem prefixo EAP)", async () => {
+  it("cria contexto na unidade selecionada sem exigir código", async () => {
     const { post } = apiMock();
     stubAuth();
     const wrapper = mountAdmin();
@@ -135,12 +135,11 @@ describe("ProjectContextAdmin", () => {
 
     await wrapper.get("[data-testid='project-new']").trigger("click");
     expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
-    await wrapper.get("[data-testid='project-code']").setValue("PN");
     await wrapper.get("[data-testid='project-name']").setValue("Projeto Novo");
     await wrapper.get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
 
-    expect(post).toHaveBeenCalledWith("/units/u-tst/project-contexts", { code: "PN", name: "Projeto Novo" });
+    expect(post).toHaveBeenCalledWith("/units/u-tst/project-contexts", { name: "Projeto Novo" });
     expect(wrapper.emitted("changed")).toBeTruthy();
   });
 

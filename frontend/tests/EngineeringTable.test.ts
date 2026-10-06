@@ -51,7 +51,7 @@ describe("EngineeringTable", () => {
 
     expect(wrapper.find("[data-testid='engineering-grouped']").exists()).toBe(false);
     expect(wrapper.text()).toContain("Bomba Sintética A");
-    expect(wrapper.text()).toContain("LEM");
+    expect(wrapper.text()).toContain("Luís Eduardo Magalhães");
     expect(wrapper.text()).toContain("0 · Nova demanda");
     expect(wrapper.text()).toContain("Metal Mec.");
     expect(wrapper.text()).toContain("Caldeira");

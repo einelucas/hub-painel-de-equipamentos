@@ -117,7 +117,7 @@ onMounted(load);
                   :data-testid="`access-unit-${unit.id}`"
                   @change="toggle(unit.id)"
                 >
-                <span>{{ unit.code }} · {{ unit.name }}</span>
+                <span>{{ unit.name }}</span>
               </label>
             </li>
           </ul>

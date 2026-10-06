@@ -1,6 +1,6 @@
 export interface Unit {
   id: string;
-  code: string;
+  code?: string | null;
   name: string;
   active: boolean;
 }

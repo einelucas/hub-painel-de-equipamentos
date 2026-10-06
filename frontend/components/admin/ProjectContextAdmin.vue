@@ -126,14 +126,16 @@ function cancel(): void {
 async function submit(): Promise<void> {
   const code = form.code.trim();
   const name = form.name.trim();
-  if (!code || !name) {
-    formError.value = "Informe código e nome.";
+  if (!name) {
+    formError.value = "Informe o nome.";
     return;
   }
   saving.value = true;
   formError.value = "";
-  // A obra precisa só de código e nome; a EAP é da localização do equipamento (sem prefixo).
-  const payload: Record<string, unknown> = { code, name };
+  // A obra precisa só de nome; o código é opcional e não compõe a EAP.
+  const payload: Record<string, unknown> = { name };
+  if (mode.value === "edit") payload.code = code || null;
+  else if (code) payload.code = code;
   try {
     if (mode.value === "edit" && selected.value) {
       if (form.active !== selected.value.active) payload.active = form.active;
@@ -189,7 +191,7 @@ watch(selectedId, loadSummary);
         >
           <option value="">Selecione</option>
           <option v-for="unit in units" :key="unit.id" :value="unit.id">
-            {{ unit.code }} · {{ unit.name }}{{ unit.active ? "" : " (inativa)" }}
+            {{ unit.name }}{{ unit.active ? "" : " (inativa)" }}
           </option>
         </select>
       </label>
@@ -229,8 +231,8 @@ watch(selectedId, loadSummary);
       >
         <h4>{{ mode === "create" ? "Novo contexto de projeto" : "Editar contexto de projeto" }}</h4>
         <label class="field">
-          <span>Código *</span>
-          <input v-model="form.code" maxlength="60" required data-testid="project-code">
+          <span>Código (opcional)</span>
+          <input v-model="form.code" maxlength="60" data-testid="project-code">
         </label>
         <label class="field">
           <span>Nome *</span>
@@ -266,7 +268,7 @@ watch(selectedId, loadSummary);
             :data-testid="`project-item-${item.id}`"
           >
             <button type="button" class="project-card" @click="selectedId = item.id">
-              <span class="project-code">{{ item.code }}</span>
+              <span v-if="item.code" class="project-code">{{ item.code }}</span>
               <span class="project-name">{{ item.name }}</span>
               <span class="project-meta">
                 <span class="status" :class="item.active ? 'status--on' : 'status--off'">
@@ -290,11 +292,11 @@ watch(selectedId, loadSummary);
           <dl>
             <div>
               <dt>Unidade</dt>
-              <dd>{{ selectedUnit ? `${selectedUnit.code} · ${selectedUnit.name}` : "Configurada" }}</dd>
+              <dd>{{ selectedUnit?.name ?? "Configurada" }}</dd>
             </div>
             <div>
               <dt>Contexto</dt>
-              <dd>{{ selected.code }} · {{ selected.active ? "Ativo" : "Inativo" }}</dd>
+              <dd>{{ selected.code ? `${selected.code} · ` : "" }}{{ selected.active ? "Ativo" : "Inativo" }}</dd>
             </div>
             <template v-if="summary.loading">
               <div><dt>Catálogos</dt><dd><span class="spinner spinner-small" /></dd></div>

@@ -87,7 +87,7 @@ describe("ProcurementTable", () => {
     const wrapper = mount(ProcurementTable, { props: { rows: [row()] }, global: globalStubs });
     const cells = cellsOf(wrapper);
     expect(cells[COL.equipment]).toBe("Bomba Sintética A");
-    expect(cells[COL.unit]).toBe("LEM");
+    expect(cells[COL.unit]).toBe("Luís Eduardo Magalhães");
     expect(cells[COL.responsible]).toBe("Analista Sintético A");
     expect(cells[COL.stage]).toBe("7 · Aprovação da OC");
     expect(cells[COL.kind]).toBe("SC");

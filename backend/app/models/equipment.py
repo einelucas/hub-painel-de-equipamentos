@@ -38,7 +38,9 @@ class Unit(Base):
     __tablename__ = "unit"
 
     id: Mapped[str] = uuid_pk()
-    code: Mapped[str] = mapped_column(String(40), nullable=False, unique=True)
+    # Legado: importadores antigos ainda podem localizar a unidade por código,
+    # mas o cadastro e a API operacional usam somente o nome.
+    code: Mapped[str | None] = mapped_column(String(40), nullable=True, unique=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
@@ -111,7 +113,7 @@ class ProjectContext(Base):
 
     id: Mapped[str] = uuid_pk()
     unit_id: Mapped[str] = mapped_column(ForeignKey("unit.id", ondelete="RESTRICT"), nullable=False)
-    code: Mapped[str] = mapped_column(String(60), nullable=False)
+    code: Mapped[str | None] = mapped_column(String(60), nullable=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     # LEGACY / deprecated — não usar para composição do EAP. Mantido só por
     # compatibilidade de schema (sem migration na P1.3.1): nenhuma API o lê ou
