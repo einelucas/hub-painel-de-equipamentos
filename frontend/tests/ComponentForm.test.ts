@@ -48,7 +48,7 @@ describe("ComponentForm (GAP-009: startup próprio do componente)", () => {
     vi.stubGlobal("useApi", () => ({ get: vi.fn(), post, patch: vi.fn(), delete: vi.fn() }));
 
     const wrapper = mount(ComponentForm, { props: { equipmentId: "eq-1", component: null } });
-    await wrapper.get("input[maxlength='200']").setValue("Bomba nova");
+    await wrapper.get("input[maxlength='500']").setValue("Bomba nova");
     await wrapper.get("input[type='date']").setValue("2027-08-10");
     await wrapper.get("form").trigger("submit");
 
@@ -63,7 +63,7 @@ describe("ComponentForm (GAP-009: startup próprio do componente)", () => {
     vi.stubGlobal("useApi", () => ({ get: vi.fn(), post, patch: vi.fn(), delete: vi.fn() }));
 
     const wrapper = mount(ComponentForm, { props: { equipmentId: "eq-1", component: null } });
-    await wrapper.get("input[maxlength='200']").setValue("Sem startup ainda");
+    await wrapper.get("input[maxlength='500']").setValue("Sem startup ainda");
     await wrapper.get("form").trigger("submit");
 
     expect(post).toHaveBeenCalledWith("/equipments/eq-1/components", expect.objectContaining({ startupAt: null }));

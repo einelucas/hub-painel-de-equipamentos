@@ -15,8 +15,12 @@ export interface ImportIssue {
   field: string | null;
 }
 
-/** RESOLVED: EAP única do catálogo; MULTIPLE: várias (nenhuma escolhida); NONE: sem código; NOT_FOUND: fora do catálogo. */
-export type EapLocationStatus = "RESOLVED" | "MULTIPLE" | "NONE" | "NOT_FOUND";
+/**
+ * RESOLVED: EAP existente no Hub; CREATE: nova, com nome comprovado (criada no apply);
+ * CONFLICT: mesmo código com nome diferente no Hub; MULTIPLE: várias (nenhuma escolhida);
+ * NONE: sem código; NOT_FOUND/UNRESOLVED: sem dados suficientes (nada é inventado).
+ */
+export type EapLocationStatus = "RESOLVED" | "CREATE" | "CONFLICT" | "UNRESOLVED" | "MULTIPLE" | "NONE" | "NOT_FOUND";
 
 export interface ImportLocationValue {
   value: string;
@@ -26,6 +30,11 @@ export interface ImportLocationValue {
   eapCode: string | null;
   eapName: string | null;
   equipments: number;
+  plannedEapCode?: string | null;
+  plannedEapName?: string | null;
+  evidenceSource?: string | null;
+  issueCode?: string | null;
+  issueMessage?: string | null;
 }
 
 export interface ImportSourceValues {
@@ -71,6 +80,21 @@ export interface PlanGroup {
   blocked: number;
 }
 
+/** Decisão de catálogo do plano. EXISTING/CREATE não bloqueiam; CONFLICT bloqueia; UNRESOLVED é pendência. */
+export type CatalogAction = "EXISTING" | "CREATE" | "CONFLICT" | "UNRESOLVED";
+export type CatalogKind = "eap_node" | "project_eap" | "discipline" | "work_package" | "supplier";
+
+export interface CatalogItem {
+  kind: CatalogKind;
+  key: string;
+  action: CatalogAction;
+  label: string;
+  evidenceSource: string | null;
+  issueCode: string | null;
+  message: string | null;
+  detail: Record<string, unknown>;
+}
+
 export interface ImportPlan {
   batchIds: string[];
   projectContextId: string;
@@ -80,7 +104,11 @@ export interface ImportPlan {
   groups: PlanGroup[];
   blocked: { group: string; sourceKey: string; label: string; issues: { code: string; message: string }[] }[];
   warnings: { code: string; message: string }[];
-  eap: { resolved: number; multiple: number; none: number; notFound: number };
+  equipmentWarnings?: { group: string; sourceKey: string; label: string; issues: { code: string; message: string }[] }[];
+  catalogCounts?: Record<string, Record<string, number>>;
+  catalogs?: CatalogItem[];
+  responsibles?: { resolved: number; unresolved: number };
+  eap: { resolved: number; multiple: number; none: number; notFound: number; create?: number; conflict?: number; unresolved?: number };
   hasBlocked: boolean;
   canApply: boolean;
 }

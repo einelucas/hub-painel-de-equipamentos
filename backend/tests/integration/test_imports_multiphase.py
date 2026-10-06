@@ -66,7 +66,9 @@ async def test_six_phase_files_one_plan_one_apply_and_noop_reimport(client, auth
     assert sorted(planned["batchIds"]) == sorted(batch_ids)
     groups = {group["name"]: group for group in planned["groups"]}
     assert (groups["Equipamentos"]["create"], groups["Componentes"]["create"]) == (7, 7)
-    assert planned["eap"] == {"resolved": 7, "multiple": 0, "none": 0, "notFound": 0}
+    assert planned["eap"] == {
+        "resolved": 7, "multiple": 0, "none": 0, "notFound": 0, "create": 0, "conflict": 0, "unresolved": 0
+    }
 
     applied = await apply(client, analyst, batch_ids, _mapping(ids), planned["planSha256"])
     assert applied.status_code == 200, applied.text

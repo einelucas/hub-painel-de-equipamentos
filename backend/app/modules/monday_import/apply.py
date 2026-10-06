@@ -4,11 +4,15 @@ decidiu, nunca mais e nunca menos.
 Não simula o workflow 0-8: `current_stage` é inicializado diretamente pelo
 serviço de migração, sem `WorkflowTransition` fictício. Toda escrita gera
 `AuditLog` com `action="migration.import"`.
+
+Catálogos planejados como CREATE (EAP PROCESS → AREA, Discipline, WorkPackage,
+Supplier, ProjectEap) são criados na MESMA transação, antes dos equipamentos; os
+IDs novos substituem as `catalog_refs` do payload. Qualquer falha desfaz tudo.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from sqlalchemy import select
@@ -16,11 +20,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser
 from app.models.common import utcnow
-from app.models.equipment import Equipment, EquipmentComponent, EquipmentWorkPackage
+from app.models.equipment import (
+    Discipline,
+    EapNode,
+    Equipment,
+    EquipmentComponent,
+    EquipmentWorkPackage,
+    ProjectEap,
+    WorkPackage,
+)
 from app.models.monday_import import MondayImportBatch, MondayImportRecord, MondayMigrationRun
 from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
+from app.models.supplier import EquipmentSupplier, Supplier
+from app.modules.monday_import.catalog_taxonomy import CatalogAction
 from app.modules.monday_import.plan import (
     OPERATIONAL_TRANSITIONS,
+    CatalogPlanItem,
     MigrationPlan,
     PlanItem,
     _json_safe,
@@ -60,6 +75,174 @@ class PlanBlockedError(RuntimeError):
     def __init__(self, blocked: list[PlanItem]) -> None:
         self.blocked = blocked
         super().__init__(f"{len(blocked)} item(ns) bloqueado(s) no plano")
+
+
+@dataclass(slots=True)
+class _CreatedCatalogs:
+    """IDs dos catálogos existentes/criados, pela chave usada no plan."""
+
+    eap: dict[str, str] = field(default_factory=dict)
+    discipline: dict[str, str] = field(default_factory=dict)
+    work_package: dict[str, str] = field(default_factory=dict)
+    supplier: dict[str, str] = field(default_factory=dict)
+
+
+_EAP_LEVEL_ORDER = {"PROCESS": 0, "AREA": 1}
+
+
+async def _audit_catalog(
+    session: AsyncSession, *, plan: MigrationPlan, run_id: str, actor: CurrentUser,
+    entity: str, entity_id: str, item: CatalogPlanItem, data: dict[str, Any],
+) -> None:
+    await record_audit(
+        session,
+        user_id=actor.id,
+        action=_MIGRATION_ACTION,
+        entity=entity,
+        entity_id=entity_id,
+        new_data=_json_safe(data),
+        metadata={
+            **_plan_metadata(plan, run_id, item.key, "catalog"),
+            "catalogKind": item.kind,
+            "evidenceSource": item.evidence_source,
+        },
+    )
+
+
+async def _apply_catalogs(
+    session: AsyncSession, *, plan: MigrationPlan, run_id: str, actor: CurrentUser
+) -> _CreatedCatalogs:
+    """Cria, na transação corrente, os catálogos que o plan revisado marcou como CREATE.
+
+    Se algum já existir neste momento (criado por fora entre plan e apply), o
+    plano está velho: PlanStaleError desfaz tudo e pede novo plan.
+    """
+    created = _CreatedCatalogs()
+    creates = [item for item in plan.catalog_items if item.action is CatalogAction.CREATE]
+
+    eap_items = sorted(
+        (item for item in creates if item.kind == "eap_node"),
+        key=lambda item: (_EAP_LEVEL_ORDER.get(str(item.payload.get("level")), 9), item.key),
+    )
+    for item in eap_items:
+        code = str(item.payload["code"])
+        if await session.scalar(select(EapNode.id).where(EapNode.code == code)) is not None:
+            raise PlanStaleError(f"EAP {code} passou a existir após o plano. Gere o plano novamente.")
+        parent_code = item.payload.get("parentCode")
+        parent_id: str | None = None
+        if parent_code:
+            parent_id = created.eap.get(str(parent_code)) or await session.scalar(
+                select(EapNode.id).where(EapNode.code == parent_code, EapNode.active.is_(True))
+            )
+            if parent_id is None:
+                raise PlanStaleError(f"Processo pai {parent_code} da EAP {code} não existe mais.")
+        node = EapNode(
+            code=code, name=str(item.payload["name"]), level=str(item.payload["level"]), parent_id=parent_id
+        )
+        session.add(node)
+        await session.flush()
+        created.eap[code] = node.id
+        await _audit_catalog(
+            session, plan=plan, run_id=run_id, actor=actor, entity="EapNode", entity_id=node.id, item=item,
+            data=dict(item.payload),
+        )
+
+    discipline_by_code: dict[str, str] = {}
+    for item in (item for item in creates if item.kind == "discipline"):
+        code = str(item.payload["code"])
+        if code in discipline_by_code:
+            # Outro valor da origem (alias explícito) aponta para a mesma disciplina.
+            created.discipline[item.key] = discipline_by_code[code]
+            continue
+        if await session.scalar(select(Discipline.id).where(Discipline.code == code)) is not None:
+            raise PlanStaleError(f"Disciplina {code} passou a existir após o plano. Gere o plano novamente.")
+        discipline = Discipline(code=code, name=str(item.payload.get("name") or item.key))
+        session.add(discipline)
+        await session.flush()
+        created.discipline[item.key] = discipline.id
+        discipline_by_code[code] = discipline.id
+        await _audit_catalog(
+            session, plan=plan, run_id=run_id, actor=actor, entity="Discipline", entity_id=discipline.id,
+            item=item, data={"code": discipline.code, "name": discipline.name},
+        )
+
+    for item in (item for item in creates if item.kind == "work_package"):
+        code = str(item.payload["code"])
+        exists = await session.scalar(
+            select(WorkPackage.id).where(
+                WorkPackage.project_context_id == plan.project_context_id, WorkPackage.code == code
+            )
+        )
+        if exists is not None:
+            raise PlanStaleError(
+                f"Work Package {code} passou a existir após o plano. Gere o plano novamente."
+            )
+        work_package = WorkPackage(
+            project_context_id=plan.project_context_id, code=code, name=str(item.payload["name"])
+        )
+        session.add(work_package)
+        await session.flush()
+        created.work_package[item.key] = work_package.id
+        await _audit_catalog(
+            session, plan=plan, run_id=run_id, actor=actor, entity="WorkPackage", entity_id=work_package.id,
+            item=item, data={"code": code, "name": work_package.name},
+        )
+
+    for item in (item for item in creates if item.kind == "supplier"):
+        code = str(item.payload["corporate_code"])
+        if await session.scalar(select(Supplier.id).where(Supplier.corporate_code == code)) is not None:
+            raise PlanStaleError(f"Fornecedor {code} passou a existir após o plano. Gere o plano novamente.")
+        supplier = Supplier(
+            corporate_code=code,
+            legal_name=str(item.payload["legal_name"]),
+            trade_name=item.payload.get("trade_name"),
+            tax_id=item.payload.get("tax_id"),
+        )
+        session.add(supplier)
+        await session.flush()
+        created.supplier[item.key] = supplier.id
+        await _audit_catalog(
+            session, plan=plan, run_id=run_id, actor=actor, entity="Supplier", entity_id=supplier.id,
+            item=item, data=dict(item.payload),
+        )
+
+    for item in (item for item in creates if item.kind == "project_eap"):
+        node_id = item.target_id or created.eap.get(item.key)
+        if node_id is None:
+            raise RuntimeError(f"ProjectEap sem EAP resolvida para {item.key}")
+        linked = await session.scalar(
+            select(ProjectEap.id).where(
+                ProjectEap.project_context_id == plan.project_context_id, ProjectEap.eap_node_id == node_id
+            )
+        )
+        if linked is not None:
+            continue  # idempotente: vínculo já existe
+        link = ProjectEap(project_context_id=plan.project_context_id, eap_node_id=node_id)
+        session.add(link)
+        await session.flush()
+        await _audit_catalog(
+            session, plan=plan, run_id=run_id, actor=actor, entity="ProjectEap", entity_id=link.id, item=item,
+            data={"projectContextId": plan.project_context_id, "eapNodeId": node_id},
+        )
+    return created
+
+
+def _materialize(item: PlanItem, created: _CreatedCatalogs) -> PlanItem:
+    """Troca as referências a catálogos criados pelos IDs reais."""
+    refs = item.payload.get("catalog_refs")
+    if not refs:
+        return item
+    payload = {key: value for key, value in item.payload.items() if key != "catalog_refs"}
+    if "eapCode" in refs:
+        payload["eap_node_id"] = created.eap[refs["eapCode"]]
+    if "discipline" in refs:
+        payload["discipline_id"] = created.discipline[refs["discipline"]]
+    if "workPackageCodes" in refs and "work_package_ids" in payload:
+        new_ids = {created.work_package[code] for code in refs["workPackageCodes"]}
+        payload["work_package_ids"] = sorted(set(payload["work_package_ids"]) | new_ids)
+    if "supplierCode" in refs:
+        payload["supplier_id"] = created.supplier[refs["supplierCode"]]
+    return replace(item, payload=payload)
 
 
 @dataclass(slots=True)
@@ -124,9 +307,10 @@ async def _apply_equipment(
     columns = {
         key: value
         for key, value in item.payload.items()
-        if key not in {"work_package_ids", "operational_status"}
+        if key not in {"work_package_ids", "operational_status", "supplier_id", "catalog_refs"}
     }
     operational_target = item.payload.get("operational_status")
+    supplier_id = item.payload.get("supplier_id")
 
     if item.action == "CREATE":
         equipment = Equipment(project_context_id=plan.project_context_id, **columns)
@@ -136,6 +320,10 @@ async def _apply_equipment(
         await session.flush()
         for work_package_id in work_package_ids:
             session.add(EquipmentWorkPackage(equipment_id=equipment.id, work_package_id=work_package_id))
+        if supplier_id is not None:
+            session.add(
+                EquipmentSupplier(equipment_id=equipment.id, supplier_id=supplier_id, is_primary=True)
+            )
         await register_external_mapping(
             session,
             project_context_id=plan.project_context_id,
@@ -151,7 +339,7 @@ async def _apply_equipment(
             action=_MIGRATION_ACTION,
             entity="Equipment",
             entity_id=equipment.id,
-            new_data=_json_safe({**columns, "workPackageIds": work_package_ids}),
+            new_data=_json_safe({**columns, "workPackageIds": work_package_ids, "supplierId": supplier_id}),
             metadata=_plan_metadata(
                 plan, run_id, item.source_key, equipment_identity_strategy(item.source_key)
             ),
@@ -198,6 +386,11 @@ async def _apply_equipment(
                 EquipmentWorkPackage(equipment_id=existing_equipment.id, work_package_id=work_package_id)
             )
         existing_equipment.work_package_id = work_package_ids[0] if len(work_package_ids) == 1 else None
+    if supplier_id is not None:
+        # O plan só propõe vínculo quando o equipamento ainda não tem fornecedor.
+        session.add(
+            EquipmentSupplier(equipment_id=existing_equipment.id, supplier_id=supplier_id, is_primary=True)
+        )
     await session.flush()
     await record_audit(
         session,
@@ -374,8 +567,10 @@ async def apply_plan(
             run.status = "APPLYING"
             resolutions: dict[str, tuple[str, str]] = {}
             equipment_ids: dict[str, str] = {}
+            created = await _apply_catalogs(session, plan=plan, run_id=run.id, actor=actor)
 
-            for item in plan.equipments:
+            for planned in plan.equipments:
+                item = _materialize(planned, created)
                 equipment_id = await _apply_equipment(
                     session, plan=plan, item=item, run_id=run.id, actor=actor
                 )
@@ -434,6 +629,15 @@ async def apply_plan(
                 batch.completed_at = utcnow()
 
             counts = {name: _summarize(items) for name, items in plan.all_groups.items()}
+            counts["catalogs"] = {
+                kind: len(ids)
+                for kind, ids in (
+                    ("eapNodes", created.eap),
+                    ("disciplines", created.discipline),
+                    ("workPackages", created.work_package),
+                    ("suppliers", created.supplier),
+                )
+            }
             run.status = "APPLIED"
             run.summary = counts
             run.completed_at = utcnow()

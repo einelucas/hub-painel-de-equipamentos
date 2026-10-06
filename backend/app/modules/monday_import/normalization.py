@@ -105,7 +105,10 @@ def normalize_date(
 
 
 def normalize_date_list(value: Any, *, excel_epoch: Literal["1900", "1904"] = "1900") -> list[str]:
-    """Datas distintas e ordenadas (ISO) de um espelho do Monday; uma data só vira lista de 1."""
+    """Datas distintas e ordenadas (ISO) de um espelho do Monday; uma data só vira lista de 1.
+
+    Aceita listas ("2027-01-10, 2027-02-03") e o formato de linha do tempo do
+    Monday ("2026-03-02 to 2026-07-30"), que vira as duas datas do intervalo."""
     if value is None:
         return []
     if isinstance(value, date | datetime | int | float | Decimal) and not isinstance(value, bool):
@@ -115,7 +118,7 @@ def normalize_date_list(value: Any, *, excel_epoch: Literal["1900", "1904"] = "1
     if text is None:
         return []
     dates: set[date] = set()
-    for part in re.split(r"[,;]", text):
+    for part in re.split(r"[,;]|\s+to\s+", text):
         parsed = normalize_date(part.strip() or None, excel_epoch=excel_epoch)
         if parsed is not None:
             dates.add(parsed)

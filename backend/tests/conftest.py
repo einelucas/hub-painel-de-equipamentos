@@ -39,6 +39,13 @@ load_dotenv(_ENV_TEST_PATH, override=False)
 # Preflight: deve permanecer ANTES de qualquer import de `app`.
 validate_destructive_test_target(os.environ)
 
+# Testes herméticos: o plan da migração lê, por padrão, o catálogo EAP oficial e
+# a LGE locais (dados corporativos que só existem na máquina do desenvolvedor).
+# A suíte nunca depende deles; testes que precisam de catálogo usam fixtures.
+_NO_OFFICIAL_CATALOG = Path(__file__).resolve().parent / "fixtures" / "__sem_catalogo_oficial__.json"
+os.environ["EAP_CATALOG_PATH"] = str(_NO_OFFICIAL_CATALOG)
+os.environ.pop("MONDAY_IMPORT_LGE_PATH", None)
+
 import app.models  # noqa: E402,F401 — garante que todos os modelos estejam registrados
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import Base, SessionLocal, engine  # noqa: E402

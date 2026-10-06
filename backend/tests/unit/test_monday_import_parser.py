@@ -82,3 +82,54 @@ def test_dry_run_deduplicates_repeated_snapshot() -> None:
     assert report.groups["Fase 0"].equipments == 1
     assert report.duplicate_records == 2
     assert report.errors == 0
+
+
+def test_date_list_accepts_monday_timeline_range() -> None:
+    from app.modules.monday_import.normalization import normalize_date_list
+
+    assert normalize_date_list("2026-03-02 to 2026-07-30") == ["2026-03-02", "2026-07-30"]
+    assert normalize_date_list("2027-01-10, 2027-02-03") == ["2027-01-10", "2027-02-03"]
+
+
+def test_negotiation_formula_counters_accept_negative_days() -> None:
+    from app.modules.monday_import.mappings import NONNEGATIVE_INTEGER_FIELDS, SIGNED_INTEGER_FIELDS
+
+    for field_name in ("negotiation_lead_time_observed", "negotiation_max_days_observed"):
+        assert field_name in SIGNED_INTEGER_FIELDS
+        assert field_name not in NONNEGATIVE_INTEGER_FIELDS
+
+
+def test_default_profile_uses_equipment_item_id_with_name_fallback() -> None:
+    from app.modules.monday_import.parser import parse_monday_xlsx
+    from tests.unit.monday_xlsx_fixture import build_xlsx
+
+    header = ["Name", "Subelementos", "A.Status", "ID do elemento"]
+    with_id = build_xlsx(
+        [
+            ["Equipamentos - Teste"],
+            ["Fase 0 - Nova Demanda"],
+            header,
+            ["Equipamento Com ID", None, "0.Nova demanda", "5550001"],
+            ["Equipamento Sem ID", None, "0.Nova demanda", None],
+        ]
+    )
+    keys = [item.source_key for item in parse_monday_xlsx(with_id, source_name="a.xlsx").equipments]
+    assert keys[0] == "monday-item-id:5550001"
+    assert keys[1].startswith("normalized-name:")  # fallback só quando o ID está ausente
+
+
+def test_duplicate_equipment_item_id_in_file_is_error() -> None:
+    from app.modules.monday_import.parser import parse_monday_xlsx
+    from tests.unit.monday_xlsx_fixture import build_xlsx
+
+    board = build_xlsx(
+        [
+            ["Equipamentos - Teste"],
+            ["Fase 0 - Nova Demanda"],
+            ["Name", "Subelementos", "A.Status", "ID do elemento"],
+            ["Equipamento A", None, "0.Nova demanda", "5550001"],
+            ["Equipamento B", None, "0.Nova demanda", "5550001"],
+        ]
+    )
+    issues = parse_monday_xlsx(board, source_name="a.xlsx").issues
+    assert any(i.code == "duplicate_equipment_external_id" and i.severity == "error" for i in issues)

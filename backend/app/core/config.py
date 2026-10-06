@@ -36,6 +36,10 @@ class Settings(BaseSettings):
 
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
 
+    # Migração Monday: LGE local usada só como evidência auxiliar de catálogos
+    # (nunca versionada; ausente = importação segue sem essa fonte).
+    monday_import_lge_path: str | None = Field(default=None, alias="MONDAY_IMPORT_LGE_PATH")
+
     # Keycloak / OIDC
     keycloak_issuer: str | None = Field(default=None, alias="KEYCLOAK_ISSUER")
     keycloak_audience: str | None = Field(default=None, alias="KEYCLOAK_AUDIENCE")

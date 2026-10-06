@@ -271,7 +271,7 @@ class EquipmentListOut(CamelModel):
 
 
 class ComponentCreateIn(CamelModel):
-    name: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=500)
     tag: str | None = Field(default=None, max_length=100)
     startup_at: date | None = None
     sector: str | None = Field(default=None, max_length=120)
@@ -287,7 +287,7 @@ class ComponentCreateIn(CamelModel):
 
 
 class ComponentUpdateIn(CamelModel):
-    name: str | None = Field(default=None, min_length=1, max_length=200)
+    name: str | None = Field(default=None, min_length=1, max_length=500)
     tag: str | None = Field(default=None, max_length=100)
     startup_at: date | None = None
     sector: str | None = Field(default=None, max_length=120)

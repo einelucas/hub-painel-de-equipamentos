@@ -18,6 +18,8 @@ scripts.zip
 *.zip
 *.dump
 *.bak
+# Arquivos reais de UAT / dados corporativos locais
+.local-uat/
 
 # ---------------------------------------------------------------------------
 # Dados corporativos reais — NUNCA versionar (REPO-SEC-01B).

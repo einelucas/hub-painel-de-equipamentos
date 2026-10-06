@@ -1,6 +1,9 @@
 """CLI do catálogo EAP canônico.
 
-# DESENVOLVIMENTO: extrai a Árvore oficial (somente leitura) para o JSON versionado
+# FONTE OFICIAL: catálogo consolidado de EAP e disciplinas (somente leitura)
+python -m app.modules.eap_catalog extract-consolidated "<Catalogo_EAP_Disciplinas_Consolidado>.xlsx"
+
+# LEGADO: extrai a Árvore de Localização (substituída pelo consolidado)
 python -m app.modules.eap_catalog extract "<Árvore>.xlsx" [--out app/data/eap_catalog.json]
 
 # valida o JSON versionado, sem banco
@@ -8,6 +11,8 @@ python -m app.modules.eap_catalog validate
 
 # compara com o banco, sem gravar
 python -m app.modules.eap_catalog seed --dry-run --env-file .env.test
+
+# correção para a fonte oficial: adicione --sync (dry-run primeiro; revise updatedInUse)
 
 # carga real (DEV/TESTE; exige --confirm e o nome exato do banco esperado)
 python -m app.modules.eap_catalog seed --apply --confirm --expect-database neondb_test --env-file .env.test
@@ -91,6 +96,54 @@ def _cmd_extract(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_extract_consolidated(args: argparse.Namespace) -> int:
+    from app.modules.eap_catalog.consolidated import ConsolidatedCatalogError, load_consolidated_catalog
+
+    try:
+        consolidated = load_consolidated_catalog(args.workbook)
+    except ConsolidatedCatalogError as exc:
+        raise SystemExit(f"Extração interrompida: {exc}") from exc
+    if consolidated.errors:
+        print("\n".join(consolidated.errors), file=sys.stderr)
+        raise SystemExit("Catálogo consolidado com erros; nada foi gravado.")
+    levels = Counter(node["level"] for node in consolidated.nodes)
+    document = build_catalog_document(
+        nodes=consolidated.nodes,
+        review_required=[],
+        source={
+            "file": consolidated.source_file,
+            "sha256": consolidated.sha256,
+            "kind": "consolidated",
+            "disciplines": [
+                {"code": item.code, "name": item.name, "source_row": item.row}
+                for item in consolidated.disciplines
+            ],
+        },
+        summary={
+            "distinct_eap_codes": levels.get("PROCESS", 0) + levels.get("AREA", 0),
+            "nodes": len(consolidated.nodes),
+            "island": levels.get("ISLAND", 0),
+            "process": levels.get("PROCESS", 0),
+            "area": levels.get("AREA", 0),
+            "review_required": 0,
+            "disciplines": len(consolidated.disciplines),
+        },
+    )
+    document["description"] = (
+        "Catálogo EAP oficial extraído do catálogo consolidado de EAP e disciplinas. Códigos sem "
+        "prefixo contextual (o Hub usa somente EapNode.code)."
+    )
+    errors = validate_catalog(parse_catalog(document))
+    if errors:
+        print("\n".join(errors), file=sys.stderr)
+        raise SystemExit("Extração gerou catálogo inválido; nada foi gravado.")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(document["summary"], ensure_ascii=False, indent=2))
+    print(f"Catálogo gravado em {args.out}", file=sys.stderr)
+    return 0
+
+
 def _cmd_validate(args: argparse.Namespace) -> int:
     catalog = load_catalog(args.catalog)
     errors = validate_catalog(catalog)
@@ -114,13 +167,17 @@ async def _seed(args: argparse.Namespace) -> dict[str, Any]:
                 f"Banco conectado '{database}' difere de --expect-database '{args.expect_database}'. "
                 "Nada foi gravado."
             )
-        result = await seed_eap_catalog(session, catalog, apply=args.apply, actor_id=args.actor_id)
+        result = await seed_eap_catalog(
+            session, catalog, apply=args.apply, actor_id=args.actor_id, sync=args.sync
+        )
     return {
         "database": database,
         "alembicRevision": revision,
         "catalogSha256": catalog.sha256,
         "summary": result.summary(),
         "created": result.created,
+        "updated": [{"code": item["code"], "differences": item["differences"]} for item in result.updated],
+        "updatedInUse": result.updated_in_use,
         "conflicts": result.conflicts,
         "skippedReviewRequired": result.skipped_review_required,
         "extraInDatabase": result.extra_in_database,
@@ -174,6 +231,13 @@ def build_parser() -> argparse.ArgumentParser:
     extract.add_argument("--resolutions", type=Path, default=RESOLUTIONS_PATH)
     extract.set_defaults(handler=_cmd_extract)
 
+    consolidated = commands.add_parser(
+        "extract-consolidated", help="Extrai o catálogo consolidado (fonte oficial) para o JSON"
+    )
+    consolidated.add_argument("workbook", type=Path)
+    consolidated.add_argument("--out", type=Path, default=CATALOG_PATH)
+    consolidated.set_defaults(handler=_cmd_extract_consolidated)
+
     validate = commands.add_parser("validate", help="Valida o JSON versionado (sem banco)")
     validate.add_argument("--catalog", type=Path, default=CATALOG_PATH)
     validate.set_defaults(handler=_cmd_validate)
@@ -185,6 +249,11 @@ def build_parser() -> argparse.ArgumentParser:
     seed.add_argument("--confirm", action="store_true")
     seed.add_argument("--expect-database", default=None)
     seed.add_argument("--env-file", type=Path, default=None)
+    seed.add_argument(
+        "--sync",
+        action="store_true",
+        help="Corrige nome/pai de códigos existentes para a fonte oficial (auditado; nunca muda nível)",
+    )
     seed.add_argument("--actor-id", default=None, help="Usuário registrado no AuditLog (opcional)")
     seed.add_argument("--catalog", type=Path, default=CATALOG_PATH)
     seed.set_defaults(handler=_cmd_seed)

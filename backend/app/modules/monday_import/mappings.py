@@ -113,8 +113,6 @@ NONNEGATIVE_INTEGER_FIELDS: Final = {
     "lead_time_days_mirror",
     "pre_start_days_mirror",
     "freight_days_mirror",
-    "negotiation_lead_time_observed",
-    "negotiation_max_days_observed",
     "lead_time_days",
     "pre_start_days",
     "freight_days",
@@ -122,6 +120,9 @@ NONNEGATIVE_INTEGER_FIELDS: Final = {
 SIGNED_INTEGER_FIELDS: Final = {
     "negotiation_days_remaining_observed",
     "delivery_margin_days_observed",
+    # Contadores de fórmula do Monday: negativo = prazo vencido (valor legítimo).
+    "negotiation_lead_time_observed",
+    "negotiation_max_days_observed",
 }
 
 

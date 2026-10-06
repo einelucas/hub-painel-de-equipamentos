@@ -1,8 +1,10 @@
 """Arquivo explícito de mapeamento de catálogos Monday -> Hub.
 
-O importador nunca cria usuário, EAP, disciplina ou Work Package
-automaticamente. Este módulo carrega e valida um arquivo JSON que resolve os
-valores textuais observados na origem para IDs já existentes no domínio.
+Carrega e valida um arquivo JSON que resolve valores textuais da origem para IDs
+já existentes no domínio. O importador nunca cria usuário. EAP, disciplina, Work
+Package e fornecedor podem ser criados pelo plan/apply quando há evidência
+suficiente (ver `catalog_evidence`); `catalogEvidence` neste arquivo é a
+evidência manual, usada só como fallback.
 """
 
 from __future__ import annotations
@@ -25,6 +27,47 @@ from app.modules.monday_import.normalization import canonical_text
 IssueCategory = Literal["error", "warning"]
 
 
+class _EvidenceModel(BaseModel):
+    model_config = {"populate_by_name": True, "extra": "forbid"}
+
+
+class DisciplineEvidenceIn(_EvidenceModel):
+    code: str = Field(min_length=1, max_length=40)
+    name: str | None = Field(default=None, max_length=160)
+
+
+class WorkPackageEvidenceIn(_EvidenceModel):
+    name: str = Field(min_length=1, max_length=160)
+
+
+class EapEvidenceIn(_EvidenceModel):
+    name: str = Field(min_length=1, max_length=160)
+
+
+class SupplierEvidenceIn(_EvidenceModel):
+    legal_name: str = Field(min_length=1, max_length=200, alias="legalName")
+    trade_name: str | None = Field(default=None, max_length=200, alias="tradeName")
+    tax_id: str | None = Field(default=None, max_length=32, alias="taxId")
+
+
+class CatalogEvidenceIn(_EvidenceModel):
+    """Evidência manual (FALLBACK) para criar catálogos que Monday/LGE não comprovam.
+
+    disciplines: valor da origem → sigla (e nome opcional)
+    workPackages: código do WP na origem → nome
+    eapProcesses: código canônico de PROCESS → nome
+    suppliers: código corporativo → dados do fornecedor
+    """
+
+    disciplines: dict[str, DisciplineEvidenceIn] = Field(default_factory=dict)
+    work_packages: dict[str, WorkPackageEvidenceIn] = Field(default_factory=dict, alias="workPackages")
+    eap_processes: dict[str, EapEvidenceIn] = Field(default_factory=dict, alias="eapProcesses")
+    suppliers: dict[str, SupplierEvidenceIn] = Field(default_factory=dict)
+
+    def is_empty(self) -> bool:
+        return not (self.disciplines or self.work_packages or self.eap_processes or self.suppliers)
+
+
 class MappingFileSchema(BaseModel):
     """Schema validado do arquivo JSON de mapeamento."""
 
@@ -36,6 +79,8 @@ class MappingFileSchema(BaseModel):
     work_packages: dict[str, str] = Field(default_factory=dict, alias="workPackages")
     # valor de localização da origem -> EapNode escolhido explicitamente pelo usuário
     eap_nodes: dict[str, str] = Field(default_factory=dict, alias="eapNodes")
+    # Opcional e retrocompatível: ausente/vazio não altera o mappingSha256.
+    catalog_evidence: CatalogEvidenceIn = Field(default_factory=CatalogEvidenceIn, alias="catalogEvidence")
 
     model_config = {"populate_by_name": True}
 
@@ -90,6 +135,8 @@ class ValidatedMapping:
     work_packages: dict[str, str] = field(default_factory=dict)
     eap_nodes: dict[str, str] = field(default_factory=dict)
     issues: list[MappingIssue] = field(default_factory=list)
+    # Evidência manual (fallback) para criar catálogos; já validada em formato.
+    catalog_evidence: CatalogEvidenceIn = field(default_factory=CatalogEvidenceIn)
 
     @property
     def has_errors(self) -> bool:
@@ -116,6 +163,12 @@ class ValidatedMapping:
                 "disciplines": len(self.disciplines),
                 "workPackages": len(self.work_packages),
                 "eapNodes": len(self.eap_nodes),
+                "catalogEvidence": {
+                    "disciplines": len(self.catalog_evidence.disciplines),
+                    "workPackages": len(self.catalog_evidence.work_packages),
+                    "eapProcesses": len(self.catalog_evidence.eap_processes),
+                    "suppliers": len(self.catalog_evidence.suppliers),
+                },
             },
             "issues": [issue.to_dict() for issue in self.issues],
         }
@@ -127,9 +180,11 @@ def load_mapping_file(path: str | Path) -> MappingFileSchema:
 
 
 def mapping_file_sha256(schema: MappingFileSchema) -> str:
-    canonical = json.dumps(
-        schema.model_dump(by_alias=True), sort_keys=True, ensure_ascii=False
-    )
+    dumped = schema.model_dump(by_alias=True)
+    if schema.catalog_evidence.is_empty():
+        # Mantém o hash de mappings anteriores à evidência manual.
+        dumped.pop("catalogEvidence", None)
+    canonical = json.dumps(dumped, sort_keys=True, ensure_ascii=False)
     return sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -288,6 +343,7 @@ async def validate_mapping(
         work_packages=resolved_work_packages,
         eap_nodes=resolved_eap_nodes,
         issues=issues,
+        catalog_evidence=schema.catalog_evidence,
     )
 
 

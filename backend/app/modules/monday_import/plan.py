@@ -23,7 +23,10 @@ from app.models.audit import AuditLog
 from app.models.equipment import Equipment, EquipmentComponent
 from app.models.monday_import import ExternalMapping, MondayImportBatch, MondayImportRecord
 from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
-from app.modules.monday_import.eap_resolution import EapResolver
+from app.models.supplier import EquipmentSupplier
+from app.modules.monday_import.catalog_evidence import CatalogEvidence
+from app.modules.monday_import.catalog_planner import CatalogPlanItem, CatalogPlanner
+from app.modules.monday_import.catalog_taxonomy import CatalogAction, is_blocking_issue
 from app.modules.monday_import.mapping_file import ValidatedMapping
 from app.modules.monday_import.mappings import SOURCE_SYSTEM
 from app.modules.monday_import.normalization import canonical_text
@@ -145,6 +148,24 @@ class MigrationPlan:
     # Resumo da localização por equipamento (RESOLVED/MULTIPLE/NONE/NOT_FOUND);
     # informativo, fora do hash (o hash já cobre o eap_node_id gravado).
     eap_summary: dict[str, int] = field(default_factory=dict)
+    # Catálogos a criar/reutilizar/conflitar/pendentes. Entram no hash: o apply
+    # só executa exatamente o que foi revisado.
+    catalog_items: list[CatalogPlanItem] = field(default_factory=list)
+    # Responsável: resolvido por mapping ou pendente (nunca cria User).
+    responsible_summary: dict[str, int] = field(default_factory=lambda: {"resolved": 0, "unresolved": 0})
+
+    @property
+    def catalog_counts(self) -> dict[str, dict[str, int]]:
+        """Contagem por tipo de catálogo e ação, sem os detalhes dos itens."""
+        counts: dict[str, dict[str, int]] = {}
+        for item in self.catalog_items:
+            bucket = counts.setdefault(item.kind, {action.value.lower(): 0 for action in CatalogAction})
+            bucket[item.action.value.lower()] += 1
+        return counts
+
+    @property
+    def pending_catalog_creates(self) -> list[CatalogPlanItem]:
+        return [item for item in self.catalog_items if item.action is CatalogAction.CREATE]
 
     @property
     def all_groups(self) -> dict[str, list[PlanItem]]:
@@ -180,6 +201,9 @@ class MigrationPlan:
                 ]
                 for name, items in sorted(self.all_groups.items())
             },
+            "catalogs": [
+                item.to_dict() for item in sorted(self.catalog_items, key=lambda c: (c.kind, c.key))
+            ],
         }
         canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
         return sha256(canonical.encode("utf-8")).hexdigest()
@@ -194,6 +218,10 @@ class MigrationPlan:
             "groups": {name: [item.to_dict() for item in items] for name, items in self.all_groups.items()},
             "warnings": [issue.to_dict() for issue in self.warnings],
             "blocked": self.has_blocked,
+            "catalogCounts": self.catalog_counts,
+            "catalogs": [item.to_dict() for item in self.catalog_items],
+            "responsibles": dict(self.responsible_summary),
+            "eapSummary": dict(self.eap_summary),
         }
 
 
@@ -291,6 +319,54 @@ async def _human_touched_after_migration(session: AsyncSession, *, entity: str, 
     return row is not None
 
 
+def _fit_text_columns(
+    model: type[Any], payload: dict[str, Any], *, source_key: str
+) -> tuple[dict[str, Any], list[PlanIssue], bool]:
+    """Confere textos contra o tamanho das colunas ANTES de comparar com o banco.
+
+    Campo opcional maior que a coluna: não é gravado e vira FIELD_TOO_LONG (o valor
+    bruto continua no staging). Campo obrigatório maior que a coluna: bloqueia
+    (FIELD_TOO_LONG_REQUIRED) — identidade nunca é truncada. Aplicado antes do
+    diff, a reimportação do mesmo arquivo continua NOOP.
+    """
+    columns = model.__table__.columns
+    fitted = dict(payload)
+    issues: list[PlanIssue] = []
+    blocking = False
+    for key, value in payload.items():
+        column = columns.get(key)
+        length = getattr(getattr(column, "type", None), "length", None)
+        if column is None or not isinstance(value, str) or not length or len(value) <= length:
+            continue
+        detail = {
+            "entity": model.__name__,
+            "field": key,
+            "length": len(value),
+            "maxLength": length,
+            "sourceKey": source_key,
+        }
+        if column.nullable:
+            fitted.pop(key)
+            issues.append(
+                PlanIssue(
+                    "FIELD_TOO_LONG",
+                    f"{model.__name__}.{key}: valor da origem com {len(value)} caracteres excede o limite "
+                    f"de {length}; campo não gravado (valor bruto preservado no staging).",
+                    detail=detail,
+                )
+            )
+        else:
+            blocking = True
+            issues.append(
+                PlanIssue(
+                    "FIELD_TOO_LONG_REQUIRED",
+                    f"{model.__name__}.{key}: valor obrigatório excede o limite de {length} caracteres.",
+                    detail=detail,
+                )
+            )
+    return fitted, issues, blocking
+
+
 def _diff(existing: Any, incoming: dict[str, Any]) -> dict[str, Any]:
     changed: dict[str, Any] = {}
     for field_name, value in incoming.items():
@@ -313,6 +389,15 @@ async def _plan_sub_entity(
     """Cria o item de plano de um processo 1:1. Sem nenhum campo de origem e
     sem registro existente, o item é omitido (nada a fazer)."""
     payload = {key: value for key, value in payload.items() if value is not None}
+    payload, fit_issues, fit_blocking = _fit_text_columns(model, payload, source_key=equipment_source_key)
+    if fit_blocking:
+        return PlanItem(
+            kind=kind,
+            source_key=equipment_source_key,
+            action="BLOCKED",
+            parent_source_key=equipment_source_key,
+            issues=fit_issues,
+        )
     if equipment_blocked:
         return PlanItem(
             kind=kind,
@@ -335,6 +420,7 @@ async def _plan_sub_entity(
             action="NOOP",
             parent_source_key=equipment_source_key,
             target_entity_id=existing.id,
+            issues=fit_issues,
         )
     if existing is None:
         return PlanItem(
@@ -343,6 +429,7 @@ async def _plan_sub_entity(
             action="CREATE",
             parent_source_key=equipment_source_key,
             payload=payload,
+            issues=fit_issues,
         )
     changed = _diff(existing, payload)
     if not changed:
@@ -352,6 +439,7 @@ async def _plan_sub_entity(
             action="NOOP",
             parent_source_key=equipment_source_key,
             target_entity_id=existing.id,
+            issues=fit_issues,
         )
     if await _human_touched_after_migration(session, entity=model.__name__, entity_id=existing.id):
         return PlanItem(
@@ -376,6 +464,7 @@ async def _plan_sub_entity(
         parent_source_key=equipment_source_key,
         target_entity_id=existing.id,
         payload=changed,
+        issues=fit_issues,
     )
 
 
@@ -385,7 +474,10 @@ async def build_plan(
     project_context_id: str,
     batch_ids: list[str],
     mapping: ValidatedMapping,
+    evidence: CatalogEvidence | None = None,
 ) -> MigrationPlan:
+    """`evidence=None` agrega as fontes padrão (catálogo oficial local, rótulos do
+    Monday, LGE configurada e `catalogEvidence` do mapping)."""
     if not batch_ids:
         raise ValueError("informe ao menos um batch")
 
@@ -428,7 +520,16 @@ async def build_plan(
     plan = MigrationPlan(
         project_context_id=project_context_id, batch_ids=list(batch_ids), mapping_sha256=mapping.sha256
     )
-    eap_resolver = await EapResolver.load(session, mapping.eap_nodes)
+    if evidence is None:
+        from app.modules.monday_import.catalog_sources import default_catalog_evidence
+
+        evidence = default_catalog_evidence(
+            [record.normalized_payload or {} for record in records if record.record_kind == "equipment"],
+            mapping,
+        )
+    catalogs = await CatalogPlanner.load(
+        session, project_context_id=project_context_id, mapping=mapping, evidence=evidence
+    )
 
     equipment_target_ids: dict[str, str | None] = {}
     equipment_blocked: dict[str, bool] = {}
@@ -436,6 +537,9 @@ async def build_plan(
     for source_key, entries in sorted(equipment_groups.items()):
         merged = _merge_group(entries)
         if merged.conflict_detail is not None:
+            # O mesmo ID do elemento do Monday associado a equipamentos incompatíveis
+            # é conflito de identidade explícito: nunca se escolhe um dos lados.
+            by_item_id = source_key.startswith("monday-item-id:")
             plan.equipments.append(
                 PlanItem(
                     kind="equipment",
@@ -443,8 +547,10 @@ async def build_plan(
                     action="BLOCKED",
                     issues=[
                         PlanIssue(
-                            "IMPORT_CONFLICT",
-                            "Identidade repetida em batches com payload diferente",
+                            "MONDAY_ITEM_ID_CONFLICT" if by_item_id else "IMPORT_CONFLICT",
+                            "Mesmo ID do elemento do Monday em equipamentos com dados diferentes"
+                            if by_item_id
+                            else "Identidade repetida em batches com payload diferente",
                             detail=merged.conflict_detail,
                         )
                     ],
@@ -457,51 +563,10 @@ async def build_plan(
         normalized = merged.normalized
         issues: list[PlanIssue] = []
 
-        if normalized.get("suppliers_raw"):
-            plan.warnings.append(
-                PlanIssue(
-                    "SUPPLIER_MIGRATION_PENDING",
-                    f"Fornecedores de '{normalized.get('name')}' não são migrados por esta versão",
-                    detail={"equipmentSourceKey": source_key},
-                )
-            )
-
-        # Localização → EAP (nunca Area). Sem EAP única e válida: segue sem vínculo,
-        # com issue explícita; o valor bruto continua no staging.
-        eap = eap_resolver.resolve(normalized.get("area_name"))
-        plan.eap_summary[eap.status] = plan.eap_summary.get(eap.status, 0) + 1
-        if eap.issue_code is not None:
-            issues.append(
-                PlanIssue(
-                    eap.issue_code,
-                    eap.issue_message or "",
-                    detail={"sourceValue": eap.raw, "candidates": list(eap.codes)},
-                )
-            )
-        discipline_id = mapping.resolve_discipline(normalized.get("discipline_name"))
-        if normalized.get("discipline_name") and discipline_id is None:
-            issues.append(
-                PlanIssue(
-                    "unmapped_discipline",
-                    f"Disciplina sem mapeamento: {normalized['discipline_name']}",
-                )
-            )
-        responsible_id = mapping.resolve_responsible(normalized.get("responsible_name"))
-        if normalized.get("responsible_name") and responsible_id is None:
-            issues.append(
-                PlanIssue(
-                    "unmapped_responsible",
-                    f"Responsável sem mapeamento: {normalized['responsible_name']}",
-                )
-            )
-        work_package_codes = normalized.get("work_package_codes") or []
-        work_package_ids: list[str] = []
-        for code in work_package_codes:
-            resolved = mapping.resolve_work_package(code)
-            if resolved is None:
-                issues.append(PlanIssue("unmapped_work_package", f"Work Package sem mapeamento: {code}"))
-            else:
-                work_package_ids.append(resolved)
+        # Catálogos (EAP, ProjectEap, disciplina, responsável, WP, fornecedor): só
+        # conflito real bloqueia; pendências seguem como warning com o valor bruto.
+        resolved = await catalogs.resolve(session, normalized)
+        issues.extend(PlanIssue(code, message, detail=detail) for code, message, detail in resolved.issues)
 
         observed_stage = normalized.get("current_stage")
         # O grupo é contexto estrutural: só vale como fallback quando o profile permite
@@ -561,19 +626,9 @@ async def build_plan(
                     )
                 )
 
-        blocking_codes = {
-            "IMPORT_CONFLICT",
-            "STAGE_CONFLICT",
-            "UNKNOWN_STAGE_VALUE",
-            "missing_current_stage",
-            "STAGE_NOT_APPLICABLE",
-            "OPERATIONAL_STATUS_TRANSITION_UNSUPPORTED",
-            "unmapped_discipline",
-            "unmapped_responsible",
-            "unmapped_work_package",
-            "PARENT_IDENTITY_CONFLICT",
-        }
-        is_blocked = any(issue.code in blocking_codes for issue in issues)
+        # Só conflitos reais bloqueiam (ver catalog_taxonomy.BLOCKING_ISSUE_CODES).
+        # Pendências de catálogo (UNRESOLVED) seguem como warning explícito.
+        is_blocked = any(is_blocking_issue(issue.code) for issue in issues)
         equipment_blocked[source_key] = is_blocked
         equipment_target_ids[source_key] = target_id
 
@@ -587,9 +642,9 @@ async def build_plan(
             "name": normalized.get("name"),
             "origin": normalized.get("origin"),
             "startup_at": _as_date(normalized.get("startup_at")),
-            "eap_node_id": eap.eap_node_id,
-            "discipline_id": discipline_id,
-            "responsible_user_id": responsible_id,
+            "eap_node_id": resolved.eap_node_id,
+            "discipline_id": resolved.discipline_id,
+            "responsible_user_id": resolved.responsible_user_id,
             "criticality": normalized.get("criticality_observed"),
             "capex_estimated": _as_decimal(normalized.get("capex_estimated")),
             "current_stage": current_stage,
@@ -598,7 +653,21 @@ async def build_plan(
             "contractual_delivery_end": _as_date(normalized.get("contract_delivery_at")),
         }
         payload = {key: value for key, value in payload.items() if value is not None}
-        payload["work_package_ids"] = sorted(work_package_ids)
+        payload, fit_issues, fit_blocking = _fit_text_columns(Equipment, payload, source_key=source_key)
+        issues.extend(fit_issues)
+        if fit_blocking:
+            plan.equipments.append(
+                PlanItem(kind="equipment", source_key=source_key, action="BLOCKED", issues=issues)
+            )
+            equipment_blocked[source_key] = True
+            equipment_target_ids[source_key] = target_id
+            continue
+        payload["work_package_ids"] = sorted(resolved.work_package_ids)
+        if resolved.supplier_id is not None:
+            payload["supplier_id"] = resolved.supplier_id
+        if resolved.refs:
+            # Catálogos que o apply cria na mesma transação e liga a este equipamento.
+            payload["catalog_refs"] = dict(sorted(resolved.refs.items()))
         source_operational = normalized.get("operational_status")
 
         if target_id is None:
@@ -635,11 +704,48 @@ async def build_plan(
             continue
 
         compare_payload = dict(payload)
+        catalog_refs = compare_payload.pop("catalog_refs", None) or {}
+        supplier_id = compare_payload.pop("supplier_id", None)
         existing_work_packages = sorted(link.work_package_id for link in existing.work_package_links)
-        wp_changed = compare_payload.pop("work_package_ids") != existing_work_packages
+        source_work_packages = compare_payload.pop("work_package_ids")
+        # Só substitui os WPs quando a origem os informa e todos foram resolvidos:
+        # célula vazia ou WP pendente nunca apaga vínculo válido do Hub.
+        wp_changed = (
+            resolved.has_work_package_source
+            and resolved.work_packages_complete
+            and (source_work_packages != existing_work_packages or "workPackageCodes" in catalog_refs)
+        )
         changed = _diff(existing, compare_payload)
         if wp_changed:
-            changed["work_package_ids"] = payload["work_package_ids"]
+            changed["work_package_ids"] = source_work_packages
+        if catalog_refs:
+            changed["catalog_refs"] = catalog_refs
+        if supplier_id is not None or "supplierCode" in catalog_refs:
+            current_supplier = await session.scalar(
+                select(EquipmentSupplier.supplier_id).where(EquipmentSupplier.equipment_id == target_id)
+            )
+            if current_supplier is not None and current_supplier != supplier_id:
+                # O Hub já tem outro fornecedor vinculado: nunca sobrescrever.
+                issues.append(
+                    PlanIssue(
+                        "SUPPLIER_CONFLICT",
+                        "Equipamento já vinculado a outro fornecedor no Hub; não sobrescrito.",
+                        detail={"hubSupplierId": current_supplier, "sourceSupplierId": supplier_id},
+                    )
+                )
+                plan.equipments.append(
+                    PlanItem(
+                        kind="equipment",
+                        source_key=source_key,
+                        action="BLOCKED",
+                        target_entity_id=target_id,
+                        issues=issues,
+                    )
+                )
+                equipment_blocked[source_key] = True
+                continue
+            if current_supplier is None and supplier_id is not None:
+                changed["supplier_id"] = supplier_id
         current_operational = existing.operational_status
         # Saneamento é estado só do Hub (o Monday não o declara): não é desfeito pela origem.
         target_operational = (
@@ -858,14 +964,16 @@ async def build_plan(
         ]
         for kind, _model, _label, payload in entries_by_kind:
             payload = {key: value for key, value in payload.items() if value is not None}
-            if not payload:
+            payload, fit_issues, fit_blocking = _fit_text_columns(_model, payload, source_key=source_key)
+            if not payload and not fit_blocking:
                 continue
             item = PlanItem(
                 kind=kind,
                 source_key=source_key,
-                action="CREATE",
+                action="BLOCKED" if fit_blocking else "CREATE",
                 parent_source_key=source_key,
-                payload=payload,
+                payload={} if fit_blocking else payload,
+                issues=fit_issues,
             )
             target_list = {
                 "negotiation": plan.negotiations,
@@ -952,6 +1060,9 @@ async def build_plan(
             "freight_days": normalized.get("freight_days"),
         }
         payload = {key: value for key, value in payload.items() if value is not None}
+        payload, component_fit_issues, component_fit_blocking = _fit_text_columns(
+            EquipmentComponent, payload, source_key=component_key
+        )
 
         existing_mapping = await _existing_mapping(
             session, project_context_id=project_context_id, entity_type="component", external_id=component_key
@@ -986,6 +1097,9 @@ async def build_plan(
                 else:
                     action = "UPDATE"
                     item_issues = []
+        if component_fit_blocking:
+            action, changed = "BLOCKED", {}
+        item_issues = [*component_fit_issues, *item_issues]
 
         plan.components.append(
             PlanItem(
@@ -999,4 +1113,14 @@ async def build_plan(
             )
         )
 
+    # Campos não gravados por tamanho em processos/componentes ficam visíveis no plano.
+    for name, items in plan.all_groups.items():
+        if name == "equipments":
+            continue
+        plan.warnings.extend(
+            issue for item in items for issue in item.issues if issue.code == "FIELD_TOO_LONG"
+        )
+    plan.catalog_items = catalogs.items
+    plan.eap_summary = dict(catalogs.eap_summary)
+    plan.responsible_summary = dict(catalogs.responsible_summary)
     return plan

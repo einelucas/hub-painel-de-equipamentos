@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -40,16 +40,24 @@ class ImportIssueOut(CamelModel):
 class LocationValueOut(CamelModel):
     """Valor de localização da origem e a EAP que ele resolve SEM intervenção.
 
-    RESOLVED: um único código, existente no catálogo. MULTIPLE: vários códigos
-    (nenhum escolhido). NONE: sem código EAP. NOT_FOUND: código fora do catálogo."""
+    RESOLVED: um único código, existente no Hub. CREATE: código novo com nome
+    comprovado (será criado no apply). CONFLICT: código existente com nome diferente.
+    MULTIPLE: vários códigos (nenhum escolhido). NONE: sem código EAP. NOT_FOUND /
+    UNRESOLVED: código sem dados suficientes (pai ou nome não comprovado)."""
 
     value: str
-    status: Literal["RESOLVED", "MULTIPLE", "NONE", "NOT_FOUND"]
+    status: Literal["RESOLVED", "CREATE", "CONFLICT", "UNRESOLVED", "MULTIPLE", "NONE", "NOT_FOUND"]
     candidates: list[str]
     eap_node_id: str | None = None
     eap_code: str | None = None
     eap_name: str | None = None
     equipments: int
+    # EAP planejada (CREATE): código/nome e a fonte que comprovou o nome.
+    planned_eap_code: str | None = None
+    planned_eap_name: str | None = None
+    evidence_source: str | None = None
+    issue_code: str | None = None
+    issue_message: str | None = None
 
 
 class SourceValuesOut(CamelModel):
@@ -139,6 +147,27 @@ class EapSummaryOut(CamelModel):
     multiple: int
     none: int
     not_found: int
+    create: int = 0
+    conflict: int = 0
+    unresolved: int = 0
+
+
+class CatalogItemOut(CamelModel):
+    """Decisão de catálogo do plano: EXISTING, CREATE, CONFLICT ou UNRESOLVED."""
+
+    kind: Literal["eap_node", "project_eap", "discipline", "work_package", "supplier"]
+    key: str
+    action: Literal["EXISTING", "CREATE", "CONFLICT", "UNRESOLVED"]
+    label: str
+    evidence_source: str | None = None
+    issue_code: str | None = None
+    message: str | None = None
+    detail: dict[str, Any] = {}
+
+
+class ResponsibleSummaryOut(CamelModel):
+    resolved: int = 0
+    unresolved: int = 0
 
 
 class ImportPlanOut(CamelModel):
@@ -150,6 +179,13 @@ class ImportPlanOut(CamelModel):
     groups: list[PlanGroupOut]
     blocked: list[PlanBlockedOut]
     warnings: list[PlanIssueOut]
+    # Pendências de catálogo por equipamento que não bloqueiam (EXISTING/CREATE/UNRESOLVED).
+    equipment_warnings: list[PlanBlockedOut] = []
+    # Contagem por tipo de catálogo: {"eap_node": {"existing": n, "create": n, ...}, ...}.
+    catalog_counts: dict[str, dict[str, int]] = {}
+    # Itens de catálogo do plano, para a UI mostrar EXISTENTE/NOVO/CONFLITO/PENDENTE.
+    catalogs: list[CatalogItemOut] = []
+    responsibles: ResponsibleSummaryOut = ResponsibleSummaryOut()
     eap: EapSummaryOut
     has_blocked: bool
     # Só aplica sem mapping inválido e sem nenhum item BLOCKED.

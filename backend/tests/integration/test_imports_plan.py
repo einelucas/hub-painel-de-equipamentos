@@ -158,7 +158,9 @@ async def test_source_values_drive_mapping_and_valid_mapping_plans_create(
     assert body["mappingIssues"] == []
     assert body["canApply"] is True and body["hasBlocked"] is False and body["blocked"] == []
     assert body["batchIds"] == [batch["batchId"]]
-    assert body["eap"] == {"resolved": 1, "multiple": 0, "none": 0, "notFound": 0}
+    assert body["eap"] == {
+        "resolved": 1, "multiple": 0, "none": 0, "notFound": 0, "create": 0, "conflict": 0, "unresolved": 0
+    }
     groups = {group["name"]: group for group in body["groups"]}
     assert (groups["Equipamentos"]["create"], groups["Componentes"]["create"]) == (1, 1)
     assert len(body["planSha256"]) == 64
@@ -168,17 +170,21 @@ async def test_source_values_drive_mapping_and_valid_mapping_plans_create(
         assert (await db_session.execute(select(func.count()).select_from(model))).scalar_one() == 0
 
 
-async def test_unmapped_values_block_and_disable_apply(client, auth_header, db_session) -> None:
+async def test_unmapped_catalog_values_warn_without_blocking(client, auth_header, db_session) -> None:
     ids = await seed(client, auth_header, db_session)
     analyst = auth_header("ANALYST")
     batch = await stage(client, analyst, ids["context"], synthetic_board())
 
     body = (await plan(client, analyst, batch["batchId"], {})).json()
-    assert body["hasBlocked"] is True and body["canApply"] is False
-    blocked = body["blocked"][0]
-    assert blocked["group"] == "Equipamentos" and blocked["label"] == "Equipamento Sintético A"
-    codes = {issue["code"] for issue in blocked["issues"]}
-    assert {"unmapped_responsible", "unmapped_discipline", "unmapped_work_package"} <= codes
+    # Responsável/disciplina sem vínculo não bloqueiam o equipamento; o WP já existe
+    # no contexto e é reutilizado sem mapping (EXISTING).
+    assert body["hasBlocked"] is False and body["blocked"] == [] and body["canApply"] is True
+    codes = {issue["code"] for item in body["equipmentWarnings"] for issue in item["issues"]}
+    assert {"RESPONSIBLE_UNRESOLVED", "DISCIPLINE_CODE_REQUIRED"} <= codes
+    catalogs = {(item["kind"], item["key"]): item["action"] for item in body["catalogs"]}
+    assert catalogs[("work_package", "WP-S1")] == "EXISTING"
+    assert catalogs[("discipline", "Disciplina Origem")] == "UNRESOLVED"
+    assert body["responsibles"] == {"resolved": 0, "unresolved": 1}
     assert "unmapped_area" not in codes  # Area não é mais destino da localização
 
 
@@ -252,13 +258,22 @@ async def test_eap_without_code_multiple_or_unknown_never_invents_a_link(
         for n, (name, value) in enumerate(cases.items())
     ]
     body = (await plan(client, admin, batch_ids, mapping(ids))).json()
-    # nenhum bloqueia a importação; todos ficam explicitamente pendentes
+    # nenhum bloqueia a importação. Sem código e múltiplo ficam pendentes (nunca há
+    # escolha automática); código novo com nome na origem vira CREATE (fonte MONDAY).
     assert body["canApply"] is True, body["blocked"]
-    assert body["eap"] == {"resolved": 0, "multiple": 1, "none": 1, "notFound": 1}
+    assert body["eap"] == {
+        "resolved": 0, "multiple": 1, "none": 1, "notFound": 0, "create": 1, "conflict": 0, "unresolved": 0
+    }
+    [created] = [
+        item for item in body["catalogs"] if item["kind"] == "eap_node" and item["action"] == "CREATE"
+    ]
+    assert (created["key"], created["evidenceSource"]) == ("77", "MONDAY")
     codes = {warning["code"] for warning in body["warnings"]}
     assert codes.isdisjoint({"unmapped_area"})
 
     # escolha explícita do usuário resolve o caso múltiplo (sem escolha automática)
     chosen = mapping(ids) | {"eapNodes": {cases["Equipamento Sintético Multi"]: ids["eap_other"]}}
     body = (await plan(client, admin, batch_ids, chosen)).json()
-    assert body["eap"] == {"resolved": 1, "multiple": 0, "none": 1, "notFound": 1}
+    assert body["eap"] == {
+        "resolved": 1, "multiple": 0, "none": 1, "notFound": 0, "create": 1, "conflict": 0, "unresolved": 0
+    }

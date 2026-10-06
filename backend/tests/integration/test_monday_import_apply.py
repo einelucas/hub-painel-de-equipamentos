@@ -166,7 +166,7 @@ def _mapping_schema(ids: dict[str, str]) -> MappingFileSchema:
     )
 
 
-async def test_plan_does_not_write_and_blocks_unmapped_values(db_session) -> None:
+async def test_plan_does_not_write_and_keeps_unmapped_catalog_values_as_warnings(db_session) -> None:
     ids = await _seed_context(db_session, "PLAN")
     staged = await stage_import(
         db_session, project_context_id=ids["context_id"], source=_rich_equipment_xlsx(), source_name="a.xlsx"
@@ -178,13 +178,17 @@ async def test_plan_does_not_write_and_blocks_unmapped_values(db_session) -> Non
         db_session, project_context_id=ids["context_id"], batch_ids=[staged.batch_id], mapping=empty_mapping
     )
 
-    assert plan.has_blocked is True
+    # Pendências de catálogo são warnings; não bloqueiam o equipamento.
+    assert plan.has_blocked is False
     equipment_item = plan.equipments[0]
-    assert equipment_item.action == "BLOCKED"
+    assert equipment_item.action != "BLOCKED"
     codes = {issue.code for issue in equipment_item.issues}
-    assert {"unmapped_responsible", "unmapped_discipline", "unmapped_work_package"} <= codes
-    # P1.3.1: localização não bloqueia; sem EAP válida o equipamento fica pendente
+    assert {"RESPONSIBLE_UNRESOLVED", "DISCIPLINE_CODE_REQUIRED"} <= codes
+    # WPs já existentes no contexto são reutilizados sem mapping (EXISTING).
+    expected_work_packages = sorted([ids["work_package_1"], ids["work_package_2"]])
+    assert equipment_item.payload["work_package_ids"] == expected_work_packages
     assert "unmapped_area" not in codes
+    assert plan.responsible_summary["unresolved"] >= 1
     assert (await db_session.execute(select(func.count(Equipment.id)))).scalar_one() == 0
 
 

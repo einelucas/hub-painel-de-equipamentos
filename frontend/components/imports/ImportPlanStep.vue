@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import ImportCatalogSummary from "~/components/imports/ImportCatalogSummary.vue";
 import { useImportState } from "~/composables/useImportState";
 
 /**
@@ -17,6 +18,9 @@ const totals = computed(() => {
     blocked: groups.reduce((sum, group) => sum + group.blocked, 0),
   };
 });
+
+const catalogCreates = computed(() => (plan.value?.catalogs ?? []).filter((item) => item.action === "CREATE").length);
+const equipmentWarnings = computed(() => plan.value?.equipmentWarnings ?? []);
 </script>
 
 <template>
@@ -53,9 +57,27 @@ const totals = computed(() => {
         <h4>EAP dos equipamentos</h4>
         <ul>
           <li>EAP identificada: <strong>{{ plan.eap.resolved }}</strong></li>
+          <li>EAP nova (criada na importação): <strong>{{ plan.eap.create ?? 0 }}</strong></li>
+          <li>Rótulo com nome de outro código (bloqueia): <strong>{{ plan.eap.conflict ?? 0 }}</strong></li>
+          <li>Pendente — pai ou nome não comprovado (sem vínculo): <strong>{{ plan.eap.unresolved ?? 0 }}</strong></li>
           <li>Várias EAPs no valor (sem vínculo): <strong>{{ plan.eap.multiple }}</strong></li>
           <li>Sem código EAP (sem vínculo): <strong>{{ plan.eap.none }}</strong></li>
           <li>EAP fora do catálogo (sem vínculo): <strong>{{ plan.eap.notFound }}</strong></li>
+        </ul>
+      </section>
+      <ImportCatalogSummary
+        v-if="plan.catalogs?.length || plan.responsibles"
+        :catalogs="plan.catalogs ?? []"
+        :responsibles="plan.responsibles"
+      />
+
+      <section v-if="equipmentWarnings.length" class="plan-list plan-list--warning" data-testid="plan-equipment-warnings">
+        <h4>Pendências que não bloqueiam ({{ equipmentWarnings.length }} equipamentos)</h4>
+        <ul>
+          <li v-for="item in equipmentWarnings" :key="item.sourceKey">
+            <strong>{{ item.label }}</strong>
+            <span v-for="issue in item.issues" :key="issue.code" class="issue-meta">{{ issue.message }}</span>
+          </li>
         </ul>
       </section>
       <section v-if="plan.warnings.length" class="plan-list plan-list--warning">
@@ -74,6 +96,7 @@ const totals = computed(() => {
           <div><dt>Atualizar</dt><dd>{{ totals.update }}</dd></div>
           <div><dt>Sem alteração</dt><dd>{{ totals.noop }}</dd></div>
           <div><dt>Bloqueados</dt><dd data-testid="confirm-blocked">{{ totals.blocked }}</dd></div>
+          <div><dt>Catálogos a criar</dt><dd data-testid="confirm-catalog-creates">{{ catalogCreates }}</dd></div>
         </dl>
       </section>
     </template>

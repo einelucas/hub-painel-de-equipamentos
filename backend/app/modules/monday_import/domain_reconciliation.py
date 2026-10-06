@@ -17,7 +17,9 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.models.equipment import Equipment
 from app.models.monday_import import ExternalMapping, MondayImportBatch, MondayImportRecord
-from app.modules.monday_import.eap_resolution import EapResolver
+from app.models.process import Contract, LegalProcess, PurchaseOrder, PurchaseRequest
+from app.modules.monday_import.catalog_evidence import CatalogEvidence
+from app.modules.monday_import.catalog_planner import CatalogPlanner
 from app.modules.monday_import.mapping_file import ValidatedMapping
 from app.modules.monday_import.mappings import SOURCE_SYSTEM
 from app.modules.monday_import.plan import _as_date, _group_phase, _merge_group
@@ -91,14 +93,23 @@ def _safe(value: Any) -> Any:
     return value
 
 
-def _compare(hub_value: Any, source_value: Any, *, pending: bool = False) -> FieldStatus:
+def _compare(
+    hub_value: Any, source_value: Any, *, pending: bool = False, max_length: int | None = None
+) -> FieldStatus:
     if pending:
         return "PENDING_MAPPING"
     if source_value is None and hub_value is None:
         return "NOT_COMPARABLE"
     if source_value is None:
         return "NOT_COMPARABLE"
+    if max_length is not None and isinstance(source_value, str) and len(source_value) > max_length:
+        # O plan não grava texto maior que a coluna (FIELD_TOO_LONG): não é divergência.
+        return "NOT_COMPARABLE"
     return "MATCH" if hub_value == source_value else "MISMATCH"
+
+
+def _length(model: type[Any], column: str) -> int | None:
+    return getattr(model.__table__.columns[column].type, "length", None)
 
 
 async def _latest_normalized(
@@ -148,7 +159,14 @@ async def reconcile_domain(
     )
 
     report = DomainReconciliationReport()
-    eap_resolver = await EapResolver.load(session, mapping.eap_nodes if mapping is not None else None)
+    # Mesma resolução de catálogos do plan. Após o apply, tudo que foi criado é
+    # EXISTING; o que segue pendente não é comparável (nunca divergência inventada).
+    catalogs = await CatalogPlanner.load(
+        session,
+        project_context_id=project_context_id,
+        mapping=mapping or ValidatedMapping(project_context_id=project_context_id, sha256=""),
+        evidence=CatalogEvidence(),
+    )
     components_compared = 0
 
     for equipment_mapping in mappings:
@@ -238,53 +256,40 @@ async def reconcile_domain(
             )
         # Localização: só a EAP canônica é comparável; sem EAP única na origem, o
         # vínculo fica pendente (nunca é divergência inventada).
-        eap = eap_resolver.resolve(normalized.get("area_name"))
+        resolved = await catalogs.resolve(session, normalized)
         fields.append(
             FieldComparison(
                 "eap",
-                _compare(equipment.eap_node_id, eap.eap_node_id)
-                if eap.status == "RESOLVED"
-                else "NOT_COMPARABLE",
+                _compare(equipment.eap_node_id, resolved.eap_node_id),
                 equipment.eap_node_id,
-                eap.eap_node_id if eap.status == "RESOLVED" else eap.raw,
+                resolved.eap_node_id if resolved.eap_node_id is not None else normalized.get("area_name"),
             )
         )
-
-        if mapping is not None:
-            resolved_discipline = mapping.resolve_discipline(normalized.get("discipline_name"))
-            fields.append(
-                FieldComparison(
-                    "discipline",
-                    _compare(equipment.discipline_id, resolved_discipline),
-                    equipment.discipline_id,
-                    resolved_discipline,
-                )
+        fields.append(
+            FieldComparison(
+                "discipline",
+                _compare(equipment.discipline_id, resolved.discipline_id),
+                equipment.discipline_id,
+                resolved.discipline_id,
             )
-            resolved_responsible = mapping.resolve_responsible(normalized.get("responsible_name"))
-            fields.append(
-                FieldComparison(
-                    "responsible",
-                    _compare(equipment.responsible_user_id, resolved_responsible),
-                    equipment.responsible_user_id,
-                    resolved_responsible,
-                )
+        )
+        fields.append(
+            FieldComparison(
+                "responsible",
+                _compare(equipment.responsible_user_id, resolved.responsible_user_id),
+                equipment.responsible_user_id,
+                resolved.responsible_user_id,
             )
-            source_codes = normalized.get("work_package_codes") or []
-            resolved_work_packages = sorted(
-                filter(None, (mapping.resolve_work_package(code) for code in source_codes))
-            )
-            hub_work_packages = sorted(link.work_package_id for link in equipment.work_package_links)
-            fields.append(
-                FieldComparison(
-                    "work_packages",
-                    "MATCH" if hub_work_packages == resolved_work_packages else "MISMATCH",
-                    hub_work_packages,
-                    resolved_work_packages,
-                )
-            )
+        )
+        hub_work_packages = sorted(link.work_package_id for link in equipment.work_package_links)
+        source_work_packages = sorted(resolved.work_package_ids)
+        if not resolved.has_work_package_source or not resolved.work_packages_complete:
+            work_package_status: FieldStatus = "NOT_COMPARABLE"
         else:
-            for field_name in ("discipline", "responsible", "work_packages"):
-                fields.append(FieldComparison(field_name, "PENDING_MAPPING"))
+            work_package_status = "MATCH" if hub_work_packages == source_work_packages else "MISMATCH"
+        fields.append(
+            FieldComparison("work_packages", work_package_status, hub_work_packages, source_work_packages)
+        )
 
         hub_equalized = equipment.negotiation.equalized if equipment.negotiation else None
         fields.append(
@@ -313,6 +318,7 @@ async def reconcile_domain(
                 _compare(
                     equipment.legal_process.ticket_number if equipment.legal_process else None,
                     normalized.get("legal_ticket_number"),
+                    max_length=_length(LegalProcess, "ticket_number"),
                 ),
                 equipment.legal_process.ticket_number if equipment.legal_process else None,
                 normalized.get("legal_ticket_number"),
@@ -324,6 +330,7 @@ async def reconcile_domain(
                 _compare(
                     (equipment.contracts[0].contract_number if equipment.contracts else None),
                     normalized.get("contract_number"),
+                    max_length=_length(Contract, "contract_number"),
                 ),
                 (equipment.contracts[0].contract_number if equipment.contracts else None),
                 normalized.get("contract_number"),
@@ -335,6 +342,7 @@ async def reconcile_domain(
                 _compare(
                     (equipment.purchase_requests[0].request_number if equipment.purchase_requests else None),
                     normalized.get("purchase_request_number"),
+                    max_length=_length(PurchaseRequest, "request_number"),
                 ),
                 (equipment.purchase_requests[0].request_number if equipment.purchase_requests else None),
                 normalized.get("purchase_request_number"),
@@ -347,6 +355,7 @@ async def reconcile_domain(
                 _compare(
                     (equipment.purchase_orders[0].order_number if equipment.purchase_orders else None),
                     normalized.get("purchase_order_number"),
+                    max_length=_length(PurchaseOrder, "order_number"),
                 ),
                 (equipment.purchase_orders[0].order_number if equipment.purchase_orders else None),
                 normalized.get("purchase_order_number"),
@@ -368,6 +377,7 @@ async def reconcile_domain(
             .all()
         )
         component_match = 0
+        component_mismatch = 0
         component_total = len(component_mappings)
         for component_mapping in component_mappings:
             component = next(
@@ -387,16 +397,17 @@ async def reconcile_domain(
             component_status = _compare(component.lead_time_days, component_normalized.get("lead_time_days"))
             if component_status == "MATCH":
                 component_match += 1
-        fields.append(
-            FieldComparison(
-                "components",
-                "MATCH" if component_total and component_match == component_total else (
-                    "NOT_COMPARABLE" if component_total == 0 else "MISMATCH"
-                ),
-                component_match,
-                component_total,
-            )
-        )
+            elif component_status == "MISMATCH":
+                component_mismatch += 1
+        # Divergência só quando algum componente diverge de fato; componente sem valor
+        # na origem (não comparável) não é divergência.
+        if component_mismatch:
+            components_status: FieldStatus = "MISMATCH"
+        elif component_match:
+            components_status = "MATCH"
+        else:
+            components_status = "NOT_COMPARABLE"
+        fields.append(FieldComparison("components", components_status, component_match, component_total))
 
         report.equipments.append(
             EquipmentReconciliation(equipment.id, equipment.name, equipment_mapping.external_id, fields)

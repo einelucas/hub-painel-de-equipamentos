@@ -23,6 +23,7 @@ from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.scope import assert_context_allowed
 from app.models.monday_import import MondayImportBatch, MondayImportIssue, MondayImportRecord
 from app.modules.imports.schemas import (
+    CatalogItemOut,
     EapSummaryOut,
     ImportApplyOut,
     ImportBatchOut,
@@ -37,9 +38,16 @@ from app.modules.imports.schemas import (
     PlanBlockedOut,
     PlanGroupOut,
     PlanIssueOut,
+    ResponsibleSummaryOut,
     SourceValuesOut,
 )
-from app.modules.monday_import.apply import PlanBlockedError, PlanStaleError, apply_plan
+from app.modules.monday_import.apply import (
+    PlanBlockedError,
+    PlanStaleError,
+    apply_plan,
+)
+from app.modules.monday_import.catalog_planner import CatalogPlanItem
+from app.modules.monday_import.catalog_sources import default_catalog_evidence
 from app.modules.monday_import.domain_reconciliation import reconcile_domain
 from app.modules.monday_import.eap_resolution import EapResolver
 from app.modules.monday_import.mapping_file import MappingFileSchema, ValidatedMapping, validate_mapping
@@ -236,8 +244,13 @@ async def _summary(
 
 
 async def _locations(session: AsyncSession, values: list[Any]) -> list[LocationValueOut]:
-    """Valores de localização distintos e a EAP resolvida automaticamente (sem mapping)."""
-    resolver = await EapResolver.load(session)
+    """Valores de localização distintos e a EAP resolvida automaticamente (sem mapping),
+    com as mesmas evidências do plan (catálogo oficial, rótulos do Monday, LGE)."""
+    evidence = default_catalog_evidence(
+        [{"area_name": value} for value in values if isinstance(value, str)],
+        ValidatedMapping(project_context_id="", sha256=""),
+    )
+    resolver = await EapResolver.load(session, evidence=evidence)
     counts: Counter[str] = Counter()
     originals: dict[str, str] = {}
     for value in values:
@@ -249,6 +262,7 @@ async def _locations(session: AsyncSession, values: list[Any]) -> list[LocationV
     for key in sorted(counts):
         resolution = resolver.resolve(originals[key])
         node = resolution.node
+        planned = resolution.creates[-1] if resolution.creates else None
         result.append(
             LocationValueOut(
                 value=originals[key],
@@ -258,9 +272,38 @@ async def _locations(session: AsyncSession, values: list[Any]) -> list[LocationV
                 eap_code=node.code if node else None,
                 eap_name=node.name if node else None,
                 equipments=counts[key],
+                planned_eap_code=planned.code if planned else None,
+                planned_eap_name=planned.name if planned else None,
+                evidence_source=planned.evidence_source if planned else None,
+                issue_code=resolution.issue_code,
+                issue_message=resolution.issue_message,
             )
         )
     return result
+
+
+def _catalog_item_out(item: CatalogPlanItem) -> CatalogItemOut:
+    payload = item.payload
+    if item.kind == "eap_node" and payload.get("name"):
+        label = f"{item.key} · {payload['name']}"
+    elif item.kind == "discipline" and payload.get("code"):
+        label = f"{item.key} ({payload['code']})"
+    elif item.kind == "work_package" and payload.get("name"):
+        label = f"{item.key} · {payload['name']}"
+    elif item.kind == "supplier" and payload.get("legal_name"):
+        label = f"{item.key} · {payload['legal_name']}"
+    else:
+        label = item.key
+    return CatalogItemOut(
+        kind=item.kind,
+        key=item.key,
+        action=item.action.value,
+        label=label,
+        evidence_source=item.evidence_source,
+        issue_code=item.issue_code,
+        message=item.message,
+        detail=dict(item.detail),
+    )
 
 
 # --- mapping + plan (conjunto de batches) ----------------------------------------------
@@ -380,12 +423,28 @@ async def plan_batches(
         groups=groups,
         blocked=blocked,
         warnings=[PlanIssueOut(code=issue.code, message=issue.message) for issue in plan.warnings],
+        equipment_warnings=[
+            PlanBlockedOut(
+                group=_GROUP_LABELS.get("equipments", "equipments"),
+                source_key=item.source_key,
+                label=labels.get(item.source_key, item.source_key),
+                issues=[PlanIssueOut(code=issue.code, message=issue.message) for issue in item.issues],
+            )
+            for item in plan.equipments
+            if item.action != "BLOCKED" and item.issues
+        ],
+        catalog_counts=plan.catalog_counts,
         eap=EapSummaryOut(
             resolved=plan.eap_summary.get("RESOLVED", 0),
             multiple=plan.eap_summary.get("MULTIPLE", 0),
             none=plan.eap_summary.get("NONE", 0),
             not_found=plan.eap_summary.get("NOT_FOUND", 0),
+            create=plan.eap_summary.get("CREATE", 0),
+            conflict=plan.eap_summary.get("CONFLICT", 0),
+            unresolved=plan.eap_summary.get("UNRESOLVED", 0),
         ),
+        catalogs=[_catalog_item_out(item) for item in plan.catalog_items],
+        responsibles=ResponsibleSummaryOut(**plan.responsible_summary),
         has_blocked=plan.has_blocked,
         can_apply=not plan.has_blocked and not validated.has_errors,
     )

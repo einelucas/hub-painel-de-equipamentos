@@ -339,7 +339,7 @@ class EquipmentComponent(Base):
 
     id: Mapped[str] = uuid_pk()
     equipment_id: Mapped[str] = mapped_column(ForeignKey("equipment.id", ondelete="CASCADE"), nullable=False)
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
     tag: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # Startup do componente, observado por subitem na origem Monday. Não é
     # preenchido a partir de `equipment.startup_at`: quando o componente tem

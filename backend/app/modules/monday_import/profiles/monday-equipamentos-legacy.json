@@ -93,7 +93,11 @@
         "z.0.Área (texto antigo)"
       ],
       "work_package_codes": [
-        "Work Package"
+        "Work Package",
+        "Work Packages"
+      ],
+      "external_id": [
+        "ID do elemento"
       ],
       "equalized": [
         "1.Equalização"
@@ -181,7 +185,7 @@
       "Projeto",
       "Unidade"
     ],
-    "external_id_concept": null
+    "external_id_concept": "external_id"
   },
   "component": {
     "header_markers": [
