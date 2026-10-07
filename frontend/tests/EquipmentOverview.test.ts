@@ -6,6 +6,12 @@ import type { Equipment } from "~/types/equipment";
 const equipment = {
   id: "eq-1",
   name: "Turbina",
+  origin: null,
+  startupAt: null,
+  criticality: null,
+  currentStage: 0,
+  stageName: "Nova demanda",
+  capexEstimated: null,
   unit: { id: "u1", name: "Nova Mutum" },
   projectContext: { id: "c1", code: "C4", name: "Caldeira 4" },
   eapNode: {
@@ -17,16 +23,30 @@ const equipment = {
   },
   area: null,
   discipline: null,
+  workPackage: null,
   workPackages: [],
   responsibleUser: null,
   supplier: null,
-  startupAt: null,
-  criticality: null,
-  capexEstimated: null,
+  operationalStatus: "ACTIVE",
   projectTotalValue: null,
   contractualDeliveryStart: null,
   contractualDeliveryEnd: null,
-} as Equipment;
+  componentsCount: 0,
+  calculated: {
+    maxLeadTimeDays: null,
+    maxPreStartDays: null,
+    maxFreightDays: null,
+    deliveryDeadline: null,
+    contractOrderDeadline: null,
+    negotiationDeadline: null,
+    negotiationDaysRemaining: null,
+    negotiationStatus: null,
+    workNeedDaysRemaining: null,
+    workNeedStatus: null,
+  },
+  createdAt: "2026-10-07T00:00:00Z",
+  updatedAt: "2026-10-07T00:00:00Z",
+} satisfies Equipment;
 
 describe("EquipmentOverview", () => {
   it("mostra a localização canônica da Árvore EAP no resumo", () => {
