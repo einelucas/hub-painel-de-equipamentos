@@ -110,15 +110,15 @@ describe("EquipmentForm", () => {
     await settle(wrapper);
 
     const eapSelect = wrapper.get("[data-testid='eap-node-select']");
-    expect((eapSelect.element as HTMLSelectElement).value).toBe("eap-area");
-    expect(eapSelect.text()).toContain("04 · Geração de Energia");
-    expect(eapSelect.text()).toContain("04.A · Casa de Força");
-    expect(eapSelect.text()).not.toContain("UTI · Utilidades");
+    expect((eapSelect.element as HTMLInputElement).value).toBe("04.A · Casa de Força");
+    await eapSelect.trigger("focus");
+    const eapMenu = wrapper.get("[role='listbox']");
+    expect(eapMenu.text()).toContain("04 · Geração de Energia");
+    expect(eapMenu.text()).toContain("04.A · Casa de Força");
+    expect(eapMenu.text()).not.toContain("UTI · Utilidades");
 
-    const checked = wrapper
-      .findAll("input[type='checkbox']")
-      .filter((input) => (input.element as HTMLInputElement).checked);
-    expect(checked).toHaveLength(6);
+    expect(wrapper.findAll("[aria-label^='Remover CAL']")).toHaveLength(3);
+    expect(wrapper.findAll("[aria-label^='Remover CIV']")).toHaveLength(3);
 
     await wrapper.get("form").trigger("submit");
     expect(patch).toHaveBeenCalledWith(

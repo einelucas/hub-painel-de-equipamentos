@@ -87,7 +87,12 @@ describe("EquipmentSuppliers", () => {
     await wrapper.get("[data-testid='replace-supplier']").trigger("click");
     await new Promise((resolve) => setTimeout(resolve));
     await wrapper.vm.$nextTick();
-    await wrapper.get("select").setValue("s-2");
+    await wrapper.get("[role='combobox']").trigger("focus");
+    const replacement = wrapper
+      .findAll("[role='option']")
+      .find((option) => option.text().includes("Secundária SA"));
+    expect(replacement).toBeDefined();
+    await replacement!.trigger("mousedown");
     await wrapper.get("form").trigger("submit");
 
     expect(put).toHaveBeenCalledWith("/equipments/eq-1/suppliers", {

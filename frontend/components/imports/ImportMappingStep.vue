@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import { MAPPING_SECTIONS } from "~/composables/useEquipmentImport";
 import { useImportState } from "~/composables/useImportState";
 import type { EapLocationStatus, ImportLocationValue, MappingSection } from "~/types/imports";
@@ -39,9 +40,6 @@ function automaticLabel(location: ImportLocationValue): string {
   return "Sem EAP (pendente)";
 }
 
-function onSelect(section: MappingSection, source: string, event: Event): void {
-  setMapping(section, source, (event.target as HTMLSelectElement).value);
-}
 </script>
 
 <template>
@@ -68,15 +66,15 @@ function onSelect(section: MappingSection, source: string, event: Event): void {
       <div v-for="value in section.values" :key="value" class="mapping-row">
         <span class="mapping-source" :title="value">{{ value }}</span>
         <span aria-hidden="true">→</span>
-        <select
-          :value="mapping[section.key][value] ?? ''"
-          :aria-label="`${section.label}: ${value}`"
-          :data-testid="`mapping-select-${section.key}`"
-          @change="onSelect(section.key, value, $event)"
-        >
-          <option value="">Automático (existente, novo ou pendente)</option>
-          <option v-for="option in section.options" :key="option.id" :value="option.id">{{ option.label }}</option>
-        </select>
+        <SearchableSelect
+          :model-value="mapping[section.key][value] ?? ''"
+          :options="section.options"
+          :label="`${section.label}: ${value}`"
+          placeholder="Digite para buscar"
+          empty-label="Automático (existente, novo ou pendente)"
+          :test-id="`mapping-select-${section.key}`"
+          @update:model-value="setMapping(section.key, value, $event)"
+        />
       </div>
     </section>
 
@@ -97,15 +95,15 @@ function onSelect(section: MappingSection, source: string, event: Event): void {
           </small>
         </span>
         <span aria-hidden="true">→</span>
-        <select
-          :value="mapping.eapNodes[location.value] ?? ''"
-          :aria-label="`EAP: ${location.value}`"
-          data-testid="mapping-select-eapNodes"
-          @change="onSelect('eapNodes', location.value, $event)"
-        >
-          <option value="">{{ automaticLabel(location) }}</option>
-          <option v-for="option in options.eapNodes" :key="option.id" :value="option.id">{{ option.label }}</option>
-        </select>
+        <SearchableSelect
+          :model-value="mapping.eapNodes[location.value] ?? ''"
+          :options="options.eapNodes"
+          :label="`EAP: ${location.value}`"
+          placeholder="Buscar por código ou nome"
+          :empty-label="automaticLabel(location)"
+          test-id="mapping-select-eapNodes"
+          @update:model-value="setMapping('eapNodes', location.value, $event)"
+        />
       </div>
     </section>
 
@@ -124,7 +122,7 @@ function onSelect(section: MappingSection, source: string, event: Event): void {
 .mapping-section h4 { margin: 0; color: #2b3e58; font-size: 12px; font-weight: 800; }
 .mapping-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; color: #65748a; font-size: 12px; }
 .mapping-source { display: grid; overflow: hidden; color: #2b3e58; font-weight: 700; text-overflow: ellipsis; }
-.mapping-row select { min-width: 0; }
+.mapping-row > :last-child { min-width: 0; }
 .eap-status { font-size: 10.5px; font-weight: 700; }
 .eap-status--resolved { color: #477a32; }
 .eap-status--create { color: #2d5c9a; }

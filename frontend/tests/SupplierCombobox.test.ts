@@ -30,14 +30,14 @@ describe("SupplierCombobox", () => {
     await wrapper.get("input").trigger("focus");
     expect(wrapper.findAll("[role='option']").map((item) => item.text())).toEqual([
       "Manter sem fornecedor",
-      "Alfa EngenhariaCódigo 1001",
-      "Zeta IndustrialCódigo 9002",
+      "1001 · Alfa Engenharia",
+      "9002 · Zeta Industrial",
     ]);
 
     await wrapper.get("input").setValue("9002");
     expect(wrapper.findAll("[role='option']").map((item) => item.text())).toEqual([
       "Manter sem fornecedor",
-      "Zeta IndustrialCódigo 9002",
+      "9002 · Zeta Industrial",
     ]);
 
     await wrapper.get("[aria-label='Abrir Fornecedor']").trigger("click");

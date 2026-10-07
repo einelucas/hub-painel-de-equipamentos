@@ -315,14 +315,28 @@ describe("Importar equipamentos", () => {
     expect(wrapper.find("[data-testid='mapping-disciplines']").exists()).toBe(false); // sem valores na origem
     expect(get).toHaveBeenCalledWith("/eap-nodes", { active: true });
     expect(get).not.toHaveBeenCalledWith("/areas", expect.anything()); // Area não é destino da localização
-    await wrapper.get("[data-testid='mapping-select-responsibles']").setValue("user-a");
+    const responsibleSelect = wrapper.get("[data-testid='mapping-select-responsibles']");
+    await responsibleSelect.trigger("focus");
+    const responsibleOption = wrapper
+      .findAll("[role='option']")
+      .find((option) => option.text().includes("Usuário Sintético A"));
+    expect(responsibleOption).toBeDefined();
+    await responsibleOption!.trigger("mousedown");
 
     // EAP: valor com código único resolve sozinho; sem código fica pendente até escolha explícita
     const eapSection = wrapper.get("[data-testid='mapping-eapNodes']");
-    expect(eapSection.get("[data-testid='eap-row-RESOLVED']").text()).toContain("Automático: 03 · Sistema Sintético");
-    expect(eapSection.get("[data-testid='eap-row-NONE']").text()).toContain("Sem EAP (pendente)");
+    expect(
+      eapSection.get("[data-testid='eap-row-RESOLVED'] [role='combobox']").attributes("placeholder"),
+    ).toBe("Automático: 03 · Sistema Sintético");
+    const pendingEap = eapSection.get("[data-testid='eap-row-NONE'] [role='combobox']");
+    expect(pendingEap.attributes("placeholder")).toBe("Sem EAP (pendente)");
+    await pendingEap.trigger("focus");
     expect(eapSection.text()).not.toContain("Ilha Sintética"); // ilha não é elegível para equipamento
-    await eapSection.get("[data-testid='eap-row-NONE'] select").setValue("eap-19");
+    const eapOption = eapSection
+      .findAll("[role='option']")
+      .find((option) => option.text().includes("19 · Outro Sistema Sintético"));
+    expect(eapOption).toBeDefined();
+    await eapOption!.trigger("mousedown");
     await wrapper.get("[data-testid='import-build-plan']").trigger("click");
     await settle(wrapper);
 

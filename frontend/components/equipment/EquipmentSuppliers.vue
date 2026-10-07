@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { RefreshCw, Trash2 } from "lucide-vue-next";
+import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
 import type { CatalogList, EquipmentSupplier, Supplier } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
 
@@ -166,15 +167,16 @@ onMounted(load);
         <p v-if="current" class="link-hint">
           O vínculo atual com <strong>{{ current.supplier.legalName }}</strong> será substituído.
         </p>
-        <label class="field">
+        <div class="field">
           <span>Fornecedor *</span>
-          <select v-model="chosen" required>
-            <option value="">Selecione</option>
-            <option v-for="item in available" :key="item.id" :value="item.id">
-              {{ item.legalName }}
-            </option>
-          </select>
-        </label>
+          <SupplierCombobox
+            v-model="chosen"
+            :suppliers="available"
+            label="Fornecedor"
+            empty-label="Selecione"
+            empty-value=""
+          />
+        </div>
         <p v-if="available.length === 0" class="link-hint">
           Nenhum fornecedor disponível. Cadastre um em
           <NuxtLink to="/fornecedores">Fornecedores</NuxtLink>.
