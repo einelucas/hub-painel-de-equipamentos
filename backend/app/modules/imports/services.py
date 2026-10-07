@@ -395,6 +395,7 @@ async def _supplier_suggestions(
                 confidence=suggestion.confidence if suggestion else "NONE",
                 evidence=suggestion.evidence if suggestion else ["Nenhuma evidência controlada encontrada."],
                 requires_registration=suggestion.requires_registration if suggestion else False,
+                source_matched=suggestion.source_matched if suggestion else False,
                 selected_action=selected.action if selected else None,
                 selected_supplier_id=selected.supplier_id if selected else None,
             )

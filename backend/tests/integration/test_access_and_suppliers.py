@@ -255,11 +255,23 @@ async def test_equipments_filter_by_responsible(client, auth_header) -> None:
 async def test_supplier_crud_and_tax_id_uniqueness(client, auth_header, db_session) -> None:
     created = await client.post(
         "/api/v1/suppliers",
-        json={"legalName": "Fornecedora Teste LTDA", "taxId": "11222333000199"},
+        json={
+            "corporateCode": "FOR-9001",
+            "legalName": "Fornecedora Teste LTDA",
+            "taxId": "11222333000199",
+        },
         headers=auth_header("ANALYST"),
     )
     assert created.status_code == 201
     supplier_id = created.json()["id"]
+
+    for search in ("FOR-9001", "11222333000199", "Fornecedora Teste"):
+        found = (
+            await client.get(
+                f"/api/v1/suppliers?search={search}", headers=auth_header("VIEWER")
+            )
+        ).json()
+        assert [item["id"] for item in found["items"]] == [supplier_id]
 
     duplicated = await client.post(
         "/api/v1/suppliers",

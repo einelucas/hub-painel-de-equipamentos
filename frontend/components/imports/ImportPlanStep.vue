@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import ImportCatalogSummary from "~/components/imports/ImportCatalogSummary.vue";
+import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
 import { useImportState } from "~/composables/useImportState";
 
 /**
@@ -41,9 +42,15 @@ function selectionValue(item: (typeof supplierSuggestions.value)[number]): strin
   return item.selectedSupplierId ?? "";
 }
 
-function changeSupplier(sourceKey: string, event: Event): void {
-  setSupplierSelection(sourceKey, (event.target as HTMLSelectElement).value);
+function useRecommended(item: (typeof supplierSuggestions.value)[number]): void {
+  if (item.supplierId) setSupplierSelection(item.sourceKey, item.supplierId);
 }
+
+function useAllRecommended(): void {
+  for (const item of supplierSuggestions.value) useRecommended(item);
+}
+
+const hasRecommendations = computed(() => supplierSuggestions.value.some((item) => item.supplierId));
 </script>
 
 <template>
@@ -98,9 +105,14 @@ function changeSupplier(sourceKey: string, event: Event): void {
         <div class="supplier-review-header">
           <div>
             <h4>Revisão de fornecedores</h4>
-            <p>Sugestões nunca são vinculadas sem uma escolha explícita.</p>
+            <p>Correspondências exatas da origem vêm pré-selecionadas; recomendações históricas continuam sob sua revisão.</p>
           </div>
-          <NuxtLink class="btn" to="/fornecedores">+ Cadastrar fornecedor</NuxtLink>
+          <div class="supplier-review-actions">
+            <button type="button" class="btn" :disabled="!hasRecommendations" @click="useAllRecommended">
+              Usar recomendado em todos
+            </button>
+            <NuxtLink class="btn" to="/fornecedores">+ Cadastrar fornecedor</NuxtLink>
+          </div>
         </div>
         <article v-for="item in supplierSuggestions" :key="item.sourceKey" class="supplier-suggestion">
           <div>
@@ -112,18 +124,22 @@ function changeSupplier(sourceKey: string, event: Event): void {
             <small v-for="evidence in item.evidence" :key="evidence">{{ evidence }}</small>
             <small v-if="item.requiresRegistration">Referência ainda não cadastrada como Supplier global.</small>
           </div>
-          <select
-            :value="selectionValue(item)"
-            :aria-label="`Decisão de fornecedor para ${item.equipmentName}`"
-            @change="changeSupplier(item.sourceKey, $event)"
-          >
-            <option value="">Sem decisão — não vincular</option>
-            <option v-if="item.supplierId" :value="item.supplierId">Usar sugerido: {{ item.supplierName }}</option>
-            <option value="__NONE__">Manter sem fornecedor</option>
-            <option v-for="supplier in suppliers.filter((entry) => entry.id !== item.supplierId)" :key="supplier.id" :value="supplier.id">
-              {{ supplier.corporateCode ? `${supplier.corporateCode} · ` : "" }}{{ supplier.legalName }}
-            </option>
-          </select>
+          <div class="supplier-choice">
+            <button
+              type="button"
+              class="recommended-button"
+              :disabled="!item.supplierId"
+              @click="useRecommended(item)"
+            >
+              Usar recomendado
+            </button>
+            <SupplierCombobox
+              :model-value="selectionValue(item)"
+              :suppliers="suppliers"
+              :label="`Decisão de fornecedor para ${item.equipmentName}`"
+              @update:model-value="setSupplierSelection(item.sourceKey, $event)"
+            />
+          </div>
         </article>
         <button v-if="mappingDirty" type="button" class="btn" :disabled="busy" @click="buildPlan">
           Atualizar plano com as decisões
@@ -192,17 +208,25 @@ function changeSupplier(sourceKey: string, event: Event): void {
 .plan-list li { display: grid; gap: 1px; }
 .supplier-review { display: grid; gap: 9px; border: 1px solid #dfe7f1; border-radius: 10px; padding: 11px; }
 .supplier-review-header { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.supplier-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .supplier-review h4, .supplier-review p { margin: 0; }
 .supplier-review p { color: #718096; font-size: 11px; }
 .supplier-suggestion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 0.55fr); gap: 12px; border-top: 1px solid #edf1f5; padding-top: 9px; }
 .supplier-suggestion > div { display: grid; gap: 2px; color: #52657c; font-size: 12px; }
 .supplier-suggestion strong { color: #263d5d; }
 .supplier-suggestion small { color: #7a879a; }
+.supplier-choice { display: grid; align-content: start; gap: 6px; }
+.recommended-button { justify-self: end; border: 0; padding: 2px 1px; background: transparent; color: #315889; font-size: 11px; font-weight: 750; cursor: pointer; }
+.recommended-button:disabled { color: #9aa6b5; cursor: default; }
 .issue-meta { color: #7a879a; font-size: 11px; }
 .confirm { border: 1px solid #e4e9f0; border-radius: 10px; padding: 10px 12px; background: #f8fafc; }
 .confirm dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; gap: 6px 12px; }
 .confirm dt { color: #7a879a; font-size: 11px; }
 .confirm dd { margin: 0; color: #2b3e58; font-size: 12.5px; font-weight: 750; overflow-wrap: anywhere; }
 .import-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-@media (max-width: 620px) { .confirm dl { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) {
+  .confirm dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .supplier-review-header, .supplier-suggestion { grid-template-columns: 1fr; flex-direction: column; }
+  .supplier-review-actions { justify-content: flex-start; }
+}
 </style>

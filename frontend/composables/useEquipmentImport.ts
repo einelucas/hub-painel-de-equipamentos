@@ -13,6 +13,7 @@ import type {
   ImportSourceValues,
   MappingSection,
 } from "~/types/imports";
+import { sortSuppliers } from "~/utils/suppliers";
 
 /**
  * Estado do wizard "Importar equipamentos" enquanto o modal está aberto.
@@ -203,7 +204,7 @@ export function useEquipmentImport() {
         api.get<CatalogList<EapNodeItem>>("/eap-nodes", { active: true }),
         api.get<CatalogList<Supplier>>("/suppliers"),
       ]);
-      suppliers.value = supplierList.items;
+      suppliers.value = sortSuppliers(supplierList.items);
       const label = (item: CatalogItem) => (item.code ? `${item.code} · ${item.name}` : item.name);
       options.value = {
         responsibles: responsibles.items.map((item) => ({ id: item.id, label: item.name })),
@@ -251,7 +252,28 @@ export function useEquipmentImport() {
     error.value = "";
     stale.value = false;
     try {
-      plan.value = await api.post<ImportPlan>(`${BASE}/plan`, { batchIds: batchIds(), mapping: mapping.value });
+      let nextPlan = await api.post<ImportPlan>(`${BASE}/plan`, {
+        batchIds: batchIds(),
+        mapping: mapping.value,
+      });
+      const automaticSelections = (nextPlan.supplierSuggestions ?? []).filter(
+        (item) =>
+          item.sourceMatched &&
+          item.supplierId &&
+          !(item.sourceKey in mapping.value.supplierSelections),
+      );
+      if (automaticSelections.length) {
+        const supplierSelections = { ...mapping.value.supplierSelections };
+        for (const item of automaticSelections) {
+          supplierSelections[item.sourceKey] = { action: "USE", supplierId: item.supplierId! };
+        }
+        mapping.value = { ...mapping.value, supplierSelections };
+        nextPlan = await api.post<ImportPlan>(`${BASE}/plan`, {
+          batchIds: batchIds(),
+          mapping: mapping.value,
+        });
+      }
+      plan.value = nextPlan;
       mappingDirty.value = false;
       step.value = "plan";
     } catch (caught) {

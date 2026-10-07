@@ -130,6 +130,7 @@ export interface SupplierSuggestion {
   confidence: "HIGH" | "MEDIUM" | "LOW" | "NONE";
   evidence: string[];
   requiresRegistration: boolean;
+  sourceMatched: boolean;
   selectedAction: "USE" | "NONE" | null;
   selectedSupplierId: string | null;
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Pencil, Plus, Search } from "lucide-vue-next";
 import type { CatalogList, Supplier } from "~/types/equipment";
+import { formatCnpj, normalizeCnpj, sortSuppliers } from "~/utils/suppliers";
 
 definePageMeta({ middleware: "auth" });
 const api = useApi();
@@ -15,7 +16,7 @@ const search = ref("");
 const includeInactive = ref(false);
 const showForm = ref(false);
 const editing = ref<Supplier | null>(null);
-const form = reactive({ legalName: "", tradeName: "", taxId: "", active: true });
+const form = reactive({ corporateCode: "", legalName: "", tradeName: "", taxId: "", active: true });
 
 const allowed = computed(() => auth.can("suppliers:read"));
 const canWrite = computed(() => auth.can("suppliers:write"));
@@ -27,7 +28,7 @@ async function load(): Promise<void> {
     const query: Record<string, unknown> = {};
     if (search.value.trim()) query.search = search.value.trim();
     if (includeInactive.value) query.includeInactive = true;
-    suppliers.value = (await api.get<CatalogList<Supplier>>("/suppliers", query)).items;
+    suppliers.value = sortSuppliers((await api.get<CatalogList<Supplier>>("/suppliers", query)).items);
   } catch (caught) {
     error.value =
       caught instanceof Error ? caught.message : "Não foi possível carregar os fornecedores.";
@@ -39,7 +40,7 @@ async function load(): Promise<void> {
 function openCreate(): void {
   editing.value = null;
   formError.value = "";
-  Object.assign(form, { legalName: "", tradeName: "", taxId: "", active: true });
+  Object.assign(form, { corporateCode: "", legalName: "", tradeName: "", taxId: "", active: true });
   showForm.value = true;
 }
 
@@ -47,6 +48,7 @@ function openEdit(supplier: Supplier): void {
   editing.value = supplier;
   formError.value = "";
   Object.assign(form, {
+    corporateCode: supplier.corporateCode ?? "",
     legalName: supplier.legalName,
     tradeName: supplier.tradeName ?? "",
     taxId: supplier.taxId ?? "",
@@ -63,9 +65,10 @@ async function submit(): Promise<void> {
   saving.value = true;
   formError.value = "";
   const payload = {
+    corporateCode: form.corporateCode.trim() || null,
     legalName: form.legalName.trim(),
     tradeName: form.tradeName.trim() || null,
-    taxId: form.taxId.trim() || null,
+    taxId: normalizeCnpj(form.taxId),
   };
   try {
     if (editing.value) {
@@ -107,7 +110,7 @@ onMounted(() => {
           <form class="field" @submit.prevent="load">
             <span>Busca</span>
             <div class="search-control">
-              <input v-model="search" placeholder="Razão social ou nome fantasia">
+              <input v-model="search" placeholder="Código, razão social, nome fantasia ou CNPJ">
               <button class="btn" type="submit"><Search :size="16" /> Buscar</button>
             </div>
           </form>
@@ -125,7 +128,7 @@ onMounted(() => {
 
       <section class="surface">
         <div class="surface-header">
-          <div><h2>Cadastro</h2><p>{{ suppliers.length }} fornecedor(es) listado(s).</p></div>
+          <div><h2>Cadastro de fornecedores</h2><p>{{ suppliers.length }} fornecedor(es) em ordem alfabética.</p></div>
         </div>
         <div v-if="loading" class="list-state"><span class="spinner" /> Carregando fornecedores...</div>
         <div v-else-if="error" class="empty-state table-empty" role="alert">
@@ -140,18 +143,20 @@ onMounted(() => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Código</TableHead>
                 <TableHead>Razão social</TableHead>
                 <TableHead>Nome fantasia</TableHead>
-                <TableHead>Documento</TableHead>
+                <TableHead>CNPJ</TableHead>
                 <TableHead>Situação</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-for="supplier in suppliers" :key="supplier.id">
-                <TableCell class="font-semibold">{{ supplier.legalName }}</TableCell>
+                <TableCell><span class="supplier-code">{{ supplier.corporateCode ?? "—" }}</span></TableCell>
+                <TableCell class="font-semibold supplier-name">{{ supplier.legalName }}</TableCell>
                 <TableCell>{{ supplier.tradeName ?? "—" }}</TableCell>
-                <TableCell>{{ supplier.taxId ?? "—" }}</TableCell>
+                <TableCell class="cnpj">{{ formatCnpj(supplier.taxId) }}</TableCell>
                 <TableCell>
                   <span class="status" :class="supplier.active ? 'status--on' : 'status--off'">
                     {{ supplier.active ? "Ativo" : "Inativo" }}
@@ -171,9 +176,10 @@ onMounted(() => {
 
     <AppModal :open="showForm" :title="editing ? 'Editar fornecedor' : 'Novo fornecedor'" @close="showForm = false">
       <form class="supplier-form" @submit.prevent="submit">
+        <label class="field"><span>Código do fornecedor</span><input v-model="form.corporateCode" maxlength="20" placeholder="Ex.: 9001"></label>
         <label class="field"><span>Razão social *</span><input v-model="form.legalName" maxlength="200" required></label>
         <label class="field"><span>Nome fantasia</span><input v-model="form.tradeName" maxlength="200"></label>
-        <label class="field"><span>Documento</span><input v-model="form.taxId" maxlength="32" placeholder="Opcional"></label>
+        <label class="field"><span>CNPJ</span><input v-model="form.taxId" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00" @blur="form.taxId = formatCnpj(form.taxId) === '—' ? '' : formatCnpj(form.taxId)"></label>
         <label v-if="editing" class="field field-check">
           <input v-model="form.active" type="checkbox"><span>Fornecedor ativo</span>
         </label>
@@ -199,6 +205,9 @@ onMounted(() => {
 .filter-actions { display: flex; gap: 8px; }
 .list-state { display: flex; min-height: 200px; align-items: center; justify-content: center; gap: 12px; color: #748197; }
 .table-wrap { padding: 0 18px 18px; overflow-x: auto; }
+.supplier-code { display: inline-flex; border-radius: 6px; padding: 3px 7px; background: #eef4fb; color: #315889; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.supplier-name { min-width: 220px; color: #263d5d; }
+.cnpj { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .table-empty { margin: auto; padding-bottom: 28px; }
 .status { border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 750; }
 .status--on { background: #eaf4e5; color: #477a32; }

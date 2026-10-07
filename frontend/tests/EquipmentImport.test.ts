@@ -374,6 +374,7 @@ describe("Importar equipamentos", () => {
               confidence: "HIGH",
               evidence: ["Código corporativo exato."],
               requiresRegistration: false,
+              sourceMatched: false,
               selectedAction: null,
               selectedSupplierId: null,
             },
@@ -386,9 +387,16 @@ describe("Importar equipamentos", () => {
     const review = wrapper.get("[data-testid='supplier-review']");
     expect(review.text()).toContain("Origem: 9001");
     expect(review.text()).toContain("Confiança HIGH");
-    await review.get("select").setValue("supplier-1");
+    await review.get("[role='combobox']").trigger("focus");
+    const supplierOption = review
+      .findAll("[role='option']")
+      .find((option) => option.text().includes("Fornecedor Sintético SA"));
+    expect(supplierOption).toBeDefined();
+    await supplierOption!.trigger("mousedown");
     expect((wrapper.get("[data-testid='import-confirm']").element as HTMLButtonElement).disabled).toBe(true);
-    await review.get("button").trigger("click");
+    const updatePlan = review.findAll("button").find((button) => button.text().includes("Atualizar plano"));
+    expect(updatePlan).toBeDefined();
+    await updatePlan!.trigger("click");
     await settle(wrapper);
 
     expect(post).toHaveBeenLastCalledWith("/imports/monday/plan", {
@@ -399,6 +407,49 @@ describe("Importar equipamentos", () => {
         },
       }),
     });
+  });
+
+  it("pré-seleciona correspondência exata da origem e reconstrói o plano", async () => {
+    let calls = 0;
+    const { post } = setup(["equipments:write"], {
+      plan: async () => {
+        calls += 1;
+        return plan({
+          supplierSuggestions: [
+            {
+              sourceKey: "normalized-name:compressor",
+              equipmentName: "Compressor",
+              sourceValue: "9001",
+              supplierId: "supplier-1",
+              supplierName: "Fornecedor Sintético SA",
+              corporateCode: "9001",
+              confidence: "HIGH",
+              evidence: ["Código corporativo exato."],
+              requiresRegistration: false,
+              sourceMatched: true,
+              selectedAction: calls > 1 ? "USE" : null,
+              selectedSupplierId: calls > 1 ? "supplier-1" : null,
+            },
+          ],
+        });
+      },
+    });
+    const wrapper = mountButton();
+    await goToPlan(wrapper);
+
+    expect(calls).toBe(2);
+    expect(post).toHaveBeenLastCalledWith("/imports/monday/plan", {
+      batchIds: ["b-1"],
+      mapping: expect.objectContaining({
+        supplierSelections: {
+          "normalized-name:compressor": { action: "USE", supplierId: "supplier-1" },
+        },
+      }),
+    });
+    expect(wrapper.get("[role='combobox']").element).toHaveProperty(
+      "value",
+      "9001 · Fornecedor Sintético SA",
+    );
   });
 
   it("confirmação mostra o resumo e aplica com o hash do plano", async () => {

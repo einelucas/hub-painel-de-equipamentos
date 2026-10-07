@@ -1,4 +1,4 @@
-"""Sugestões transparentes de fornecedor, sem fuzzy e sem vínculo automático."""
+"""Sugestões transparentes de fornecedor, sem reconciliação fuzzy."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ class SupplierSuggestion:
     evidence: list[str] = field(default_factory=list)
     source_value: str | None = None
     requires_registration: bool = False
+    source_matched: bool = False
 
 
 class SupplierSuggestionResolver:
@@ -135,6 +136,7 @@ class SupplierSuggestionResolver:
                 "HIGH",
                 [f"Fornecedor informado na origem reconciliado por {source_reason}."],
                 source_value,
+                source_matched=True,
             )
 
         key = canonical_text(equipment_name)

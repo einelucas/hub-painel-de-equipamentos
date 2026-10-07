@@ -192,7 +192,7 @@ async def test_unmapped_catalog_values_warn_without_blocking(client, auth_header
     assert "unmapped_area" not in codes  # Area não é mais destino da localização
 
 
-async def test_supplier_from_source_is_only_a_high_confidence_suggestion(
+async def test_supplier_from_source_is_an_exact_preselectable_suggestion(
     client, auth_header, db_session
 ) -> None:
     ids = await seed(client, auth_header, db_session)
@@ -211,6 +211,7 @@ async def test_supplier_from_source_is_only_a_high_confidence_suggestion(
     assert suggestion["sourceValue"] == "9001"
     assert suggestion["supplierId"] == supplier.id
     assert suggestion["confidence"] == "HIGH"
+    assert suggestion["sourceMatched"] is True
     assert suggestion["selectedAction"] is None
 
 
@@ -250,6 +251,7 @@ async def test_import_without_supplier_uses_history_but_no_evidence_invents_noth
     [suggestion] = historical_plan["supplierSuggestions"]
     assert suggestion["supplierId"] == supplier.id
     assert suggestion["confidence"] in {"MEDIUM", "HIGH"}
+    assert suggestion["sourceMatched"] is False
     assert "equipamentos equivalentes" in suggestion["evidence"][0]
 
     unknown_batch = await stage(

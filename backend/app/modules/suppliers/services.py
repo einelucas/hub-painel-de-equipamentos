@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -39,7 +39,14 @@ async def list_suppliers(
         stmt = stmt.where(Supplier.active.is_(True))
     if search and search.strip():
         term = f"%{search.strip()}%"
-        stmt = stmt.where(Supplier.legal_name.ilike(term) | Supplier.trade_name.ilike(term))
+        stmt = stmt.where(
+            or_(
+                Supplier.corporate_code.ilike(term),
+                Supplier.legal_name.ilike(term),
+                Supplier.trade_name.ilike(term),
+                Supplier.tax_id.ilike(term),
+            )
+        )
     stmt = stmt.order_by(Supplier.legal_name.asc())
     return list((await session.execute(stmt)).scalars().all())
 

@@ -180,6 +180,7 @@ class SupplierSuggestionOut(CamelModel):
     confidence: Literal["HIGH", "MEDIUM", "LOW", "NONE"]
     evidence: list[str]
     requires_registration: bool = False
+    source_matched: bool = False
     selected_action: Literal["USE", "NONE"] | None = None
     selected_supplier_id: str | None = None
 
