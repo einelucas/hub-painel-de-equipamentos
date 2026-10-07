@@ -7,12 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.auth import CurrentUser
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.scope import (
     allowed_unit_ids,
     assert_context_allowed,
     assert_unit_allowed,
 )
+from app.domain.eap import EapLevel, validate_eap_node
 from app.models.equipment import (
     Area,
     Discipline,
@@ -74,6 +75,65 @@ async def list_eap_nodes(
     if active is not None:
         stmt = stmt.where(EapNode.active.is_(active))
     return list((await session.execute(stmt)).scalars().all())
+
+
+async def create_eap_node(
+    session: AsyncSession,
+    *,
+    code: str,
+    name: str,
+    level: EapLevel,
+    parent_id: str | None,
+    actor: CurrentUser,
+) -> EapNode:
+    """Cria um nó global da árvore EAP sem inferir obra, unidade ou pai.
+
+    A estrutura é validada com a mesma regra de domínio usada pelo catálogo
+    oficial. Criar o nó não cria `ProjectEap`: esse vínculo continua explícito.
+    """
+    code = code.strip()
+    name = name.strip()
+    if not name:
+        raise ConflictError("Nome da EAP é obrigatório")
+    if await session.scalar(select(EapNode.id).where(EapNode.code == code)) is not None:
+        raise ConflictError("Já existe um nó EAP com este código")
+
+    parent = await session.get(EapNode, parent_id) if parent_id is not None else None
+    if parent_id is not None and parent is None:
+        raise NotFoundError("Nó pai da EAP não encontrado")
+    errors = validate_eap_node(
+        code=code,
+        level=level,
+        parent_code=parent.code if parent is not None else None,
+        parent_level=EapLevel(parent.level) if parent is not None else None,
+    )
+    if errors:
+        raise DomainError("; ".join(errors))
+
+    item = EapNode(
+        code=code,
+        name=name,
+        level=level.value,
+        parent_id=parent_id,
+    )
+    session.add(item)
+    await session.flush()
+    await record_audit(
+        session,
+        user_id=actor.id,
+        action="catalog.create",
+        entity="EapNode",
+        entity_id=item.id,
+        new_data={
+            "code": code,
+            "name": name,
+            "level": level.value,
+            "parentId": parent_id,
+        },
+    )
+    await session.commit()
+    await session.refresh(item)
+    return item
 
 
 async def list_project_eap_nodes(

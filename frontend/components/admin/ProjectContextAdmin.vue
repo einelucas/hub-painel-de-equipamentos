@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { Check, Pencil, Plus, X } from "lucide-vue-next";
-import type { CatalogItem, CatalogList, ProjectAdminTarget, Unit } from "~/types/equipment";
+import type {
+  CatalogItem,
+  CatalogList,
+  EapNodeItem,
+  ProjectAdminTarget,
+  ProjectEapItem,
+  Unit,
+} from "~/types/equipment";
 
 /**
  * Configuração da obra: ProjectContexts de uma Unidade + resumo de preparação.
@@ -32,7 +39,7 @@ const formError = ref("");
 const mode = ref<"idle" | "create" | "edit">("idle");
 const form = reactive({ code: "", name: "", active: true });
 
-const summary = reactive({ loading: false, error: "", areas: 0, areasActive: 0, disciplines: 0, workPackages: 0 });
+const summary = reactive({ loading: false, error: "", eapNodes: 0, projectEap: 0, disciplines: 0, workPackages: 0 });
 
 const selectedUnit = computed(() => units.value.find((unit) => unit.id === props.unitId) ?? null);
 const selected = computed(() => contexts.value.find((item) => item.id === selectedId.value) ?? null);
@@ -81,13 +88,14 @@ async function loadSummary(): Promise<void> {
   if (!props.unitId || !selectedId.value) return;
   summary.loading = true;
   try {
-    const [areas, disciplines, workPackages] = await Promise.all([
-      api.get<CatalogList<CatalogItem>>("/areas", { unit_id: props.unitId }),
+    const [eapNodes, projectEap, disciplines, workPackages] = await Promise.all([
+      api.get<CatalogList<EapNodeItem>>("/eap-nodes", { active: true }),
+      api.get<CatalogList<ProjectEapItem>>(`/project-contexts/${selectedId.value}/eap-nodes`),
       api.get<CatalogList<CatalogItem>>("/disciplines"),
       api.get<CatalogList<CatalogItem>>("/work-packages", { project_context_id: selectedId.value }),
     ]);
-    summary.areas = areas.items.length;
-    summary.areasActive = areas.items.filter((item) => item.active).length;
+    summary.eapNodes = eapNodes.items.length;
+    summary.projectEap = projectEap.items.length;
     summary.disciplines = disciplines.items.filter((item) => item.active).length;
     summary.workPackages = workPackages.items.length;
   } catch (caught) {
@@ -303,8 +311,8 @@ watch(selectedId, loadSummary);
             </template>
             <template v-else-if="!summary.error">
               <div>
-                <dt>Áreas</dt>
-                <dd data-testid="readiness-areas">{{ summary.areasActive }} ativas · {{ summary.areas }} cadastradas</dd>
+                <dt>Árvore EAP</dt>
+                <dd data-testid="readiness-eap">{{ summary.projectEap }} na obra · {{ summary.eapNodes }} no catálogo</dd>
               </div>
               <div>
                 <dt>Disciplinas</dt>
@@ -326,7 +334,7 @@ watch(selectedId, loadSummary);
               data-testid="goto-areas"
               @click="emit('navigate', { section: 'catalogs', catalog: 'areas' })"
             >
-              Gerenciar áreas
+              Gerenciar Árvore EAP
             </button>
             <button
               v-if="canManage"

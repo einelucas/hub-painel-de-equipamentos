@@ -3,6 +3,7 @@ import { watch } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AdminPanel from "~/components/admin/AdminPanel.vue";
 import CatalogAdmin from "~/components/admin/CatalogAdmin.vue";
+import EapTreeAdmin from "~/components/admin/EapTreeAdmin.vue";
 import EquipmentAdmin from "~/components/admin/EquipmentAdmin.vue";
 import ProjectContextAdmin from "~/components/admin/ProjectContextAdmin.vue";
 
@@ -12,7 +13,9 @@ const ROUTES: Record<string, unknown> = {
   "/units/u-tst/project-contexts": {
     items: [{ id: "pc-a", code: "PA", name: "Projeto Sintético A", unitId: "u-tst", active: true }],
   },
-  "/areas": { items: [{ id: "a1", name: "Área Sintética", active: true }] },
+  "/eap-nodes": {
+    items: [{ id: "ep1", code: "01", name: "Processo Sintético", level: "PROCESS", parentId: null, active: true }],
+  },
   "/disciplines": { items: [] },
   "/work-packages": { items: [] },
 };
@@ -29,7 +32,7 @@ function mountAdmin(unitId = "u-tst") {
   return mount(EquipmentAdmin, {
     props: { open: true, unitId },
     global: {
-      components: { AdminPanel, CatalogAdmin, ProjectContextAdmin },
+      components: { AdminPanel, CatalogAdmin, EapTreeAdmin, ProjectContextAdmin },
       stubs: {
         AppModal: { props: ["open", "title"], template: "<div v-if='open'><slot /></div>" },
         UnitAccessAdmin: { template: "<div data-testid='unit-access-admin'>acessos</div>" },
@@ -114,7 +117,7 @@ describe("EquipmentAdmin", () => {
     expect((wrapper.get("[data-testid='wp-context']").element as HTMLSelectElement).value).toBe("pc-a");
   });
 
-  it("'Gerenciar áreas' e 'Gerenciar acessos' reutilizam as seções existentes", async () => {
+  it("'Gerenciar Árvore EAP' e 'Gerenciar acessos' reutilizam as seções existentes", async () => {
     const { get } = setup(["catalogs:manage", "users:manage"]);
     const wrapper = mountAdmin();
     await settle(wrapper);
@@ -122,7 +125,7 @@ describe("EquipmentAdmin", () => {
     await wrapper.get("[data-testid='goto-areas']").trigger("click");
     await settle(wrapper);
     expect(wrapper.get("[data-testid='catalog-switch-areas']").classes()).toContain("active");
-    expect(get).toHaveBeenCalledWith("/areas", { unit_id: "u-tst" });
+    expect(get).toHaveBeenCalledWith("/eap-nodes");
 
     await wrapper.get("[data-testid='admin-tab-projects']").trigger("click");
     await settle(wrapper);
@@ -144,6 +147,6 @@ describe("EquipmentAdmin", () => {
     await wrapper.get("[data-testid='admin-tab-catalogs']").trigger("click");
     await wrapper.get("[data-testid='catalog-switch-areas']").trigger("click");
     await settle(wrapper);
-    expect(wrapper.find("[data-testid='catalog-blocked']").exists()).toBe(false);
+    expect(wrapper.find("[data-testid='eap-tree-admin']").exists()).toBe(true);
   });
 });

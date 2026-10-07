@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from app.models.audit import AuditLog
 from app.models.equipment import EapNode, Equipment, ProjectContext, ProjectEap, Unit
 from tests.helpers import grant_unit
 
@@ -52,6 +53,94 @@ async def test_list_eap_nodes_with_filters(client, auth_header, db_session) -> N
     assert [item["code"] for item in inactive] == ["08"]
 
     assert (await client.get("/api/v1/eap-nodes?level=SUBAREA", headers=viewer)).status_code == 422
+
+
+async def test_admin_creates_eap_tree_with_valid_parent_and_audit(
+    client, auth_header, db_session
+) -> None:
+    admin = auth_header("ADMIN")
+    island = await client.post(
+        "/api/v1/eap-nodes",
+        json={"code": "D", "name": "Ilha Sintética", "level": "ISLAND", "parentId": None},
+        headers=admin,
+    )
+    assert island.status_code == 201, island.text
+    process = await client.post(
+        "/api/v1/eap-nodes",
+        json={
+            "code": "01",
+            "name": "Processo Sintético",
+            "level": "PROCESS",
+            "parentId": island.json()["id"],
+        },
+        headers=admin,
+    )
+    assert process.status_code == 201, process.text
+    area = await client.post(
+        "/api/v1/eap-nodes",
+        json={
+            "code": "01.A",
+            "name": "Área Sintética",
+            "level": "AREA",
+            "parentId": process.json()["id"],
+        },
+        headers=admin,
+    )
+    assert area.status_code == 201, area.text
+    assert (area.json()["level"], area.json()["parentId"]) == ("AREA", process.json()["id"])
+
+    nodes = (await client.get("/api/v1/eap-nodes", headers=admin)).json()["items"]
+    assert [(item["code"], item["level"]) for item in nodes] == [
+        ("01", "PROCESS"),
+        ("01.A", "AREA"),
+        ("D", "ISLAND"),
+    ]
+    audits = (
+        await db_session.execute(
+            select(AuditLog).where(AuditLog.entity == "EapNode").order_by(AuditLog.createdAt)
+        )
+    ).scalars().all()
+    assert [item.action for item in audits] == ["catalog.create"] * 3
+    assert audits[-1].newData["parentId"] == process.json()["id"]
+
+
+async def test_eap_creation_rejects_invalid_hierarchy_duplicate_and_permission(
+    client, auth_header
+) -> None:
+    admin = auth_header("ADMIN")
+    process = await client.post(
+        "/api/v1/eap-nodes",
+        json={"code": "01", "name": "Processo Sintético", "level": "PROCESS"},
+        headers=admin,
+    )
+    assert process.status_code == 201
+
+    wrong_parent = await client.post(
+        "/api/v1/eap-nodes",
+        json={
+            "code": "02.A",
+            "name": "Área com pai errado",
+            "level": "AREA",
+            "parentId": process.json()["id"],
+        },
+        headers=admin,
+    )
+    assert wrong_parent.status_code == 422
+    assert "não pertence ao PROCESS 01" in wrong_parent.json()["error"]
+
+    duplicate = await client.post(
+        "/api/v1/eap-nodes",
+        json={"code": "01", "name": "Duplicado", "level": "PROCESS"},
+        headers=admin,
+    )
+    assert duplicate.status_code == 409
+
+    forbidden = await client.post(
+        "/api/v1/eap-nodes",
+        json={"code": "02", "name": "Outro", "level": "PROCESS"},
+        headers=auth_header("VIEWER"),
+    )
+    assert forbidden.status_code == 403
 
 
 async def test_project_eap_nodes_respect_context_scope(client, auth_header, db_session) -> None:

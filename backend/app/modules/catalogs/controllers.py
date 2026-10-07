@@ -16,6 +16,7 @@ from app.modules.catalogs.schemas import (
     CatalogUpdateIn,
     DisciplineCreateIn,
     DisciplineOut,
+    EapNodeCreateIn,
     EapNodeListOut,
     EapNodeOut,
     ProjectContextCreateIn,
@@ -106,6 +107,23 @@ async def get_eap_nodes(
         session, level=level.value if level else None, parent_id=parent_id, active=active
     )
     return EapNodeListOut(items=[EapNodeOut.model_validate(item) for item in items])
+
+
+@router.post("/eap-nodes", response_model=EapNodeOut, status_code=status.HTTP_201_CREATED)
+async def post_eap_node(
+    body: EapNodeCreateIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
+) -> EapNodeOut:
+    item = await services.create_eap_node(
+        session,
+        code=body.code,
+        name=body.name,
+        level=body.level,
+        parent_id=body.parent_id,
+        actor=actor,
+    )
+    return EapNodeOut.model_validate(item)
 
 
 @router.get("/project-contexts/{project_context_id}/eap-nodes", response_model=ProjectEapListOut)

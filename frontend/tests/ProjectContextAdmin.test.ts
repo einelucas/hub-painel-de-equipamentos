@@ -22,7 +22,14 @@ function apiMock(routes: Routes = {}) {
     "/units": { items: UNITS },
     "/units/u-tst/project-contexts": { items: contexts() },
     "/units/u-tst2/project-contexts": { items: [] },
-    "/areas": { items: [{ id: "a1", name: "Área Sintética", active: true }, { id: "a2", name: "Área Antiga", active: false }] },
+    "/eap-nodes": {
+      items: [
+        { id: "ep1", code: "01", name: "Processo Sintético", level: "PROCESS", parentId: null, active: true },
+        { id: "ea1", code: "01.A", name: "Área Sintética", level: "AREA", parentId: "ep1", active: true },
+      ],
+    },
+    "/project-contexts/pc-a/eap-nodes": { items: [{ id: "pe1", projectContextId: "pc-a", eapNode: { id: "ea1" } }] },
+    "/project-contexts/pc-b/eap-nodes": { items: [] },
     "/disciplines": { items: [{ id: "d1", name: "Disciplina Sintética", code: "DS", active: true }] },
     "/work-packages": { items: [{ id: "w1", name: "Pacote Sintético", code: "WP-S1", active: true }] },
     ...routes,
@@ -114,11 +121,10 @@ describe("ProjectContextAdmin", () => {
     const wrapper = mountAdmin();
     await settle(wrapper);
 
-    expect(get).toHaveBeenCalledWith("/areas", { unit_id: "u-tst" });
+    expect(get).toHaveBeenCalledWith("/eap-nodes", { active: true });
+    expect(get).toHaveBeenCalledWith("/project-contexts/pc-a/eap-nodes");
     expect(get).toHaveBeenCalledWith("/work-packages", { project_context_id: "pc-a" });
-    // EAP é da localização do equipamento: a obra não tem (nem pede) prefixo.
-    expect(wrapper.find("[data-testid='readiness-eap']").exists()).toBe(false);
-    expect(wrapper.get("[data-testid='readiness-areas']").text()).toBe("1 ativas · 2 cadastradas");
+    expect(wrapper.get("[data-testid='readiness-eap']").text()).toBe("1 na obra · 2 no catálogo");
     expect(wrapper.get("[data-testid='readiness-disciplines']").text()).toBe("1 ativas");
     expect(wrapper.get("[data-testid='readiness-work-packages']").text()).toBe("1 cadastrados");
 

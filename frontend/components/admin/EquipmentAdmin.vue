@@ -52,7 +52,7 @@ function navigate(target: ProjectAdminTarget): void {
 
 const CATALOGS = [
   { key: "units", label: "Unidades" },
-  { key: "areas", label: "Áreas" },
+  { key: "areas", label: "Árvore EAP" },
   { key: "disciplines", label: "Disciplinas" },
   { key: "workPackages", label: "Work packages" },
 ];
@@ -135,14 +135,8 @@ watch(
           :has-code="false"
           @changed="onChanged"
         />
-        <CatalogAdmin
+        <EapTreeAdmin
           v-else-if="catalog === 'areas'"
-          path="/areas"
-          label="Áreas"
-          :has-code="false"
-          :parent="{ unitId: adminUnit }"
-          :query="{ unit_id: adminUnit }"
-          :requires-parent="unitHint"
           @changed="onChanged"
         />
         <CatalogAdmin
