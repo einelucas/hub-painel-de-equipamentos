@@ -15,6 +15,7 @@ import type {
 } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
+import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -216,7 +217,7 @@ async function exportAll(): Promise<void> {
         Equipamento: item.name,
         Unidade: item.unit.name,
         Contexto: item.projectContext.code ?? item.projectContext.name,
-        Área: item.area?.name ?? "",
+        Área: equipmentLocationLabel(item) ?? "",
         Disciplina: item.discipline?.name ?? "",
         "Pacotes de Trabalho": item.workPackages
           .map((wp) => wp.code ?? wp.name)

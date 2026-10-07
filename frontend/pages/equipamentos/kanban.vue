@@ -11,6 +11,7 @@ import {
 } from "lucide-vue-next";
 
 import type { Equipment, EquipmentList } from "~/types/equipment";
+import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { formatDateOnly } from "~/utils/format";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
@@ -320,14 +321,14 @@ onMounted(async () => {
                     </span>
                   </div>
 
-                  <div v-if="item.discipline || item.area" class="card-meta-row">
+                  <div v-if="item.discipline || equipmentLocationLabel(item)" class="card-meta-row">
                     <span v-if="item.discipline" class="meta-chip">
                       <Wrench :size="11" />
                       {{ item.discipline.name }}
                     </span>
-                    <span v-if="item.area" class="meta-chip">
+                    <span v-if="equipmentLocationLabel(item)" class="meta-chip">
                       <MapPin :size="11" />
-                      {{ item.area.name }}
+                      {{ equipmentLocationLabel(item) }}
                     </span>
                   </div>
 

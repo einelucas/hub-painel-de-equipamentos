@@ -6,6 +6,7 @@ export type NavIcon =
   | "engineering"
   | "legal"
   | "procurement"
+  | "suppliers"
   | "kanban";
 
 export interface NavItem {
@@ -22,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Engenharia", to: "/engenharia", icon: "engineering" },
   { label: "Jurídico", to: "/juridico", icon: "legal" },
   { label: "Suprimentos", to: "/suprimentos", icon: "procurement" },
+  { label: "Fornecedores", to: "/fornecedores", icon: "suppliers", permission: "suppliers:read" },
   { label: "Kanban", to: "/equipamentos/kanban", icon: "kanban", permission: "equipments:read" },
 ];
 

@@ -14,6 +14,7 @@ describe("NAV_ITEMS", () => {
       "/engenharia",
       "/juridico",
       "/suprimentos",
+      "/fornecedores",
       "/equipamentos/kanban",
     ]);
   });
@@ -25,15 +26,23 @@ describe("NAV_ITEMS", () => {
 });
 
 describe("visibleNavItems", () => {
-  it("esconde o kanban de quem não tem a permissão", () => {
+  it("esconde as abas protegidas de quem não tem as permissões", () => {
     const visible = visibleNavItems(NAV_ITEMS, allowNone);
     expect(visible.map((item) => item.to)).not.toContain("/equipamentos/kanban");
-    expect(visible).toHaveLength(NAV_ITEMS.length - 1);
+    expect(visible.map((item) => item.to)).not.toContain("/fornecedores");
+    expect(visible).toHaveLength(NAV_ITEMS.length - 2);
   });
 
   it("mostra o kanban para quem tem equipments:read", () => {
     const can = (permission: Permission) => permission === "equipments:read";
     expect(visibleNavItems(NAV_ITEMS, can).map((item) => item.to)).toContain("/equipamentos/kanban");
+  });
+
+  it("mostra fornecedores somente para quem tem suppliers:read", () => {
+    const can = (permission: Permission) => permission === "suppliers:read";
+    const paths = visibleNavItems(NAV_ITEMS, can).map((item) => item.to);
+    expect(paths).toContain("/fornecedores");
+    expect(paths).not.toContain("/equipamentos/kanban");
   });
 
   it("mantém todos os itens sem permissão exigida", () => {
@@ -44,6 +53,10 @@ describe("visibleNavItems", () => {
 describe("activeNavPath", () => {
   it("marca o item exato da rota atual", () => {
     expect(activeNavPath(NAV_ITEMS, "/engenharia")).toBe("/engenharia");
+  });
+
+  it("marca Fornecedores como ativo na rota do catálogo", () => {
+    expect(activeNavPath(NAV_ITEMS, "/fornecedores")).toBe("/fornecedores");
   });
 
   it("mantém Equipamentos ativo no detalhe do equipamento", () => {

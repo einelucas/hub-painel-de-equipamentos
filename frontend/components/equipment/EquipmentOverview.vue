@@ -5,6 +5,7 @@ import type { Equipment, OperationalStatus, OperationalStatusEvent } from "~/typ
 import { formatCurrency, formatDateOnly, formatDateTime } from "~/utils/format";
 import { stageTone } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
+import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 
 /**
  * Seção "Resumo" do detalhe do equipamento — identificação, badges de
@@ -32,7 +33,7 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
     <div class="surface-body detail-grid">
       <div class="detail-field"><span>Unidade</span><strong>{{ equipment.unit.name }}</strong></div>
       <div class="detail-field"><span>Contexto</span><strong>{{ equipment.projectContext.code ? `${equipment.projectContext.code} · ${equipment.projectContext.name}` : equipment.projectContext.name }}</strong></div>
-      <div class="detail-field"><span>Área</span><strong>{{ equipment.area?.name ?? "—" }}</strong></div>
+      <div class="detail-field"><span>Área</span><strong data-testid="equipment-location">{{ equipmentLocationLabel(equipment) ?? "—" }}</strong></div>
       <div class="detail-field"><span>Disciplina</span><strong>{{ equipment.discipline?.name ?? "—" }}</strong></div>
       <div class="detail-field">
         <span>Pacotes de trabalho</span>

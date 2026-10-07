@@ -3,6 +3,7 @@ import type { Equipment } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 import StageBadge from "~/components/equipment/StageBadge.vue";
 import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
+import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 
 defineProps<{ equipments: Equipment[] }>();
 </script>
@@ -19,7 +20,7 @@ defineProps<{ equipments: Equipment[] }>();
         <TableRow v-for="equipment in equipments" :key="equipment.id">
           <TableCell class="font-semibold text-[#213758]">{{ equipment.name }}</TableCell>
           <TableCell>{{ equipment.projectContext.code ?? equipment.projectContext.name }}</TableCell>
-          <TableCell>{{ equipment.area?.name ?? "—" }}</TableCell>
+          <TableCell data-testid="equipment-location">{{ equipmentLocationLabel(equipment) ?? "—" }}</TableCell>
           <TableCell>{{ equipment.discipline?.name ?? "—" }}</TableCell>
           <TableCell><WorkPackageChips :items="equipment.workPackages" /></TableCell>
           <TableCell>{{ equipment.responsibleUser?.name ?? "—" }}</TableCell>

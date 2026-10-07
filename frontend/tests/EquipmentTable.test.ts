@@ -71,6 +71,37 @@ describe("EquipmentTable", () => {
     expect(wrapper.text()).toContain("—"); // sem work packages
   });
 
+  it("exibe a localização EAP canônica antes da área legada", () => {
+    const withEap: Equipment = {
+      ...equipment,
+      eapNode: {
+        id: "eap-area",
+        code: "04.A",
+        name: "Casa de Força",
+        level: "AREA",
+        active: true,
+      },
+      area: { id: "legacy-area", name: "Área legada" },
+    };
+    const wrapper = mount(EquipmentTable, {
+      props: { equipments: [withEap] },
+      global: {
+        stubs: {
+          Table: passthrough,
+          TableHeader: passthrough,
+          TableRow: passthrough,
+          TableHead: passthrough,
+          TableBody: passthrough,
+          TableCell: passthrough,
+          NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("04.A · Casa de Força");
+    expect(wrapper.text()).not.toContain("Área legada");
+  });
+
   it("exibe Work Packages em chips compactos, com +N para o excedente (GAP-010, Etapa 6D)", () => {
     const withPackages: Equipment = {
       ...equipment,
