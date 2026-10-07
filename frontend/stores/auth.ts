@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { CurrentUser, Permission, Role } from "~/types/api";
+import type { CurrentUser, Permission } from "~/types/api";
 import { hasPermission } from "~/utils/permissions";
 
 export const useAuthStore = defineStore("auth", () => {
@@ -29,9 +29,21 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  async function loginDev(role: Role): Promise<void> {
-    token.value = `dev-${role.toLowerCase()}`;
-    if (!(await loadUser())) throw new Error("O backend não aceitou a autenticação de desenvolvimento.");
+  /** Login local: e-mail e senha conferidos pelo backend contra o banco. */
+  async function loginWithPassword(email: string, password: string): Promise<void> {
+    const session = await useApi().post<{ accessToken: string }>("/auth/login", { email, password });
+    token.value = session.accessToken;
+    if (!(await loadUser())) throw new Error("A API recusou a sessão recebida.");
+  }
+
+  /** Encerra a sessão local no backend; tokens OIDC só são descartados. */
+  async function revokeSession(): Promise<void> {
+    if (!token.value) return;
+    try {
+      await useApi().post("/auth/logout");
+    } catch {
+      // Sessão já expirada ou API fora do ar: o token é descartado de qualquer forma.
+    }
   }
 
   function acceptToken(accessToken: string): void {
@@ -43,5 +55,5 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = null;
   }
 
-  return { token, user, loading, authenticated, isAdmin, can, loadUser, loginDev, acceptToken, clear };
+  return { token, user, loading, authenticated, isAdmin, can, loadUser, loginWithPassword, revokeSession, acceptToken, clear };
 });

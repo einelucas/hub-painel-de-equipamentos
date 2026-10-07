@@ -18,7 +18,6 @@ function oidcManager(): UserManager | null {
 
 export function useAuth() {
   const store = useAuthStore();
-  const config = useRuntimeConfig();
 
   async function login(): Promise<void> {
     const manager = oidcManager();
@@ -36,10 +35,11 @@ export function useAuth() {
 
   async function logout(): Promise<void> {
     const manager = oidcManager();
+    await store.revokeSession();
     store.clear();
     if (manager) await manager.signoutRedirect();
     else await navigateTo("/login");
   }
 
-  return { store, login, completeLogin, logout, devAuthEnabled: config.public.devAuthEnabled };
+  return { store, login, completeLogin, logout };
 }

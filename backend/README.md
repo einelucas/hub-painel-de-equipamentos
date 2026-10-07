@@ -52,6 +52,19 @@ python -m app.modules.monday_import ../references/monday_exports
 
 Para testes de integração, copie `.env.test.example` para `.env.test`, use um banco cujo nome termine em `_test`, aplique `alembic upgrade head` e execute `python -m pytest`.
 
+## Login local (e-mail e senha)
+
+Usuários com login local ficam em `User` + `Account` (`providerId = credential`, senha com hash scrypt).
+`POST /api/v1/auth/login` abre uma sessão na tabela `Session` (só o SHA-256 do token é gravado), válida por
+`LOCAL_AUTH_SESSION_HOURS`. O mesmo comando cria o usuário ou redefine a senha de um existente:
+
+```bash
+python -m app.modules.local_auth create-user --email admin@inpasa.com.br --name Administrador --role ADMIN
+```
+
+A senha é pedida no terminal (ou lida de `LOCAL_AUTH_PASSWORD`), nunca passada como argumento. Os tokens
+`dev-*` de `DEV_AUTH_ENABLED` continuam funcionando fora de produção.
+
 ## Catálogo global de fornecedores
 
 A planilha aprovada é convertida em um artefato JSON versionado e validável sem banco. A carga consulta
@@ -72,6 +85,8 @@ com equipamentos. Use `--sync` somente após revisar o dry-run, para atualizar c
 
 - `GET /api/v1/health/live`
 - `GET /api/v1/health/ready`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/me`
 - `GET /api/v1/usuarios`
 - `POST /api/v1/usuarios`

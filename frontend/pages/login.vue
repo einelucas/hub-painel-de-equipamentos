@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { Role } from "~/types/api";
-
 definePageMeta({ publicLayout: true });
 
-const { store, login, devAuthEnabled } = useAuth();
+const { store, login } = useAuth();
+const oidcConfigured = Boolean(useRuntimeConfig().public.oidcIssuer);
+const email = ref("");
+const password = ref("");
 const loading = ref(false);
 const error = ref("");
 
@@ -21,14 +22,14 @@ async function oidc() {
   }
 }
 
-async function dev(role: Role) {
+async function submit() {
   loading.value = true;
   error.value = "";
   try {
-    await store.loginDev(role);
+    await store.loginWithPassword(email.value, password.value);
     await navigateTo("/dashboard");
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : "Falha na autenticação de desenvolvimento.";
+    error.value = cause instanceof Error ? cause.message : "Não foi possível entrar.";
   } finally {
     loading.value = false;
   }
@@ -41,21 +42,32 @@ async function dev(role: Role) {
     <section class="login-card">
       <img src="/brand/logo-inpasa.png" alt="Inpasa" class="login-logo" />
       <h1>Painel de Equipamentos</h1>
-      <p>Acesse com sua conta corporativa.</p>
-      <button class="btn primary login-submit" :disabled="loading" @click="oidc">
-        {{ loading ? "Aguarde…" : "Entrar com conta corporativa" }}
-      </button>
-      <template v-if="devAuthEnabled">
+      <p>Acesse com seu e-mail e senha.</p>
+
+      <form class="grid gap-3" @submit.prevent="submit">
+        <label class="field">
+          <span>E-mail</span>
+          <input v-model="email" type="email" autocomplete="username" required autofocus />
+        </label>
+        <label class="field">
+          <span>Senha</span>
+          <input v-model="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="btn primary login-submit mt-1" :disabled="loading">
+          {{ loading ? "Aguarde…" : "Entrar" }}
+        </button>
+      </form>
+
+      <template v-if="oidcConfigured">
         <div class="my-4 flex items-center gap-3 text-xs text-slate-400">
-          <span class="h-px flex-1 bg-slate-200" />Desenvolvimento<span class="h-px flex-1 bg-slate-200" />
+          <span class="h-px flex-1 bg-slate-200" />ou<span class="h-px flex-1 bg-slate-200" />
         </div>
-        <div class="grid grid-cols-3 gap-2">
-          <button class="btn small" :disabled="loading" @click="dev('VIEWER')">Viewer</button>
-          <button class="btn small" :disabled="loading" @click="dev('ANALYST')">Analyst</button>
-          <button class="btn small" :disabled="loading" @click="dev('ADMIN')">Admin</button>
-        </div>
+        <button type="button" class="btn login-submit" :disabled="loading" @click="oidc">
+          Entrar com conta corporativa
+        </button>
       </template>
-      <p v-if="error" class="login-error">{{ error }}</p>
+
+      <p v-if="error" class="login-error" role="alert">{{ error }}</p>
     </section>
   </div>
 </template>

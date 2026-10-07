@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     dev_auth_enabled: bool = Field(default=False, alias="DEV_AUTH_ENABLED")
     dev_auth_user_email: str = Field(default="dev@example.com", alias="DEV_AUTH_USER_EMAIL")
 
+    # Login local (e-mail e senha no banco): validade da sessão emitida.
+    local_auth_session_hours: int = Field(default=12, alias="LOCAL_AUTH_SESSION_HOURS")
+
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
     # Etapa 7A, seção I — storage de arquivo de contrato. `local` é seguro

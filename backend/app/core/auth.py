@@ -1,4 +1,5 @@
-"""Autenticação OIDC/JWT com Keycloak e bypass controlado de desenvolvimento.
+"""Autenticação OIDC/JWT com Keycloak, login local (e-mail e senha) e bypass
+controlado de desenvolvimento.
 
 O perfil e o status persistidos no banco local são a fonte de verdade para
 autorização. O bypass de desenvolvimento só é aceito fora de produção.
@@ -20,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.core.database import get_session
 from app.core.errors import UnauthorizedError
+from app.core.local_auth import resolve_session_user
 from app.core.permissions import Permission, Role, assert_can
 from app.models.user import User
 
@@ -202,7 +204,7 @@ async def _resolve_dev_user(session: AsyncSession, role: Role, settings: Setting
     return user
 
 
-def _extract_bearer_token(request: Request) -> str | None:
+def extract_bearer_token(request: Request) -> str | None:
     header = request.headers.get("Authorization")
     if not header or not header.lower().startswith("bearer "):
         return None
@@ -214,12 +216,15 @@ async def get_current_user(
     session: AsyncSession = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ) -> CurrentUser:
-    token = _extract_bearer_token(request)
+    token = extract_bearer_token(request)
     if not token:
         raise UnauthorizedError()
 
     if settings.dev_auth_enabled and not settings.is_production and token in _DEV_TOKEN_ROLES:
         db_user = await _resolve_dev_user(session, _DEV_TOKEN_ROLES[token], settings)
+    elif "." not in token and (local_user := await resolve_session_user(session, token)):
+        # Tokens de sessão local são opacos; JWTs do Keycloak sempre têm pontos.
+        db_user = local_user
     else:
         identity = await verify_access_token(token, settings)
         db_user = await resolve_local_user(session, identity, settings)
