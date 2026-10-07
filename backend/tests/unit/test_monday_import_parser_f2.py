@@ -16,6 +16,18 @@ _HEADER = [
     "0.Área (padrão)",
 ]
 
+_AUXILIARY_EQUIPMENT_HEADERS = [
+    "A.Dias até limite negociação",
+    "A.Folga relativa",
+    "E.Limite p/ contrato-OC (mín. subelem.)",
+    "S.Escalonamento",
+    "z.Espelho Frete (dias)",
+    "z.Espelho Prazo (dias)",
+    "z.F.Limite Entrega Obra (duplicada)",
+    "z.F.Limite contrato-OC (duplicada)",
+]
+_AUXILIARY_COMPONENT_HEADERS = ["Visualização", "z.Calc Limite contrato-OC"]
+
 
 def _f2_xlsx() -> bytes:
     return build_xlsx(
@@ -78,6 +90,33 @@ def _f2_with_responsible_cost_and_subitem() -> bytes:
     )
 
 
+def _f2_with_auxiliary_columns() -> bytes:
+    main_headers = ["Name", "Subelementos", "A.Status", *_AUXILIARY_EQUIPMENT_HEADERS]
+    component_headers = ["Subitems", "Name", *_AUXILIARY_COMPONENT_HEADERS]
+    return build_xlsx(
+        [
+            ["Equipamentos Obra Sintética"],
+            ["Fase 0 - Nova Demanda"],
+            main_headers,
+            [
+                "Equipamento Sintético",
+                "Componente Sintético",
+                "0.Nova demanda",
+                120,
+                1.25,
+                46_500,
+                "v",
+                "10, 20",
+                120,
+                "2027/04/01",
+                "2027/01/01",
+            ],
+            component_headers,
+            [None, "Componente Sintético", "https://example.invalid/doc", 46_500],
+        ]
+    )
+
+
 def test_responsible_comes_from_padrao_column_and_legacy_text_is_preserved_apart() -> None:
     equipment = parse_monday_xlsx(_f2_with_responsible_cost_and_subitem(), source_name="f2.xlsx").equipments[
         0
@@ -109,6 +148,21 @@ def test_prefixed_f2_subitem_columns_map_to_the_c2_concepts() -> None:
     assert "Prazo" not in parsed.unknown_component_fields
     assert component.normalized["negotiation_days_remaining_observed"] == 244
     assert component.raw["Prazo"] == 244
+
+
+def test_f2_auxiliary_columns_are_explicitly_ignored_and_preserved_in_raw() -> None:
+    parsed = parse_monday_xlsx(_f2_with_auxiliary_columns(), source_name="f2.xlsx")
+
+    assert parsed.unknown_equipment_fields == set()
+    assert parsed.unknown_component_fields == set()
+    equipment = parsed.equipments[0]
+    component = equipment.components[0]
+    assert set(equipment.raw) >= set(_AUXILIARY_EQUIPMENT_HEADERS)
+    assert set(component.raw) >= set(_AUXILIARY_COMPONENT_HEADERS)
+    assert not set(equipment.normalized) & {
+        "negotiation_days_remaining_observed",
+        "delivery_margin_days_observed",
+    }
 
 
 def _by_name(parsed):

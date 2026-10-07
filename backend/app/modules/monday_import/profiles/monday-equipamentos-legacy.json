@@ -1,6 +1,6 @@
 {
   "profile_id": "monday-equipamentos-legacy",
-  "version": 2,
+  "version": 3,
   "source_system": "monday",
   "description": "Board de equipamentos do Monday (layout padrão do Hub).",
   "board": {
@@ -183,7 +183,15 @@
       "ESPELHO-FORMULA",
       "Prazo Neg (dias)",
       "Projeto",
-      "Unidade"
+      "Unidade",
+      "A.Dias até limite negociação",
+      "A.Folga relativa",
+      "E.Limite p/ contrato-OC (mín. subelem.)",
+      "S.Escalonamento",
+      "z.Espelho Frete (dias)",
+      "z.Espelho Prazo (dias)",
+      "z.F.Limite Entrega Obra (duplicada)",
+      "z.F.Limite contrato-OC (duplicada)"
     ],
     "external_id_concept": "external_id"
   },
@@ -268,7 +276,10 @@
         "ID do elemento"
       ]
     },
-    "ignored_headers": [],
+    "ignored_headers": [
+      "Visualização",
+      "z.Calc Limite contrato-OC"
+    ],
     "external_id_concept": "external_id",
     "identity_fallback": "parent_name_ordinal"
   },

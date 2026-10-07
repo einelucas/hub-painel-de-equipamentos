@@ -32,10 +32,11 @@ IGNORED = {
     "ESPELHO-FORMULA",
     "Prazo Neg (dias)",
     "Projeto",
+    "S.Escalonamento",
     "Unidade",
 }
 # Sem semântica comprovada (vazias ou sem conceito no Hub): continuam UNKNOWN.
-STILL_UNKNOWN = {"Conferência", "Pessoas", "S.Escalonamento", "Status de Prazo", "Diferença Negociação"}
+STILL_UNKNOWN = {"Conferência", "Pessoas", "Status de Prazo", "Diferença Negociação"}
 
 
 def _parse(content: bytes):

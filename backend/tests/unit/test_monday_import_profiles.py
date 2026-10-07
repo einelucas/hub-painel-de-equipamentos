@@ -44,7 +44,10 @@ def test_valid_profiles_load_and_have_stable_identity() -> None:
     assert (a.profile_id, a.version) == ("synthetic-equipment-board-a", 1)
     assert a.sha256 == load_profile(PROFILE_A_PATH).sha256
     assert a.sha256 != b.sha256
-    assert default_profile().profile_id == "monday-equipamentos-legacy"
+    assert (default_profile().profile_id, default_profile().version) == (
+        "monday-equipamentos-legacy",
+        3,
+    )
 
 
 # 2. profile inválido -------------------------------------------------------------------------
