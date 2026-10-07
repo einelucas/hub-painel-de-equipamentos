@@ -113,7 +113,7 @@ async def stage_import(
         if existing is None:  # pragma: no cover - defesa contra anomalia transacional
             raise RuntimeError("conflito de batch sem registro recuperável")
         staged_profile_id, staged_sha = _batch_profile(existing.summary)
-        if staged_sha == profile.sha256:
+        if staged_sha == profile.sha256 and existing.parser_version == PARSER_VERSION:
             return await _existing_batch_result(session, existing.id)
         if existing.status != "STAGED" or staged_profile_id != profile.profile_id:
             # Outro profile, ou batch já usado para escrever no domínio: reinterpretar

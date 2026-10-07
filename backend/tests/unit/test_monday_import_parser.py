@@ -6,9 +6,11 @@ import pytest
 
 from app.modules.monday_import.dry_run import build_dry_run_report
 from app.modules.monday_import.normalization import (
+    NormalizationError,
     normalize_boolean,
     normalize_date,
     normalize_multi_value,
+    normalize_nonnegative_days,
 )
 from app.modules.monday_import.parser import parse_monday_xlsx
 from tests.unit.monday_xlsx_fixture import representative_xlsx
@@ -76,6 +78,20 @@ def test_normalizes_six_comma_separated_work_packages() -> None:
         "CAL005",
         "CAL006",
     ]
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(98.5, 99), ("98,5", 99), (98, 98), (0, 0), (None, None)],
+)
+def test_nonnegative_day_durations_round_fraction_up(raw, expected) -> None:
+    assert normalize_nonnegative_days(raw) == expected
+
+
+@pytest.mark.parametrize("raw", [-0.5, "-1", "não numérico"])
+def test_nonnegative_day_durations_still_reject_invalid_values(raw) -> None:
+    with pytest.raises(NormalizationError):
+        normalize_nonnegative_days(raw)
 
 
 def test_reports_duplicate_external_id() -> None:

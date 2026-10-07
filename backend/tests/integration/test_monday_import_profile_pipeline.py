@@ -84,7 +84,7 @@ async def test_profile_b_pipeline_stage_plan_apply_reconcile(db_session) -> None
 
     batch = await db_session.get(MondayImportBatch, staged.batch_id)
     assert batch is not None
-    assert batch.parser_version == "monday-xlsx-v4"
+    assert batch.parser_version == "monday-xlsx-v5"
     assert batch.summary["import_profiles"] == [profile_b().identity()]
 
     mapping = await validate_mapping(db_session, _mapping(ids), project_context_id=ids["context_id"])
@@ -233,3 +233,23 @@ async def test_new_version_of_same_profile_restages_unapplied_batch(db_session) 
     newest = profile_b().model_copy(update={"version": 3, "description": "versão sintética 3"})
     with pytest.raises(StagedWithDifferentProfileError):
         await stage_import(db_session, project_context_id=ids["context_id"], source=source, profile=newest)
+
+
+async def test_new_parser_version_restages_unapplied_batch(db_session) -> None:
+    ids = await _seed(db_session)
+    source = layout_b_xlsx()
+    profile = profile_b()
+    first = await stage_import(
+        db_session, project_context_id=ids["context_id"], source=source, profile=profile
+    )
+    batch = await db_session.get(MondayImportBatch, first.batch_id)
+    assert batch is not None
+    batch.parser_version = "monday-xlsx-legacy"
+    await db_session.flush()
+
+    again = await stage_import(
+        db_session, project_context_id=ids["context_id"], source=source, profile=profile
+    )
+
+    assert (again.batch_id, again.created, again.restaged) == (first.batch_id, False, True)
+    assert batch.parser_version == "monday-xlsx-v5"

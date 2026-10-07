@@ -117,6 +117,9 @@ NONNEGATIVE_INTEGER_FIELDS: Final = {
     "pre_start_days",
     "freight_days",
 }
+# Estes conceitos representam duração em dias. O parser aceita resultados
+# fracionários do Monday e os arredonda para cima antes de persistir, preservando
+# o contrato inteiro do domínio sem encurtar prazos de planejamento.
 SIGNED_INTEGER_FIELDS: Final = {
     "negotiation_days_remaining_observed",
     "delivery_margin_days_observed",

@@ -36,6 +36,7 @@ from app.modules.monday_import.normalization import (
     normalize_external_id,
     normalize_integer,
     normalize_multi_value,
+    normalize_nonnegative_days,
     normalized_name,
 )
 from app.modules.monday_import.profile import STATUS_CONCEPT, ImportProfile, SectionRules, default_profile
@@ -47,7 +48,7 @@ from app.modules.monday_import.schemas import (
 )
 from app.modules.monday_import.xlsx import XlsxRow, read_first_sheet
 
-PARSER_VERSION = "monday-xlsx-v4"
+PARSER_VERSION = "monday-xlsx-v5"
 
 
 def _source_bytes(
@@ -153,7 +154,7 @@ def _normalize_fields(
             elif field in BOOLEAN_FIELDS:
                 value = normalize_boolean(raw_value, empty=None)
             elif field in NONNEGATIVE_INTEGER_FIELDS:
-                value = normalize_integer(raw_value, allow_negative=False)
+                value = normalize_nonnegative_days(raw_value)
             elif field in SIGNED_INTEGER_FIELDS:
                 value = normalize_integer(raw_value)
             elif field == "work_package_codes":

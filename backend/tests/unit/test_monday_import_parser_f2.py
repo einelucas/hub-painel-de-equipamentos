@@ -165,6 +165,24 @@ def test_f2_auxiliary_columns_are_explicitly_ignored_and_preserved_in_raw() -> N
     }
 
 
+def test_fractional_lead_time_is_rounded_up_conservatively() -> None:
+    workbook = build_xlsx(
+        [
+            ["Equipamentos Obra Sintética"],
+            ["Fase 0 - Nova Demanda"],
+            ["Name", "Subelementos", "A.Status", "E.Lead Time de Fabricação (máx)"],
+            ["Equipamento Sintético", "Componente Sintético", "0.Nova demanda", 98.5],
+            ["Subitems", "Name", "0.Lead Time de Fabricação"],
+            [None, "Componente Sintético", 98.5],
+        ]
+    )
+
+    parsed = parse_monday_xlsx(workbook, source_name="f2.xlsx")
+    assert parsed.equipments[0].normalized["lead_time_days_mirror"] == 99
+    assert parsed.equipments[0].components[0].normalized["lead_time_days"] == 99
+    assert not [issue for issue in parsed.issues if issue.severity == "error"]
+
+
 def _by_name(parsed):
     return {item.normalized["name"]: item for item in parsed.equipments}
 

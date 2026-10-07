@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from datetime import date, datetime, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_CEILING, Decimal, InvalidOperation
 from typing import Any, Literal
 
 
@@ -141,6 +141,27 @@ def normalize_integer(value: Any, *, allow_negative: bool = True) -> int | None:
     if not allow_negative and result < 0:
         raise NormalizationError(f"inteiro negativo não permitido: {value!r}")
     return result
+
+
+def normalize_nonnegative_days(value: Any) -> int | None:
+    """Converte durações do Monday em dias inteiros conservadores.
+
+    Fórmulas podem produzir frações (por exemplo, ``98.5``). Como o domínio
+    persiste duração em dias inteiros, arredondamos para cima para nunca
+    encurtar o prazo necessário.
+    """
+    if value is None:
+        return None
+    text = clean_text(value)
+    if text is None:
+        return None
+    try:
+        number = Decimal(text.replace(" ", "").replace(",", "."))
+    except InvalidOperation as exc:
+        raise NormalizationError(f"dias inválidos: {value!r}") from exc
+    if not number.is_finite() or number < 0:
+        raise NormalizationError(f"dias não negativos inválidos: {value!r}")
+    return int(number.to_integral_value(rounding=ROUND_CEILING))
 
 
 def normalize_decimal(value: Any) -> str | None:
