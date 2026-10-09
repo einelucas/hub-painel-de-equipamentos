@@ -1,0 +1,159 @@
+"""Transforma Work Packages em catálogo corporativo global e canônico.
+
+Revision ID: 0016_global_work_packages
+Revises: 0015_wp_descriptions
+Create Date: 2026-10-09
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+
+from alembic import op
+
+revision: str = "0016_global_work_packages"
+down_revision: str | None = "0015_wp_descriptions"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+
+WORK_PACKAGE_CATALOG: tuple[tuple[str, str], ...] = (
+    ("IP001", "Locação de obra e topografia"),
+    ("IP002", "Sondagem SPT"),
+    ("IP003", "Canteiros e instalações provisórias"),
+    ("CIV001", "Terraplenagem"),
+    (
+        "CIV002",
+        "Execução civil do armazém (terraplenagem do armazém, estruturas pré moldadas, poços, "
+        "túnel, saída de emergência, cobertura, pisos, taludes internos, esquadrias)",
+    ),
+    ("CIV003", "Bases de equipamentos, estruturas e suportes externos"),
+    ("CIV004", "Drenagem pluvial"),
+    ("CIV005", "Pisos e calçadas de concreto armado"),
+    ("CIV006", "Bases de eletrocentros"),
+    ("CIV007", "Pintura de sinalização horizontal (PCI, faixas de pedestre, caminho seguro)"),
+    (
+        "CAL001",
+        "Estruturas metálicas das torres, transportadores, galerias, guarda corpo, grades de piso "
+        "e degraus",
+    ),
+    ("CAL002", "Montagem de equipamentos (elevadores, trippers, canalizações e transportadores)"),
+    ("CAL003", "Aeração e termometria"),
+    (
+        "CAL004",
+        "Estruturas metálicas diversas (cable rack, guarda corpo externo, fechamentos, tampas e grelhas)",
+    ),
+    ("CAL005", "Instalações de PCI (hidrantes, abrigos, extintores)"),
+    ("CAL006", "Locação de muncks, guindastes ou PTA"),
+    ("CAL007", "Remoção e reinstalação de telhas e desmontagens de transportadores"),
+    ("CAL008", "Rede de água em aço carbono para profilaxia"),
+    ("ELT001", "Instalações elétricas provisórias"),
+    ("ELT002", "Aterramento e SPDA"),
+    ("ELT003", "Infraestrutura elétrica"),
+    ("ELT004", "Iluminação geral"),
+    ("ELT005", "Execução de rede de média tensão"),
+    ("INT001", "Infraestrutura de instrumentação"),
+    ("INT002", "Infraestrutura de ar comprimido"),
+    ("INT003", "Execução de rede de fibra óptica primária, secundária, IEC e Wi-Fi"),
+    ("EIA001", "Execução de TAC"),
+    ("AUT001", "Infraestrutura de automação"),
+    ("MEC001", "Montagem de válvulas manuais e automáticas"),
+    ("ECM001", "Projetos de engenharia civil"),
+    ("ECM002", "Projetos de engenharia metal mecânica"),
+    ("ECM003", "Fornecimento de estruturas metálicas"),
+    ("ECM004", "Fornecimento de equipamentos (transportadores, elevadores, canalização, tripper)"),
+    ("ECM005", "Fornecimento de materiais para PCI (abrigos, válvulas, chaves, mangueiras, excluso EIA)"),
+    ("EEI001", "Projetos de engenharia elétrica, instrumentação e automação"),
+    ("EEI002", "Fornecimento de eletrocentro"),
+    ("EEI003", "Fornecimento de materiais e equipamentos EIA"),
+)
+
+
+def _catalog_values_sql() -> str:
+    return ",\n".join(
+        f"('{code}', '{description.replace(chr(39), chr(39) * 2)}')"
+        for code, description in WORK_PACKAGE_CATALOG
+    )
+
+
+def upgrade() -> None:
+    # Identifica um registro canônico para cada código, sem perder os vínculos
+    # N:N nem a referência singular legada de Equipment.
+    op.execute(sa.text("""
+        CREATE TEMP TABLE wp_merge_map ON COMMIT DROP AS
+        SELECT
+            id AS old_id,
+            first_value(id) OVER (
+                PARTITION BY upper(btrim(code))
+                ORDER BY active DESC, id
+            ) AS canonical_id
+        FROM work_package
+    """))
+    op.execute(sa.text("""
+        INSERT INTO equipment_work_package (id, equipment_id, work_package_id, created_at)
+        SELECT gen_random_uuid()::text, ewp.equipment_id, map.canonical_id, min(ewp.created_at)
+        FROM equipment_work_package AS ewp
+        JOIN wp_merge_map AS map ON map.old_id = ewp.work_package_id
+        WHERE map.old_id <> map.canonical_id
+        GROUP BY ewp.equipment_id, map.canonical_id
+        ON CONFLICT (equipment_id, work_package_id) DO NOTHING
+    """))
+    op.execute(sa.text("""
+        DELETE FROM equipment_work_package AS ewp
+        USING wp_merge_map AS map
+        WHERE ewp.work_package_id = map.old_id
+          AND map.old_id <> map.canonical_id
+    """))
+    op.execute(sa.text("""
+        UPDATE equipment AS equipment
+        SET work_package_id = map.canonical_id
+        FROM wp_merge_map AS map
+        WHERE equipment.work_package_id = map.old_id
+          AND map.old_id <> map.canonical_id
+    """))
+    op.execute(sa.text("""
+        DELETE FROM work_package AS wp
+        USING wp_merge_map AS map
+        WHERE wp.id = map.old_id
+          AND map.old_id <> map.canonical_id
+    """))
+
+    op.drop_index("work_package_context_code_key", table_name="work_package")
+    op.drop_index("work_package_context_id_idx", table_name="work_package")
+    op.alter_column("work_package", "project_context_id", existing_type=sa.String(), nullable=True)
+    op.execute(sa.text("UPDATE work_package SET code = upper(btrim(code)), project_context_id = NULL"))
+    op.create_index("work_package_code_key", "work_package", ["code"], unique=True)
+
+    op.execute(sa.text(f"""
+        WITH catalog(code, description) AS (
+            VALUES {_catalog_values_sql()}
+        )
+        INSERT INTO work_package (id, project_context_id, code, name, description, active)
+        SELECT gen_random_uuid()::text, NULL, code, description, description, TRUE
+        FROM catalog
+        ON CONFLICT (code) DO UPDATE SET
+            description = EXCLUDED.description,
+            name = CASE
+                WHEN btrim(work_package.name) = '' OR upper(btrim(work_package.name)) = EXCLUDED.code
+                    THEN EXCLUDED.name
+                ELSE work_package.name
+            END,
+            active = TRUE,
+            project_context_id = NULL
+    """))
+
+
+def downgrade() -> None:
+    # A consolidação de duplicatas por obra é intencionalmente irreversível.
+    # A coluna legada permanece, portanto restauramos apenas os índices antigos
+    # sem fabricar associações de contexto que já não representam o domínio.
+    op.drop_index("work_package_code_key", table_name="work_package")
+    op.create_index(
+        "work_package_context_code_key",
+        "work_package",
+        ["project_context_id", "code"],
+        unique=True,
+    )
+    op.create_index("work_package_context_id_idx", "work_package", ["project_context_id"])

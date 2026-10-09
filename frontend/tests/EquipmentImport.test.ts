@@ -311,7 +311,7 @@ describe("Importar equipamentos", () => {
     await settle(wrapper);
 
     expect(get).toHaveBeenCalledWith("/responsibles", { unit_id: "u-tst" });
-    expect(get).toHaveBeenCalledWith("/work-packages", { project_context_id: "pc-a" });
+    expect(get).toHaveBeenCalledWith("/work-packages");
     expect(wrapper.find("[data-testid='mapping-disciplines']").exists()).toBe(false); // sem valores na origem
     expect(get).toHaveBeenCalledWith("/eap-nodes", { active: true });
     expect(get).not.toHaveBeenCalledWith("/areas", expect.anything()); // Area não é destino da localização

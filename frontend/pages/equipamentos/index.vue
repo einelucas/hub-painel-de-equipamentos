@@ -57,18 +57,15 @@ const canAdminister = computed(
 );
 
 /**
- * Área respeita a Unidade; Work Package respeita o(s) ProjectContext(s) da
- * Unidade (a API exige `project_context_id`, nunca lista sem esse escopo —
- * nunca usa o `workPackage` singular legado). Uma seleção que deixou de
+ * Área legada respeita a Unidade; Work Package é um catálogo corporativo
+ * global (e nunca usa o `workPackage` singular legado). Uma seleção que deixou de
  * existir na nova lista (ex.: trocou de unidade) é limpa; uma que continua
  * válida (ex.: catálogo administrado) permanece.
  */
 async function loadAreaAndWorkPackageOptions(): Promise<void> {
   if (!context.selectedUnit) {
     areas.value = [];
-    workPackages.value = [];
     areaId.value = "";
-    workPackageId.value = "";
     return;
   }
   areas.value = (
@@ -76,17 +73,9 @@ async function loadAreaAndWorkPackageOptions(): Promise<void> {
       unit_id: context.selectedUnit,
     })
   ).items;
-  const contexts = context.selectedProjectContext
-    ? context.projectContexts.filter((item) => item.id === context.selectedProjectContext)
-    : context.projectContexts;
-  const perContext = await Promise.all(
-    contexts.map((item) =>
-      api.get<CatalogList<CatalogItem>>("/work-packages", {
-        project_context_id: item.id,
-      }),
-    ),
-  );
-  workPackages.value = perContext.flatMap((result) => result.items);
+  workPackages.value = (
+    await api.get<CatalogList<CatalogItem>>("/work-packages")
+  ).items;
   if (!areas.value.some((item) => item.id === areaId.value)) areaId.value = "";
   if (!workPackages.value.some((item) => item.id === workPackageId.value))
     workPackageId.value = "";

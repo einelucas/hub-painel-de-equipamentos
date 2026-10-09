@@ -104,8 +104,8 @@ describe("EquipmentAdmin", () => {
     expect(wrapper.find("[data-testid='project-context-admin']").exists()).toBe(true);
   });
 
-  it("'Gerenciar Work Packages' abre o catálogo existente já no contexto escolhido", async () => {
-    setup(["catalogs:manage", "users:manage"]);
+  it("'Gerenciar Work Packages' abre o catálogo corporativo sem seletor de contexto", async () => {
+    const { get } = setup(["catalogs:manage", "users:manage"]);
     const wrapper = mountAdmin();
     await settle(wrapper);
 
@@ -114,7 +114,10 @@ describe("EquipmentAdmin", () => {
 
     expect(wrapper.get("[data-testid='admin-tab-catalogs']").attributes("aria-selected")).toBe("true");
     expect(wrapper.get("[data-testid='catalog-switch-workPackages']").classes()).toContain("active");
-    expect((wrapper.get("[data-testid='wp-context']").element as HTMLSelectElement).value).toBe("pc-a");
+    expect(wrapper.find("[data-testid='wp-context']").exists()).toBe(false);
+    expect(get).toHaveBeenCalledWith("/work-packages", {
+      include_inactive: "true",
+    });
   });
 
   it("'Gerenciar Árvore EAP' e 'Gerenciar acessos' reutilizam as seções existentes", async () => {
@@ -142,7 +145,9 @@ describe("EquipmentAdmin", () => {
     expect(wrapper.find("[data-testid='project-no-unit']").exists()).toBe(true);
     await wrapper.get("[data-testid='project-unit']").setValue("u-tst");
     await settle(wrapper);
-    expect(get).toHaveBeenCalledWith("/units/u-tst/project-contexts");
+    expect(get).toHaveBeenCalledWith("/units/u-tst/project-contexts", {
+      include_inactive: "true",
+    });
 
     await wrapper.get("[data-testid='admin-tab-catalogs']").trigger("click");
     await wrapper.get("[data-testid='catalog-switch-areas']").trigger("click");

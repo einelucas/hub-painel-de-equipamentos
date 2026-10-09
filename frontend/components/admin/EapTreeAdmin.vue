@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { Check, Plus, X } from "lucide-vue-next";
+import { Check, Pencil, Plus, X } from "lucide-vue-next";
 import type { CatalogList, EapLevel, EapNodeItem } from "~/types/equipment";
 
 const emit = defineEmits<{ changed: [] }>();
@@ -12,11 +12,13 @@ const saving = ref(false);
 const error = ref("");
 const formError = ref("");
 const creating = ref(false);
-const form = reactive<{ code: string; name: string; level: EapLevel; parentId: string }>({
+const editingId = ref("");
+const form = reactive<{ code: string; name: string; level: EapLevel; parentId: string; active: boolean }>({
   code: "",
   name: "",
   level: "AREA",
   parentId: "",
+  active: true,
 });
 
 const levelLabels: Record<EapLevel, string> = {
@@ -74,11 +76,27 @@ function startCreate(): void {
     name: "",
     level: "AREA" as EapLevel,
     parentId: ordered(nodes.value.filter((node) => node.level === "PROCESS" && node.active))[0]?.id ?? "",
+    active: true,
+  });
+  editingId.value = "";
+}
+
+function startEdit(node: EapNodeItem): void {
+  creating.value = true;
+  editingId.value = node.id;
+  formError.value = "";
+  Object.assign(form, {
+    code: node.code,
+    name: node.name,
+    level: node.level,
+    parentId: node.parentId ?? "",
+    active: node.active,
   });
 }
 
 function cancel(): void {
   creating.value = false;
+  editingId.value = "";
   formError.value = "";
 }
 
@@ -94,12 +112,19 @@ async function submit(): Promise<void> {
   saving.value = true;
   formError.value = "";
   try {
-    await api.post("/eap-nodes", {
-      code: form.code.trim().toUpperCase(),
-      name: form.name.trim(),
-      level: form.level,
-      parentId: form.parentId || null,
-    });
+    if (editingId.value) {
+      await api.patch(`/eap-nodes/${editingId.value}`, {
+        name: form.name.trim(),
+        active: form.active,
+      });
+    } else {
+      await api.post("/eap-nodes", {
+        code: form.code.trim().toUpperCase(),
+        name: form.name.trim(),
+        level: form.level,
+        parentId: form.parentId || null,
+      });
+    }
     cancel();
     await load();
     emit("changed");
@@ -138,7 +163,7 @@ void load();
     <form v-if="creating" class="eap-form" data-testid="eap-form" @submit.prevent="submit">
       <label class="field">
         <span>Nível *</span>
-        <select v-model="form.level" data-testid="eap-level">
+        <select v-model="form.level" :disabled="Boolean(editingId)" data-testid="eap-level">
           <option value="ISLAND">Ilha</option>
           <option value="PROCESS">Processo</option>
           <option value="AREA">Área</option>
@@ -146,7 +171,7 @@ void load();
       </label>
       <label class="field">
         <span>Código *</span>
-        <input v-model="form.code" maxlength="20" required data-testid="eap-code">
+        <input v-model="form.code" maxlength="20" required :disabled="Boolean(editingId)" data-testid="eap-code">
       </label>
       <label class="field eap-name-field">
         <span>Nome *</span>
@@ -154,12 +179,16 @@ void load();
       </label>
       <label v-if="form.level !== 'ISLAND'" class="field eap-parent-field">
         <span>{{ form.level === "AREA" ? "Processo pai *" : "Ilha pai (opcional)" }}</span>
-        <select v-model="form.parentId" :required="form.level === 'AREA'" data-testid="eap-parent">
+        <select v-model="form.parentId" :required="form.level === 'AREA'" :disabled="Boolean(editingId)" data-testid="eap-parent">
           <option value="">{{ form.level === "AREA" ? "Selecione" : "Sem ilha" }}</option>
           <option v-for="node in parentOptions" :key="node.id" :value="node.id">
             {{ node.code }} · {{ node.name }}
           </option>
         </select>
+      </label>
+      <label v-if="editingId" class="active-check">
+        <input v-model="form.active" type="checkbox" data-testid="eap-active">
+        Ativo
       </label>
       <p class="eap-help">
         PROCESS usa dois dígitos (ex.: 04). AREA usa processo e sufixo (ex.: 04.A).
@@ -193,6 +222,15 @@ void load();
         <span class="eap-name">{{ row.node.name }}</span>
         <span class="eap-level">{{ levelLabels[row.node.level] }}</span>
         <span v-if="!row.node.active" class="eap-inactive">Inativo</span>
+        <button
+          type="button"
+          class="eap-edit"
+          :aria-label="`Editar ${row.node.code}`"
+          :data-testid="`eap-edit-${row.node.id}`"
+          @click="startEdit(row.node)"
+        >
+          <Pencil :size="13" />
+        </button>
       </li>
     </ul>
   </section>
@@ -210,13 +248,16 @@ void load();
 .eap-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
 .eap-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: #8b96a5; font-size: 12px; }
 .eap-tree { display: grid; margin: 0; padding: 2px 0; list-style: none; }
-.eap-tree li { position: relative; display: grid; grid-template-columns: auto minmax(120px, 1fr) auto auto; align-items: center; gap: 8px; min-height: 34px; margin-left: calc(var(--tree-depth) * 22px); border-bottom: 1px solid #f0f3f7; padding: 5px 3px 5px 15px; color: #2b3e58; }
+.eap-tree li { position: relative; display: grid; grid-template-columns: auto minmax(120px, 1fr) auto auto auto; align-items: center; gap: 8px; min-height: 34px; margin-left: calc(var(--tree-depth) * 22px); border-bottom: 1px solid #f0f3f7; padding: 5px 3px 5px 15px; color: #2b3e58; }
 .tree-line { position: absolute; top: 0; bottom: 0; left: 3px; width: 8px; border-bottom: 1px solid #cbd6e4; border-left: 1px solid #cbd6e4; }
 .eap-code { border-radius: 5px; background: #e9f1fb; padding: 2px 6px; color: #294b77; font-size: 10.5px; font-weight: 800; }
 .eap-name { overflow: hidden; font-size: 12.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .eap-level, .eap-inactive { border-radius: 999px; padding: 3px 7px; font-size: 10px; font-weight: 750; }
 .eap-level { background: #eef2f7; color: #627086; }
 .eap-inactive { background: #f5e9e7; color: #925147; }
+.active-check { display: flex; align-items: center; gap: 7px; color: #526176; font-size: 12px; font-weight: 700; }
+.eap-edit { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #77859a; cursor: pointer; }
+.eap-edit:hover { background: #edf3fa; color: #294b77; }
 .spinner-small { width: 14px; height: 14px; border-width: 2px; }
 @media (max-width: 700px) {
   .eap-form { grid-template-columns: 1fr; }

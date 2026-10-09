@@ -47,8 +47,10 @@ async def _seed_context(db_session, suffix: str) -> dict[str, str]:
     await db_session.flush()
     area = Area(unit_id=unit.id, name=f"Área {suffix}")
     discipline = Discipline(code=f"D-{suffix}", name=f"Disciplina {suffix}")
-    wp1 = WorkPackage(project_context_id=context.id, code="CAL100", name="Caldeira 100")
-    wp2 = WorkPackage(project_context_id=context.id, code="CIV100", name="Civil 100")
+    wp1 = await db_session.scalar(select(WorkPackage).where(WorkPackage.code == "CAL100"))
+    wp2 = await db_session.scalar(select(WorkPackage).where(WorkPackage.code == "CIV100"))
+    wp1 = wp1 or WorkPackage(code="CAL100", name="Caldeira 100")
+    wp2 = wp2 or WorkPackage(code="CIV100", name="Civil 100")
     db_session.add_all([area, discipline, wp1, wp2])
     await db_session.flush()
     responsible = User(
@@ -215,7 +217,8 @@ async def test_mapping_validation_rejects_bad_references(db_session) -> None:
     assert "inactive_user" in codes
     assert "user_without_unit_access" in codes
     assert "area_wrong_unit" in codes
-    assert "work_package_wrong_context" in codes
+    assert "work_package_wrong_context" not in codes
+    assert result.work_packages["wperrado"] == other["work_package_1"]
     assert result.has_errors is True
 
 

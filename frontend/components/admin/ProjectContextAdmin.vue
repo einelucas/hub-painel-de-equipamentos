@@ -6,7 +6,6 @@ import type {
   CatalogList,
   EapNodeItem,
   ProjectAdminTarget,
-  ProjectEapItem,
   Unit,
 } from "~/types/equipment";
 
@@ -39,7 +38,7 @@ const formError = ref("");
 const mode = ref<"idle" | "create" | "edit">("idle");
 const form = reactive({ code: "", name: "", active: true });
 
-const summary = reactive({ loading: false, error: "", eapNodes: 0, projectEap: 0, disciplines: 0, workPackages: 0 });
+const summary = reactive({ loading: false, error: "", eapNodes: 0, disciplines: 0, workPackages: 0 });
 
 const selectedUnit = computed(() => units.value.find((unit) => unit.id === props.unitId) ?? null);
 const selected = computed(() => contexts.value.find((item) => item.id === selectedId.value) ?? null);
@@ -88,14 +87,12 @@ async function loadSummary(): Promise<void> {
   if (!props.unitId || !selectedId.value) return;
   summary.loading = true;
   try {
-    const [eapNodes, projectEap, disciplines, workPackages] = await Promise.all([
+    const [eapNodes, disciplines, workPackages] = await Promise.all([
       api.get<CatalogList<EapNodeItem>>("/eap-nodes", { active: true }),
-      api.get<CatalogList<ProjectEapItem>>(`/project-contexts/${selectedId.value}/eap-nodes`),
       api.get<CatalogList<CatalogItem>>("/disciplines"),
-      api.get<CatalogList<CatalogItem>>("/work-packages", { project_context_id: selectedId.value }),
+      api.get<CatalogList<CatalogItem>>("/work-packages"),
     ]);
     summary.eapNodes = eapNodes.items.length;
-    summary.projectEap = projectEap.items.length;
     summary.disciplines = disciplines.items.filter((item) => item.active).length;
     summary.workPackages = workPackages.items.length;
   } catch (caught) {
@@ -312,7 +309,7 @@ watch(selectedId, loadSummary);
             <template v-else-if="!summary.error">
               <div>
                 <dt>Árvore EAP</dt>
-                <dd data-testid="readiness-eap">{{ summary.projectEap }} na obra · {{ summary.eapNodes }} no catálogo</dd>
+                <dd data-testid="readiness-eap">{{ summary.eapNodes }} globais</dd>
               </div>
               <div>
                 <dt>Disciplinas</dt>
@@ -341,7 +338,7 @@ watch(selectedId, loadSummary);
               type="button"
               class="text-button"
               data-testid="goto-work-packages"
-              @click="emit('navigate', { section: 'catalogs', catalog: 'workPackages', contextId: selected.id })"
+              @click="emit('navigate', { section: 'catalogs', catalog: 'workPackages' })"
             >
               Gerenciar Work Packages
             </button>

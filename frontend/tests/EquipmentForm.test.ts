@@ -88,26 +88,22 @@ describe("EquipmentForm", () => {
       }
       if (path === "/disciplines" || path === "/responsibles") return { items: [] };
       if (path === "/work-packages") return { items: workPackages };
-      if (path === "/project-contexts/ctx-1/eap-nodes") {
-        return {
-          items: [process, area, island].map((eapNode, index) => ({
-            id: `link-${index}`,
-            projectContextId: "ctx-1",
-            eapNode,
-            active: true,
-            createdAt: "2026-10-01T00:00:00",
-          })),
-        };
-      }
+      if (path === "/eap-nodes") return { items: [process, area, island] };
       throw new Error(`GET inesperado: ${path}`);
     });
     const patch = vi.fn().mockResolvedValue(current);
     vi.stubGlobal("useApi", () => ({ get, post: vi.fn(), patch }));
+    vi.stubGlobal("useAuthStore", () => ({ can: () => true }));
 
     const wrapper = mount(EquipmentForm, {
       props: { unitId: "unit-1", equipment: current },
     });
     await settle(wrapper);
+
+    expect(get).toHaveBeenCalledWith("/eap-nodes", { active: true });
+    expect(get).toHaveBeenCalledWith("/work-packages");
+    expect(get).not.toHaveBeenCalledWith("/work-packages", expect.anything());
+    expect(wrapper.get("[data-testid='edit-eaps']").text()).toContain("Editar EAPs");
 
     const eapSelect = wrapper.get("[data-testid='eap-node-select']");
     expect((eapSelect.element as HTMLInputElement).value).toBe("04.A · Casa de Força");

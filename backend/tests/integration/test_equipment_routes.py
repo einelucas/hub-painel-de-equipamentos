@@ -154,7 +154,7 @@ async def test_equipment_uses_process_or_area_eap_and_preserves_legacy_area(
     assert renamed.json()["eapNode"]["id"] == eap["area"]
 
 
-async def test_equipment_rejects_island_and_eap_from_another_project(
+async def test_equipment_rejects_island_and_accepts_global_eap(
     client, auth_header, db_session
 ) -> None:
     first = await _catalogs(client, auth_header, "72")
@@ -173,16 +173,17 @@ async def test_equipment_rejects_island_and_eap_from_another_project(
     )
     assert island.status_code == 422
 
-    wrong_project = await client.post(
+    global_eap = await client.post(
         "/api/v1/equipments",
         json={
             "projectContextId": first["context"],
-            "name": "EAP de outra obra",
+            "name": "EAP corporativa",
             "eapNodeId": second_eap["area"],
         },
         headers=auth_header("ANALYST"),
     )
-    assert wrong_project.status_code == 422
+    assert global_eap.status_code == 201, global_eap.text
+    assert global_eap.json()["eapNode"]["id"] == second_eap["area"]
 
 
 async def test_catalog_creation_and_read_permissions(client, auth_header) -> None:
@@ -336,17 +337,18 @@ async def test_cross_catalog_relations_are_validated(client, auth_header) -> Non
         },
         headers=auth_header("ANALYST"),
     )
-    wrong_package = await client.post(
+    global_package = await client.post(
         "/api/v1/equipments",
         json={
             "projectContextId": first["context"],
-            "name": "Pacote incompatível",
+            "name": "Pacote global",
             "workPackageIds": [second["work_package"]],
         },
         headers=auth_header("ANALYST"),
     )
     assert wrong_area.status_code == 422
-    assert wrong_package.status_code == 422
+    assert global_package.status_code == 201, global_package.text
+    assert global_package.json()["workPackages"][0]["id"] == second["work_package"]
 
 
 async def test_component_summary_audit_and_stage_history(client, auth_header, db_session) -> None:
@@ -514,19 +516,20 @@ async def test_equipment_create_rejects_inactive_work_package(client, auth_heade
     assert response.status_code == 422
 
 
-async def test_equipment_create_rejects_work_package_from_other_context(client, auth_header) -> None:
+async def test_equipment_create_accepts_global_work_package(client, auth_header) -> None:
     first = await _catalogs(client, auth_header, "A")
     second = await _catalogs(client, auth_header, "B")
     response = await client.post(
         "/api/v1/equipments",
         json={
             "projectContextId": first["context"],
-            "name": "Contexto errado",
+            "name": "WP corporativa",
             "workPackageIds": [second["work_package"]],
         },
         headers=auth_header("ANALYST"),
     )
-    assert response.status_code == 422
+    assert response.status_code == 201, response.text
+    assert response.json()["workPackages"][0]["id"] == second["work_package"]
 
 
 async def test_equipment_update_adds_and_removes_and_replaces_work_packages(
@@ -602,7 +605,7 @@ async def test_equipment_patch_without_work_package_ids_preserves_links(client, 
     assert {item["id"] for item in updated.json()["workPackages"]} == original_ids
 
 
-async def test_equipment_update_rejects_duplicate_and_wrong_context_work_packages(
+async def test_equipment_update_rejects_duplicate_and_accepts_global_work_packages(
     client, auth_header
 ) -> None:
     first = await _catalogs(client, auth_header, "A")
@@ -617,12 +620,13 @@ async def test_equipment_update_rejects_duplicate_and_wrong_context_work_package
     )
     assert duplicate.status_code == 422
 
-    wrong_context = await client.patch(
+    global_package = await client.patch(
         f"/api/v1/equipments/{equipment_id}",
         json={"workPackageIds": [second["work_package"]]},
         headers=auth_header("ANALYST"),
     )
-    assert wrong_context.status_code == 422
+    assert global_package.status_code == 200, global_package.text
+    assert global_package.json()["workPackages"][0]["id"] == second["work_package"]
 
 
 async def test_get_equipment_detail_returns_all_linked_work_packages(client, auth_header) -> None:

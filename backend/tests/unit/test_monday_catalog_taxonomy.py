@@ -356,8 +356,7 @@ def test_work_package_conflict_same_code_other_name() -> None:
     assert is_blocking_issue(decision.issue_code or "")
 
 
-def test_work_package_wrong_context_is_not_reused() -> None:
-    # O índice é escopado ao contexto atual: WP de outro contexto não está nele.
+def test_work_package_missing_from_global_index_is_created() -> None:
     decision = decide_work_package("WP-S1", NONE, {})
     assert decision.action is CatalogAction.CREATE
     assert decision.work_package_id is None

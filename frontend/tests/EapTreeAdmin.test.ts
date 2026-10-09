@@ -11,8 +11,9 @@ const nodes = [
 function setup() {
   const get = vi.fn().mockResolvedValue({ items: nodes });
   const post = vi.fn().mockResolvedValue({});
-  vi.stubGlobal("useApi", () => ({ get, post }));
-  return { wrapper: mount(EapTreeAdmin), get, post };
+  const patch = vi.fn().mockResolvedValue({});
+  vi.stubGlobal("useApi", () => ({ get, post, patch }));
+  return { wrapper: mount(EapTreeAdmin), get, post, patch };
 }
 
 async function settle(wrapper: ReturnType<typeof mount>) {
@@ -56,6 +57,23 @@ describe("EapTreeAdmin", () => {
       name: "Área Sintética B",
       level: "AREA",
       parentId: "p1",
+    });
+  });
+
+  it("edita nome e situação sem alterar código, nível ou pai", async () => {
+    const { wrapper, patch } = setup();
+    await settle(wrapper);
+
+    await wrapper.get("[data-testid='eap-edit-a1']").trigger("click");
+    expect((wrapper.get("[data-testid='eap-code']").element as HTMLInputElement).disabled).toBe(true);
+    await wrapper.get("[data-testid='eap-name']").setValue("Área revisada");
+    await wrapper.get("[data-testid='eap-active']").setValue(false);
+    await wrapper.get("[data-testid='eap-form']").trigger("submit");
+    await settle(wrapper);
+
+    expect(patch).toHaveBeenCalledWith("/eap-nodes/a1", {
+      name: "Área revisada",
+      active: false,
     });
   });
 });

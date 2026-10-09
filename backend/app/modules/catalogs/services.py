@@ -167,15 +167,10 @@ async def list_disciplines(session: AsyncSession, *, include_inactive: bool = Fa
 
 
 async def list_work_packages(
-    session: AsyncSession, actor: CurrentUser, project_context_id: str, *, include_inactive: bool = False
+    session: AsyncSession, *, include_inactive: bool = False
 ) -> list[WorkPackage]:
-    await assert_context_allowed(session, actor, project_context_id)
-    return await _list(
-        session,
-        WorkPackage,
-        WorkPackage.project_context_id == project_context_id,
-        *_situation(WorkPackage, include_inactive),
-    )
+    """Catálogo corporativo global, assim como EAP e disciplinas."""
+    return await _list(session, WorkPackage, *_situation(WorkPackage, include_inactive))
 
 
 async def create_catalog(
@@ -194,9 +189,9 @@ async def create_catalog(
         if await session.get(Unit, parent_id) is None:
             raise NotFoundError("Unidade não encontrada")
     elif model is WorkPackage:
-        parent_id = str(values["project_context_id"])
-        if await session.get(ProjectContext, parent_id) is None:
-            raise NotFoundError("Contexto de projeto não encontrado")
+        # Clientes antigos ainda podem enviar projectContextId. Ele não define
+        # identidade nem escopo e não é persistido em novos registros.
+        values.pop("project_context_id", None)
 
     conditions = []
     if "code" in values:
@@ -205,7 +200,7 @@ async def create_catalog(
         conditions.append(model.name == values["name"])
     if "unit_id" in values:
         conditions.append(model.unit_id == values["unit_id"])
-    if "project_context_id" in values:
+    if "project_context_id" in values and model is not WorkPackage:
         conditions.append(model.project_context_id == values["project_context_id"])
     if (await session.execute(select(model.id).where(*conditions))).scalar_one_or_none() is not None:
         raise ConflictError("Já existe um registro equivalente neste catálogo")
@@ -250,7 +245,7 @@ async def update_catalog(
         conditions = [getattr(model, field) == changes[field], model.id != item_id]
         if hasattr(model, "unit_id"):
             conditions.append(model.unit_id == item.unit_id)
-        if hasattr(model, "project_context_id"):
+        if hasattr(model, "project_context_id") and model is not WorkPackage:
             conditions.append(model.project_context_id == item.project_context_id)
         duplicated = (
             await session.execute(select(model.id).where(*conditions))

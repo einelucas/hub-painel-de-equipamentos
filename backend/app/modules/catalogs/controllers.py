@@ -7,7 +7,7 @@ from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission, assert_can
 from app.domain.eap import EapLevel
-from app.models.equipment import Area, Discipline, ProjectContext, Unit, WorkPackage
+from app.models.equipment import Area, Discipline, EapNode, ProjectContext, Unit, WorkPackage
 from app.modules.catalogs import services
 from app.modules.catalogs.schemas import (
     AreaCreateIn,
@@ -19,6 +19,7 @@ from app.modules.catalogs.schemas import (
     EapNodeCreateIn,
     EapNodeListOut,
     EapNodeOut,
+    EapNodeUpdateIn,
     ProjectContextCreateIn,
     ProjectContextOut,
     ProjectContextUpdateIn,
@@ -127,6 +128,23 @@ async def post_eap_node(
     return EapNodeOut.model_validate(item)
 
 
+@router.patch("/eap-nodes/{item_id}", response_model=EapNodeOut)
+async def patch_eap_node(
+    item_id: str,
+    body: EapNodeUpdateIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
+) -> EapNodeOut:
+    item = await services.update_catalog(
+        session,
+        EapNode,
+        item_id=item_id,
+        changes=body.model_dump(exclude_unset=True),
+        actor=actor,
+    )
+    return EapNodeOut.model_validate(item)
+
+
 @router.get("/project-contexts/{project_context_id}/eap-nodes", response_model=ProjectEapListOut)
 async def get_project_eap_nodes(
     project_context_id: str,
@@ -186,13 +204,14 @@ async def post_discipline(
 
 @router.get("/work-packages", response_model=CatalogListOut)
 async def get_work_packages(
-    project_context_id: str = Query(alias="project_context_id"),
+    # Parâmetro legado aceito, mas não restringe o catálogo corporativo.
+    project_context_id: str | None = Query(default=None, alias="project_context_id"),
     include_inactive: bool = Query(False, description=_INCLUDE_INACTIVE_HELP),
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
 ) -> CatalogListOut:
     items = await services.list_work_packages(
-        session, actor, project_context_id, include_inactive=_admin_listing(actor, include_inactive)
+        session, include_inactive=_admin_listing(actor, include_inactive)
     )
     return CatalogListOut(items=[WorkPackageOut.model_validate(item) for item in items])
 

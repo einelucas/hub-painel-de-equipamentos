@@ -167,7 +167,7 @@ async def test_apply_creates_catalogs_and_links_equipment_in_same_transaction(db
     )
     assert equipment.responsible_user_id == ids["responsible_id"]
     work_package = (await db_session.execute(select(WorkPackage))).scalar_one()
-    assert work_package.project_context_id == ids["context_id"]
+    assert work_package.project_context_id is None
     links = (await db_session.execute(select(EquipmentWorkPackage.work_package_id))).scalars().all()
     assert links == [work_package.id]
     assert await _count(db_session, Supplier) == 0
@@ -287,7 +287,7 @@ async def test_apply_creates_and_links_six_code_only_work_packages_in_same_conte
         }
     }
     # Sem catalogEvidence de Work Package: o código explícito do Monday cria
-    # uma entrada controlada no contexto escolhido, usando o código como rótulo provisório.
+    # uma entrada controlada global, usando o código como rótulo provisório.
     plan = await _plan(
         db_session,
         ids,
@@ -311,12 +311,9 @@ async def test_apply_creates_and_links_six_code_only_work_packages_in_same_conte
         actor=_actor(ids["actor_id"]),
     )
 
-    packages = (
-        await db_session.execute(
-            select(WorkPackage).where(WorkPackage.project_context_id == ids["context_id"])
-        )
-    ).scalars().all()
+    packages = (await db_session.execute(select(WorkPackage))).scalars().all()
     assert {(item.code, item.name) for item in packages} == {(code, code) for code in codes}
+    assert all(item.project_context_id is None for item in packages)
     equipment = (await db_session.execute(select(Equipment))).scalar_one()
     links = (
         await db_session.execute(

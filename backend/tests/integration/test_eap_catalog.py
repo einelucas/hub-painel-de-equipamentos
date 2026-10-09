@@ -143,6 +143,29 @@ async def test_eap_creation_rejects_invalid_hierarchy_duplicate_and_permission(
     assert forbidden.status_code == 403
 
 
+async def test_admin_edits_eap_name_and_status_without_changing_identity(
+    client, auth_header, db_session
+) -> None:
+    ids = await _seed_catalog(db_session)
+    response = await client.patch(
+        f"/api/v1/eap-nodes/{ids['area']}",
+        json={"name": "Caldeira revisada", "active": False},
+        headers=auth_header("ADMIN"),
+    )
+    assert response.status_code == 200, response.text
+    assert (response.json()["code"], response.json()["level"]) == ("01.A", "AREA")
+    assert (response.json()["name"], response.json()["active"]) == (
+        "Caldeira revisada",
+        False,
+    )
+    forbidden = await client.patch(
+        f"/api/v1/eap-nodes/{ids['area']}",
+        json={"name": "Sem permissão"},
+        headers=auth_header("ANALYST"),
+    )
+    assert forbidden.status_code == 403
+
+
 async def test_project_eap_nodes_respect_context_scope(client, auth_header, db_session) -> None:
     ids = await _seed_catalog(db_session)
     unit = Unit(code="TST", name="Unidade Teste")

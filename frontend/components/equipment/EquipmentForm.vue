@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { Pencil } from "lucide-vue-next";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import type {
@@ -7,7 +8,6 @@ import type {
   CatalogList,
   EapNodeItem,
   Equipment,
-  ProjectEapItem,
   Responsible,
 } from "~/types/equipment";
 
@@ -22,6 +22,7 @@ const emit = defineEmits<{
 }>();
 
 const api = useApi();
+const auth = useAuthStore();
 
 const contexts = ref<CatalogItem[]>([]);
 const eapNodes = ref<EapNodeItem[]>([]);
@@ -32,6 +33,7 @@ const responsibles = ref<Responsible[]>([]);
 const loading = ref(true);
 const saving = ref(false);
 const error = ref("");
+const showEapAdmin = ref(false);
 
 const form = reactive({
   name: props.equipment?.name ?? "",
@@ -87,45 +89,13 @@ const responsibleOptions = computed(() =>
 );
 
 async function loadWorkPackages(): Promise<void> {
-  workPackages.value = [];
-
-  if (!form.projectContextId) {
-    form.workPackageIds = [];
-    return;
-  }
-
-  workPackages.value = (
-    await api.get<CatalogList<CatalogItem>>("/work-packages", {
-      project_context_id: form.projectContextId,
-    })
-  ).items;
-
-  // Contexto mudou: remove pacotes que não pertencem
-  // ao contexto atualmente selecionado.
-  form.workPackageIds = form.workPackageIds.filter((id) =>
-    workPackages.value.some((item) => item.id === id),
-  );
+  workPackages.value = (await api.get<CatalogList<CatalogItem>>("/work-packages")).items;
 }
 
 async function loadEapNodes(): Promise<void> {
-  eapNodes.value = [];
-
-  if (!form.projectContextId) {
-    form.eapNodeId = "";
-    return;
-  }
-
-  const linked = await api.get<CatalogList<ProjectEapItem>>(
-    `/project-contexts/${form.projectContextId}/eap-nodes`,
-  );
-  const candidates = linked.items.length
-    ? linked.items.map((item) => item.eapNode)
-    : (
-        await api.get<CatalogList<EapNodeItem>>("/eap-nodes", {
-          active: true,
-        })
-      ).items;
-
+  const candidates = (
+    await api.get<CatalogList<EapNodeItem>>("/eap-nodes", { active: true })
+  ).items;
   eapNodes.value = candidates.filter(
     (item) => item.active && (item.level === "PROCESS" || item.level === "AREA"),
   );
@@ -134,8 +104,8 @@ async function loadEapNodes(): Promise<void> {
   }
 }
 
-async function loadContextCatalogs(): Promise<void> {
-  await Promise.all([loadEapNodes(), loadWorkPackages()]);
+async function eapCatalogChanged(): Promise<void> {
+  await loadEapNodes();
 }
 
 async function loadCatalogs(): Promise<void> {
@@ -168,7 +138,7 @@ async function loadCatalogs(): Promise<void> {
       form.projectContextId = contexts.value[0]!.id;
     }
 
-    await loadContextCatalogs();
+    await Promise.all([loadEapNodes(), loadWorkPackages()]);
   } catch (caught) {
     error.value =
       caught instanceof Error
@@ -249,7 +219,6 @@ onMounted(loadCatalogs);
         <select
           v-model="form.projectContextId"
           required
-          @change="loadContextCatalogs"
         >
           <option value="">Selecione</option>
 
@@ -266,7 +235,18 @@ onMounted(loadCatalogs);
       </label>
 
       <div class="field">
-        <span>Localização EAP</span>
+        <div class="field-label-row">
+          <span>Localização EAP</span>
+          <button
+            v-if="auth.can('catalogs:manage')"
+            type="button"
+            class="eap-manage-button"
+            data-testid="edit-eaps"
+            @click="showEapAdmin = true"
+          >
+            <Pencil :size="12" /> Editar EAPs
+          </button>
+        </div>
         <SearchableSelect
           v-model="form.eapNodeId"
           :options="eapOptions"
@@ -303,8 +283,6 @@ onMounted(loadCatalogs);
           :options="workPackageOptions"
           label="Work Packages"
           placeholder="Buscar por código, nome ou descrição"
-          :disabled="!form.projectContextId"
-          disabled-message="Selecione um contexto para visualizar as WPs disponíveis."
         />
       </div>
 
@@ -385,6 +363,10 @@ onMounted(loadCatalogs);
       </button>
     </div>
   </form>
+
+  <AppModal :open="showEapAdmin" title="Editar Árvore EAP" @close="showEapAdmin = false">
+    <EapTreeAdmin @changed="eapCatalogChanged" />
+  </AppModal>
 </template>
 
 <style scoped>
@@ -411,6 +393,10 @@ onMounted(loadCatalogs);
 .field-wide {
   grid-column: 1 / -1;
 }
+
+.field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: space-between; gap: 8px; }
+.eap-manage-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 1px 2px; background: transparent; color: #718096; font-size: 10.5px; font-weight: 650; cursor: pointer; }
+.eap-manage-button:hover { color: #294b77; text-decoration: underline; }
 
 .stage-note {
   margin: 0;

@@ -346,16 +346,6 @@ async def validate_mapping(
                     source,
                 )
             )
-        elif work_package.project_context_id != project_context_id:
-            issues.append(
-                MappingIssue(
-                    "work_package_wrong_context",
-                    "error",
-                    "workPackages",
-                    f"work package {work_package_id} pertence a outro contexto",
-                    source,
-                )
-            )
         else:
             resolved_work_packages[canonical_text(source)] = work_package_id
 

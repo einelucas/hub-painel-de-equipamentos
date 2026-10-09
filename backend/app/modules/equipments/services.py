@@ -39,7 +39,6 @@ from app.models.equipment import (
     EquipmentComponent,
     EquipmentWorkPackage,
     ProjectContext,
-    ProjectEap,
     WorkflowTransition,
     WorkPackage,
 )
@@ -302,18 +301,6 @@ async def _validate_relations(
             raise DomainError("Localização EAP inválida ou inativa")
         if EapLevel(node.level) not in EQUIPMENT_EAP_LEVELS:
             raise DomainError("Equipamento só pode usar EAP de nível PROCESS ou AREA")
-        linked_ids = set(
-            (
-                await session.scalars(
-                    select(ProjectEap.eap_node_id).where(
-                        ProjectEap.project_context_id == project_context_id,
-                        ProjectEap.active.is_(True),
-                    )
-                )
-            ).all()
-        )
-        if linked_ids and eap_node_id not in linked_ids:
-            raise DomainError("A localização EAP não está disponível para esta obra")
     if area_id:
         area = await session.get(Area, area_id)
         if area is None or not area.active:
@@ -334,11 +321,9 @@ async def _validate_relations(
 
 
 async def _validate_work_packages(
-    session: AsyncSession, *, project_context_id: str, work_package_ids: list[str]
+    session: AsyncSession, *, work_package_ids: list[str]
 ) -> None:
-    """Cada ID deve existir, estar ativo e pertencer ao mesmo ProjectContext
-    do Equipment. Duplicatas já são rejeitadas no schema (nível de request);
-    aqui é o nível que só o banco sabe responder."""
+    """Cada ID deve existir e estar ativo no catálogo corporativo global."""
     if not work_package_ids:
         return
     rows = (
@@ -349,10 +334,6 @@ async def _validate_work_packages(
         work_package = found.get(work_package_id)
         if work_package is None or not work_package.active:
             raise DomainError(f"Pacote de trabalho inválido ou inativo: {work_package_id}")
-        if work_package.project_context_id != project_context_id:
-            raise DomainError(
-                f"O pacote de trabalho {work_package_id} pertence a outro contexto de projeto"
-            )
 
 
 async def _sync_work_packages(
@@ -503,9 +484,7 @@ async def create_equipment(
         discipline_id=values.get("discipline_id"),
         responsible_user_id=values.get("responsible_user_id"),
     )
-    await _validate_work_packages(
-        session, project_context_id=values["project_context_id"], work_package_ids=work_package_ids
-    )
+    await _validate_work_packages(session, work_package_ids=work_package_ids)
     equipment = Equipment(**values, current_stage=0)
     session.add(equipment)
     await session.flush()
@@ -604,9 +583,7 @@ async def update_equipment(
     )
     if work_package_ids_provided:
         assert new_work_package_ids is not None
-        await _validate_work_packages(
-            session, project_context_id=new_context, work_package_ids=new_work_package_ids
-        )
+        await _validate_work_packages(session, work_package_ids=new_work_package_ids)
 
     previous: dict[str, Any] = {}
     changed: dict[str, Any] = {}

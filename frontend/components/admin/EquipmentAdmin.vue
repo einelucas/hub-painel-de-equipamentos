@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import type { CatalogItem, CatalogList, ProjectAdminTarget } from "~/types/equipment";
+import type { ProjectAdminTarget } from "~/types/equipment";
 
 /**
  * Administração contextual da aba Equipamentos: configuração da obra
@@ -9,12 +9,9 @@ import type { CatalogItem, CatalogList, ProjectAdminTarget } from "~/types/equip
 const props = defineProps<{ open: boolean; unitId: string }>();
 const emit = defineEmits<{ close: []; changed: [] }>();
 
-const api = useApi();
 const auth = useAuthStore();
 const section = ref("projects");
 const catalog = ref("units");
-const contexts = ref<CatalogItem[]>([]);
-const selectedContext = ref("");
 /**
  * Unidade em administração: começa pela do filtro do módulo e é compartilhada
  * por Projetos e Catálogos dentro do painel, sem alterar o filtro global.
@@ -46,7 +43,6 @@ function navigate(target: ProjectAdminTarget): void {
   section.value = target.section;
   if (target.section === "catalogs") {
     catalog.value = target.catalog;
-    if (target.contextId) selectedContext.value = target.contextId;
   }
 }
 
@@ -57,28 +53,8 @@ const CATALOGS = [
   { key: "workPackages", label: "Work Packages" },
 ];
 
-const unitHint = computed(() =>
-  adminUnit.value ? undefined : "Selecione uma unidade (filtro do módulo ou aba Projetos) para administrar este catálogo.",
-);
-const contextHint = computed(() => {
-  if (!adminUnit.value) return unitHint.value;
-  return selectedContext.value ? undefined : "Selecione um contexto de projeto acima.";
-});
-
-async function loadContexts(): Promise<void> {
-  contexts.value = [];
-  if (!adminUnit.value) return;
-  contexts.value = (
-    await api.get<CatalogList<CatalogItem>>(`/units/${adminUnit.value}/project-contexts`)
-  ).items;
-  if (!contexts.value.some((item) => item.id === selectedContext.value)) {
-    selectedContext.value = contexts.value[0]?.id ?? "";
-  }
-}
-
 function onChanged(): void {
   emit("changed");
-  void loadContexts();
 }
 
 watch(
@@ -88,13 +64,6 @@ watch(
   },
 );
 
-watch(
-  () => [props.open, adminUnit.value],
-  ([open]) => {
-    if (open) void loadContexts();
-  },
-  { immediate: true },
-);
 </script>
 
 <template>
@@ -147,23 +116,11 @@ watch(
           @changed="onChanged"
         />
         <template v-else>
-          <label class="field context-picker">
-            <span>Contexto de projeto</span>
-            <select v-model="selectedContext" data-testid="wp-context">
-              <option value="">Selecione</option>
-              <option v-for="item in contexts" :key="item.id" :value="item.id">
-                {{ item.code ? `${item.code} · ${item.name}` : item.name }}
-              </option>
-            </select>
-          </label>
           <CatalogAdmin
             path="/work-packages"
             label="Work Packages"
             :has-code="true"
             :has-description="true"
-            :parent="{ projectContextId: selectedContext }"
-            :query="{ project_context_id: selectedContext }"
-            :requires-parent="contextHint"
             @changed="onChanged"
           />
         </template>
@@ -179,5 +136,4 @@ watch(
 .catalog-switch button { border: 1px solid #e4e9f0; border-radius: 999px; padding: 5px 11px; background: #fff; color: #5d6b80; font-size: 11.5px; font-weight: 750; }
 .catalog-switch button.active { border-color: #d5e2f3; background: #e8f1fc; color: #27456f; }
 .catalog-switch button:focus-visible { outline: 2px solid #304f7e; outline-offset: 2px; }
-.context-picker { padding-bottom: 12px; }
 </style>

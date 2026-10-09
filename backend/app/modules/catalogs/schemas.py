@@ -40,7 +40,9 @@ class DisciplineOut(CamelModel):
 
 class WorkPackageOut(CamelModel):
     id: str
-    project_context_id: str
+    # Mantido na resposta para clientes antigos; o catálogo é global e o valor
+    # canônico é nulo.
+    project_context_id: str | None = None
     code: str
     name: str
     description: str | None
@@ -94,6 +96,19 @@ class EapNodeCreateIn(CamelModel):
         return self
 
 
+class EapNodeUpdateIn(CamelModel):
+    """Edição segura: identidade e posição da árvore não mudam silenciosamente."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    active: bool | None = None
+
+    @model_validator(mode="after")
+    def has_update(self) -> EapNodeUpdateIn:
+        if not self.model_fields_set:
+            raise ValueError("Informe ao menos um campo para atualizar")
+        return self
+
+
 class ProjectEapOut(CamelModel):
     id: str
     project_context_id: str
@@ -124,7 +139,9 @@ class DisciplineCreateIn(CamelModel):
 
 
 class WorkPackageCreateIn(CamelModel):
-    project_context_id: str
+    # Aceito e ignorado para compatibilidade com clientes anteriores à
+    # globalização do catálogo.
+    project_context_id: str | None = None
     code: str = Field(min_length=1, max_length=60)
     name: str = Field(min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=500)

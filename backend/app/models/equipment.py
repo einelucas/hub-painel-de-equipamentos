@@ -124,7 +124,6 @@ class ProjectContext(Base):
     updated_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow, onupdate=utcnow)
 
     unit: Mapped[Unit] = relationship(back_populates="project_contexts")
-    work_packages: Mapped[list[WorkPackage]] = relationship(back_populates="project_context")
     equipments: Mapped[list[Equipment]] = relationship(back_populates="project_context")
 
     __table_args__ = (
@@ -165,8 +164,10 @@ class WorkPackage(Base):
     __tablename__ = "work_package"
 
     id: Mapped[str] = uuid_pk()
-    project_context_id: Mapped[str] = mapped_column(
-        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+    # Legado: WPs eram duplicadas por obra. O catálogo atual é corporativo e
+    # global; a coluna permanece anulável apenas para compatibilidade histórica.
+    project_context_id: Mapped[str | None] = mapped_column(
+        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=True
     )
     code: Mapped[str] = mapped_column(String(60), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
@@ -175,13 +176,11 @@ class WorkPackage(Base):
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
-    project_context: Mapped[ProjectContext] = relationship(back_populates="work_packages")
     equipments: Mapped[list[Equipment]] = relationship(back_populates="work_package")
     equipment_links: Mapped[list[EquipmentWorkPackage]] = relationship(back_populates="work_package")
 
     __table_args__ = (
-        Index("work_package_context_code_key", "project_context_id", "code", unique=True),
-        Index("work_package_context_id_idx", "project_context_id"),
+        Index("work_package_code_key", "code", unique=True),
     )
 
 

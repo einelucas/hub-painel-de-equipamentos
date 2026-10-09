@@ -122,9 +122,8 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     expect(get).toHaveBeenCalledWith("/eap-nodes", { active: true });
-    expect(get).toHaveBeenCalledWith("/project-contexts/pc-a/eap-nodes");
-    expect(get).toHaveBeenCalledWith("/work-packages", { project_context_id: "pc-a" });
-    expect(wrapper.get("[data-testid='readiness-eap']").text()).toBe("1 na obra · 2 no catálogo");
+    expect(get).toHaveBeenCalledWith("/work-packages");
+    expect(wrapper.get("[data-testid='readiness-eap']").text()).toBe("2 globais");
     expect(wrapper.get("[data-testid='readiness-disciplines']").text()).toBe("1 ativas");
     expect(wrapper.get("[data-testid='readiness-work-packages']").text()).toBe("1 cadastrados");
 
@@ -276,7 +275,7 @@ describe("ProjectContextAdmin", () => {
     await wrapper.get("[data-testid='goto-access']").trigger("click");
     expect(wrapper.emitted("navigate")).toEqual([
       [{ section: "catalogs", catalog: "areas" }],
-      [{ section: "catalogs", catalog: "workPackages", contextId: "pc-a" }],
+      [{ section: "catalogs", catalog: "workPackages" }],
       [{ section: "access" }],
     ]);
   });

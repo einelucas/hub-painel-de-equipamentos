@@ -168,17 +168,13 @@ async def _apply_catalogs(
     for item in (item for item in creates if item.kind == "work_package"):
         code = str(item.payload["code"])
         exists = await session.scalar(
-            select(WorkPackage.id).where(
-                WorkPackage.project_context_id == plan.project_context_id, WorkPackage.code == code
-            )
+            select(WorkPackage.id).where(WorkPackage.code == code)
         )
         if exists is not None:
             raise PlanStaleError(
                 f"Work Package {code} passou a existir após o plano. Gere o plano novamente."
             )
-        work_package = WorkPackage(
-            project_context_id=plan.project_context_id, code=code, name=str(item.payload["name"])
-        )
+        work_package = WorkPackage(code=code, name=str(item.payload["name"]))
         session.add(work_package)
         await session.flush()
         created.work_package[item.key] = work_package.id

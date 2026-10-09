@@ -138,7 +138,7 @@ class CatalogPlanner:
             evidence=evidence,
             eap_resolver=await EapResolver.load(session, mapping.eap_nodes, evidence),
             disciplines=await _discipline_index(session),
-            work_packages=await _work_package_index(session, project_context_id),
+            work_packages=await _work_package_index(session),
             users_by_name=await _users_by_name(session),
             linked_eap_node_ids=linked,
         )
@@ -373,13 +373,11 @@ async def _discipline_index(
     )
 
 
-async def _work_package_index(session: AsyncSession, project_context_id: str) -> dict[str, WorkPackageEntry]:
-    """WP é escopado ao ProjectContext: WP de outro contexto nunca é reutilizado."""
+async def _work_package_index(session: AsyncSession) -> dict[str, WorkPackageEntry]:
+    """Índice do catálogo corporativo global de Work Packages."""
     rows = (
         await session.execute(
-            select(WorkPackage.id, WorkPackage.code, WorkPackage.name, WorkPackage.active).where(
-                WorkPackage.project_context_id == project_context_id
-            )
+            select(WorkPackage.id, WorkPackage.code, WorkPackage.name, WorkPackage.active)
         )
     ).all()
     return {

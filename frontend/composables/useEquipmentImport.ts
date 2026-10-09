@@ -200,7 +200,7 @@ export function useEquipmentImport() {
       const [responsibles, disciplines, workPackages, eapNodes, supplierList] = await Promise.all([
         api.get<CatalogList<Responsible>>("/responsibles", { unit_id: selection.unitId }),
         api.get<CatalogList<CatalogItem>>("/disciplines"),
-        api.get<CatalogList<CatalogItem>>("/work-packages", { project_context_id: selection.contextId }),
+        api.get<CatalogList<CatalogItem>>("/work-packages"),
         api.get<CatalogList<EapNodeItem>>("/eap-nodes", { active: true }),
         api.get<CatalogList<Supplier>>("/suppliers"),
       ]);
