@@ -52,6 +52,12 @@ SET description = descriptions.description
 FROM descriptions
 WHERE upper(btrim(wp.code)) = descriptions.code;
 
+-- Este arquivo reproduz integralmente a migration 0015. Registra a versão
+-- somente quando o banco ainda está exatamente na migration anterior.
+UPDATE alembic_version
+SET version_num = '0015_wp_descriptions'
+WHERE version_num = '0014_supplier_history';
+
 COMMIT;
 
 -- Conferência: mostra todas as WPs existentes e o fallback esperado pela tela.
