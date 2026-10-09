@@ -205,11 +205,17 @@ export function useEquipmentImport() {
         api.get<CatalogList<Supplier>>("/suppliers"),
       ]);
       suppliers.value = sortSuppliers(supplierList.items);
-      const label = (item: CatalogItem) => (item.code ? `${item.code} · ${item.name}` : item.name);
+      const label = (item: CatalogItem) =>
+        item.code && item.name !== item.code ? `${item.code} · ${item.name}` : (item.code ?? item.name);
       options.value = {
         responsibles: responsibles.items.map((item) => ({ id: item.id, label: item.name })),
         disciplines: disciplines.items.map((item) => ({ id: item.id, label: label(item) })),
-        workPackages: workPackages.items.map((item) => ({ id: item.id, label: label(item) })),
+        workPackages: workPackages.items.map((item) => ({
+          id: item.id,
+          label: label(item),
+          description: item.description?.trim() || "WP sem descrição",
+          searchText: [item.code, item.name, item.description].filter(Boolean).join(" "),
+        })),
         // Equipamento referencia PROCESS ou AREA; o código exibido é só EapNode.code.
         eapNodes: eapNodes.items
           .filter((item) => item.level === "PROCESS" || item.level === "AREA")

@@ -101,6 +101,30 @@ describe("CatalogAdmin", () => {
     expect(get).not.toHaveBeenCalled();
     expect(wrapper.get("[data-testid='catalog-blocked']").text()).toContain("Selecione uma unidade");
   });
+
+  it("edita a descrição opcional de Work Package", async () => {
+    const { wrapper, patch } = mountAdmin({
+      path: "/work-packages",
+      label: "Work Packages",
+      hasDescription: true,
+    });
+    await settle(wrapper);
+
+    const edit = wrapper
+      .get("[data-testid='catalog-item-c-1']")
+      .findAll("button")
+      .find((button) => button.text().includes("Editar"));
+    await edit!.trigger("click");
+    await wrapper.get("form textarea").setValue("Instalações elétricas provisórias");
+    await wrapper.get("form").trigger("submit");
+    await settle(wrapper);
+
+    expect(patch).toHaveBeenCalledWith("/work-packages/c-1", {
+      code: "EL",
+      name: "Elétrica",
+      description: "Instalações elétricas provisórias",
+    });
+  });
 });
 
 describe("CatalogAdmin · contextos de projeto", () => {

@@ -9,6 +9,7 @@ export interface CatalogItem {
   id: string;
   name: string;
   code?: string | null;
+  description?: string | null;
   unitId?: string;
   projectContextId?: string;
   active: boolean;
@@ -47,6 +48,7 @@ export interface NamedRef {
   id: string;
   name: string;
   code?: string | null;
+  description?: string | null;
 }
 
 export interface UserRef {

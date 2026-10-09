@@ -30,7 +30,12 @@ from app.models.process import (
 )
 from app.models.supplier import EquipmentSupplier
 from app.models.workflow_extras import RequirementWaiver
-from app.modules.equipments.schemas import NamedRefOut, PaginationOut, UserRefOut
+from app.modules.equipments.schemas import (
+    NamedRefOut,
+    PaginationOut,
+    UserRefOut,
+    WorkPackageRefOut,
+)
 from app.modules.queues.schemas import (
     EngineeringQueueOut,
     EngineeringRowOut,
@@ -260,9 +265,14 @@ def _named(item: Any) -> NamedRefOut | None:
     return NamedRefOut(id=item.id, name=item.name, code=getattr(item, "code", None))
 
 
-def _named_work_packages(links: list[EquipmentWorkPackage]) -> list[NamedRefOut]:
+def _named_work_packages(links: list[EquipmentWorkPackage]) -> list[WorkPackageRefOut]:
     return [
-        NamedRefOut(id=link.work_package.id, code=link.work_package.code, name=link.work_package.name)
+        WorkPackageRefOut(
+            id=link.work_package.id,
+            code=link.work_package.code,
+            name=link.work_package.name,
+            description=link.work_package.description,
+        )
         for link in sorted(links, key=lambda item: item.work_package.code)
     ]
 

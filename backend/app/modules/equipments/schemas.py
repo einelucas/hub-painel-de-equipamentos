@@ -16,6 +16,10 @@ class NamedRefOut(CamelModel):
     code: str | None = None
 
 
+class WorkPackageRefOut(NamedRefOut):
+    description: str | None = None
+
+
 class EquipmentEapNodeOut(NamedRefOut):
     level: str
     active: bool
@@ -248,8 +252,8 @@ class EquipmentOut(CamelModel):
     # Monday ainda o preenche quando a origem trazia exatamente 1 Work
     # Package. Novas telas devem ler `work_packages` (N:N), não este campo.
     # Candidato a remoção quando o CRUD legado que ainda o lê for desligado.
-    work_package: NamedRefOut | None
-    work_packages: list[NamedRefOut] = Field(default_factory=list)
+    work_package: WorkPackageRefOut | None
+    work_packages: list[WorkPackageRefOut] = Field(default_factory=list)
     responsible_user: UserRefOut | None
     # Etapa 7A: fornecedor único do equipamento (no máximo 1 vínculo ativo
     # — ver `app.models.supplier`). `None` quando ainda não há fornecedor.

@@ -107,7 +107,12 @@ describe("EquipmentTable", () => {
       ...equipment,
       id: "eq-2",
       workPackages: [
-        { id: "wp1", name: "Pacote 1", code: "CAL001" },
+        {
+          id: "wp1",
+          name: "Pacote 1",
+          code: "CAL001",
+          description: "Estruturas metálicas",
+        },
         { id: "wp2", name: "Pacote 2", code: "CAL002" },
         { id: "wp3", name: "Pacote 3", code: "CAL003" },
         { id: "wp4", name: "Pacote 4", code: "CAL004" },
@@ -132,5 +137,8 @@ describe("EquipmentTable", () => {
     expect(wrapper.text()).toContain("CAL003");
     expect(wrapper.text()).not.toContain("CAL004");
     expect(wrapper.text()).toContain("+1");
+    expect(wrapper.get("[title='Estruturas metálicas']").text()).toBe("CAL001");
+    expect(wrapper.get("[title='WP sem descrição']").text()).toBe("CAL002");
+    expect(wrapper.text()).toContain("Work Packages");
   });
 });

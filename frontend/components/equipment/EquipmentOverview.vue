@@ -6,6 +6,7 @@ import { formatCurrency, formatDateOnly, formatDateTime } from "~/utils/format";
 import { stageTone } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
+import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
 
 /**
  * Seção "Resumo" do detalhe do equipamento — identificação, badges de
@@ -36,11 +37,11 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
       <div class="detail-field"><span>Área</span><strong data-testid="equipment-location">{{ equipmentLocationLabel(equipment) ?? "—" }}</strong></div>
       <div class="detail-field"><span>Disciplina</span><strong>{{ equipment.discipline?.name ?? "—" }}</strong></div>
       <div class="detail-field">
-        <span>Pacotes de trabalho</span>
-        <strong v-if="!equipment.workPackages.length">—</strong>
-        <div v-else class="wp-chips">
-          <span v-for="item in equipment.workPackages" :key="item.id" class="wp-chip">{{ item.code ?? item.name }}</span>
-        </div>
+        <span>Work Packages</span>
+        <WorkPackageChips
+          :items="equipment.workPackages"
+          :max-visible="equipment.workPackages.length"
+        />
       </div>
       <div class="detail-field"><span>Responsável</span><strong>{{ equipment.responsibleUser?.name ?? "—" }}</strong></div>
       <div class="detail-field"><span>Fornecedor</span><strong>{{ equipment.supplier?.name ?? "—" }}</strong></div>
@@ -91,8 +92,6 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
 .operational-badge--cancelled { background: #fbe8e8; color: #a53f3f; }
 .operational-badge--in_sanitation { background: #e8f1fc; color: #2f5f9c; }
 .operational-note { margin: 0 20px 16px; padding: 9px 12px; border-radius: 8px; background: #fafbfc; border: 1px solid #edf1f5; color: #65748a; font-size: 12px; }
-.wp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.wp-chip { display: inline-flex; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 700; background: #eef2f7; color: #2b3e58; }
 @media (max-width: 900px) { .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .detail-grid { grid-template-columns: 1fr; } }
 </style>

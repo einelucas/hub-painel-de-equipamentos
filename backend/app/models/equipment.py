@@ -170,6 +170,9 @@ class WorkPackage(Base):
     )
     code: Mapped[str] = mapped_column(String(60), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
+    # Significado corporativo do código. É opcional porque o Monday pode
+    # introduzir WPs ainda não documentadas sem bloquear a importação.
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     project_context: Mapped[ProjectContext] = relationship(back_populates="work_packages")

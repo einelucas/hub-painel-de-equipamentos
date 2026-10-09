@@ -101,13 +101,19 @@ async def test_other_catalogs_follow_the_same_rule(client, auth_header) -> None:
     )
     work_package = await client.post(
         "/api/v1/work-packages",
-        json={"projectContextId": context_a, "code": "WP-S1", "name": "Pacote Sintético"},
+        json={
+            "projectContextId": context_a,
+            "code": "WP-S1",
+            "name": "Pacote Sintético",
+            "description": "Descrição sintética da WP",
+        },
         headers=admin,
     )
     spare_unit = await client.post(
         "/api/v1/units", json={"code": "TS2", "name": "Unidade Teste 2"}, headers=admin
     )
     assert {r.status_code for r in (area, discipline, work_package, spare_unit)} == {201}
+    assert work_package.json()["description"] == "Descrição sintética da WP"
 
     await _grant(client, auth_header, "ANALYST", unit_id)
     cases = [
@@ -132,3 +138,41 @@ async def test_other_catalogs_follow_the_same_rule(client, auth_header) -> None:
         assert admin_ids.get(target) is False, list_url
         denied = await client.get(list_url, params={**params, "include_inactive": "true"}, headers=analyst)
         assert denied.status_code == 403, list_url
+
+
+async def test_work_package_description_can_be_edited_and_cleared(client, auth_header) -> None:
+    admin = auth_header("ADMIN")
+    unit_id, context_id, _ = await _unit_and_contexts(client, admin)
+    created = await client.post(
+        "/api/v1/work-packages",
+        json={
+            "projectContextId": context_id,
+            "code": "CAL003",
+            "name": "CAL003",
+            "description": "Aeração e termometria",
+        },
+        headers=admin,
+    )
+    assert created.status_code == 201, created.text
+    item_id = created.json()["id"]
+
+    updated = await client.patch(
+        f"/api/v1/work-packages/{item_id}",
+        json={"description": "Descrição revisada"},
+        headers=admin,
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["description"] == "Descrição revisada"
+
+    listed = await client.get(
+        "/api/v1/work-packages",
+        params={"project_context_id": context_id},
+        headers=admin,
+    )
+    assert listed.json()["items"][0]["description"] == "Descrição revisada"
+
+    cleared = await client.patch(
+        f"/api/v1/work-packages/{item_id}", json={"description": None}, headers=admin
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["description"] is None

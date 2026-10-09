@@ -15,7 +15,7 @@ defineProps<{ equipments: Equipment[] }>();
   </div>
   <div v-else class="table-wrap">
     <Table>
-      <TableHeader><TableRow><TableHead>Equipamento</TableHead><TableHead>Contexto</TableHead><TableHead>Área</TableHead><TableHead>Disciplina</TableHead><TableHead>Pacotes de trabalho</TableHead><TableHead>Responsável</TableHead><TableHead>Etapa atual</TableHead><TableHead>Startup</TableHead><TableHead>Criticidade</TableHead><TableHead class="text-center">Componentes</TableHead><TableHead /></TableRow></TableHeader>
+      <TableHeader><TableRow><TableHead>Equipamento</TableHead><TableHead>Contexto</TableHead><TableHead>Área</TableHead><TableHead>Disciplina</TableHead><TableHead>Work Packages</TableHead><TableHead>Responsável</TableHead><TableHead>Etapa atual</TableHead><TableHead>Startup</TableHead><TableHead>Criticidade</TableHead><TableHead class="text-center">Componentes</TableHead><TableHead /></TableRow></TableHeader>
       <TableBody>
         <TableRow v-for="equipment in equipments" :key="equipment.id">
           <TableCell class="font-semibold text-[#213758]">{{ equipment.name }}</TableCell>

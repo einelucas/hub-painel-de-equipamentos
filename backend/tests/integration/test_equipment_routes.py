@@ -47,6 +47,7 @@ async def _catalogs(client, auth_header, suffix: str = "A") -> dict[str, str]:
                 "projectContextId": context["id"],
                 "code": f"WP-{suffix}",
                 "name": f"Pacote {suffix}",
+                "description": f"Descrição da WP {suffix}",
             },
             headers=headers,
         )
@@ -438,6 +439,7 @@ async def test_equipment_create_with_one_work_package(client, auth_header) -> No
     assert response.status_code == 201
     body = response.json()
     assert [item["id"] for item in body["workPackages"]] == [catalogs["work_package"]]
+    assert body["workPackages"][0]["description"] == "Descrição da WP A"
     # Contrato legado nunca é escolhido automaticamente pelo create/update.
     assert body["workPackage"] is None
 

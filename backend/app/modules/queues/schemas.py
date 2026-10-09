@@ -3,7 +3,12 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from app.modules.equipments.schemas import NamedRefOut, PaginationOut, UserRefOut
+from app.modules.equipments.schemas import (
+    NamedRefOut,
+    PaginationOut,
+    UserRefOut,
+    WorkPackageRefOut,
+)
 from app.shared.schema import CamelModel
 
 
@@ -31,7 +36,7 @@ class EngineeringRowOut(QueueRowOut):
     discipline: NamedRefOut | None
     area: NamedRefOut | None
     # 0..N — ver nota de depreciação em `equipments.schemas.EquipmentOut.work_package`.
-    work_packages: list[NamedRefOut]
+    work_packages: list[WorkPackageRefOut]
     responsible_user: UserRefOut | None
     startup_at: date | None
     criticality: str | None

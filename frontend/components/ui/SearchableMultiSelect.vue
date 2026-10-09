@@ -55,7 +55,11 @@ function closeOnBlur(event: FocusEvent): void {
 <template>
   <div class="multi-select" :class="{ 'multi-select--disabled': disabled }" @focusout="closeOnBlur">
     <div v-if="selected.length" class="multi-select__chips">
-      <span v-for="option in selected" :key="option.id">
+      <span
+        v-for="option in selected"
+        :key="option.id"
+        :title="option.description || undefined"
+      >
         {{ option.label }}
         <button type="button" :aria-label="`Remover ${option.label}`" @click="toggleOption(option.id)"><X :size="12" /></button>
       </span>

@@ -69,8 +69,12 @@ const disciplineOptions = computed(() =>
 const workPackageOptions = computed(() =>
   workPackages.value.map((item) => ({
     id: item.id,
-    label: item.code ? `${item.code} · ${item.name}` : item.name,
-    searchText: [item.code, item.name].filter(Boolean).join(" "),
+    label:
+      item.code && item.name !== item.code
+        ? `${item.code} · ${item.name}`
+        : (item.code ?? item.name),
+    description: item.description?.trim() || "WP sem descrição",
+    searchText: [item.code, item.name, item.description].filter(Boolean).join(" "),
   })),
 );
 const responsibleOptions = computed(() =>
@@ -284,10 +288,10 @@ onMounted(loadCatalogs);
         />
       </div>
 
-      <!-- PACOTES DE TRABALHO -->
+      <!-- WORK PACKAGES -->
       <div class="field field-wide work-package-field">
         <div class="wp-header">
-          <span class="wp-title"> Pacotes de trabalho </span>
+          <span class="wp-title"> Work Packages </span>
 
           <span v-if="form.workPackageIds.length" class="wp-count">
             {{ form.workPackageIds.length }}
@@ -297,10 +301,10 @@ onMounted(loadCatalogs);
         <SearchableMultiSelect
           v-model="form.workPackageIds"
           :options="workPackageOptions"
-          label="Pacotes de trabalho"
-          placeholder="Buscar por código ou nome"
+          label="Work Packages"
+          placeholder="Buscar por código, nome ou descrição"
           :disabled="!form.projectContextId"
-          disabled-message="Selecione um contexto para visualizar os pacotes disponíveis."
+          disabled-message="Selecione um contexto para visualizar as WPs disponíveis."
         />
       </div>
 

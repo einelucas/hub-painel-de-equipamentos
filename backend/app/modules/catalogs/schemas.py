@@ -43,6 +43,7 @@ class WorkPackageOut(CamelModel):
     project_context_id: str
     code: str
     name: str
+    description: str | None
     active: bool
 
 
@@ -126,6 +127,7 @@ class WorkPackageCreateIn(CamelModel):
     project_context_id: str
     code: str = Field(min_length=1, max_length=60)
     name: str = Field(min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=500)
 
 
 class CatalogUpdateIn(CamelModel):
@@ -140,6 +142,10 @@ class CatalogUpdateIn(CamelModel):
         if not self.model_fields_set:
             raise ValueError("Informe ao menos um campo para atualizar")
         return self
+
+
+class WorkPackageUpdateIn(CatalogUpdateIn):
+    description: str | None = Field(default=None, max_length=500)
 
 
 class ProjectContextUpdateIn(CatalogUpdateIn):

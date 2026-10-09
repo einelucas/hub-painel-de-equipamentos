@@ -54,7 +54,7 @@ const CATALOGS = [
   { key: "units", label: "Unidades" },
   { key: "areas", label: "Árvore EAP" },
   { key: "disciplines", label: "Disciplinas" },
-  { key: "workPackages", label: "Work packages" },
+  { key: "workPackages", label: "Work Packages" },
 ];
 
 const unitHint = computed(() =>
@@ -158,8 +158,9 @@ watch(
           </label>
           <CatalogAdmin
             path="/work-packages"
-            label="Work packages"
+            label="Work Packages"
             :has-code="true"
+            :has-description="true"
             :parent="{ projectContextId: selectedContext }"
             :query="{ project_context_id: selectedContext }"
             :requires-parent="contextHint"

@@ -16,6 +16,8 @@ const props = defineProps<{
   /** Query da listagem, ex.: { unit_id }. */
   query?: Record<string, string>;
   hasCode: boolean;
+  /** Campo de significado/descrição, usado atualmente por Work Packages. */
+  hasDescription?: boolean;
   /** Mensagem quando falta selecionar o pai (unidade/contexto). */
   requiresParent?: string;
   /**
@@ -34,7 +36,7 @@ const error = ref("");
 const formError = ref("");
 const editingId = ref<string | null>(null);
 const creating = ref(false);
-const form = reactive({ name: "", code: "" });
+const form = reactive({ name: "", code: "", description: "" });
 
 const blocked = computed(() => Boolean(props.requiresParent));
 
@@ -63,6 +65,7 @@ function startCreate(): void {
   formError.value = "";
   form.name = "";
   form.code = "";
+  form.description = "";
 }
 
 function startEdit(item: CatalogItem): void {
@@ -71,6 +74,7 @@ function startEdit(item: CatalogItem): void {
   formError.value = "";
   form.name = item.name;
   form.code = item.code ?? "";
+  form.description = item.description ?? "";
 }
 
 function cancel(): void {
@@ -88,6 +92,7 @@ async function submit(): Promise<void> {
   formError.value = "";
   const payload: Record<string, unknown> = { name: form.name.trim() };
   if (props.hasCode) payload.code = form.code.trim();
+  if (props.hasDescription) payload.description = form.description.trim() || null;
   try {
     if (editingId.value) await api.patch(`${props.itemPath ?? props.path}/${editingId.value}`, payload);
     else await api.post(props.path, { ...payload, ...(props.parent ?? {}) });
@@ -136,6 +141,15 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
       <form v-if="creating || editingId" class="catalog-form" @submit.prevent="submit">
         <label v-if="props.hasCode" class="field"><span>Código *</span><input v-model="form.code" maxlength="60" required></label>
         <label class="field"><span>Nome *</span><input v-model="form.name" maxlength="200" required></label>
+        <label v-if="props.hasDescription" class="field description-field">
+          <span>Descrição</span>
+          <textarea
+            v-model="form.description"
+            maxlength="500"
+            rows="3"
+            placeholder="Significado da WP; deixe vazio enquanto não estiver documentado."
+          />
+        </label>
         <div class="catalog-form-actions">
           <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
           <button type="submit" class="btn small primary" :disabled="saving">
@@ -153,7 +167,14 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
       <ul v-else class="catalog-list">
         <li v-for="item in items" :key="item.id" :data-testid="`catalog-item-${item.id}`">
           <span class="catalog-name">
-            <strong v-if="item.code">{{ item.code }}</strong>{{ item.name }}
+            <strong
+              v-if="item.code"
+              :title="props.hasDescription ? (item.description?.trim() || 'WP sem descrição') : undefined"
+            >{{ item.code }}</strong>
+            <span class="catalog-name__text">
+              {{ item.name }}
+              <small v-if="props.hasDescription">{{ item.description?.trim() || "WP sem descrição" }}</small>
+            </span>
           </span>
           <span class="catalog-actions">
             <span class="status" :class="item.active ? 'status--on' : 'status--off'">
@@ -179,6 +200,8 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
 .catalog-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: #8b96a5; font-size: 12px; }
 .catalog-error { margin: 0; color: #a4453a; font-size: 12px; font-weight: 700; }
 .catalog-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 1px solid #e4e9f0; border-radius: 10px; padding: 12px; background: #f8fafc; }
+.description-field { grid-column: 1 / -1; }
+.description-field textarea { min-height: 72px; resize: vertical; }
 .catalog-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
 .catalog-form .catalog-error { grid-column: 1 / -1; }
 .catalog-list { display: grid; margin: 0; padding: 0; gap: 2px; list-style: none; }
@@ -186,6 +209,8 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
 .catalog-list li:last-child { border-bottom: 0; }
 .catalog-name { display: flex; min-width: 0; flex: 1 1 200px; align-items: center; gap: 7px; color: #2b3e58; font-size: 12.5px; }
 .catalog-name strong { border-radius: 5px; background: #eef2f7; padding: 2px 6px; color: #53647a; font-size: 10.5px; }
+.catalog-name__text { display: grid; min-width: 0; gap: 2px; }
+.catalog-name__text small { color: #718096; font-size: 10.5px; font-weight: 500; }
 .catalog-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
 .status { border-radius: 999px; padding: 3px 8px; font-size: 10.5px; font-weight: 750; }
 .status--on { background: #eaf4e5; color: #477a32; }

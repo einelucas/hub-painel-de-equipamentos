@@ -29,6 +29,7 @@ from app.modules.catalogs.schemas import (
     UnitUpdateIn,
     WorkPackageCreateIn,
     WorkPackageOut,
+    WorkPackageUpdateIn,
 )
 
 router = APIRouter(tags=["catálogos"])
@@ -276,7 +277,7 @@ async def patch_discipline(
 @router.patch("/work-packages/{item_id}", response_model=WorkPackageOut)
 async def patch_work_package(
     item_id: str,
-    body: CatalogUpdateIn,
+    body: WorkPackageUpdateIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_manage),
 ) -> WorkPackageOut:

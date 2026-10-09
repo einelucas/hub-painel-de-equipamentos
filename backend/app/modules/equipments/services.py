@@ -57,6 +57,7 @@ from app.modules.equipments.schemas import (
     PaginationOut,
     TransitionOut,
     UserRefOut,
+    WorkPackageRefOut,
 )
 from app.shared.audit import record_audit
 
@@ -237,16 +238,22 @@ def _equipment_out(equipment: Equipment, components_count: int | None = None) ->
         ),
         area=(NamedRefOut(id=equipment.area.id, name=equipment.area.name) if equipment.area else None),
         work_package=(
-            NamedRefOut(
+            WorkPackageRefOut(
                 id=equipment.work_package.id,
                 code=equipment.work_package.code,
                 name=equipment.work_package.name,
+                description=equipment.work_package.description,
             )
             if equipment.work_package
             else None
         ),
         work_packages=[
-            NamedRefOut(id=link.work_package.id, code=link.work_package.code, name=link.work_package.name)
+            WorkPackageRefOut(
+                id=link.work_package.id,
+                code=link.work_package.code,
+                name=link.work_package.name,
+                description=link.work_package.description,
+            )
             for link in sorted(equipment.work_package_links, key=lambda item: item.work_package.code)
         ],
         responsible_user=(

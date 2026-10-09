@@ -219,7 +219,7 @@ async function exportAll(): Promise<void> {
         Contexto: item.projectContext.code ?? item.projectContext.name,
         Área: equipmentLocationLabel(item) ?? "",
         Disciplina: item.discipline?.name ?? "",
-        "Pacotes de Trabalho": item.workPackages
+        "Work Packages": item.workPackages
           .map((wp) => wp.code ?? wp.name)
           .join(", "),
         Responsável: item.responsibleUser?.name ?? "",
@@ -409,14 +409,14 @@ onMounted(async () => {
             </select>
           </label>
           <label class="inline-field">
-            <span>Pacote de trabalho</span>
+            <span>Work Package</span>
             <select
               v-model="workPackageId"
               :class="{ 'is-set': workPackageId }"
               :disabled="!context.selectedUnit"
               :title="
                 !context.selectedUnit
-                  ? 'Selecione uma unidade para filtrar por pacote de trabalho'
+                  ? 'Selecione uma unidade para filtrar por Work Package'
                   : undefined
               "
               data-testid="work-package-filter"
@@ -427,6 +427,7 @@ onMounted(async () => {
                 v-for="item in workPackages"
                 :key="item.id"
                 :value="item.id"
+                :title="item.description?.trim() || 'WP sem descrição'"
               >
                 {{ item.code ?? item.name }}
               </option>
