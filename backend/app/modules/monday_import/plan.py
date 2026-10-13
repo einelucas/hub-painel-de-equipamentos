@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -58,6 +59,7 @@ def equipment_identity_strategy(source_key: str) -> str:
     if source_key.startswith("monday-item-id:"):
         return EquipmentItemIdIdentityStrategy
     return EquipmentIdentityStrategy
+
 
 PlanAction = Literal["CREATE", "UPDATE", "NOOP", "BLOCKED"]
 PlanKind = Literal[
@@ -292,31 +294,145 @@ def _merge_group(entries: list[tuple[str, MondayImportRecord]]) -> _MergedRecord
     )
 
 
-async def _existing_mapping(
-    session: AsyncSession, *, project_context_id: str, entity_type: str, external_id: str
-) -> ExternalMapping | None:
-    return await session.scalar(
-        select(ExternalMapping).where(
-            ExternalMapping.project_context_id == project_context_id,
-            ExternalMapping.source_system == SOURCE_SYSTEM,
-            ExternalMapping.source_entity_type == entity_type,
-            ExternalMapping.external_id == external_id,
-        )
-    )
+# Processos 1:1 (ou 1:N, do qual o plano compara o primeiro registro) por equipamento.
+_SUB_ENTITY_MODELS: tuple[type[Any], ...] = (
+    Negotiation,
+    LegalProcess,
+    Contract,
+    PurchaseRequest,
+    PurchaseOrder,
+)
+
+# Limite de valores por `IN (...)`: o asyncpg aceita até 32767 parâmetros por statement.
+_IN_CHUNK = 1000
 
 
-async def _human_touched_after_migration(session: AsyncSession, *, entity: str, entity_id: str) -> bool:
-    """Existe alteração registrada por algo além do próprio importador?"""
-    row = await session.scalar(
-        select(AuditLog.id)
-        .where(
-            AuditLog.entity == entity,
-            AuditLog.entityId == entity_id,
-            AuditLog.action != _MIGRATION_IMPORT_ACTION,
-        )
-        .limit(1)
-    )
-    return row is not None
+def _chunks(values: Iterable[str]) -> Iterator[list[str]]:
+    ordered = sorted(set(values))
+    for start in range(0, len(ordered), _IN_CHUNK):
+        yield ordered[start : start + _IN_CHUNK]
+
+
+@dataclass(slots=True)
+class _PlanPrefetch:
+    """Estado do banco que o plano compara, carregado em lote.
+
+    O banco é remoto (Neon): uma consulta por linha da planilha (mapping, equipamento,
+    fornecedor, cada processo, componente, auditoria) custava milhares de round-trips.
+    Aqui são poucas consultas `IN (...)` e o laço do plano só consulta dicionários.
+    """
+
+    mappings: dict[tuple[str, str], ExternalMapping] = field(default_factory=dict)
+    equipment_id_by_name: dict[str, str] = field(default_factory=dict)
+    equipments: dict[str, Equipment] = field(default_factory=dict)
+    current_supplier: dict[str, str] = field(default_factory=dict)
+    sub_entities: dict[type[Any], dict[str, Any]] = field(default_factory=dict)
+    components: dict[str, EquipmentComponent] = field(default_factory=dict)
+    human_touched: set[tuple[str, str]] = field(default_factory=set)
+
+    def mapping(self, entity_type: str, external_id: str) -> ExternalMapping | None:
+        return self.mappings.get((entity_type, external_id))
+
+    def sub_entity(self, model: type[Any], equipment_id: str | None) -> Any | None:
+        if equipment_id is None:
+            return None
+        return self.sub_entities.get(model, {}).get(equipment_id)
+
+    def touched(self, entity: str, entity_id: str) -> bool:
+        """Existe alteração registrada por algo além do próprio importador?"""
+        return (entity, entity_id) in self.human_touched
+
+    @classmethod
+    async def load(
+        cls,
+        session: AsyncSession,
+        *,
+        project_context_id: str,
+        equipment_keys: Iterable[str],
+        component_keys: Iterable[str],
+        equipment_names: Iterable[Any],
+    ) -> _PlanPrefetch:
+        prefetch = cls()
+        for entity_type, keys in (("equipment", equipment_keys), ("component", component_keys)):
+            for chunk in _chunks(keys):
+                rows = await session.scalars(
+                    select(ExternalMapping).where(
+                        ExternalMapping.project_context_id == project_context_id,
+                        ExternalMapping.source_system == SOURCE_SYSTEM,
+                        ExternalMapping.source_entity_type == entity_type,
+                        ExternalMapping.external_id.in_(chunk),
+                    )
+                )
+                for row in rows:
+                    prefetch.mappings[(entity_type, row.external_id)] = row
+
+        # Colisão de nome (só consultada para equipamento sem vínculo de origem).
+        for chunk in _chunks(name for name in equipment_names if isinstance(name, str)):
+            rows = await session.execute(
+                select(Equipment.id, Equipment.name).where(
+                    Equipment.project_context_id == project_context_id,
+                    Equipment.name.in_(chunk),
+                )
+            )
+            for equipment_id, name in rows:
+                prefetch.equipment_id_by_name.setdefault(name, equipment_id)
+
+        equipment_ids = [
+            mapping.target_entity_id
+            for (entity_type, _), mapping in prefetch.mappings.items()
+            if entity_type == "equipment"
+        ]
+        component_ids = [
+            mapping.target_entity_id
+            for (entity_type, _), mapping in prefetch.mappings.items()
+            if entity_type == "component"
+        ]
+        for chunk in _chunks(equipment_ids):
+            # `select` explícito (e não `session.get`) para o eager load do N:N.
+            equipments = await session.scalars(
+                select(Equipment)
+                .where(Equipment.id.in_(chunk))
+                .options(selectinload(Equipment.work_package_links))
+            )
+            for equipment in equipments:
+                prefetch.equipments[equipment.id] = equipment
+            suppliers = await session.execute(
+                select(EquipmentSupplier.equipment_id, EquipmentSupplier.supplier_id).where(
+                    EquipmentSupplier.equipment_id.in_(chunk),
+                    EquipmentSupplier.ended_at.is_(None),
+                )
+            )
+            for equipment_id, supplier_id in suppliers:
+                prefetch.current_supplier.setdefault(equipment_id, supplier_id)
+            for model in _SUB_ENTITY_MODELS:
+                by_equipment = prefetch.sub_entities.setdefault(model, {})
+                for row in await session.scalars(select(model).where(model.equipment_id.in_(chunk))):
+                    by_equipment.setdefault(row.equipment_id, row)
+        for chunk in _chunks(component_ids):
+            for component in await session.scalars(
+                select(EquipmentComponent).where(EquipmentComponent.id.in_(chunk))
+            ):
+                prefetch.components[component.id] = component
+
+        audited: dict[str, list[str]] = {
+            "Equipment": list(prefetch.equipments),
+            "EquipmentComponent": list(prefetch.components),
+        }
+        for model in _SUB_ENTITY_MODELS:
+            audited[model.__name__] = [row.id for row in prefetch.sub_entities.get(model, {}).values()]
+        for entity, ids in audited.items():
+            for chunk in _chunks(ids):
+                rows = await session.execute(
+                    select(AuditLog.entity, AuditLog.entityId)
+                    .where(
+                        AuditLog.entity == entity,
+                        AuditLog.entityId.in_(chunk),
+                        AuditLog.action != _MIGRATION_IMPORT_ACTION,
+                    )
+                    .distinct()
+                )
+                prefetch.human_touched.update((row_entity, row_id) for row_entity, row_id in rows)
+        return prefetch
 
 
 def _fit_text_columns(
@@ -375,8 +491,8 @@ def _diff(existing: Any, incoming: dict[str, Any]) -> dict[str, Any]:
     return changed
 
 
-async def _plan_sub_entity(
-    session: AsyncSession,
+def _plan_sub_entity(
+    prefetch: _PlanPrefetch,
     *,
     kind: PlanKind,
     model: type[Any],
@@ -406,11 +522,7 @@ async def _plan_sub_entity(
             parent_source_key=equipment_source_key,
             issues=[PlanIssue("parent_blocked", f"{entity_label}: equipamento pai está bloqueado")],
         )
-    existing = (
-        await session.scalar(select(model).where(model.equipment_id == equipment_target_id))
-        if equipment_target_id
-        else None
-    )
+    existing = prefetch.sub_entity(model, equipment_target_id)
     if not payload:
         if existing is None:
             return None
@@ -441,7 +553,7 @@ async def _plan_sub_entity(
             target_entity_id=existing.id,
             issues=fit_issues,
         )
-    if await _human_touched_after_migration(session, entity=model.__name__, entity_id=existing.id):
+    if prefetch.touched(model.__name__, existing.id):
         return PlanItem(
             kind=kind,
             source_key=equipment_source_key,
@@ -495,11 +607,7 @@ async def build_plan(
         raise ValueError(f"batch(es) de outro contexto: {sorted(wrong_context)}")
 
     records = (
-        (
-            await session.execute(
-                select(MondayImportRecord).where(MondayImportRecord.batch_id.in_(batch_ids))
-            )
-        )
+        (await session.execute(select(MondayImportRecord).where(MondayImportRecord.batch_id.in_(batch_ids))))
         .scalars()
         .all()
     )
@@ -513,9 +621,7 @@ async def build_plan(
         else:
             parent = records_by_id.get(record.parent_record_id or "")
             parent_key = parent.source_key if parent is not None else "orphan"
-            component_groups.setdefault((parent_key, record.source_key), []).append(
-                (record.batch_id, record)
-            )
+            component_groups.setdefault((parent_key, record.source_key), []).append((record.batch_id, record))
 
     plan = MigrationPlan(
         project_context_id=project_context_id, batch_ids=list(batch_ids), mapping_sha256=mapping.sha256
@@ -529,6 +635,16 @@ async def build_plan(
         )
     catalogs = await CatalogPlanner.load(
         session, project_context_id=project_context_id, mapping=mapping, evidence=evidence
+    )
+
+    prefetch = await _PlanPrefetch.load(
+        session,
+        project_context_id=project_context_id,
+        equipment_keys=equipment_groups,
+        component_keys=[component_key for _, component_key in component_groups],
+        equipment_names=[
+            _merge_group(entries).normalized.get("name") for entries in equipment_groups.values()
+        ],
     )
 
     equipment_target_ids: dict[str, str | None] = {}
@@ -605,17 +721,11 @@ async def build_plan(
         elif current_stage is None and not normalized.get("current_stage_unrecognized"):
             issues.append(PlanIssue("missing_current_stage", "Nenhuma etapa identificada na origem"))
 
-        existing_mapping = await _existing_mapping(
-            session, project_context_id=project_context_id, entity_type="equipment", external_id=source_key
-        )
+        existing_mapping = prefetch.mapping("equipment", source_key)
         target_id = existing_mapping.target_entity_id if existing_mapping else None
         if existing_mapping is None:
-            colliding = await session.scalar(
-                select(Equipment.id).where(
-                    Equipment.project_context_id == project_context_id,
-                    Equipment.name == normalized.get("name"),
-                )
-            )
+            name = normalized.get("name")
+            colliding = prefetch.equipment_id_by_name.get(name) if isinstance(name, str) else None
             if colliding is not None:
                 issues.append(
                     PlanIssue(
@@ -687,14 +797,7 @@ async def build_plan(
             )
             continue
 
-        # `session.get` faz atalho pelo identity map quando o equipamento já foi
-        # carregado em outro ponto da mesma sessão, ignorando `options` — por
-        # isso o eager load do N:N precisa de um `select` explícito aqui.
-        existing = await session.scalar(
-            select(Equipment)
-            .where(Equipment.id == target_id)
-            .options(selectinload(Equipment.work_package_links))
-        )
+        existing = prefetch.equipments.get(target_id)
         if existing is None:  # pragma: no cover - mapping órfão, anomalia de dados
             issues.append(
                 PlanIssue("dangling_mapping", "external_mapping aponta para equipamento inexistente")
@@ -723,12 +826,7 @@ async def build_plan(
         if catalog_refs:
             changed["catalog_refs"] = catalog_refs
         if supplier_selection is not None and supplier_selection.action == "USE":
-            current_supplier = await session.scalar(
-                select(EquipmentSupplier.supplier_id).where(
-                    EquipmentSupplier.equipment_id == target_id,
-                    EquipmentSupplier.ended_at.is_(None),
-                )
-            )
+            current_supplier = prefetch.current_supplier.get(target_id)
             if current_supplier != supplier_id:
                 changed["supplier_id"] = supplier_id
         current_operational = existing.operational_status
@@ -770,7 +868,7 @@ async def build_plan(
                 )
             )
             continue
-        if await _human_touched_after_migration(session, entity="Equipment", entity_id=target_id):
+        if prefetch.touched("Equipment", target_id):
             issues.append(
                 PlanIssue(
                     "hub_monday_conflict",
@@ -801,8 +899,8 @@ async def build_plan(
             )
         )
 
-        negotiation_item = await _plan_sub_entity(
-            session,
+        negotiation_item = _plan_sub_entity(
+            prefetch,
             kind="negotiation",
             model=Negotiation,
             entity_label="Negociação",
@@ -817,8 +915,8 @@ async def build_plan(
         if negotiation_item:
             plan.negotiations.append(negotiation_item)
 
-        legal_item = await _plan_sub_entity(
-            session,
+        legal_item = _plan_sub_entity(
+            prefetch,
             kind="legal_process",
             model=LegalProcess,
             entity_label="Jurídico",
@@ -835,8 +933,8 @@ async def build_plan(
         if legal_item:
             plan.legal_processes.append(legal_item)
 
-        contract_item = await _plan_sub_entity(
-            session,
+        contract_item = _plan_sub_entity(
+            prefetch,
             kind="contract",
             model=Contract,
             entity_label="Contrato",
@@ -861,8 +959,8 @@ async def build_plan(
                     detail={"equipmentSourceKey": source_key},
                 )
             )
-        request_item = await _plan_sub_entity(
-            session,
+        request_item = _plan_sub_entity(
+            prefetch,
             kind="purchase_request",
             model=PurchaseRequest,
             entity_label="SC/OCI",
@@ -874,8 +972,8 @@ async def build_plan(
         if request_item:
             plan.purchase_requests.append(request_item)
 
-        order_item = await _plan_sub_entity(
-            session,
+        order_item = _plan_sub_entity(
+            prefetch,
             kind="purchase_order",
             model=PurchaseOrder,
             entity_label="Ordem de compra",
@@ -1049,9 +1147,7 @@ async def build_plan(
             EquipmentComponent, payload, source_key=component_key
         )
 
-        existing_mapping = await _existing_mapping(
-            session, project_context_id=project_context_id, entity_type="component", external_id=component_key
-        )
+        existing_mapping = prefetch.mapping("component", component_key)
         if existing_mapping is None:
             action: PlanAction = "CREATE"
             target_component_id: str | None = None
@@ -1059,18 +1155,18 @@ async def build_plan(
             item_issues: list[PlanIssue] = []
         else:
             target_component_id = existing_mapping.target_entity_id
-            existing_component = await session.get(EquipmentComponent, target_component_id)
+            existing_component = prefetch.components.get(target_component_id)
             if existing_component is None:  # pragma: no cover - mapping órfão
-                action, changed, item_issues = "BLOCKED", {}, [
-                    PlanIssue("dangling_mapping", "external_mapping aponta para componente inexistente")
-                ]
+                action, changed, item_issues = (
+                    "BLOCKED",
+                    {},
+                    [PlanIssue("dangling_mapping", "external_mapping aponta para componente inexistente")],
+                )
             else:
                 changed = _diff(existing_component, payload)
                 if not changed:
                     action, item_issues = "NOOP", []
-                elif await _human_touched_after_migration(
-                    session, entity="EquipmentComponent", entity_id=existing_component.id
-                ):
+                elif prefetch.touched("EquipmentComponent", existing_component.id):
                     action = "BLOCKED"
                     item_issues = [
                         PlanIssue(
