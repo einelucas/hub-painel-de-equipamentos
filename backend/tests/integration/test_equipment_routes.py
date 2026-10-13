@@ -252,6 +252,34 @@ async def test_equipment_filters_by_area_id(client, auth_header) -> None:
     assert items[0]["name"] == "Na área 1"
 
 
+async def test_equipment_filters_by_eap_node_including_descendants(
+    client, auth_header, db_session
+) -> None:
+    """Filtro "Área" usa a localização canônica (`eap_node_id`): um Processo
+    traz também os equipamentos das Áreas abaixo dele."""
+    catalogs = await _catalogs(client, auth_header, "74")
+    eap = await _eap_nodes(db_session, catalogs["context"], "74")
+    ids = {}
+    for name, node in (("No processo", eap["process"]), ("Na área", eap["area"]), ("Sem EAP", None)):
+        created = await client.post(
+            "/api/v1/equipments",
+            json={"projectContextId": catalogs["context"], "name": name, "eapNodeId": node},
+            headers=auth_header("ANALYST"),
+        )
+        assert created.status_code == 201, created.text
+        ids[name] = created.json()["id"]
+
+    by_process = await client.get(
+        f"/api/v1/equipments?eap_node_id={eap['process']}", headers=auth_header("VIEWER")
+    )
+    by_area = await client.get(
+        f"/api/v1/equipments?eap_node_id={eap['area']}", headers=auth_header("VIEWER")
+    )
+    assert {item["id"] for item in by_process.json()["items"]} == {ids["No processo"], ids["Na área"]}
+    assert by_process.json()["pagination"]["total"] == 2
+    assert [item["id"] for item in by_area.json()["items"]] == [ids["Na área"]]
+
+
 async def test_equipment_filters_by_work_package_id(client, auth_header) -> None:
     """GAP-010: filtra pela relação N:N (`equipment_work_package`), nunca
     pelo `workPackage` singular legado."""

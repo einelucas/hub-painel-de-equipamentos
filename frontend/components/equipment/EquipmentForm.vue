@@ -54,6 +54,12 @@ const form = reactive({
   contractualDeliveryEnd: props.equipment?.contractualDeliveryEnd ?? "",
 });
 
+const contextOptions = computed(() =>
+  contexts.value.map((item) => ({
+    id: item.id,
+    label: item.code ? `${item.code} · ${item.name}` : item.name,
+  })),
+);
 const eapOptions = computed(() =>
   eapNodes.value.map((item) => ({
     id: item.id,
@@ -213,20 +219,20 @@ onMounted(loadCatalogs);
         <input v-model="form.name" maxlength="200" required />
       </label>
 
-      <label class="field">
+      <div class="field">
         <span>Contexto *</span>
 
-        <select
+        <SearchableSelect
           v-model="form.projectContextId"
+          :options="contextOptions"
+          :clearable="false"
           required
-        >
-          <option value="">Selecione</option>
-
-          <option v-for="item in contexts" :key="item.id" :value="item.id">
-            {{ item.code ? `${item.code} · ${item.name}` : item.name }}
-          </option>
-        </select>
-      </label>
+          label="Contexto"
+          placeholder="Buscar por código ou nome"
+          empty-label="Selecione"
+          test-id="project-context-select"
+        />
+      </div>
 
       <label class="field">
         <span>Origem</span>

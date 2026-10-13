@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import type { CatalogItem, CatalogList, EngineeringRow, Responsible } from "~/types/equipment";
+import type { SearchableOption } from "~/types/ui";
+import { toOptions } from "~/utils/selectOptions";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -17,6 +20,10 @@ const responsibleUserId = ref("");
 // carga da fila, nunca persistido (GAP-011: Analista Sintético A/Analista Sintético D/etc são
 // Users reais, não grupos gravados em algum catálogo).
 const groupEnabled = ref(false);
+const disciplineOptions = computed(() => toOptions(disciplines.value));
+const responsibleOptions = computed<SearchableOption[]>(() =>
+  responsibles.value.map((item) => ({ id: item.id, label: item.name, searchText: item.email })),
+);
 
 async function loadFilterCatalogs(): Promise<void> {
   disciplines.value = (await api.get<CatalogList<CatalogItem>>("/disciplines")).items;
@@ -82,26 +89,32 @@ onMounted(async () => {
       @page="queue.goToPage"
     >
       <template #filters>
-        <label class="field">
+        <div class="field">
           <span>Disciplina</span>
-          <select v-model="disciplineId" data-testid="filter-discipline" @change="applyFieldFilters">
-            <option value="">Todas</option>
-            <option v-for="item in disciplines" :key="item.id" :value="item.id">{{ item.name }}</option>
-          </select>
-        </label>
-        <label class="field">
+          <SearchableSelect
+            v-model="disciplineId"
+            :options="disciplineOptions"
+            label="Disciplina"
+            placeholder="Buscar disciplina"
+            empty-label="Todas"
+            test-id="filter-discipline"
+            @change="applyFieldFilters"
+          />
+        </div>
+        <div class="field">
           <span>Responsável</span>
-          <select
+          <SearchableSelect
             v-model="responsibleUserId"
+            :options="responsibleOptions"
             :disabled="!context.selectedUnit"
             :title="!context.selectedUnit ? 'Selecione uma unidade para filtrar por responsável' : undefined"
-            data-testid="filter-responsible"
+            label="Responsável"
+            placeholder="Buscar responsável"
+            empty-label="Todos"
+            test-id="filter-responsible"
             @change="applyFieldFilters"
-          >
-            <option value="">Todos</option>
-            <option v-for="item in responsibles" :key="item.id" :value="item.id">{{ item.name }}</option>
-          </select>
-        </label>
+          />
+        </div>
         <label class="field-inline group-toggle" :class="{ active: groupEnabled }">
           <input v-model="groupEnabled" type="checkbox" data-testid="group-by-responsible">
           <span>Agrupar por responsável</span>

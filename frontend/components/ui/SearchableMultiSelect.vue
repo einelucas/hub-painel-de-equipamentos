@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Check, ChevronDown, Search, X } from "lucide-vue-next";
-import { computed, ref } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
+import { useFloatingMenu } from "~/composables/useFloatingMenu";
 import type { SearchableOption } from "~/types/ui";
 
 const props = withDefaults(
@@ -21,6 +22,15 @@ const props = withDefaults(
 const emit = defineEmits<{ "update:modelValue": [value: string[]] }>();
 const open = ref(false);
 const query = ref("");
+const control = ref<HTMLElement | null>(null);
+const { style: menuStyle, place } = useFloatingMenu(control, open);
+// Chips novos empurram o campo para baixo: o menu acompanha.
+watch(
+  () => props.modelValue.length,
+  () => {
+    if (open.value) void nextTick(place);
+  },
+);
 const ordered = computed(() =>
   [...props.options].sort((left, right) =>
     left.label.localeCompare(right.label, "pt-BR", { numeric: true, sensitivity: "base" }),
@@ -64,7 +74,7 @@ function closeOnBlur(event: FocusEvent): void {
         <button type="button" :aria-label="`Remover ${option.label}`" @click="toggleOption(option.id)"><X :size="12" /></button>
       </span>
     </div>
-    <div class="multi-select__control">
+    <div ref="control" class="multi-select__control">
       <Search :size="15" aria-hidden="true" />
       <input
         v-model="query"
@@ -81,7 +91,15 @@ function closeOnBlur(event: FocusEvent): void {
         <ChevronDown :size="16" />
       </button>
     </div>
-    <div v-if="open" class="multi-select__menu" role="listbox" aria-multiselectable="true">
+    <Teleport to="body">
+    <div
+      v-if="open"
+      class="multi-select__menu"
+      role="listbox"
+      aria-multiselectable="true"
+      :style="menuStyle"
+      @mousedown.prevent
+    >
       <button
         v-for="option in filtered"
         :key="option.id"
@@ -99,6 +117,7 @@ function closeOnBlur(event: FocusEvent): void {
       <p v-if="disabled">{{ disabledMessage }}</p>
       <p v-else-if="filtered.length === 0">Nenhuma opção encontrada.</p>
     </div>
+    </Teleport>
   </div>
 </template>
 
@@ -111,7 +130,7 @@ function closeOnBlur(event: FocusEvent): void {
 .multi-select__control { display: flex; min-height: 38px; align-items: center; gap: 7px; padding: 0 8px; color: #718096; }
 .multi-select__control input { min-width: 0; flex: 1; border: 0; outline: 0; padding: 9px 0; background: transparent; color: #263d5d; font-size: 12px; }
 .multi-select--disabled { background: #f6f7f9; color: #9ca5b4; }
-.multi-select__menu { position: absolute; z-index: 30; top: calc(100% + 4px); right: 0; left: 0; max-height: 230px; overflow-y: auto; border: 1px solid #d8e1ec; border-radius: 9px; padding: 5px; background: #fff; box-shadow: 0 12px 28px rgb(30 50 78 / 16%); }
+.multi-select__menu { position: fixed; z-index: 200; overflow-y: auto; border: 1px solid #d8e1ec; border-radius: 9px; padding: 5px; background: #fff; box-shadow: 0 12px 28px rgb(30 50 78 / 16%); }
 .multi-select__menu > button { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; border-radius: 7px; padding: 8px 9px; background: transparent; color: #263d5d; text-align: left; cursor: pointer; }
 .multi-select__menu > button:hover, .multi-select__menu > button[aria-selected="true"] { background: #eef4fb; }
 .multi-select__check { display: grid; width: 16px; height: 16px; flex: 0 0 16px; border: 1px solid #aeb9c8; border-radius: 4px; color: #fff; place-items: center; }

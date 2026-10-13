@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { Pencil, Plus, Search } from "lucide-vue-next";
+import { Pencil, Plus, Search, Upload } from "lucide-vue-next";
 import type { CatalogList, Supplier } from "~/types/equipment";
-import { formatCnpj, normalizeCnpj, sortSuppliers } from "~/utils/suppliers";
+import SupplierImportModal from "~/components/supplier/SupplierImportModal.vue";
+import SupplierForm, { type SupplierFormValues } from "~/components/supplier/SupplierForm.vue";
+import { useIncrementalList } from "~/composables/useIncrementalList";
+import { formatCnpj, sortSuppliers } from "~/utils/suppliers";
 
 definePageMeta({ middleware: "auth" });
 const api = useApi();
@@ -15,8 +18,11 @@ const formError = ref("");
 const search = ref("");
 const includeInactive = ref(false);
 const showForm = ref(false);
+const showImport = ref(false);
 const editing = ref<Supplier | null>(null);
-const form = reactive({ corporateCode: "", legalName: "", tradeName: "", taxId: "", active: true });
+
+const { root: listRoot, sentinel, visible: visibleSuppliers, total, hasMore } = useIncrementalList(() => suppliers.value);
+const numberFormat = new Intl.NumberFormat("pt-BR");
 
 const allowed = computed(() => auth.can("suppliers:read"));
 const canWrite = computed(() => auth.can("suppliers:write"));
@@ -40,41 +46,23 @@ async function load(): Promise<void> {
 function openCreate(): void {
   editing.value = null;
   formError.value = "";
-  Object.assign(form, { corporateCode: "", legalName: "", tradeName: "", taxId: "", active: true });
   showForm.value = true;
 }
 
 function openEdit(supplier: Supplier): void {
   editing.value = supplier;
   formError.value = "";
-  Object.assign(form, {
-    corporateCode: supplier.corporateCode ?? "",
-    legalName: supplier.legalName,
-    tradeName: supplier.tradeName ?? "",
-    taxId: supplier.taxId ?? "",
-    active: supplier.active,
-  });
   showForm.value = true;
 }
 
-async function submit(): Promise<void> {
-  if (!form.legalName.trim()) {
-    formError.value = "Informe a razão social.";
-    return;
-  }
+async function submit(values: SupplierFormValues): Promise<void> {
   saving.value = true;
   formError.value = "";
-  const payload = {
-    corporateCode: form.corporateCode.trim() || null,
-    legalName: form.legalName.trim(),
-    tradeName: form.tradeName.trim() || null,
-    taxId: normalizeCnpj(form.taxId),
-  };
   try {
     if (editing.value) {
-      await api.patch(`/suppliers/${editing.value.id}`, { ...payload, active: form.active });
+      await api.patch(`/suppliers/${editing.value.id}`, values);
     } else {
-      await api.post("/suppliers", payload);
+      await api.post("/suppliers", values);
     }
     showForm.value = false;
     await load();
@@ -122,13 +110,22 @@ onMounted(() => {
             <button v-if="canWrite" class="btn primary" @click="openCreate">
               <Plus :size="16" /> Novo fornecedor
             </button>
+            <button v-if="canWrite" class="btn" type="button" @click="showImport = true">
+              <Upload :size="16" /> Importar planilha
+            </button>
           </div>
         </div>
       </section>
 
-      <section class="surface">
+      <section class="surface list-card">
         <div class="surface-header">
-          <div><h2>Cadastro de fornecedores</h2><p>{{ suppliers.length }} fornecedor(es) em ordem alfabética.</p></div>
+          <div>
+            <h2>Cadastro de fornecedores</h2>
+            <p>
+              {{ numberFormat.format(total) }} fornecedor(es) em ordem alfabética<template v-if="total">
+                · Exibindo {{ numberFormat.format(visibleSuppliers.length) }} de {{ numberFormat.format(total) }}</template>.
+            </p>
+          </div>
         </div>
         <div v-if="loading" class="list-state"><span class="spinner" /> Carregando fornecedores...</div>
         <div v-else-if="error" class="empty-state table-empty" role="alert">
@@ -139,7 +136,7 @@ onMounted(() => {
           <h2>Nenhum fornecedor cadastrado</h2>
           <p>Cadastre o primeiro fornecedor para vinculá-lo a equipamentos.</p>
         </div>
-        <div v-else class="table-wrap">
+        <div v-else ref="listRoot" class="table-wrap" data-testid="supplier-scroll">
           <Table>
             <TableHeader>
               <TableRow>
@@ -152,7 +149,7 @@ onMounted(() => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="supplier in suppliers" :key="supplier.id">
+              <TableRow v-for="supplier in visibleSuppliers" :key="supplier.id">
                 <TableCell><span class="supplier-code">{{ supplier.corporateCode ?? "—" }}</span></TableCell>
                 <TableCell class="font-semibold supplier-name">{{ supplier.legalName }}</TableCell>
                 <TableCell>{{ supplier.tradeName ?? "—" }}</TableCell>
@@ -170,26 +167,23 @@ onMounted(() => {
               </TableRow>
             </TableBody>
           </Table>
+          <div v-if="hasMore" ref="sentinel" class="list-sentinel" data-testid="supplier-sentinel">
+            <span class="spinner spinner-small" /> Carregando mais fornecedores...
+          </div>
         </div>
       </section>
     </div>
 
+    <SupplierImportModal :open="showImport" @close="showImport = false" @imported="load" />
+
     <AppModal :open="showForm" :title="editing ? 'Editar fornecedor' : 'Novo fornecedor'" @close="showForm = false">
-      <form class="supplier-form" @submit.prevent="submit">
-        <label class="field"><span>Código do fornecedor</span><input v-model="form.corporateCode" maxlength="20" placeholder="Ex.: 9001"></label>
-        <label class="field"><span>Razão social *</span><input v-model="form.legalName" maxlength="200" required></label>
-        <label class="field"><span>Nome fantasia</span><input v-model="form.tradeName" maxlength="200"></label>
-        <label class="field"><span>CNPJ</span><input v-model="form.taxId" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00" @blur="form.taxId = formatCnpj(form.taxId) === '—' ? '' : formatCnpj(form.taxId)"></label>
-        <label v-if="editing" class="field field-check">
-          <input v-model="form.active" type="checkbox"><span>Fornecedor ativo</span>
-        </label>
-        <p v-if="editing" class="form-hint">Fornecedores não são excluídos: desative para tirá-los de uso.</p>
-        <p v-if="formError" class="notice error" role="alert">{{ formError }}</p>
-        <div class="form-actions">
-          <button type="button" class="btn" @click="showForm = false">Cancelar</button>
-          <button type="submit" class="btn primary" :disabled="saving">{{ saving ? "Salvando..." : "Salvar" }}</button>
-        </div>
-      </form>
+      <SupplierForm
+        :supplier="editing"
+        :saving="saving"
+        :error="formError"
+        @submit="submit"
+        @cancel="showForm = false"
+      />
     </AppModal>
   </ModuleWorkspace>
 </template>
@@ -204,7 +198,12 @@ onMounted(() => {
 .field-check span { color: #2b3e58; font-size: 12px; font-weight: 700; }
 .filter-actions { display: flex; gap: 8px; }
 .list-state { display: flex; min-height: 200px; align-items: center; justify-content: center; gap: 12px; color: #748197; }
-.table-wrap { padding: 0 18px 18px; overflow-x: auto; }
+.list-card { display: flex; min-width: 0; height: calc(100vh - 330px); min-height: 360px; max-height: 760px; flex-direction: column; overflow: hidden; }
+.list-card > .surface-header { flex: 0 0 auto; }
+.table-wrap { min-height: 0; flex: 1 1 auto; padding: 0 18px 18px; overflow: auto; overscroll-behavior: contain; }
+.table-wrap :deep(thead th) { position: sticky; top: 0; z-index: 1; background: #fff; }
+.list-sentinel { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; color: #748197; font-size: 12px; }
+.spinner-small { width: 14px; height: 14px; border-width: 2px; }
 .supplier-code { display: inline-flex; border-radius: 6px; padding: 3px 7px; background: #eef4fb; color: #315889; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .supplier-name { min-width: 220px; color: #263d5d; }
 .cnpj { font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -213,8 +212,5 @@ onMounted(() => {
 .status--on { background: #eaf4e5; color: #477a32; }
 .status--off { background: #eef2f7; color: #6b7a8f; }
 .text-button { display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
-.supplier-form { display: grid; gap: 14px; }
-.form-hint { margin: -6px 0 0; color: #8b96a5; font-size: 11.5px; }
-.form-actions { display: flex; justify-content: flex-end; gap: 9px; }
-@media (max-width: 860px) { .filter-grid { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .filter-grid { grid-template-columns: 1fr; } .list-card { height: calc(100vh - 200px); } }
 </style>

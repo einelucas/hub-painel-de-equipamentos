@@ -32,7 +32,7 @@ export function useDashboardFilters() {
   /** Parâmetros de `/dashboard/summary`; filtros sem seleção são omitidos. */
   const apiQuery = computed<Record<string, string>>(() => {
     const query: Record<string, string> = {};
-    if (filters.areaId) query.area_id = filters.areaId;
+    if (filters.areaId) query.eap_node_id = filters.areaId;
     if (filters.disciplineId) query.discipline_id = filters.disciplineId;
     if (filters.stage !== null) query.stage = String(filters.stage);
     return query;

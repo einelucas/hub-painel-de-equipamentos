@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import type { PurchaseRequest, PurchaseRequestKind } from "~/types/equipment";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 export interface EquipmentPurchaseRequestFormValues {
   kind: "" | PurchaseRequestKind;
@@ -20,6 +21,11 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
+const KIND_OPTIONS = [
+  { id: "SC", label: "SC" },
+  { id: "OCI", label: "OCI" },
+];
+
 const form = reactive<EquipmentPurchaseRequestFormValues>({
   kind: props.item?.kind ?? "",
   requestNumber: props.item?.requestNumber ?? "",
@@ -29,14 +35,19 @@ const form = reactive<EquipmentPurchaseRequestFormValues>({
 
 <template>
   <form class="item-form" @submit.prevent="emit('submit', { ...form })">
-    <label class="field">
+    <div class="field">
       <span>Tipo</span>
-      <select v-model="form.kind">
-        <option value="">Não informado</option>
-        <option value="SC">SC</option>
-        <option value="OCI">OCI</option>
-      </select>
-    </label>
+      <SearchableSelect
+        :model-value="form.kind"
+        :options="KIND_OPTIONS"
+        :sorted="false"
+        label="Tipo"
+        placeholder="Buscar tipo"
+        empty-label="Não informado"
+        test-id="purchase-request-kind"
+        @update:model-value="form.kind = $event as EquipmentPurchaseRequestFormValues['kind']"
+      />
+    </div>
     <label class="field"><span>Número</span><input v-model="form.requestNumber" maxlength="80"></label>
     <label class="field"><span>Data</span><input v-model="form.requestedAt" type="date"></label>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>

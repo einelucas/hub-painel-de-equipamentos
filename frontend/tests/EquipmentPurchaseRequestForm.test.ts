@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import EquipmentPurchaseRequestForm from "~/components/equipment/purchase-requests/EquipmentPurchaseRequestForm.vue";
 import EquipmentPurchaseRequestsList from "~/components/equipment/EquipmentPurchaseRequestsList.vue";
 import type { PurchaseRequest, RequirementGroup } from "~/types/equipment";
+import { chooseOption, optionLabels, shownValue } from "./support/searchableSelect";
 
 const existing: PurchaseRequest = {
   id: "pr-1",
@@ -22,32 +23,33 @@ function mountForm(item: PurchaseRequest | null, props: { busy?: boolean; error?
 
 function fields(wrapper: ReturnType<typeof mount>) {
   return {
-    kind: wrapper.get("select"),
-    number: wrapper.get("input:not([type='date'])"),
+    number: wrapper.get("input[maxlength='80']"),
     date: wrapper.get("input[type='date']"),
   };
 }
 
 describe("EquipmentPurchaseRequestForm", () => {
-  it("criação: tipo Não informado e campos vazios", () => {
-    const { kind, number, date } = fields(mountForm(null));
-    expect((kind.element as HTMLSelectElement).value).toBe("");
-    expect(kind.findAll("option").map((item) => item.text())).toEqual(["Não informado", "SC", "OCI"]);
+  it("criação: tipo Não informado e campos vazios", async () => {
+    const wrapper = mountForm(null);
+    const { number, date } = fields(wrapper);
+    expect(shownValue(wrapper, "purchase-request-kind")).toBe("");
+    expect(await optionLabels(wrapper, "purchase-request-kind")).toEqual(["Não informado", "SC", "OCI"]);
     expect((number.element as HTMLInputElement).value).toBe("");
     expect((date.element as HTMLInputElement).value).toBe("");
   });
 
   it("edição: campos preenchidos com a SC/OCI recebida", () => {
-    const { kind, number, date } = fields(mountForm(existing));
-    expect((kind.element as HTMLSelectElement).value).toBe("OCI");
+    const wrapper = mountForm(existing);
+    const { number, date } = fields(wrapper);
+    expect(shownValue(wrapper, "purchase-request-kind")).toBe("OCI");
     expect((number.element as HTMLInputElement).value).toBe("OCI-12");
     expect((date.element as HTMLInputElement).value).toBe("2027-05-10");
   });
 
   it("submit emite os valores digitados", async () => {
     const wrapper = mountForm(null);
-    const { kind, number, date } = fields(wrapper);
-    await kind.setValue("SC");
+    const { number, date } = fields(wrapper);
+    await chooseOption(wrapper, "purchase-request-kind", "SC");
     await number.setValue("SC-0099");
     await date.setValue("2027-06-01");
 
@@ -101,7 +103,7 @@ describe("EquipmentPurchaseRequestsList (container)", () => {
 
     await wrapper.get("[data-testid='add-purchase-request']").trigger("click");
     expect(wrapper.get(".modal h2").text()).toBe("Nova SC/OCI");
-    await wrapper.get(".modal input:not([type='date'])").setValue("SC-0099");
+    await wrapper.get(".modal input[maxlength='80']").setValue("SC-0099");
     await wrapper.get(".modal form").trigger("submit");
     await flushPromises();
 

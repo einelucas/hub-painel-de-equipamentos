@@ -59,6 +59,7 @@ from app.modules.equipments.schemas import (
     WorkPackageRefOut,
 )
 from app.shared.audit import record_audit
+from app.shared.eap_location import equipment_in_eap_subtree
 
 _SORT_COLUMNS = {
     "name": Equipment.name,
@@ -365,6 +366,7 @@ def _apply_filters(
     discipline_id: str | None,
     responsible_user_id: str | None,
     area_id: str | None = None,
+    eap_node_id: str | None = None,
     work_package_id: str | None = None,
 ) -> Select[Any]:
     # O join com o contexto é sempre necessário: é por ele que se chega à unidade.
@@ -386,6 +388,8 @@ def _apply_filters(
         stmt = stmt.where(Equipment.responsible_user_id == responsible_user_id)
     if area_id:
         stmt = stmt.where(Equipment.area_id == area_id)
+    if eap_node_id:
+        stmt = stmt.where(equipment_in_eap_subtree(eap_node_id))
     if work_package_id:
         # GAP-010 (Etapa 6D): filtra pela relação N:N oficial
         # (equipment_work_package), nunca pelo work_package_id singular
@@ -418,6 +422,7 @@ async def list_equipments(
     sort_by: str,
     sort_dir: str,
     area_id: str | None = None,
+    eap_node_id: str | None = None,
     work_package_id: str | None = None,
 ) -> EquipmentListOut:
     page = max(1, page)
@@ -434,6 +439,7 @@ async def list_equipments(
         discipline_id=discipline_id,
         responsible_user_id=responsible_user_id,
         area_id=area_id,
+        eap_node_id=eap_node_id,
         work_package_id=work_package_id,
     )
     total = (await session.execute(count_stmt)).scalar_one()
@@ -454,6 +460,7 @@ async def list_equipments(
         discipline_id=discipline_id,
         responsible_user_id=responsible_user_id,
         area_id=area_id,
+        eap_node_id=eap_node_id,
         work_package_id=work_package_id,
     ).options(*_base_load_options())
     sort_column = _SORT_COLUMNS.get(sort_by, Equipment.name)

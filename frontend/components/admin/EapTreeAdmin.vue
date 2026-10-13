@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { Check, Pencil, Plus, X } from "lucide-vue-next";
+import { Check, Pencil, Plus, Search, X } from "lucide-vue-next";
 import type { CatalogList, EapLevel, EapNodeItem } from "~/types/equipment";
+import { codeNameLabel, toOptions } from "~/utils/selectOptions";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 const emit = defineEmits<{ changed: [] }>();
 const api = useApi();
@@ -27,6 +29,12 @@ const levelLabels: Record<EapLevel, string> = {
   AREA: "Área",
 };
 
+const levelCounts = computed(() => {
+  const counts: Record<EapLevel, number> = { ISLAND: 0, PROCESS: 0, AREA: 0 };
+  for (const node of nodes.value) counts[node.level] += 1;
+  return counts;
+});
+
 const ordered = (items: EapNodeItem[]) =>
   [...items].sort((left, right) => left.code.localeCompare(right.code, "pt-BR", { numeric: true }));
 
@@ -50,11 +58,41 @@ const treeRows = computed(() => {
   return rows;
 });
 
+const search = ref("");
+
+/**
+ * Busca por código ou nome. Mantém os ancestrais de cada nó encontrado para
+ * que o resultado continue legível como árvore (Ilha → Processo → Área).
+ */
+const visibleRows = computed(() => {
+  const term = search.value.trim().toLocaleLowerCase("pt-BR");
+  if (!term) return treeRows.value;
+  const byId = new Map(nodes.value.map((node) => [node.id, node]));
+  const keep = new Set<string>();
+  for (const node of nodes.value) {
+    if (!`${node.code} ${node.name}`.toLocaleLowerCase("pt-BR").includes(term)) continue;
+    let current: EapNodeItem | undefined = node;
+    while (current && !keep.has(current.id)) {
+      keep.add(current.id);
+      current = current.parentId ? byId.get(current.parentId) : undefined;
+    }
+  }
+  return treeRows.value.filter((row) => keep.has(row.node.id));
+});
+
+const LEVEL_OPTIONS = [
+  { id: "ISLAND", label: "Ilha" },
+  { id: "PROCESS", label: "Processo" },
+  { id: "AREA", label: "Área" },
+];
+
 const parentOptions = computed(() => {
   if (form.level === "ISLAND") return [];
   const level: EapLevel = form.level === "AREA" ? "PROCESS" : "ISLAND";
   return ordered(nodes.value.filter((node) => node.level === level && node.active));
 });
+
+const parentSelectOptions = computed(() => toOptions(parentOptions.value, codeNameLabel));
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -149,26 +187,37 @@ void load();
 </script>
 
 <template>
-  <section class="eap-admin" data-testid="eap-tree-admin">
+  <section class="eap-admin admin-fill" data-testid="eap-tree-admin">
     <header class="eap-header">
       <div>
         <h3>Árvore EAP</h3>
         <p>Catálogo global: Ilha → Processo → Área. Equipamentos usam somente Processo ou Área.</p>
+        <p v-if="nodes.length" class="eap-count">
+          {{ levelCounts.ISLAND }} ilha{{ levelCounts.ISLAND === 1 ? "" : "s" }} ·
+          {{ levelCounts.PROCESS }} processo{{ levelCounts.PROCESS === 1 ? "" : "s" }} ·
+          {{ levelCounts.AREA }} área{{ levelCounts.AREA === 1 ? "" : "s" }}
+        </p>
       </div>
-      <button type="button" class="btn small" :disabled="saving" data-testid="eap-new" @click="startCreate">
+      <button type="button" class="btn small primary" :disabled="saving" data-testid="eap-new" @click="startCreate">
         <Plus :size="14" /> Novo nó
       </button>
     </header>
 
     <form v-if="creating" class="eap-form" data-testid="eap-form" @submit.prevent="submit">
-      <label class="field">
+      <div class="field">
         <span>Nível *</span>
-        <select v-model="form.level" :disabled="Boolean(editingId)" data-testid="eap-level">
-          <option value="ISLAND">Ilha</option>
-          <option value="PROCESS">Processo</option>
-          <option value="AREA">Área</option>
-        </select>
-      </label>
+        <SearchableSelect
+          :model-value="form.level"
+          :options="LEVEL_OPTIONS"
+          :sorted="false"
+          :clearable="false"
+          :disabled="Boolean(editingId)"
+          label="Nível"
+          placeholder="Buscar nível"
+          test-id="eap-level"
+          @update:model-value="form.level = $event as EapLevel"
+        />
+      </div>
       <label class="field">
         <span>Código *</span>
         <input v-model="form.code" maxlength="20" required :disabled="Boolean(editingId)" data-testid="eap-code">
@@ -177,15 +226,20 @@ void load();
         <span>Nome *</span>
         <input v-model="form.name" maxlength="160" required data-testid="eap-name">
       </label>
-      <label v-if="form.level !== 'ISLAND'" class="field eap-parent-field">
+      <div v-if="form.level !== 'ISLAND'" class="field eap-parent-field">
         <span>{{ form.level === "AREA" ? "Processo pai *" : "Ilha pai (opcional)" }}</span>
-        <select v-model="form.parentId" :required="form.level === 'AREA'" :disabled="Boolean(editingId)" data-testid="eap-parent">
-          <option value="">{{ form.level === "AREA" ? "Selecione" : "Sem ilha" }}</option>
-          <option v-for="node in parentOptions" :key="node.id" :value="node.id">
-            {{ node.code }} · {{ node.name }}
-          </option>
-        </select>
-      </label>
+        <SearchableSelect
+          v-model="form.parentId"
+          :options="parentSelectOptions"
+          :clearable="form.level !== 'AREA'"
+          :required="form.level === 'AREA'"
+          :disabled="Boolean(editingId)"
+          :label="form.level === 'AREA' ? 'Processo pai' : 'Ilha pai'"
+          placeholder="Buscar por código ou nome"
+          :empty-label="form.level === 'AREA' ? 'Selecione' : 'Sem ilha'"
+          test-id="eap-parent"
+        />
+      </div>
       <label v-if="editingId" class="active-check">
         <input v-model="form.active" type="checkbox" data-testid="eap-active">
         Ativo
@@ -203,24 +257,31 @@ void load();
       </div>
     </form>
 
+    <label v-if="nodes.length" class="eap-search">
+      <Search :size="14" aria-hidden="true" />
+      <input v-model="search" type="search" placeholder="Buscar por código ou nome" aria-label="Buscar na Árvore EAP">
+    </label>
+
     <p v-if="loading" class="eap-hint"><span class="spinner spinner-small" /> Carregando árvore...</p>
     <p v-else-if="error" class="eap-error" role="alert">{{ error }}</p>
-    <p v-else-if="treeRows.length === 0" class="eap-hint" data-testid="eap-empty">
+    <p v-else-if="treeRows.length === 0" class="eap-empty" data-testid="eap-empty">
       Nenhum nó EAP cadastrado. Comece por uma Ilha ou Processo.
     </p>
+    <p v-else-if="visibleRows.length === 0" class="eap-hint">Nenhum nó corresponde à busca.</p>
     <ul v-else class="eap-tree" role="tree" aria-label="Árvore EAP">
       <li
-        v-for="row in treeRows"
+        v-for="row in visibleRows"
         :key="row.node.id"
         role="treeitem"
         :aria-level="row.depth + 1"
+        :class="[`level-${row.node.level.toLowerCase()}`, { inactive: !row.node.active, editing: row.node.id === editingId }]"
         :style="{ '--tree-depth': row.depth }"
         :data-testid="`eap-node-${row.node.id}`"
       >
         <span class="tree-line" aria-hidden="true" />
         <span class="eap-code">{{ row.node.code }}</span>
         <span class="eap-name">{{ row.node.name }}</span>
-        <span class="eap-level">{{ levelLabels[row.node.level] }}</span>
+        <span class="eap-level" :class="`eap-level--${row.node.level.toLowerCase()}`">{{ levelLabels[row.node.level] }}</span>
         <span v-if="!row.node.active" class="eap-inactive">Inativo</span>
         <button
           type="button"
@@ -237,32 +298,72 @@ void load();
 </template>
 
 <style scoped>
-.eap-admin { display: grid; gap: 12px; padding: 4px 0 14px; }
-.eap-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eap-header h3 { margin: 0; color: #2b3e58; font-size: 13px; font-weight: 800; }
-.eap-header p { margin: 3px 0 0; color: #7a879a; font-size: 11.5px; }
-.eap-form { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(130px, .8fr) minmax(180px, 1.5fr); gap: 10px; border: 1px solid #dce5f0; border-radius: 10px; padding: 12px; background: #f8fafc; }
+/* Cabeçalho, formulário e busca ficam parados; só a árvore rola (dentro do painel). */
+.eap-admin { display: flex; flex-direction: column; gap: 12px; }
+.eap-admin > * { flex: 0 0 auto; }
+.eap-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule, #dde5ef); border-radius: 9px; padding: 0 10px; background: #fff; color: var(--muted, #6b7a8f); }
+.eap-search:focus-within { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 2px rgb(48 79 126 / 12%); }
+.eap-search input { min-width: 0; flex: 1; border: 0; outline: 0; padding: 8px 0; background: transparent; color: var(--ink, #1f3352); font-size: 12.5px; }
+.eap-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--rule, #dde5ef); }
+.eap-header h3 { margin: 0; color: var(--ink, #1f3352); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.eap-header p { margin: 3px 0 0; color: var(--muted, #6b7a8f); font-size: 12px; }
+.eap-count { margin-top: 4px !important; font-family: var(--mono, monospace); font-size: 11px !important; }
+
+.eap-form { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(130px, .8fr) minmax(180px, 1.5fr); gap: 10px 12px; border: 1px solid #c9d8ec; border-radius: 12px; padding: 14px; background: var(--wash, #f3f6fb); }
 .eap-parent-field { grid-column: 1 / span 2; }
-.eap-help { grid-column: 1 / -1; margin: 0; color: #7a879a; font-size: 11px; }
-.eap-error { grid-column: 1 / -1; margin: 0; color: #a4453a; font-size: 12px; font-weight: 700; }
+.eap-help { grid-column: 1 / -1; margin: 0; color: var(--muted, #6b7a8f); font-size: 11.5px; }
+.eap-error { grid-column: 1 / -1; margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
 .eap-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
-.eap-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: #8b96a5; font-size: 12px; }
-.eap-tree { display: grid; margin: 0; padding: 2px 0; list-style: none; }
-.eap-tree li { position: relative; display: grid; grid-template-columns: auto minmax(120px, 1fr) auto auto auto; align-items: center; gap: 8px; min-height: 34px; margin-left: calc(var(--tree-depth) * 22px); border-bottom: 1px solid #f0f3f7; padding: 5px 3px 5px 15px; color: #2b3e58; }
-.tree-line { position: absolute; top: 0; bottom: 0; left: 3px; width: 8px; border-bottom: 1px solid #cbd6e4; border-left: 1px solid #cbd6e4; }
-.eap-code { border-radius: 5px; background: #e9f1fb; padding: 2px 6px; color: #294b77; font-size: 10.5px; font-weight: 800; }
-.eap-name { overflow: hidden; font-size: 12.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.eap-level, .eap-inactive { border-radius: 999px; padding: 3px 7px; font-size: 10px; font-weight: 750; }
-.eap-level { background: #eef2f7; color: #627086; }
-.eap-inactive { background: #f5e9e7; color: #925147; }
+.eap-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
+.eap-empty { margin: 0; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 22px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
+
+/* Árvore: cada nível com peso próprio — Ilha é cabeçalho, Área é folha. */
+.eap-tree { display: block; margin: 0; padding: 6px 0; border: 1px solid var(--rule, #dde5ef); border-radius: 12px; background: #fff; list-style: none; overflow-y: auto; overscroll-behavior: contain; }
+.eap-admin > .eap-tree { min-height: 0; flex: 0 1 auto; }
+.eap-tree li {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 4px 10px 4px calc(16px + var(--tree-depth) * 24px);
+  color: var(--ink, #1f3352);
+}
+.eap-tree li:hover { background: #fafcfe; }
+.eap-tree li.editing { background: #f1f6fd; }
+/* guias verticais: uma por nível acima do nó */
+.tree-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 18px;
+  width: calc(var(--tree-depth) * 24px);
+  background-image: linear-gradient(to right, var(--rule, #dde5ef) 1px, transparent 1px);
+  background-size: 24px 100%;
+  pointer-events: none;
+}
+.eap-code { min-width: 44px; color: var(--steel, #304f7e); font-family: var(--mono, monospace); font-size: 12px; font-weight: 700; }
+.eap-name { overflow: hidden; font-size: 12.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.level-island .eap-name { font-size: 13px; font-weight: 800; }
+.level-island .eap-code { color: var(--ink, #1f3352); }
+.level-process .eap-name { font-weight: 700; }
+.eap-level, .eap-inactive { border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; }
+.eap-level--island { background: var(--ink, #1f3352); color: #fff; }
+.eap-level--process { background: #e3ecf8; color: var(--steel, #304f7e); }
+.eap-level--area { background: #f1f4f8; color: var(--muted, #6b7a8f); }
+.eap-inactive { background: var(--stop-wash, #fbeeed); color: var(--stop, #a4453a); }
+.eap-tree li.inactive .eap-name, .eap-tree li.inactive .eap-code { color: #9aa6b5; }
 .active-check { display: flex; align-items: center; gap: 7px; color: #526176; font-size: 12px; font-weight: 700; }
-.eap-edit { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #77859a; cursor: pointer; }
-.eap-edit:hover { background: #edf3fa; color: #294b77; }
+.eap-edit { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #8592a6; cursor: pointer; }
+.eap-edit:hover { background: #edf3fa; color: var(--steel, #304f7e); }
+.eap-edit:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 1px; }
 .spinner-small { width: 14px; height: 14px; border-width: 2px; }
 @media (max-width: 700px) {
   .eap-form { grid-template-columns: 1fr; }
   .eap-parent-field { grid-column: auto; }
-  .eap-tree li { grid-template-columns: auto minmax(90px, 1fr) auto; }
+  .eap-tree li { grid-template-columns: auto minmax(90px, 1fr) auto; padding-left: calc(12px + var(--tree-depth) * 14px); }
+  .tree-line { display: none; }
   .eap-inactive { grid-column: 2; justify-self: start; }
 }
 </style>

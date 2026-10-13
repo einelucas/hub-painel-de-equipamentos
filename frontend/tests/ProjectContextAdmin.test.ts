@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ProjectContextAdmin from "~/components/admin/ProjectContextAdmin.vue";
 import type { CatalogItem, Unit } from "~/types/equipment";
+import { chooseOption, optionLabels } from "./support/searchableSelect";
 
 // Dados 100% sintéticos (nenhuma unidade, obra, pessoa ou prefixo real).
 const UNITS: Unit[] = [
@@ -78,10 +79,9 @@ describe("ProjectContextAdmin", () => {
     const wrapper = mountAdmin();
     await settle(wrapper);
 
-    const options = wrapper.get("[data-testid='project-unit']").findAll("option").map((o) => o.text());
-    expect(options).toEqual(["Selecione", "Unidade Teste", "Unidade Teste 2"]);
+    expect(await optionLabels(wrapper, "project-unit")).toEqual(["Unidade Teste", "Unidade Teste 2"]);
 
-    await wrapper.get("[data-testid='project-unit']").setValue("u-tst2");
+    await chooseOption(wrapper, "project-unit", "Unidade Teste 2");
     expect(wrapper.emitted("update:unitId")?.[0]).toEqual(["u-tst2"]);
   });
 

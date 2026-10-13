@@ -26,6 +26,59 @@ describe("seletores pesquisáveis de catálogo", () => {
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual(["b"]);
   });
 
+  it("sorted=false mantém a ordem recebida e clearable=false esconde a opção vazia", async () => {
+    const wrapper = mount(SearchableSelect, {
+      props: { options, modelValue: "", label: "EAP", sorted: false, clearable: false, required: true },
+    });
+
+    expect(wrapper.get("input").attributes("required")).toBeDefined();
+    await wrapper.get("input").trigger("focus");
+    expect(wrapper.findAll("[role='option']").map((item) => item.find("strong").text())).toEqual([
+      "B · Beta",
+      "A · Alfa",
+    ]);
+  });
+
+  it("emite change só quando o valor muda e digitar não limpa a seleção", async () => {
+    const wrapper = mount(SearchableSelect, {
+      props: {
+        options,
+        modelValue: "a",
+        label: "EAP",
+        "onUpdate:modelValue": (value: string) => wrapper.setProps({ modelValue: value }),
+      },
+    });
+
+    await wrapper.get("input").trigger("focus");
+    await wrapper.get("input").setValue("bet");
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+
+    const pick = async (label: string) => {
+      await wrapper.get("input").trigger("focus");
+      await wrapper.findAll("[role='option']").find((item) => item.find("strong").text() === label)!.trigger("mousedown");
+    };
+    await pick("A · Alfa");
+    expect(wrapper.emitted("change")).toBeUndefined();
+    await pick("B · Beta");
+    expect(wrapper.emitted("change")).toEqual([["b"]]);
+  });
+
+  it("navega pelas opções com as setas e escolhe com Enter", async () => {
+    const wrapper = mount(SearchableSelect, {
+      props: { options, modelValue: "", label: "EAP", emptyLabel: "Todas" },
+    });
+    const input = wrapper.get("input");
+
+    await input.trigger("focus");
+    await input.trigger("keydown", { key: "ArrowDown" });
+    await input.trigger("keydown", { key: "ArrowDown" });
+    expect(wrapper.get(".is-active strong").text()).toBe("A · Alfa");
+    await input.trigger("keydown", { key: "Enter" });
+
+    expect(wrapper.emitted("change")).toEqual([["a"]]);
+    expect(wrapper.find("[role='listbox']").exists()).toBe(false);
+  });
+
   it("mantém múltiplos valores em chips e permite adicionar/remover", async () => {
     const wrapper = mount(SearchableMultiSelect, {
       props: { options, modelValue: ["a"], label: "Work Packages" },

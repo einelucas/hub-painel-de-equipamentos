@@ -14,8 +14,11 @@ import type {
   Responsible,
 } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
-import { EQUIPMENT_STAGES } from "~/utils/stages";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
+import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import type { SearchableOption } from "~/types/ui";
+import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -57,22 +60,13 @@ const canAdminister = computed(
 );
 
 /**
- * Área legada respeita a Unidade; Work Package é um catálogo corporativo
- * global (e nunca usa o `workPackage` singular legado). Uma seleção que deixou de
- * existir na nova lista (ex.: trocou de unidade) é limpa; uma que continua
- * válida (ex.: catálogo administrado) permanece.
+ * Área vem da EAP (Processo/Área), a mesma localização gravada no equipamento;
+ * Work Package é um catálogo corporativo global (e nunca usa o `workPackage`
+ * singular legado). Uma seleção que deixou de existir na nova lista é limpa;
+ * uma que continua válida (ex.: catálogo administrado) permanece.
  */
 async function loadAreaAndWorkPackageOptions(): Promise<void> {
-  if (!context.selectedUnit) {
-    areas.value = [];
-    areaId.value = "";
-    return;
-  }
-  areas.value = (
-    await api.get<CatalogList<CatalogItem>>("/areas", {
-      unit_id: context.selectedUnit,
-    })
-  ).items;
+  areas.value = await loadEapLocationOptions(api);
   workPackages.value = (
     await api.get<CatalogList<CatalogItem>>("/work-packages")
   ).items;
@@ -128,7 +122,7 @@ async function load(): Promise<void> {
     if (disciplineId.value) query.discipline_id = disciplineId.value;
     if (responsibleUserId.value)
       query.responsible_user_id = responsibleUserId.value;
-    if (areaId.value) query.area_id = areaId.value;
+    if (areaId.value) query.eap_node_id = areaId.value;
     if (workPackageId.value) query.work_package_id = workPackageId.value;
     const result = await api.get<EquipmentList>("/equipments", query);
     if (version !== requestVersion) return;
@@ -149,6 +143,20 @@ async function load(): Promise<void> {
     }
   }
 }
+
+const disciplineOptions = computed(() => toOptions(disciplines.value));
+const responsibleOptions = computed<SearchableOption[]>(() =>
+  responsibles.value.map((item) => ({ id: item.id, label: item.name, searchText: item.email })),
+);
+const areaOptions = computed(() => toOptions(areas.value));
+const workPackageOptions = computed<SearchableOption[]>(() =>
+  workPackages.value.map((item) => ({
+    id: item.id,
+    label: item.code ?? item.name,
+    description: item.description?.trim() || "WP sem descrição",
+    searchText: item.name,
+  })),
+);
 
 async function reload(): Promise<void> {
   page.value = 1;
@@ -177,7 +185,7 @@ function currentQuery(pageSize: number, page: number): Record<string, unknown> {
   if (disciplineId.value) query.discipline_id = disciplineId.value;
   if (responsibleUserId.value)
     query.responsible_user_id = responsibleUserId.value;
-  if (areaId.value) query.area_id = areaId.value;
+  if (areaId.value) query.eap_node_id = areaId.value;
   if (workPackageId.value) query.work_package_id = workPackageId.value;
   return query;
 }
@@ -327,101 +335,82 @@ onMounted(async () => {
           </div>
         </div>
         <div class="table-filters">
-          <label class="inline-field">
+          <div class="inline-field">
             <span>Etapa</span>
-            <select v-model="stage" :class="{ 'is-set': stage }" @change="reload">
-              <option value="">Todas</option>
-              <option
-                v-for="(name, index) in EQUIPMENT_STAGES"
-                :key="name"
-                :value="String(index)"
-              >
-                {{ index }} · {{ name }}
-              </option>
-            </select>
-          </label>
-          <label class="inline-field">
+            <SearchableSelect
+              v-model="stage"
+              :class="{ 'is-set': stage }"
+              :options="STAGE_OPTIONS"
+              :sorted="false"
+              label="Etapa"
+              placeholder="Buscar etapa"
+              empty-label="Todas"
+              @change="reload"
+            />
+          </div>
+          <div class="inline-field">
             <span>Disciplina</span>
-            <select v-model="disciplineId" :class="{ 'is-set': disciplineId }" @change="reload">
-              <option value="">Todas</option>
-              <option
-                v-for="item in disciplines"
-                :key="item.id"
-                :value="item.id"
-              >
-                {{ item.name }}
-              </option>
-            </select>
-          </label>
-          <label class="inline-field">
+            <SearchableSelect
+              v-model="disciplineId"
+              :class="{ 'is-set': disciplineId }"
+              :options="disciplineOptions"
+              label="Disciplina"
+              placeholder="Buscar disciplina"
+              empty-label="Todas"
+              @change="reload"
+            />
+          </div>
+          <div class="inline-field">
             <span>Responsável</span>
-            <select
+            <SearchableSelect
               v-model="responsibleUserId"
               :class="{ 'is-set': responsibleUserId }"
+              :options="responsibleOptions"
               :disabled="!context.selectedUnit"
               :title="
                 !context.selectedUnit
                   ? 'Selecione uma unidade para filtrar por responsável'
                   : undefined
               "
-              data-testid="responsible-filter"
+              label="Responsável"
+              placeholder="Buscar responsável"
+              empty-label="Todos"
+              test-id="responsible-filter"
               @change="reload"
-            >
-              <option value="">Todos</option>
-              <option
-                v-for="item in responsibles"
-                :key="item.id"
-                :value="item.id"
-              >
-                {{ item.name }}
-              </option>
-            </select>
-          </label>
-          <label class="inline-field">
+            />
+          </div>
+          <div class="inline-field">
             <span>Área</span>
-            <select
+            <SearchableSelect
               v-model="areaId"
               :class="{ 'is-set': areaId }"
-              :disabled="!context.selectedUnit"
-              :title="
-                !context.selectedUnit
-                  ? 'Selecione uma unidade para filtrar por área'
-                  : undefined
-              "
-              data-testid="area-filter"
+              :options="areaOptions"
+              label="Área"
+              placeholder="Buscar por código ou nome"
+              empty-label="Todas"
+              test-id="area-filter"
               @change="reload"
-            >
-              <option value="">Todas</option>
-              <option v-for="item in areas" :key="item.id" :value="item.id">
-                {{ item.name }}
-              </option>
-            </select>
-          </label>
-          <label class="inline-field">
+            />
+          </div>
+          <div class="inline-field">
             <span>Work Package</span>
-            <select
+            <SearchableSelect
               v-model="workPackageId"
               :class="{ 'is-set': workPackageId }"
+              :options="workPackageOptions"
               :disabled="!context.selectedUnit"
               :title="
                 !context.selectedUnit
                   ? 'Selecione uma unidade para filtrar por Work Package'
                   : undefined
               "
-              data-testid="work-package-filter"
+              label="Work Package"
+              placeholder="Buscar por código ou descrição"
+              empty-label="Todos"
+              test-id="work-package-filter"
               @change="reload"
-            >
-              <option value="">Todos</option>
-              <option
-                v-for="item in workPackages"
-                :key="item.id"
-                :value="item.id"
-                :title="item.description?.trim() || 'WP sem descrição'"
-              >
-                {{ item.code ?? item.name }}
-              </option>
-            </select>
-          </label>
+            />
+          </div>
         </div>
 
         <div v-if="loading" class="queue-state">
@@ -529,23 +518,25 @@ onMounted(async () => {
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.table-filters select:hover:not(:disabled) {
+.table-filters :deep(.searchable-select__control) {
+  min-height: 36px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.table-filters :deep(.searchable-select__control input) {
+  padding: 7px 0;
+  font-size: 13px;
+}
+.table-filters :deep(.searchable-select__control:hover) {
   border-color: #b9c6d6;
 }
-.table-filters select:focus {
-  border-color: #6687b8;
-  box-shadow: 0 0 0 3px rgba(48, 79, 126, 0.12);
-}
-.table-filters select.is-set {
+/* Filtro aplicado fica destacado, como nos selects anteriores. */
+.table-filters .is-set :deep(.searchable-select__control) {
   border-color: #9fb5d4;
   background-color: #f2f6fc;
+}
+.table-filters .is-set :deep(.searchable-select__control input) {
   color: #213758;
   font-weight: 600;
-}
-.table-filters select:disabled {
-  background-color: #f1f4f8;
-  color: #a3aebd;
-  cursor: not-allowed;
 }
 .queue-state {
   display: flex;

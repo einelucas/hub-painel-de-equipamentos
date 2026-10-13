@@ -3,6 +3,7 @@ import type { Equipment } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 import StageBadge from "~/components/equipment/StageBadge.vue";
 import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
+import TipBadge from "~/components/ui/TipBadge.vue";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 
 defineProps<{ equipments: Equipment[] }>();
@@ -21,7 +22,10 @@ defineProps<{ equipments: Equipment[] }>();
           <TableCell class="font-semibold text-[#213758]">{{ equipment.name }}</TableCell>
           <TableCell>{{ equipment.projectContext.code ?? equipment.projectContext.name }}</TableCell>
           <TableCell data-testid="equipment-location">{{ equipmentLocationLabel(equipment) ?? "—" }}</TableCell>
-          <TableCell>{{ equipment.discipline?.name ?? "—" }}</TableCell>
+          <TableCell>
+            <TipBadge v-if="equipment.discipline" :label="equipment.discipline.code ?? equipment.discipline.name" :tip="equipment.discipline.name" data-testid="equipment-discipline" />
+            <span v-else>—</span>
+          </TableCell>
           <TableCell><WorkPackageChips :items="equipment.workPackages" /></TableCell>
           <TableCell>{{ equipment.responsibleUser?.name ?? "—" }}</TableCell>
           <TableCell><StageBadge :stage="equipment.currentStage" :name="equipment.stageName" /></TableCell>

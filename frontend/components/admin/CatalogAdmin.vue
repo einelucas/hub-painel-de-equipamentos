@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { Check, Pencil, Plus, X } from "lucide-vue-next";
+import { Check, Pencil, Plus, Search, X } from "lucide-vue-next";
 import type { CatalogItem, CatalogList } from "~/types/equipment";
 
 /**
@@ -37,6 +37,19 @@ const formError = ref("");
 const editingId = ref<string | null>(null);
 const creating = ref(false);
 const form = reactive({ name: "", code: "", description: "" });
+const search = ref("");
+
+const activeCount = computed(() => items.value.filter((item) => item.active).length);
+const inactiveCount = computed(() => items.value.length - activeCount.value);
+const visibleItems = computed(() => {
+  const term = search.value.trim().toLocaleLowerCase("pt-BR");
+  if (!term) return items.value;
+  return items.value.filter((item) =>
+    [item.code, item.name, item.description]
+      .filter(Boolean)
+      .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(term)),
+  );
+});
 
 const blocked = computed(() => Boolean(props.requiresParent));
 
@@ -124,14 +137,26 @@ async function toggleActive(item: CatalogItem): Promise<void> {
   }
 }
 
-watch(() => [props.path, props.query, props.requiresParent], load, { deep: true, immediate: true });
+watch(
+  () => [props.path, props.query, props.requiresParent],
+  () => {
+    search.value = "";
+    void load();
+  },
+  { deep: true, immediate: true },
+);
 </script>
 
 <template>
-  <section class="catalog" :data-testid="`catalog-${props.label.toLowerCase()}`">
+  <section class="catalog admin-fill" :data-testid="`catalog-${props.label.toLowerCase()}`">
     <header class="catalog-header">
-      <h3>{{ props.label }}</h3>
-      <button v-if="!blocked" type="button" class="btn small" :disabled="saving" @click="startCreate">
+      <div>
+        <h3>{{ props.label }}</h3>
+        <p v-if="!blocked && !loading && items.length" class="catalog-count">
+          {{ activeCount }} ativo{{ activeCount === 1 ? "" : "s" }}<template v-if="inactiveCount"> · {{ inactiveCount }} inativo{{ inactiveCount === 1 ? "" : "s" }}</template>
+        </p>
+      </div>
+      <button v-if="!blocked" type="button" class="btn small primary" :disabled="saving" @click="startCreate">
         <Plus :size="14" /> Novo
       </button>
     </header>
@@ -139,8 +164,9 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
     <p v-if="blocked" class="catalog-hint" data-testid="catalog-blocked">{{ props.requiresParent }}</p>
     <template v-else>
       <form v-if="creating || editingId" class="catalog-form" @submit.prevent="submit">
+        <p class="catalog-form-title">{{ editingId ? "Editar registro" : `Novo registro em ${props.label}` }}</p>
         <label v-if="props.hasCode" class="field"><span>Código *</span><input v-model="form.code" maxlength="60" required></label>
-        <label class="field"><span>Nome *</span><input v-model="form.name" maxlength="200" required></label>
+        <label class="field" :class="{ 'full': !props.hasCode }"><span>Nome *</span><input v-model="form.name" maxlength="200" required></label>
         <label v-if="props.hasDescription" class="field description-field">
           <span>Descrição</span>
           <textarea
@@ -150,40 +176,48 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
             placeholder="Significado da WP; deixe vazio enquanto não estiver documentado."
           />
         </label>
+        <p v-if="formError" class="catalog-error" role="alert">{{ formError }}</p>
         <div class="catalog-form-actions">
           <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
           <button type="submit" class="btn small primary" :disabled="saving">
             <Check :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
           </button>
         </div>
-        <p v-if="formError" class="catalog-error" role="alert">{{ formError }}</p>
       </form>
+
+      <label v-if="items.length" class="catalog-search">
+        <Search :size="14" aria-hidden="true" />
+        <input v-model="search" type="search" :placeholder="`Buscar em ${props.label}`" :aria-label="`Buscar em ${props.label}`">
+      </label>
 
       <p v-if="loading" class="catalog-hint"><span class="spinner spinner-small" /> Carregando...</p>
       <p v-else-if="error" class="catalog-error" role="alert">{{ error }}</p>
-      <p v-else-if="items.length === 0" class="catalog-hint" data-testid="catalog-empty">
-        Nenhum registro cadastrado.
+      <p v-else-if="items.length === 0" class="catalog-empty" data-testid="catalog-empty">
+        Nenhum registro cadastrado. Use "Novo" para criar o primeiro.
       </p>
+      <p v-else-if="visibleItems.length === 0" class="catalog-hint">Nenhum registro corresponde à busca.</p>
       <ul v-else class="catalog-list">
-        <li v-for="item in items" :key="item.id" :data-testid="`catalog-item-${item.id}`">
+        <li
+          v-for="item in visibleItems"
+          :key="item.id"
+          :class="{ inactive: !item.active, editing: item.id === editingId, 'no-code': !props.hasCode }"
+          :data-testid="`catalog-item-${item.id}`"
+        >
+          <span v-if="props.hasCode" class="catalog-code">{{ item.code ?? "—" }}</span>
           <span class="catalog-name">
-            <strong
-              v-if="item.code"
-              :title="props.hasDescription ? (item.description?.trim() || 'WP sem descrição') : undefined"
-            >{{ item.code }}</strong>
-            <span class="catalog-name__text">
-              {{ item.name }}
-              <small v-if="props.hasDescription">{{ item.description?.trim() || "WP sem descrição" }}</small>
-            </span>
+            <strong>{{ item.name }}</strong>
+            <small v-if="props.hasDescription" :class="{ missing: !item.description?.trim() }">
+              {{ item.description?.trim() || "WP sem descrição" }}
+            </small>
+          </span>
+          <span class="status" :class="item.active ? 'status--on' : 'status--off'">
+            {{ item.active ? "Ativo" : "Inativo" }}
           </span>
           <span class="catalog-actions">
-            <span class="status" :class="item.active ? 'status--on' : 'status--off'">
-              {{ item.active ? "Ativo" : "Inativo" }}
-            </span>
             <button type="button" class="text-button" :disabled="saving" @click="startEdit(item)">
               <Pencil :size="12" /> Editar
             </button>
-            <button type="button" class="text-button" :disabled="saving" @click="toggleActive(item)">
+            <button type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" @click="toggleActive(item)">
               {{ item.active ? "Desativar" : "Reativar" }}
             </button>
           </span>
@@ -194,29 +228,62 @@ watch(() => [props.path, props.query, props.requiresParent], load, { deep: true,
 </template>
 
 <style scoped>
-.catalog { display: grid; gap: 10px; padding: 4px 0 14px; }
-.catalog-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.catalog-header h3 { margin: 0; color: #2b3e58; font-size: 13px; font-weight: 800; }
-.catalog-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: #8b96a5; font-size: 12px; }
-.catalog-error { margin: 0; color: #a4453a; font-size: 12px; font-weight: 700; }
-.catalog-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 1px solid #e4e9f0; border-radius: 10px; padding: 12px; background: #f8fafc; }
+/* Cabeçalho, formulário e busca ficam parados; só a lista rola (dentro do painel). */
+.catalog { display: flex; flex-direction: column; gap: 12px; }
+.catalog > * { flex: 0 0 auto; }
+.catalog-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule, #dde5ef); }
+.catalog-header h3 { margin: 0; color: var(--ink, #1f3352); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.catalog-count { margin: 2px 0 0; color: var(--muted, #6b7a8f); font-family: var(--mono, monospace); font-size: 11px; }
+.catalog-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
+.catalog-empty { margin: 0; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 22px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
+.catalog-error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
+
+.catalog-form { display: grid; grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr); gap: 10px 12px; border: 1px solid #c9d8ec; border-radius: 12px; padding: 14px; background: var(--wash, #f3f6fb); }
+.catalog-form-title { grid-column: 1 / -1; margin: 0; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 800; }
+.catalog-form .full { grid-column: 1 / -1; }
 .description-field { grid-column: 1 / -1; }
 .description-field textarea { min-height: 72px; resize: vertical; }
-.catalog-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
 .catalog-form .catalog-error { grid-column: 1 / -1; }
-.catalog-list { display: grid; margin: 0; padding: 0; gap: 2px; list-style: none; }
-.catalog-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; border-bottom: 1px solid #f0f3f7; padding: 7px 2px; }
+.catalog-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
+
+.catalog-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule, #dde5ef); border-radius: 9px; padding: 0 10px; background: #fff; color: var(--muted, #6b7a8f); }
+.catalog-search:focus-within { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 2px rgb(48 79 126 / 12%); }
+.catalog-search input { min-width: 0; flex: 1; border: 0; outline: 0; padding: 8px 0; background: transparent; color: var(--ink, #1f3352); font-size: 12.5px; }
+
+/* Encolhe até caber no painel, mas não estica: lista curta continua curta. */
+.catalog > .catalog-list { min-height: 0; flex: 0 1 auto; }
+.catalog-list { display: block; margin: 0; padding: 0; border: 1px solid var(--rule, #dde5ef); border-radius: 12px; list-style: none; overflow-y: auto; overscroll-behavior: contain; }
+.catalog-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid #edf1f6;
+  background: #fff;
+}
+.catalog-list li.no-code { grid-template-columns: minmax(0, 1fr) auto auto; }
 .catalog-list li:last-child { border-bottom: 0; }
-.catalog-name { display: flex; min-width: 0; flex: 1 1 200px; align-items: center; gap: 7px; color: #2b3e58; font-size: 12.5px; }
-.catalog-name strong { border-radius: 5px; background: #eef2f7; padding: 2px 6px; color: #53647a; font-size: 10.5px; }
-.catalog-name__text { display: grid; min-width: 0; gap: 2px; }
-.catalog-name__text small { color: #718096; font-size: 10.5px; font-weight: 500; }
-.catalog-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
-.status { border-radius: 999px; padding: 3px 8px; font-size: 10.5px; font-weight: 750; }
-.status--on { background: #eaf4e5; color: #477a32; }
-.status--off { background: #eef2f7; color: #6b7a8f; }
-.text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: #304f7e; font-size: 11.5px; font-weight: 750; }
-.field-help { color: #8b96a5; font-size: 11px; line-height: 1.35; }
+.catalog-list li:hover { background: #fafcfe; }
+.catalog-list li.editing { background: #f1f6fd; }
+.catalog-list li.inactive .catalog-name strong, .catalog-list li.inactive .catalog-code { color: #9aa6b5; }
+.catalog-code { min-width: 64px; color: var(--steel, #304f7e); font-family: var(--mono, monospace); font-size: 12px; font-weight: 700; }
+.catalog-name { display: grid; min-width: 0; gap: 1px; }
+.catalog-name strong { overflow: hidden; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.catalog-name small { overflow: hidden; color: var(--muted, #6b7a8f); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.catalog-name small.missing { color: #a3adbb; font-style: italic; }
+.status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 750; }
+.status::before { width: 7px; height: 7px; border-radius: 999px; background: currentColor; content: ""; }
+.status--on { color: var(--go, #3f7a2e); }
+.status--off { color: #9aa6b5; }
+.catalog-actions { display: flex; align-items: center; gap: 12px; }
+.text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: var(--steel, #304f7e); font-size: 11.5px; font-weight: 750; cursor: pointer; }
+.text-button--quiet { color: var(--muted, #6b7a8f); }
+.text-button:hover:not(:disabled) { text-decoration: underline; }
 .spinner-small { width: 14px; height: 14px; border-width: 2px; }
-@media (max-width: 620px) { .catalog-form { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .catalog-form { grid-template-columns: 1fr; }
+  .catalog-list li { grid-template-columns: auto minmax(0, 1fr); }
+  .catalog-list li .status, .catalog-list li .catalog-actions { grid-column: 2; }
+}
 </style>

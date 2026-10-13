@@ -67,3 +67,7 @@ openapi.json
 .pnpm-store/
 .playwright-mcp/
 .claude/
+
+# Instruções locais do Claude Code (não versionar)
+CLAUDE.md
+.claude/

@@ -10,6 +10,7 @@ import ImportSourceStep from "~/components/imports/ImportSourceStep.vue";
 import { isXlsx, mergeSourceValues } from "~/composables/useEquipmentImport";
 import { ApiError } from "~/services/api/error";
 import type { ImportApplyResult, ImportBatch, ImportPlan } from "~/types/imports";
+import { chooseOption, isDisabled, shownValue } from "./support/searchableSelect";
 
 // Dados 100% sintéticos.
 const UNITS = [{ id: "u-tst", code: "TST", name: "Unidade Teste", active: true }];
@@ -219,8 +220,8 @@ describe("Importar equipamentos", () => {
 
     expect(wrapper.find("[data-testid='import-wizard']").exists()).toBe(true);
     expect(get).toHaveBeenCalledWith("/imports/monday/profiles");
-    expect((wrapper.get("[data-testid='import-unit']").element as HTMLSelectElement).value).toBe("u-tst");
-    expect((wrapper.get("[data-testid='import-context']").element as HTMLSelectElement).value).toBe("pc-a");
+    expect(shownValue(wrapper, "import-unit")).toBe("Unidade Teste");
+    expect(shownValue(wrapper, "import-context")).toBe("PA · Projeto Sintético A");
     expect(wrapper.get("[data-testid='import-profile-single']").text()).toContain("Board de equipamentos do Monday");
   });
 
@@ -229,12 +230,12 @@ describe("Importar equipamentos", () => {
     const wrapper = mountButton();
     await wrapper.get("[data-testid='nav-import']").trigger("click");
     await settle(wrapper);
-    expect((wrapper.get("[data-testid='import-context']").element as HTMLSelectElement).disabled).toBe(true);
+    expect(isDisabled(wrapper, "import-context")).toBe(true);
 
-    await wrapper.get("[data-testid='import-unit']").setValue("u-tst");
+    await chooseOption(wrapper, "import-unit", "Unidade Teste");
     await settle(wrapper);
     expect(get).toHaveBeenCalledWith("/units/u-tst/project-contexts");
-    expect((wrapper.get("[data-testid='import-context']").element as HTMLSelectElement).value).toBe("pc-a");
+    expect(shownValue(wrapper, "import-context")).toBe("PA · Projeto Sintético A");
   });
 
   it("recusa extensão diferente de .xlsx sem enviar nada", async () => {

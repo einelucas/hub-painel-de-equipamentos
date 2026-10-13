@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { NamedRef } from "~/types/equipment";
+import TipBadge from "~/components/ui/TipBadge.vue";
 
 const props = withDefaults(defineProps<{ items: NamedRef[]; maxVisible?: number }>(), {
   maxVisible: 3,
@@ -19,25 +20,26 @@ const hiddenDescription = computed(() =>
 <template>
   <span v-if="items.length === 0">—</span>
   <div v-else class="wp-chips">
-    <span
+    <TipBadge
       v-for="item in visibleItems"
       :key="item.id"
       class="wp-chip"
-      :title="description(item)"
-      tabindex="0"
-    >{{ item.code ?? item.name }}</span>
-    <span
+      tone="neutral"
+      :label="item.code ?? item.name"
+      :tip="description(item)"
+    />
+    <TipBadge
       v-if="hiddenItems.length"
       class="wp-chip wp-chip--more"
-      :title="hiddenDescription"
-      tabindex="0"
-    >+{{ hiddenItems.length }}</span>
+      tone="muted"
+      :label="`+${hiddenItems.length}`"
+      :tip="hiddenDescription"
+    />
   </div>
 </template>
 
 <style scoped>
 /* Compacto: no máx. 3 chips + "+N", nunca aumenta a altura da linha. */
 .wp-chips { display: flex; flex-wrap: wrap; gap: 4px; max-width: 220px; }
-.wp-chip { display: inline-flex; white-space: nowrap; border-radius: 999px; padding: 3px 8px; font-size: 10.5px; font-weight: 700; background: #eef2f7; color: #2b3e58; }
-.wp-chip--more { background: #e1e7ef; color: #56657c; }
+.wp-chips .wp-chip { padding: 3px 8px; font-size: 10.5px; font-weight: 700; }
 </style>

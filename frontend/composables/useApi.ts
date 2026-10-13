@@ -24,8 +24,13 @@ export function useApi() {
   }
 
   /** Envia `FormData` (o boundary do multipart é definido pelo cliente HTTP). */
-  function upload<T>(path: string, body: FormData, method: "POST" | "PUT" = "PUT"): Promise<T> {
-    return request<T>(path, { method, body });
+  function upload<T>(
+    path: string,
+    body: FormData,
+    method: "POST" | "PUT" = "PUT",
+    onUploadProgress?: (loaded: number, total: number) => void,
+  ): Promise<T> {
+    return request<T>(path, { method, body, onUploadProgress });
   }
 
   /** Baixa um arquivo; erro HTTP vira `ApiError`, nunca um Blob "válido". */

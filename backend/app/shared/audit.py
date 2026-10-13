@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
-from sqlalchemy import ColumnElement, and_, select
+from sqlalchemy import ColumnElement, and_, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditLog
+from app.models.common import utcnow
 from app.models.equipment import EquipmentComponent
 from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
 
@@ -97,3 +99,53 @@ async def record_audit(
         )
     )
     await session.flush()
+
+
+# Limite de parâmetros de bind por statement do protocolo Postgres/asyncpg.
+_MAX_BIND_PARAMS = 32767
+
+
+def chunk_size_for(columns: int, *, preferred: int = 1000) -> int:
+    """Linhas por INSERT multi-VALUES sem estourar o limite de binds do asyncpg."""
+    return max(1, min(preferred, (_MAX_BIND_PARAMS - 1) // max(1, columns)))
+
+
+def build_audit_row(
+    *,
+    action: str,
+    entity: str,
+    user_id: str | None = None,
+    entity_id: str | None = None,
+    previous_data: Any = None,
+    new_data: Any = None,
+    metadata: Any = None,
+) -> dict[str, Any]:
+    """Mesmos campos que `record_audit` preencheria, como linha de tabela
+    (nomes de coluna) para `bulk_insert_audit`. Não toca na sessão."""
+    return {
+        "id": str(uuid.uuid4()),
+        "userId": user_id,
+        "action": action,
+        "entity": entity,
+        "entityId": entity_id,
+        "previousData": _redact(previous_data),
+        "newData": _redact(new_data),
+        "metadata": _redact(metadata),
+        "createdAt": utcnow(),
+    }
+
+
+async def bulk_insert_audit(
+    session: AsyncSession, rows: list[dict[str, Any]], *, chunk_size: int | None = None
+) -> int:
+    """Insere linhas de `build_audit_row` em INSERTs multi-VALUES por lote
+    (um round-trip por lote, sem flush do ORM). Retorna o nº de statements."""
+    if not rows:
+        return 0
+    table = AuditLog.__table__
+    size = chunk_size or chunk_size_for(len(table.columns))
+    statements = 0
+    for start in range(0, len(rows), size):
+        await session.execute(insert(table).values(rows[start : start + size]))
+        statements += 1
+    return statements

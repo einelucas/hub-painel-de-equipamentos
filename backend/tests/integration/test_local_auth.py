@@ -7,7 +7,7 @@ from app.models.common import utcnow
 from app.models.user import Account, Role, Session
 
 EMAIL = "admin@inpasa.com.br"
-PASSWORD = "INP@2026"
+PASSWORD = "TestOnly-Passw0rd!"
 
 
 async def _seed_admin(db_session) -> None:

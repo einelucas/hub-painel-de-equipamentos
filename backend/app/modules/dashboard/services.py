@@ -46,6 +46,7 @@ from app.modules.dashboard.schemas import (
     StartupSummaryOut,
 )
 from app.modules.workflow.stages import FINAL_STAGE
+from app.shared.eap_location import equipment_in_eap_subtree
 
 # Estágios em que o equipamento está sob negociação/equalização.
 NEGOTIATION_STAGES = (1, 2)
@@ -84,6 +85,7 @@ class DashboardFilters:
     """Filtros globais do painel (Área AND Disciplina AND Fase). `None` = sem restrição."""
 
     area_id: str | None = None
+    eap_node_id: str | None = None
     discipline_id: str | None = None
     stage: int | None = None
 
@@ -91,6 +93,8 @@ class DashboardFilters:
 def apply_dashboard_filters[T: tuple[Any, ...]](stmt: Select[T], filters: DashboardFilters) -> Select[T]:
     if filters.area_id:
         stmt = stmt.where(Equipment.area_id == filters.area_id)
+    if filters.eap_node_id:
+        stmt = stmt.where(equipment_in_eap_subtree(filters.eap_node_id))
     if filters.discipline_id:
         stmt = stmt.where(Equipment.discipline_id == filters.discipline_id)
     if filters.stage is not None:

@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { RefreshCw } from "lucide-vue-next";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import { toOptions } from "~/utils/selectOptions";
 
 const props = withDefaults(defineProps<{
   refreshing?: boolean;
@@ -13,18 +16,22 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ change: [] }>();
 const context = useModuleContextStore();
 
-async function onUnit(event: Event): Promise<void> {
-  await context.setUnit((event.target as HTMLSelectElement).value);
+const unitOptions = computed(() => toOptions(context.units));
+const projectContextOptions = computed(() => toOptions(context.projectContexts));
+const equipmentOptions = computed(() => toOptions(context.equipmentOptions));
+
+async function onUnit(value: string): Promise<void> {
+  await context.setUnit(value);
   emit("change");
 }
 
-async function onProjectContext(event: Event): Promise<void> {
-  await context.setProjectContext((event.target as HTMLSelectElement).value);
+async function onProjectContext(value: string): Promise<void> {
+  await context.setProjectContext(value);
   emit("change");
 }
 
-function onEquipment(event: Event): void {
-  context.setEquipment((event.target as HTMLSelectElement).value);
+function onEquipment(value: string): void {
+  context.setEquipment(value);
   emit("change");
 }
 </script>
@@ -32,52 +39,47 @@ function onEquipment(event: Event): void {
 <template>
   <section class="surface filter-surface" aria-label="Filtros globais do módulo">
     <div class="filter-grid">
-      <label class="field">
+      <div class="field">
         <span>Unidade</span>
-        <select
-          :value="context.selectedUnit"
+        <!-- Com uma única unidade disponível não há a opção "todas". -->
+        <SearchableSelect
+          :model-value="context.selectedUnit"
+          :options="unitOptions"
           :disabled="context.loading"
-          data-testid="filter-unit"
+          :clearable="context.units.length !== 1"
+          label="Unidade"
+          placeholder="Buscar unidade"
+          empty-label="Todas as unidades"
+          test-id="filter-unit"
           @change="onUnit"
-        >
-          <option v-if="context.units.length !== 1" value="">Todas as unidades</option>
-          <option v-for="unit in context.units" :key="unit.id" :value="unit.id">
-            {{ unit.name }}
-          </option>
-        </select>
-      </label>
-      <label v-if="props.showProjectContext" class="field">
+        />
+      </div>
+      <div v-if="props.showProjectContext" class="field">
         <span>Obra</span>
-        <select
-          :value="context.selectedProjectContext"
+        <SearchableSelect
+          :model-value="context.selectedProjectContext"
+          :options="projectContextOptions"
           :disabled="!context.selectedUnit || context.loading"
-          data-testid="filter-project-context"
+          label="Obra"
+          placeholder="Buscar obra"
+          empty-label="Todas as obras"
+          test-id="filter-project-context"
           @change="onProjectContext"
-        >
-          <option value="">Todas as obras</option>
-          <option
-            v-for="projectContext in context.projectContexts"
-            :key="projectContext.id"
-            :value="projectContext.id"
-          >
-            {{ projectContext.name }}
-          </option>
-        </select>
-      </label>
-      <label class="field">
+        />
+      </div>
+      <div class="field">
         <span>Equipamento</span>
-        <select
-          :value="context.selectedEquipment"
+        <SearchableSelect
+          :model-value="context.selectedEquipment"
+          :options="equipmentOptions"
           :disabled="!context.selectedUnit || context.loading"
-          data-testid="filter-equipment"
+          label="Equipamento"
+          placeholder="Buscar equipamento"
+          empty-label="Todos os equipamentos"
+          test-id="filter-equipment"
           @change="onEquipment"
-        >
-          <option value="">Todos os equipamentos</option>
-          <option v-for="equipment in context.equipmentOptions" :key="equipment.id" :value="equipment.id">
-            {{ equipment.name }}
-          </option>
-        </select>
-      </label>
+        />
+      </div>
       <div class="filter-extra"><slot /></div>
       <div v-if="props.showRefresh" class="filter-actions">
         <button class="btn" :disabled="props.refreshing" @click="emit('change')">
@@ -102,6 +104,8 @@ function onEquipment(event: Event): void {
 .filter-extra > :slotted(.field-wide) { flex: 2 1 300px; }
 .filter-extra > :slotted(.field-inline) { flex: 0 0 auto; }
 .filter-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+/* Seletores pesquisáveis (inclusive os do slot) com a mesma fonte dos selects vizinhos. */
+.filter-grid :deep(.searchable-select__control input) { font-size: inherit; }
 .filter-hint { margin: 10px 0 0; color: #8b96a5; font-size: 11.5px; }
 @media (max-width: 640px) { .filter-grid > .field, .filter-extra > :slotted(.field) { flex-basis: 100%; } .filter-actions { width: 100%; } .filter-actions .btn { flex: 1; } }
 </style>

@@ -14,6 +14,8 @@ export interface ApiRequestOptions {
   body?: unknown;
   headers?: Record<string, string>;
   responseType?: "json" | "text" | "blob";
+  /** Progresso do envio do corpo (axios usa XHR no navegador). `total` pode ser 0 se desconhecido. */
+  onUploadProgress?: (loaded: number, total: number) => void;
 }
 
 export interface ApiContext {
@@ -128,6 +130,9 @@ export async function sendRequest<T>(
           ...(options.headers ?? {}),
         },
         responseType: options.responseType ?? "json",
+        ...(options.onUploadProgress
+          ? { onUploadProgress: (event) => options.onUploadProgress?.(event.loaded, event.total ?? 0) }
+          : {}),
       });
     } catch (error: unknown) {
       if (attempt < retries && shouldRetry(error)) continue;

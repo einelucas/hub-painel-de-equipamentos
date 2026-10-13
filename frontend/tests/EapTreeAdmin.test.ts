@@ -40,6 +40,28 @@ describe("EapTreeAdmin", () => {
     expect(rows.map((row) => row.attributes("aria-level"))).toEqual(["1", "2", "3"]);
   });
 
+  it("busca por código ou nome mantendo os ancestrais do nó encontrado", async () => {
+    const { wrapper } = setup();
+    await settle(wrapper);
+
+    await wrapper.get("[aria-label='Buscar na Árvore EAP']").setValue("01.a");
+    expect(wrapper.findAll("[role='treeitem']").map((row) => row.attributes("data-testid"))).toEqual([
+      "eap-node-i1",
+      "eap-node-p1",
+      "eap-node-a1",
+    ]);
+
+    await wrapper.get("[aria-label='Buscar na Árvore EAP']").setValue("processo");
+    expect(wrapper.findAll("[role='treeitem']").map((row) => row.attributes("data-testid"))).toEqual([
+      "eap-node-i1",
+      "eap-node-p1",
+    ]);
+
+    await wrapper.get("[aria-label='Buscar na Árvore EAP']").setValue("inexistente");
+    expect(wrapper.findAll("[role='treeitem']")).toHaveLength(0);
+    expect(wrapper.text()).toContain("Nenhum nó corresponde à busca.");
+  });
+
   it("cria uma Área informando explicitamente o PROCESS pai", async () => {
     const { wrapper, post } = setup();
     await settle(wrapper);

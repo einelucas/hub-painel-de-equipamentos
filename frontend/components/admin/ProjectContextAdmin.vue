@@ -8,6 +8,8 @@ import type {
   ProjectAdminTarget,
   Unit,
 } from "~/types/equipment";
+import { toOptions } from "~/utils/selectOptions";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 /**
  * Configuração da obra: ProjectContexts de uma Unidade + resumo de preparação.
@@ -102,8 +104,12 @@ async function loadSummary(): Promise<void> {
   }
 }
 
-function selectUnit(event: Event): void {
-  emit("update:unitId", (event.target as HTMLSelectElement).value);
+const unitOptions = computed(() =>
+  toOptions(units.value, (unit) => `${unit.name}${unit.active ? "" : " (inativa)"}`),
+);
+
+function selectUnit(value: string): void {
+  emit("update:unitId", value);
 }
 
 function startCreate(): void {
@@ -185,32 +191,38 @@ watch(selectedId, loadSummary);
 
 <template>
   <section class="projects" data-testid="project-context-admin">
-    <div class="projects-toolbar">
-      <label class="field unit-picker">
+    <header class="projects-head">
+      <div>
+        <h3>Projetos</h3>
+        <p>{{ selectedUnit ? `Obras de ${selectedUnit.name}` : "Obras cadastradas por unidade" }}</p>
+      </div>
+      <div class="projects-toolbar">
+      <div class="field unit-picker">
         <span>Unidade</span>
-        <select
-          :value="props.unitId"
+        <SearchableSelect
+          :model-value="props.unitId"
+          :options="unitOptions"
+          :clearable="false"
           :disabled="loadingUnits"
-          data-testid="project-unit"
+          label="Unidade"
+          placeholder="Buscar unidade"
+          empty-label="Selecione"
+          test-id="project-unit"
           @change="selectUnit"
-        >
-          <option value="">Selecione</option>
-          <option v-for="unit in units" :key="unit.id" :value="unit.id">
-            {{ unit.name }}{{ unit.active ? "" : " (inativa)" }}
-          </option>
-        </select>
-      </label>
+        />
+      </div>
       <button
         v-if="canManage && props.unitId"
         type="button"
-        class="btn small"
+        class="btn small primary"
         :disabled="saving"
         data-testid="project-new"
         @click="startCreate"
       >
         <Plus :size="14" /> Novo contexto
       </button>
-    </div>
+      </div>
+    </header>
 
     <p v-if="loadingUnits" class="projects-hint"><span class="spinner spinner-small" /> Carregando unidades...</p>
 
@@ -293,7 +305,7 @@ watch(selectedId, loadSummary);
         </ul>
 
         <aside v-if="selected" class="readiness" data-testid="project-readiness" aria-label="Preparação da obra">
-          <h4>Preparação</h4>
+          <h4>Preparação da obra</h4>
           <dl>
             <div>
               <dt>Unidade</dt>
@@ -359,47 +371,70 @@ watch(selectedId, loadSummary);
 </template>
 
 <style scoped>
-.projects { display: grid; gap: 12px; padding: 4px 0 14px; }
-.projects-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px; }
-.unit-picker { flex: 1 1 240px; max-width: 360px; }
-.projects-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: #8b96a5; font-size: 12px; }
-.projects-error { margin: 0; color: #a4453a; font-size: 12px; font-weight: 700; }
-.projects-empty { display: grid; justify-items: start; gap: 4px; border: 1px dashed #dbe2ec; border-radius: 10px; padding: 14px; color: #65748a; font-size: 12.5px; }
+.projects { display: grid; gap: 14px; }
+.projects-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--rule, #dde5ef); }
+.projects-head h3 { margin: 0; color: var(--ink, #1f3352); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.projects-head p { margin: 2px 0 0; color: var(--muted, #6b7a8f); font-size: 12px; }
+.projects-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.unit-picker { width: 260px; max-width: 100%; }
+.projects-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
+.projects-error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
+.projects-empty { display: grid; justify-items: center; gap: 6px; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 24px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
 .projects-empty p { margin: 0; }
-.project-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border: 1px solid #e4e9f0; border-radius: 10px; padding: 12px; background: #f8fafc; }
-.project-form h4 { grid-column: 1 / -1; margin: 0; color: #2b3e58; font-size: 12.5px; font-weight: 800; }
+
+.project-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; border: 1px solid #c9d8ec; border-radius: 12px; padding: 14px; background: var(--wash, #f3f6fb); }
+.project-form h4 { grid-column: 1 / -1; margin: 0; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 800; }
 .project-form > .field:nth-of-type(2) { grid-column: span 2; }
-.project-active { display: flex; align-items: center; gap: 8px; color: #2b3e58; font-size: 12.5px; }
+.project-active { display: flex; align-items: center; gap: 8px; color: var(--ink, #1f3352); font-size: 12.5px; }
 .project-create-note { align-self: center; margin: 0; }
 .project-form .projects-error { grid-column: 1 / -1; }
 .project-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
-.field-help { color: #8b96a5; font-size: 11px; line-height: 1.35; }
-.projects-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; gap: 12px; }
-.project-list { display: grid; margin: 0; padding: 0; gap: 6px; list-style: none; }
-.project-list li { display: grid; gap: 4px; border: 1px solid #e4e9f0; border-radius: 10px; padding: 8px 10px; background: #fff; }
-.project-list li.selected { border-color: #b9cde8; background: #f5f9fe; }
-.project-list li.inactive .project-name { color: #8b96a5; }
-.project-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 8px; border: 0; padding: 0; background: transparent; text-align: left; }
-.project-card:focus-visible { outline: 2px solid #304f7e; outline-offset: 2px; border-radius: 6px; }
-.project-code { border-radius: 5px; background: #eef2f7; padding: 2px 6px; color: #53647a; font-size: 10.5px; font-weight: 800; }
-.project-name { min-width: 0; overflow: hidden; color: #2b3e58; font-size: 12.5px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
-.project-meta { display: flex; flex-wrap: wrap; grid-column: 1 / -1; gap: 6px; }
-.project-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.status { border-radius: 999px; padding: 3px 8px; font-size: 10.5px; font-weight: 750; }
-.status--on { background: #eaf4e5; color: #477a32; }
-.status--off { background: #eef2f7; color: #6b7a8f; }
-.text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: #304f7e; font-size: 11.5px; font-weight: 750; }
-.readiness { display: grid; gap: 8px; border: 1px solid #e4e9f0; border-radius: 10px; padding: 10px 12px; background: #f8fafc; }
-.readiness h4 { margin: 0; color: #2b3e58; font-size: 12.5px; font-weight: 800; }
-.readiness dl { display: grid; margin: 0; gap: 5px; }
-.readiness dl > div { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
-.readiness dt { color: #7a879a; }
-.readiness dd { margin: 0; color: #2b3e58; font-weight: 700; text-align: right; }
-.readiness-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.field-help { color: var(--muted, #6b7a8f); font-size: 11px; line-height: 1.4; }
+
+.projects-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(250px, 1fr); align-items: start; gap: 16px; }
+.project-list { display: grid; margin: 0; padding: 0; gap: 8px; list-style: none; }
+.project-list li {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--rule, #dde5ef);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.project-list li:hover { border-color: #c4d2e4; }
+.project-list li.selected { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 3px rgb(48 79 126 / 10%); }
+.project-list li.inactive { background: #fafbfc; }
+.project-list li.inactive .project-name { color: #9aa6b5; }
+.project-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
+.project-card:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 4px; border-radius: 6px; }
+.project-code { grid-column: 1; color: var(--steel, #304f7e); font-family: var(--mono, monospace); font-size: 11.5px; font-weight: 700; }
+.project-name { grid-column: 1; min-width: 0; overflow: hidden; color: var(--ink, #1f3352); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.project-meta { grid-column: 2; grid-row: 1 / span 2; }
+.project-actions { display: flex; gap: 14px; border-top: 1px solid #edf1f6; padding-top: 8px; }
+.status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 750; }
+.status::before { width: 7px; height: 7px; border-radius: 999px; background: currentColor; content: ""; }
+.status--on { color: var(--go, #3f7a2e); }
+.status--off { color: #9aa6b5; }
+.text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: var(--steel, #304f7e); font-size: 11.5px; font-weight: 750; cursor: pointer; }
+.text-button:hover:not(:disabled) { text-decoration: underline; }
+
+/* Preparação: checklist da obra selecionada */
+.readiness { position: sticky; top: 0; display: grid; gap: 10px; border-radius: 12px; padding: 14px 16px; background: var(--wash, #f3f6fb); }
+.readiness h4 { margin: 0; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 800; }
+.readiness dl { display: grid; margin: 0; }
+.readiness dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--rule, #dde5ef); padding: 7px 0; font-size: 12px; }
+.readiness dl > div:last-child { border-bottom: 0; }
+.readiness dt { color: var(--muted, #6b7a8f); }
+.readiness dd { margin: 0; color: var(--ink, #1f3352); font-family: var(--mono, monospace); font-size: 11.5px; font-weight: 700; text-align: right; }
+.readiness-actions { display: grid; justify-items: start; gap: 4px; border-top: 1px solid var(--rule, #dde5ef); padding-top: 10px; }
 .spinner-small { width: 14px; height: 14px; border-width: 2px; }
-@media (max-width: 620px) {
+@media (max-width: 760px) {
   .projects-layout { grid-template-columns: 1fr; }
+  .readiness { position: static; }
   .project-form { grid-template-columns: 1fr; }
   .project-form > .field:nth-of-type(2) { grid-column: auto; }
 }
+@media (prefers-reduced-motion: reduce) { .project-list li { transition: none; } }
 </style>

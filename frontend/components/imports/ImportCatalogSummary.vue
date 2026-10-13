@@ -52,8 +52,8 @@ function evidence(item: CatalogItem): string | null {
 </script>
 
 <template>
-  <section class="catalogs" data-testid="plan-catalogs" aria-label="Catálogos da importação">
-    <h4>Catálogos</h4>
+  <section class="import-panel catalogs" data-testid="plan-catalogs" aria-label="Catálogos da importação">
+    <div class="import-panel-head"><h4>Catálogos</h4></div>
     <p class="catalogs-hint">
       Itens novos são criados na própria importação, na mesma transação. Conflitos bloqueiam o equipamento;
       pendências não bloqueiam — o equipamento é importado sem o vínculo e o valor original fica preservado.
@@ -89,10 +89,9 @@ v-for="action in ACTION_ORDER" v-show="section.counts[action] > 0" :key="action"
 </template>
 
 <style scoped>
-.catalogs { display: grid; gap: 6px; border: 1px solid #e4e9f0; border-radius: 10px; padding: 10px 12px; }
-.catalogs h4 { margin: 0; color: #2b3e58; font-size: 12px; font-weight: 800; }
-.catalogs-hint { margin: 0; color: #8b96a5; font-size: 11.5px; }
-.catalog-kind { border-top: 1px solid #f0f3f7; padding-top: 6px; font-size: 12px; color: #2b3e58; }
+.catalogs { gap: 8px; }
+.catalogs-hint { margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
+.catalog-kind { border-top: 1px solid #edf1f6; padding-top: 8px; font-size: 12px; color: #2b3e58; }
 .catalog-kind summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; cursor: pointer; }
 .catalog-kind--flat { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .catalog-kind ul { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; max-height: 180px; overflow-y: auto; }

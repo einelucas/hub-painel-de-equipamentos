@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { Save } from "lucide-vue-next";
 import type { UserSummary } from "~/types/api";
 import type { Unit, UserUnits } from "~/types/equipment";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 /** Reaproveita os endpoints da Etapa 4; não recria cadastro de usuários. */
 const emit = defineEmits<{ changed: [] }>();
@@ -19,6 +20,9 @@ const saving = ref(false);
 const error = ref("");
 const feedback = ref("");
 
+const userOptions = computed(() =>
+  users.value.map((user) => ({ id: user.id, label: `${user.name} · ${user.role}`, searchText: user.email })),
+);
 const isAdminUser = computed(() => current.value?.allUnits === true);
 
 async function load(): Promise<void> {
@@ -85,22 +89,27 @@ onMounted(load);
 
 <template>
   <section class="access" data-testid="unit-access-admin">
-    <p class="access-intro">
-      O perfil define o que o usuário pode fazer; o vínculo abaixo define em quais unidades.
-    </p>
+    <header class="access-head">
+      <h3>Acesso às unidades</h3>
+      <p>O perfil define o que o usuário pode fazer; o vínculo abaixo define em quais unidades.</p>
+    </header>
 
     <p v-if="loading" class="access-hint"><span class="spinner spinner-small" /> Carregando usuários...</p>
     <p v-else-if="error" class="access-error" role="alert">{{ error }}</p>
     <template v-else>
-      <label class="field">
+      <div class="field access-user">
         <span>Usuário</span>
-        <select v-model="selectedUser" data-testid="access-user" @change="selectUser">
-          <option value="">Selecione um usuário</option>
-          <option v-for="user in users" :key="user.id" :value="user.id">
-            {{ user.name }} · {{ user.role }}
-          </option>
-        </select>
-      </label>
+        <SearchableSelect
+          v-model="selectedUser"
+          :options="userOptions"
+          :clearable="false"
+          label="Usuário"
+          placeholder="Buscar por nome ou e-mail"
+          empty-label="Selecione um usuário"
+          test-id="access-user"
+          @change="selectUser"
+        />
+      </div>
 
       <p v-if="loadingUser" class="access-hint"><span class="spinner spinner-small" /> Carregando acessos...</p>
       <template v-else-if="current">
@@ -108,9 +117,10 @@ onMounted(load);
           Este usuário é ADMIN e enxerga todas as unidades por perfil. Acesso individual não se aplica.
         </p>
         <template v-else>
+          <p v-if="units.length" class="access-count">{{ checked.size }} de {{ units.length }} unidades liberadas</p>
           <ul class="access-list">
             <li v-for="unit in units" :key="unit.id">
-              <label>
+              <label :class="{ checked: checked.has(unit.id) }">
                 <input
                   type="checkbox"
                   :checked="checked.has(unit.id)"
@@ -135,16 +145,36 @@ onMounted(load);
 </template>
 
 <style scoped>
-.access { display: grid; gap: 12px; padding: 4px 0 10px; }
-.access-intro { margin: 0; color: #65748a; font-size: 12px; }
-.access-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: #8b96a5; font-size: 12px; }
-.access-error { margin: 0; color: #a4453a; font-size: 12px; font-weight: 700; }
-.access-admin { margin: 0; border-radius: 9px; background: #e8f1fc; padding: 9px 11px; color: #27456f; font-size: 12px; font-weight: 700; }
-.access-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0; gap: 7px; list-style: none; }
-.access-list label { display: flex; align-items: center; gap: 8px; color: #2b3e58; font-size: 12.5px; }
-.access-list input { width: 15px; height: 15px; }
-.access-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-.access-feedback { color: #477a32; font-size: 12px; font-weight: 700; }
+.access { display: grid; gap: 14px; }
+.access-head { padding-bottom: 12px; border-bottom: 1px solid var(--rule, #dde5ef); }
+.access-head h3 { margin: 0; color: var(--ink, #1f3352); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.access-head p { margin: 2px 0 0; color: var(--muted, #6b7a8f); font-size: 12px; }
+.access-user { max-width: 420px; }
+.access-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
+.access-error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
+.access-admin { margin: 0; border-left: 3px solid var(--steel, #304f7e); border-radius: 8px; background: #e8f1fc; padding: 10px 12px; color: #27456f; font-size: 12px; font-weight: 700; }
+.access-count { margin: 0; color: var(--muted, #6b7a8f); font-family: var(--mono, monospace); font-size: 11px; }
+.access-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin: 0; padding: 0; gap: 8px; list-style: none; }
+.access-list label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--rule, #dde5ef);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--ink, #1f3352);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.access-list label:hover { border-color: #c4d2e4; }
+.access-list label.checked { border-color: var(--steel, #304f7e); background: #f1f6fd; }
+.access-list label:focus-within { outline: 2px solid var(--steel, #304f7e); outline-offset: 2px; }
+.access-list input { width: 16px; height: 16px; accent-color: var(--steel, #304f7e); }
+.access-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--rule, #dde5ef); padding-top: 12px; }
+.access-feedback { color: var(--go, #3f7a2e); font-size: 12px; font-weight: 700; }
 .spinner-small { width: 14px; height: 14px; border-width: 2px; }
-@media (max-width: 620px) { .access-list { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .access-list label { transition: none; } }
 </style>

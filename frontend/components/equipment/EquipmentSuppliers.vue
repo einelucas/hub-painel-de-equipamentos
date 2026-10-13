@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { RefreshCw, Trash2 } from "lucide-vue-next";
-import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
+import SupplierLinkModal, { type SupplierLinkValues } from "~/components/equipment/SupplierLinkModal.vue";
 import type { CatalogList, EquipmentSupplier, Supplier } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
 
@@ -16,9 +16,6 @@ const busy = ref(false);
 const error = ref("");
 const actionError = ref("");
 const showLink = ref(false);
-const chosen = ref("");
-const role = ref("");
-const reason = ref("");
 
 const canWrite = computed(() => auth.can("suppliers:write"));
 const current = computed<EquipmentSupplier | null>(
@@ -46,9 +43,6 @@ async function load(): Promise<void> {
 
 async function openLink(): Promise<void> {
   actionError.value = "";
-  chosen.value = "";
-  role.value = "";
-  reason.value = "";
   showLink.value = true;
   catalog.value = (await api.get<CatalogList<Supplier>>("/suppliers")).items;
 }
@@ -66,14 +60,8 @@ async function run(action: () => Promise<unknown>, fallback: string): Promise<vo
   }
 }
 
-async function confirmLink(): Promise<void> {
-  if (!chosen.value) return;
-  const payload = {
-    supplierId: chosen.value,
-    role: role.value.trim() || null,
-    changeReason: reason.value.trim() || null,
-    isPrimary: true,
-  };
+async function confirmLink(values: SupplierLinkValues): Promise<void> {
+  const payload = { ...values, isPrimary: true };
   await run(
     () =>
       current.value
@@ -162,36 +150,15 @@ onMounted(load);
       </div>
     </template>
 
-    <AppModal :open="showLink" :title="current ? 'Substituir fornecedor' : 'Vincular fornecedor'" @close="showLink = false">
-      <form class="link-form" @submit.prevent="confirmLink">
-        <p v-if="current" class="link-hint">
-          O vínculo atual com <strong>{{ current.supplier.legalName }}</strong> será substituído.
-        </p>
-        <div class="field">
-          <span>Fornecedor *</span>
-          <SupplierCombobox
-            v-model="chosen"
-            :suppliers="available"
-            label="Fornecedor"
-            empty-label="Selecione"
-            empty-value=""
-          />
-        </div>
-        <p v-if="available.length === 0" class="link-hint">
-          Nenhum fornecedor disponível. Cadastre um em
-          <NuxtLink to="/fornecedores">Fornecedores</NuxtLink>.
-        </p>
-        <label class="field"><span>Papel</span><input v-model="role" maxlength="80" placeholder="Opcional"></label>
-        <label class="field"><span>Motivo da alteração</span><textarea v-model="reason" maxlength="500" rows="3" placeholder="Opcional"></textarea></label>
-        <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
-        <div class="form-actions">
-          <button type="button" class="btn" @click="showLink = false">Cancelar</button>
-          <button type="submit" class="btn primary" :disabled="!chosen || busy">
-            {{ current ? "Substituir" : "Vincular" }}
-          </button>
-        </div>
-      </form>
-    </AppModal>
+    <SupplierLinkModal
+      :open="showLink"
+      :current="current"
+      :suppliers="available"
+      :busy="busy"
+      :error="actionError"
+      @close="showLink = false"
+      @submit="confirmLink"
+    />
   </section>
 </template>
 
@@ -205,7 +172,4 @@ onMounted(load);
 .table-empty { margin: auto; padding-bottom: 28px; }
 .text-button { display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
 .text-button.danger { color: #a4453a; }
-.link-form { display: grid; gap: 14px; }
-.link-hint { margin: -6px 0 0; color: #8b96a5; font-size: 11.5px; }
-.form-actions { display: flex; justify-content: flex-end; gap: 9px; }
 </style>

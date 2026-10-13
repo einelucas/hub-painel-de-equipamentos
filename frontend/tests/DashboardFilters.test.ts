@@ -4,6 +4,7 @@ import DashboardFilters from "~/components/dashboard/DashboardFilters.vue";
 import { useDashboardFilters } from "~/composables/useDashboardFilters";
 import type { CatalogItem } from "~/types/equipment";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
+import { chooseOption, isDisabled, optionLabels, shownValue } from "./support/searchableSelect";
 
 const areas: CatalogItem[] = [
   { id: "a-1", name: "Caldeira", active: true },
@@ -16,13 +17,11 @@ const disciplines: CatalogItem[] = [
 
 function mountFilters(
   models: { areaId?: string | null; disciplineId?: string | null; stage?: number | null } = {},
-  areaDisabled = false,
 ) {
   const wrapper = mount(DashboardFilters, {
     props: {
       areas,
       disciplines,
-      areaDisabled,
       areaId: models.areaId ?? null,
       disciplineId: models.disciplineId ?? null,
       stage: models.stage ?? null,
@@ -35,32 +34,28 @@ function mountFilters(
 }
 
 describe("DashboardFilters", () => {
-  it("mostra Área, Fase e Disciplina, nessa ordem, com a opção 'Todas' e os catálogos recebidos", () => {
+  it("mostra Área, Fase e Disciplina, nessa ordem, com a opção 'Todas' e os catálogos recebidos", async () => {
     const wrapper = mountFilters();
     expect(wrapper.findAll(".field > span").map((item) => item.text())).toEqual(["Área", "Fase", "Disciplina"]);
-    expect(wrapper.get("[data-testid='dashboard-filter-area']").findAll("option").map((item) => item.text())).toEqual([
-      "Todas as áreas",
-      "Caldeira",
-      "Drenagem",
+    expect(await optionLabels(wrapper, "dashboard-filter-area")).toEqual(["Todas as áreas", "Caldeira", "Drenagem"]);
+    expect(await optionLabels(wrapper, "dashboard-filter-discipline")).toEqual([
+      "Todas as disciplinas",
+      "E&I",
+      "Metal Mec.",
     ]);
-    expect(
-      wrapper.get("[data-testid='dashboard-filter-discipline']").findAll("option").map((item) => item.text()),
-    ).toEqual(["Todas as disciplinas", "Metal Mec.", "E&I"]);
   });
 
-  it("a Fase usa o catálogo de etapas do workflow (0 a 8)", () => {
-    const options = mountFilters().get("[data-testid='dashboard-filter-stage']").findAll("option");
-    expect(options[0]!.text()).toBe("Todas as fases");
-    expect(options.slice(1).map((item) => item.text())).toEqual(
-      EQUIPMENT_STAGES.map((name, index) => `${index} · ${name}`),
-    );
+  it("a Fase usa o catálogo de etapas do workflow (0 a 8), na ordem do processo", async () => {
+    const labels = await optionLabels(mountFilters(), "dashboard-filter-stage");
+    expect(labels[0]).toBe("Todas as fases");
+    expect(labels.slice(1)).toEqual(EQUIPMENT_STAGES.map((name, index) => `${index} · ${name}`));
   });
 
   it("selecionar valores atualiza os modelos e emite change a cada alteração", async () => {
     const wrapper = mountFilters();
-    await wrapper.get("[data-testid='dashboard-filter-area']").setValue("a-1");
-    await wrapper.get("[data-testid='dashboard-filter-stage']").setValue("4");
-    await wrapper.get("[data-testid='dashboard-filter-discipline']").setValue("d-1");
+    await chooseOption(wrapper, "dashboard-filter-area", "Caldeira");
+    await chooseOption(wrapper, "dashboard-filter-stage", `4 · ${EQUIPMENT_STAGES[4]}`);
+    await chooseOption(wrapper, "dashboard-filter-discipline", "Metal Mec.");
 
     expect(wrapper.props()).toMatchObject({ areaId: "a-1", stage: 4, disciplineId: "d-1" });
     expect(wrapper.emitted("change")).toHaveLength(3);
@@ -68,13 +63,13 @@ describe("DashboardFilters", () => {
 
   it("voltar para 'Todas' limpa só aquele filtro", async () => {
     const wrapper = mountFilters({ areaId: "a-1", stage: 0, disciplineId: "d-2" });
-    await wrapper.get("[data-testid='dashboard-filter-stage']").setValue("");
+    await chooseOption(wrapper, "dashboard-filter-stage", "Todas as fases");
     expect(wrapper.props()).toMatchObject({ areaId: "a-1", stage: null, disciplineId: "d-2" });
   });
 
   it("fase 0 (Nova demanda) conta como filtro ativo", () => {
     const wrapper = mountFilters({ stage: 0 });
-    expect((wrapper.get("[data-testid='dashboard-filter-stage']").element as HTMLSelectElement).value).toBe("0");
+    expect(shownValue(wrapper, "dashboard-filter-stage")).toBe(`0 · ${EQUIPMENT_STAGES[0]}`);
     expect(wrapper.find("[data-testid='dashboard-filters-clear']").exists()).toBe(true);
   });
 
@@ -86,10 +81,21 @@ describe("DashboardFilters", () => {
     expect(wrapper.emitted("clear")).toHaveLength(1);
   });
 
-  it("Área fica desabilitada sem unidade selecionada", () => {
-    const area = mountFilters({}, true).get("[data-testid='dashboard-filter-area']");
-    expect(area.attributes("disabled")).toBeDefined();
-    expect(area.attributes("title")).toBe("Selecione uma unidade para filtrar por área");
+  it("Área (EAP global) fica habilitada mesmo sem unidade selecionada", () => {
+    expect(isDisabled(mountFilters(), "dashboard-filter-area")).toBe(false);
+  });
+
+  it("Área é pesquisável e escolher a opção já selecionada não emite change", async () => {
+    const wrapper = mountFilters({ areaId: "a-1" });
+    const input = wrapper.get("[data-testid='dashboard-filter-area']");
+    await input.trigger("focus");
+    await input.setValue("dren");
+    expect(wrapper.findAll("[role='option']").map((item) => item.text())).toEqual(["Todas as áreas", "Drenagem"]);
+
+    await chooseOption(wrapper, "dashboard-filter-area", "Drenagem");
+    await chooseOption(wrapper, "dashboard-filter-area", "Drenagem");
+    expect(wrapper.props("areaId")).toBe("a-2");
+    expect(wrapper.emitted("change")).toHaveLength(1);
   });
 });
 
@@ -104,10 +110,10 @@ describe("useDashboardFilters", () => {
     const { filters, apiQuery } = useDashboardFilters();
     filters.areaId = "a-1";
     filters.stage = 0;
-    expect(apiQuery.value).toEqual({ area_id: "a-1", stage: "0" });
+    expect(apiQuery.value).toEqual({ eap_node_id: "a-1", stage: "0" });
 
     filters.disciplineId = "d-1";
-    expect(apiQuery.value).toEqual({ area_id: "a-1", discipline_id: "d-1", stage: "0" });
+    expect(apiQuery.value).toEqual({ eap_node_id: "a-1", discipline_id: "d-1", stage: "0" });
   });
 
   it("lê a URL (?area=&discipline=&stage=) e ignora fase inválida", () => {

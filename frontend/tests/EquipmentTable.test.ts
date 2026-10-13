@@ -132,13 +132,36 @@ describe("EquipmentTable", () => {
         },
       },
     });
-    expect(wrapper.text()).toContain("CAL001");
-    expect(wrapper.text()).toContain("CAL002");
-    expect(wrapper.text()).toContain("CAL003");
-    expect(wrapper.text()).not.toContain("CAL004");
-    expect(wrapper.text()).toContain("+1");
-    expect(wrapper.get("[title='Estruturas metálicas']").text()).toBe("CAL001");
-    expect(wrapper.get("[title='WP sem descrição']").text()).toBe("CAL002");
+    const chips = wrapper.findAll(".wp-chip").map((chip) => ({
+      label: chip.get(".tip-badge-label").text(),
+      tip: chip.get("[role='tooltip']").text(),
+    }));
+    expect(chips).toEqual([
+      { label: "CAL001", tip: "Estruturas metálicas" },
+      { label: "CAL002", tip: "WP sem descrição" },
+      { label: "CAL003", tip: "WP sem descrição" },
+      { label: "+1", tip: "CAL004: WP sem descrição" },
+    ]);
     expect(wrapper.text()).toContain("Work Packages");
+  });
+
+  it("exibe a sigla da disciplina em badge, com o nome na legenda", () => {
+    const wrapper = mount(EquipmentTable, {
+      props: { equipments: [{ ...equipment, discipline: { id: "d-1", name: "Elétrica", code: "ELE" } }] },
+      global: {
+        stubs: {
+          Table: passthrough,
+          TableHeader: passthrough,
+          TableRow: passthrough,
+          TableHead: passthrough,
+          TableBody: passthrough,
+          TableCell: passthrough,
+          NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+        },
+      },
+    });
+    const badge = wrapper.get("[data-testid='equipment-discipline']");
+    expect(badge.get(".tip-badge-label").text()).toBe("ELE");
+    expect(badge.get("[role='tooltip']").text()).toBe("Elétrica");
   });
 });

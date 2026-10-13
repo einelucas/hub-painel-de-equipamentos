@@ -3,6 +3,7 @@ import { Boxes, Layers } from "lucide-vue-next";
 import type { CatalogItem, CatalogList, DashboardSummary } from "~/types/equipment";
 import { situationDonut, stageChartPoints, startupLabel } from "~/utils/dashboard";
 import { formatCurrency, formatNumber } from "~/utils/format";
+import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -46,18 +47,12 @@ async function loadDisciplines(): Promise<void> {
   }
 }
 
-/** Área pertence à Unidade: troca de unidade descarta uma área que não existe mais no catálogo. */
+/** Área vem da EAP (Processo/Área); uma seleção que deixou de existir no catálogo é descartada. */
 async function loadAreas(): Promise<void> {
-  if (!context.selectedUnit) {
+  try {
+    areas.value = await loadEapLocationOptions(api);
+  } catch {
     areas.value = [];
-  } else {
-    try {
-      areas.value = (
-        await api.get<CatalogList<CatalogItem>>("/areas", { unit_id: context.selectedUnit })
-      ).items;
-    } catch {
-      areas.value = [];
-    }
   }
   if (!areas.value.some((item) => item.id === dashboard.filters.areaId)) dashboard.filters.areaId = null;
 }
@@ -135,7 +130,6 @@ onMounted(async () => {
           v-model:stage="dashboard.filters.stage"
           :areas="areas"
           :disciplines="disciplines"
-          :area-disabled="!context.selectedUnit"
           @change="applyDashboardFilters"
           @clear="clearDashboardFilters"
         />

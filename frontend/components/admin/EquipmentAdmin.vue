@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import type { AdminPanelSection } from "~/components/admin/AdminPanel.vue";
 import type { ProjectAdminTarget } from "~/types/equipment";
 
 /**
@@ -21,11 +22,26 @@ const adminUnit = ref(props.unitId);
 const canManageCatalogs = computed(() => auth.can("catalogs:manage"));
 const canManageUsers = computed(() => auth.can("users:manage"));
 
+const CATALOGS = [
+  { key: "units", label: "Unidades" },
+  { key: "areas", label: "Árvore EAP" },
+  { key: "disciplines", label: "Disciplinas" },
+  { key: "workPackages", label: "Work Packages" },
+];
+
 const sections = computed(() => {
-  const items: { key: string; label: string }[] = [];
-  if (canManageCatalogs.value) items.push({ key: "projects", label: "Projetos" });
-  if (canManageCatalogs.value) items.push({ key: "catalogs", label: "Catálogos" });
-  if (canManageUsers.value) items.push({ key: "access", label: "Acesso às unidades" });
+  const items: AdminPanelSection[] = [];
+  if (canManageCatalogs.value) items.push({ key: "projects", label: "Projetos", hint: "Obras de cada unidade" });
+  if (canManageCatalogs.value) {
+    items.push({
+      key: "catalogs",
+      label: "Catálogos",
+      hint: "Cadastros usados nos equipamentos",
+      children: CATALOGS,
+      childTestId: "catalog-switch",
+    });
+  }
+  if (canManageUsers.value) items.push({ key: "access", label: "Acesso às unidades", hint: "Quem enxerga cada unidade" });
   return items;
 });
 
@@ -46,13 +62,6 @@ function navigate(target: ProjectAdminTarget): void {
   }
 }
 
-const CATALOGS = [
-  { key: "units", label: "Unidades" },
-  { key: "areas", label: "Árvore EAP" },
-  { key: "disciplines", label: "Disciplinas" },
-  { key: "workPackages", label: "Work Packages" },
-];
-
 function onChanged(): void {
   emit("changed");
 }
@@ -69,6 +78,7 @@ watch(
 <template>
   <AdminPanel
     v-model:section="section"
+    v-model:item="catalog"
     :open="props.open"
     title="Administração · Equipamentos"
     description="Configuração das obras e cadastros de apoio aos equipamentos. Registros não são excluídos: use desativar."
@@ -84,19 +94,6 @@ watch(
       />
 
       <template v-else-if="active === 'catalogs'">
-        <nav class="catalog-switch" aria-label="Catálogos">
-          <button
-            v-for="item in CATALOGS"
-            :key="item.key"
-            type="button"
-            :class="{ active: catalog === item.key }"
-            :data-testid="`catalog-switch-${item.key}`"
-            @click="catalog = item.key"
-          >
-            {{ item.label }}
-          </button>
-        </nav>
-
         <CatalogAdmin
           v-if="catalog === 'units'"
           path="/units"
@@ -130,10 +127,3 @@ watch(
     </template>
   </AdminPanel>
 </template>
-
-<style scoped>
-.catalog-switch { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 12px; }
-.catalog-switch button { border: 1px solid #e4e9f0; border-radius: 999px; padding: 5px 11px; background: #fff; color: #5d6b80; font-size: 11.5px; font-weight: 750; }
-.catalog-switch button.active { border-color: #d5e2f3; background: #e8f1fc; color: #27456f; }
-.catalog-switch button:focus-visible { outline: 2px solid #304f7e; outline-offset: 2px; }
-</style>

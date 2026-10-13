@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, require_permission
+from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.suppliers import services
+from app.modules.suppliers import services, sheet_import
 from app.modules.suppliers.schemas import (
     EquipmentSupplierLinkIn,
     EquipmentSupplierListOut,
@@ -43,6 +44,23 @@ async def post_supplier(
 ) -> SupplierOut:
     item = await services.create_supplier(session, values=body.model_dump(), actor=actor)
     return SupplierOut.model_validate(item)
+
+
+@router.post("/suppliers/import", response_model=sheet_import.SupplierImportOut)
+async def post_suppliers_import(
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_write),
+) -> sheet_import.SupplierImportOut:
+    """Upsert de fornecedores por planilha .xlsx (nunca apaga nem desativa ausentes)."""
+    max_bytes = get_settings().import_max_upload_bytes
+    # Rejeita antes de ler quando o tamanho já é conhecido; senão lê no máximo
+    # max_bytes + 1 (o suficiente para detectar o excesso).
+    if file.size is not None and file.size > max_bytes:
+        sheet_import.validate_upload(file.filename, file.size, max_bytes)
+    content = await file.read(max_bytes + 1)
+    sheet_import.validate_upload(file.filename, len(content), max_bytes)
+    return await sheet_import.import_suppliers(session, content=content, actor=actor)
 
 
 @router.get("/suppliers/{supplier_id}", response_model=SupplierOut)

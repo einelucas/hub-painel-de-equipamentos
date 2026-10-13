@@ -2,6 +2,8 @@
 import { RefreshCw } from "lucide-vue-next";
 import type { CatalogList, Equipment, EquipmentList } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
+import { toOptions } from "~/utils/selectOptions";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 interface Audit {
   id: string;
@@ -38,6 +40,10 @@ const message = ref("");
 // nenhum ID digitado à mão, sem busca avançada/query builder.
 const equipmentOptions = ref<Equipment[]>([]);
 const userOptions = ref<UserOption[]>([]);
+const equipmentSelectOptions = computed(() => toOptions(equipmentOptions.value));
+const userSelectOptions = computed(() =>
+  userOptions.value.map((item) => ({ id: item.id, label: item.name, searchText: item.email })),
+);
 
 async function load() {
   loading.value = true;
@@ -85,28 +91,30 @@ onMounted(async () => {
         <Input id="au-action" v-model="action" placeholder="ex.: user.update" @change="page = 1" />
       </div>
       <div class="space-y-1">
-        <Label for="au-equipment">Equipamento</Label>
-        <select
-          id="au-equipment"
+        <Label>Equipamento</Label>
+        <SearchableSelect
           v-model="equipmentId"
-          class="flex h-9 w-full min-w-[180px] rounded-lg border border-input bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm"
+          class="min-w-[180px]"
+          :options="equipmentSelectOptions"
+          label="Equipamento"
+          placeholder="Buscar equipamento"
+          empty-label="Todos"
+          test-id="au-equipment"
           @change="page = 1"
-        >
-          <option value="">Todos</option>
-          <option v-for="item in equipmentOptions" :key="item.id" :value="item.id">{{ item.name }}</option>
-        </select>
+        />
       </div>
       <div class="space-y-1">
-        <Label for="au-user">Usuário</Label>
-        <select
-          id="au-user"
+        <Label>Usuário</Label>
+        <SearchableSelect
           v-model="userId"
-          class="flex h-9 w-full min-w-[180px] rounded-lg border border-input bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm"
+          class="min-w-[180px]"
+          :options="userSelectOptions"
+          label="Usuário"
+          placeholder="Buscar usuário"
+          empty-label="Todos"
+          test-id="au-user"
           @change="page = 1"
-        >
-          <option value="">Todos</option>
-          <option v-for="item in userOptions" :key="item.id" :value="item.id">{{ item.name }}</option>
-        </select>
+        />
       </div>
       <div class="space-y-1">
         <Label for="au-date-from">De</Label>

@@ -16,6 +16,7 @@ async def get_dashboard_summary(
     project_context_id: str | None = Query(default=None),
     equipment_id: str | None = Query(default=None),
     area_id: str | None = Query(default=None),
+    eap_node_id: str | None = Query(default=None),
     discipline_id: str | None = Query(default=None),
     stage: int | None = Query(default=None, ge=0, le=8),
     session: AsyncSession = Depends(get_session),
@@ -28,6 +29,6 @@ async def get_dashboard_summary(
         project_context_id=project_context_id,
         equipment_id=equipment_id,
         filters=services.DashboardFilters(
-            area_id=area_id, discipline_id=discipline_id, stage=stage
+            area_id=area_id, eap_node_id=eap_node_id, discipline_id=discipline_id, stage=stage
         ),
     )

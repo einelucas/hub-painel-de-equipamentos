@@ -568,6 +568,14 @@ export interface Supplier {
   updatedAt: string;
 }
 
+export interface SupplierImportResult {
+  total: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  errors: { row: number; message: string }[];
+}
+
 export interface EquipmentSupplier {
   id: string;
   supplier: Supplier;

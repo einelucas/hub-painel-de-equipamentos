@@ -2,6 +2,8 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import EquipmentReopenPanel from "~/components/equipment/EquipmentReopenPanel.vue";
 import type { ReopenRequest } from "~/types/equipment";
+import { EQUIPMENT_STAGES } from "~/utils/stages";
+import { chooseOption } from "./support/searchableSelect";
 
 /**
  * AppModal usa <Teleport to="body">, que complica a busca por elementos em
@@ -106,7 +108,7 @@ describe("EquipmentReopenPanel", () => {
     await wrapper.get("[data-testid='request-reopen-button']").trigger("click");
     expect(wrapper.find(".modal-stub").exists()).toBe(true);
 
-    await wrapper.get("select").setValue("2");
+    await chooseOption(wrapper, "reopen-target-stage", `2 · ${EQUIPMENT_STAGES[2]}`);
     await wrapper.get("textarea").setValue("Precisa renegociar com o novo fornecedor.");
     await wrapper.get("form").trigger("submit");
 
@@ -120,7 +122,7 @@ describe("EquipmentReopenPanel", () => {
 
     expect(wrapper.get("button[type='submit']").attributes("disabled")).toBeDefined();
 
-    await wrapper.get("select").setValue("2");
+    await chooseOption(wrapper, "reopen-target-stage", `2 · ${EQUIPMENT_STAGES[2]}`);
     expect(wrapper.get("button[type='submit']").attributes("disabled")).toBeDefined();
 
     await wrapper.get("textarea").setValue("Justificativa.");
@@ -134,7 +136,7 @@ describe("EquipmentReopenPanel", () => {
       requestReopen: vi.fn().mockResolvedValue(null),
     });
     await wrapper.get("[data-testid='request-reopen-button']").trigger("click");
-    await wrapper.get("select").setValue("2");
+    await chooseOption(wrapper, "reopen-target-stage", `2 · ${EQUIPMENT_STAGES[2]}`);
     await wrapper.get("textarea").setValue("Justificativa.");
     await wrapper.get("form").trigger("submit");
 
@@ -145,7 +147,7 @@ describe("EquipmentReopenPanel", () => {
   it("Solicitar: cancelar no modal fecha sem chamar requestReopen", async () => {
     const { wrapper, requestReopen } = mountPanel({ currentStage: 5 });
     await wrapper.get("[data-testid='request-reopen-button']").trigger("click");
-    await wrapper.get(".modal-stub form button[type='button']").trigger("click");
+    await wrapper.findAll(".modal-stub form button[type='button']").find((item) => item.text() === "Cancelar")!.trigger("click");
 
     expect(requestReopen).not.toHaveBeenCalled();
     expect(wrapper.find(".modal-stub").exists()).toBe(false);
@@ -201,7 +203,7 @@ describe("EquipmentReopenPanel", () => {
   it("Decisão: cancelar no modal fecha sem chamar approveReopen/rejectReopen", async () => {
     const { wrapper, approveReopen, rejectReopen } = mountPanel({ pendingReopenRequest: pendingRequest() });
     await wrapper.get("[data-testid='approve-reopen']").trigger("click");
-    await wrapper.get(".modal-stub form button[type='button']").trigger("click");
+    await wrapper.findAll(".modal-stub form button[type='button']").find((item) => item.text() === "Cancelar")!.trigger("click");
 
     expect(approveReopen).not.toHaveBeenCalled();
     expect(rejectReopen).not.toHaveBeenCalled();

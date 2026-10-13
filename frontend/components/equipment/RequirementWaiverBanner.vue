@@ -19,6 +19,7 @@ import type {
 
 import { formatDateTime } from "~/utils/format";
 import { REQUIREMENT_WAIVER_REASON_LABELS } from "~/utils/workflow";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 const props = defineProps<{
   equipmentId: string;
@@ -41,6 +42,7 @@ const actionError = ref("");
 
 const showWaiveModal = ref(false);
 const reasonCode = ref<RequirementWaiverReasonCode>("OTHER");
+const REASON_OPTIONS = Object.entries(REQUIREMENT_WAIVER_REASON_LABELS).map(([id, label]) => ({ id, label }));
 const justification = ref("");
 
 const showRevokeModal = ref(false);
@@ -277,12 +279,17 @@ async function confirmRevoke(): Promise<void> {
 
       <label class="field">
         <span>Motivo *</span>
-        <select v-model="reasonCode" required>
-          <option value="IMPORTATION">Importação</option>
-          <option value="FIXED_SUPPLIER">Fornecedor fixo</option>
-          <option value="EXCEPTIONAL_PROCESS">Processo excepcional</option>
-          <option value="OTHER">Outro</option>
-        </select>
+        <SearchableSelect
+          :model-value="reasonCode"
+          :options="REASON_OPTIONS"
+          :sorted="false"
+          :clearable="false"
+          required
+          label="Motivo"
+          placeholder="Buscar motivo"
+          test-id="waiver-reason"
+          @update:model-value="reasonCode = $event as RequirementWaiverReasonCode"
+        />
       </label>
 
       <label class="field">

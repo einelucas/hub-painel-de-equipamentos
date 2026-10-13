@@ -3,7 +3,8 @@ import { computed, ref } from "vue";
 import { RotateCcw } from "lucide-vue-next";
 import type { ReopenRequest } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
-import { EQUIPMENT_STAGES } from "~/utils/stages";
+import { STAGE_OPTIONS } from "~/utils/selectOptions";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 /**
  * Seção "Reabertura" (Etapa 7C) — solicitação de reabertura de fase, com
@@ -33,9 +34,7 @@ const showReopenRequest = ref(false);
 const reopenTargetStage = ref<number | "">("");
 const reopenJustification = ref("");
 const reopenStageOptions = computed(() =>
-  EQUIPMENT_STAGES.map((label, index) => ({ index, label })).filter(
-    (item) => item.index < props.currentStage,
-  ),
+  STAGE_OPTIONS.filter((_, index) => index < props.currentStage),
 );
 
 function openReopenRequest(): void {
@@ -97,10 +96,18 @@ async function confirmReopenDecision(): Promise<void> {
     <form class="exception-form" @submit.prevent="confirmReopenRequest">
       <label class="field">
         <span>Fase de destino *</span>
-        <select v-model="reopenTargetStage" required>
-          <option value="">Selecione</option>
-          <option v-for="item in reopenStageOptions" :key="item.index" :value="item.index">{{ item.index }} · {{ item.label }}</option>
-        </select>
+        <SearchableSelect
+          :model-value="String(reopenTargetStage)"
+          :options="reopenStageOptions"
+          :sorted="false"
+          :clearable="false"
+          required
+          label="Fase de destino"
+          placeholder="Buscar fase"
+          empty-label="Selecione"
+          test-id="reopen-target-stage"
+          @update:model-value="reopenTargetStage = $event === '' ? '' : Number($event)"
+        />
       </label>
       <p class="exception-hint">O equipamento permanece na fase atual até a solicitação ser aprovada por um usuário com permissão de aprovação.</p>
       <label class="field">

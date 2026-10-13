@@ -6,6 +6,7 @@ import CatalogAdmin from "~/components/admin/CatalogAdmin.vue";
 import EapTreeAdmin from "~/components/admin/EapTreeAdmin.vue";
 import EquipmentAdmin from "~/components/admin/EquipmentAdmin.vue";
 import ProjectContextAdmin from "~/components/admin/ProjectContextAdmin.vue";
+import { chooseOption } from "./support/searchableSelect";
 
 // Dados 100% sintéticos.
 const ROUTES: Record<string, unknown> = {
@@ -143,7 +144,7 @@ describe("EquipmentAdmin", () => {
     await settle(wrapper);
 
     expect(wrapper.find("[data-testid='project-no-unit']").exists()).toBe(true);
-    await wrapper.get("[data-testid='project-unit']").setValue("u-tst");
+    await chooseOption(wrapper, "project-unit", "Unidade Teste");
     await settle(wrapper);
     expect(get).toHaveBeenCalledWith("/units/u-tst/project-contexts", {
       include_inactive: "true",

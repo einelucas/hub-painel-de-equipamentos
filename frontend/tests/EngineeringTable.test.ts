@@ -31,7 +31,7 @@ function row(overrides: Partial<EngineeringRow> = {}): EngineeringRow {
     nextStage: 1,
     nextStageName: "Negociação",
     pending: [],
-    discipline: { id: "d-1", name: "Metal Mec." },
+    discipline: { id: "d-1", name: "Metal Mec.", code: "MM" },
     area: { id: "a-1", name: "Caldeira" },
     workPackages: [{ id: "wp-1", name: "Pacote 1", code: "CAL012" }],
     responsibleUser: { id: "u-1", name: "Analista Sintético A", email: "analista.a@example.test" },
@@ -53,7 +53,9 @@ describe("EngineeringTable", () => {
     expect(wrapper.text()).toContain("Bomba Sintética A");
     expect(wrapper.text()).toContain("Luís Eduardo Magalhães");
     expect(wrapper.text()).toContain("0 · Nova demanda");
-    expect(wrapper.text()).toContain("Metal Mec.");
+    const discipline = wrapper.get("[data-testid='engineering-discipline']");
+    expect(discipline.get(".tip-badge-label").text()).toBe("MM");
+    expect(discipline.get("[role='tooltip']").text()).toBe("Metal Mec.");
     expect(wrapper.text()).toContain("Caldeira");
     expect(wrapper.text()).toContain("CAL012");
     expect(wrapper.text()).toContain("Analista Sintético A");

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { FileUp } from "lucide-vue-next";
+import { computed, ref } from "vue";
+import { FileSpreadsheet, FileUp, UploadCloud } from "lucide-vue-next";
 import { useImportState } from "~/composables/useImportState";
+import { codeNameLabel, toOptions } from "~/utils/selectOptions";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 /**
  * Passo 1: obra (Unidade → ProjectContext ativo), formato da planilha e um ou
@@ -9,13 +11,28 @@ import { useImportState } from "~/composables/useImportState";
  */
 const { units, contexts, profiles, selection, files, busy, loadContexts, selectFiles, analyze } = useImportState();
 
+const unitOptions = computed(() => toOptions(units.value));
+const contextOptions = computed(() => toOptions(contexts.value, codeNameLabel));
+const profileOptions = computed(() =>
+  profiles.value.map((item) => ({
+    id: item.profileId,
+    label: `${item.description || item.profileId} (v${item.version})`,
+  })),
+);
+
 const canAnalyze = computed(
   () => Boolean(selection.contextId && selection.profileId && files.value.length) && !busy.value,
 );
+const dragging = ref(false);
 
 function onFiles(event: Event): void {
   const input = event.target as HTMLInputElement;
   selectFiles(Array.from(input.files ?? []));
+}
+
+function onDrop(event: DragEvent): void {
+  dragging.value = false;
+  selectFiles(Array.from(event.dataTransfer?.files ?? []));
 }
 
 function size(bytes: number): string {
@@ -25,53 +42,91 @@ function size(bytes: number): string {
 
 <template>
   <div class="import-step" data-testid="import-step-source">
-    <div class="import-grid">
-      <label class="field">
-        <span>Unidade</span>
-        <select v-model="selection.unitId" data-testid="import-unit" @change="loadContexts">
-          <option value="">Selecione</option>
-          <option v-for="unit in units" :key="unit.id" :value="unit.id">{{ unit.name }}</option>
-        </select>
-      </label>
-      <label class="field">
-        <span>Obra / contexto de projeto</span>
-        <select v-model="selection.contextId" :disabled="!selection.unitId" data-testid="import-context">
-          <option value="">Selecione</option>
-          <option v-for="item in contexts" :key="item.id" :value="item.id">{{ item.code ? `${item.code} · ${item.name}` : item.name }}</option>
-        </select>
-      </label>
+    <div class="source-layout">
+      <section class="import-panel destination" aria-label="Destino da importação">
+        <div class="import-panel-head"><h4>Destino</h4></div>
+        <div class="field">
+          <span>Unidade</span>
+          <SearchableSelect
+            v-model="selection.unitId"
+            :options="unitOptions"
+            :clearable="false"
+            label="Unidade"
+            placeholder="Buscar unidade"
+            empty-label="Selecione"
+            test-id="import-unit"
+            @change="loadContexts()"
+          />
+        </div>
+        <div class="field">
+          <span>Obra / contexto de projeto</span>
+          <SearchableSelect
+            v-model="selection.contextId"
+            :options="contextOptions"
+            :clearable="false"
+            :disabled="!selection.unitId"
+            label="Obra / contexto de projeto"
+            placeholder="Buscar por código ou nome"
+            empty-label="Selecione"
+            test-id="import-context"
+          />
+        </div>
+        <p v-if="selection.unitId && contexts.length === 0" class="import-hint" data-testid="import-no-context">
+          Nenhuma obra ativa nesta unidade. Cadastre-a em Equipamentos → Administração → Projetos.
+        </p>
+
+        <div v-if="profiles.length > 1" class="field">
+          <span>Formato da planilha</span>
+          <SearchableSelect
+            v-model="selection.profileId"
+            :options="profileOptions"
+            :clearable="false"
+            label="Formato da planilha"
+            placeholder="Buscar formato"
+            empty-label="Selecione"
+            test-id="import-profile"
+          />
+        </div>
+        <p v-else-if="profiles.length === 1" class="profile-single" data-testid="import-profile-single">
+          <FileSpreadsheet :size="14" aria-hidden="true" />
+          Formato da planilha: {{ profiles[0]!.description || profiles[0]!.profileId }}
+        </p>
+      </section>
+
+      <section class="files" aria-label="Planilhas">
+        <label
+          class="dropzone"
+          :class="{ 'is-dragging': dragging, 'has-files': files.length }"
+          @dragover.prevent="dragging = true"
+          @dragleave="dragging = false"
+          @drop.prevent="onDrop"
+        >
+          <input
+            class="visually-hidden"
+            type="file"
+            accept=".xlsx"
+            multiple
+            data-testid="import-file"
+            @change="onFiles"
+          >
+          <UploadCloud :size="26" aria-hidden="true" />
+          <strong>Arraste as planilhas aqui ou clique para escolher</strong>
+          <span>Arquivos .xlsx exportados do Monday</span>
+        </label>
+        <p class="import-hint">
+          Envie todos os arquivos da obra de uma vez, um por fase com equipamentos. Fases vazias não têm arquivo.
+          As planilhas são analisadas no servidor e não ficam armazenadas.
+        </p>
+
+        <ul v-if="files.length" class="file-list" data-testid="import-file-list">
+          <li v-for="item in files" :key="`${item.name}:${item.size}`">
+            <FileSpreadsheet :size="15" aria-hidden="true" />
+            <span class="mono">{{ item.name }}</span>
+            <small class="mono">{{ size(item.size) }}</small>
+          </li>
+        </ul>
+      </section>
     </div>
-    <p v-if="selection.unitId && contexts.length === 0" class="import-hint" data-testid="import-no-context">
-      Nenhuma obra ativa nesta unidade. Cadastre-a em Equipamentos → Administração → Projetos.
-    </p>
-
-    <label v-if="profiles.length > 1" class="field">
-      <span>Formato da planilha</span>
-      <select v-model="selection.profileId" data-testid="import-profile">
-        <option value="">Selecione</option>
-        <option v-for="item in profiles" :key="item.profileId" :value="item.profileId">
-          {{ item.description || item.profileId }} (v{{ item.version }})
-        </option>
-      </select>
-    </label>
-    <p v-else-if="profiles.length === 1" class="import-hint" data-testid="import-profile-single">
-      Formato da planilha: {{ profiles[0]!.description || profiles[0]!.profileId }}
-    </p>
-
-    <label class="import-file field">
-      <span>Arquivos exportados do Monday (.xlsx)</span>
-      <input type="file" accept=".xlsx" multiple data-testid="import-file" @change="onFiles">
-      <small class="import-hint">
-        Selecione todos os arquivos da obra de uma vez (um por fase com equipamentos). Fases vazias não têm
-        arquivo e não precisam ser enviadas. Os arquivos são analisados no servidor e não são armazenados.
-      </small>
-    </label>
-
-    <ul v-if="files.length" class="import-files" data-testid="import-file-list">
-      <li v-for="item in files" :key="`${item.name}:${item.size}`">
-        <span>{{ item.name }}</span><small>{{ size(item.size) }}</small>
-      </li>
-    </ul>
 
     <div class="import-actions">
       <button type="button" class="btn primary" :disabled="!canAnalyze" data-testid="import-analyze" @click="analyze">
@@ -83,12 +138,41 @@ function size(bytes: number): string {
 </template>
 
 <style scoped>
-.import-step { display: grid; gap: 12px; }
-.import-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.import-hint { margin: 0; color: #8b96a5; font-size: 11.5px; }
-.import-files { display: grid; margin: 0; padding: 0; gap: 4px; list-style: none; max-height: 140px; overflow-y: auto; }
-.import-files li { display: flex; justify-content: space-between; gap: 8px; border-radius: 8px; background: #f5f8fb; padding: 5px 9px; color: #2b3e58; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
-.import-files small { color: #7a879a; font-weight: 600; white-space: nowrap; }
-.import-actions { display: flex; justify-content: flex-end; }
-@media (max-width: 620px) { .import-grid { grid-template-columns: 1fr; } }
+.source-layout { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.destination { gap: 12px; }
+.profile-single { display: flex; align-items: center; gap: 6px; margin: 0; border-radius: 8px; background: var(--wash); padding: 8px 10px; color: var(--ink); font-size: 12px; font-weight: 700; }
+.files { display: grid; gap: 10px; }
+
+/* Folha quadriculada: a área de soltar lembra a planilha que ela recebe. */
+.dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 30px 18px;
+  border: 1.5px dashed #b9c8db;
+  border-radius: 14px;
+  background-color: #fbfcfe;
+  background-image:
+    linear-gradient(to right, rgb(48 79 126 / 6%) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(48 79 126 / 6%) 1px, transparent 1px);
+  background-size: 56px 22px;
+  color: var(--steel);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.dropzone strong { color: var(--ink); font-size: 13px; }
+.dropzone span { color: var(--muted); font-size: 11.5px; }
+.dropzone:hover, .dropzone.is-dragging { border-color: var(--steel); background-color: #f1f6fd; }
+.dropzone:focus-within { outline: 2px solid var(--steel); outline-offset: 2px; }
+.dropzone.has-files { padding: 18px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.file-list { display: grid; margin: 0; padding: 0; border: 1px solid var(--rule); border-radius: 12px; list-style: none; overflow: hidden; }
+.file-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px 12px; border-bottom: 1px solid #edf1f6; color: var(--go); }
+.file-list li:last-child { border-bottom: 0; }
+.file-list span { overflow: hidden; color: var(--ink); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.file-list small { color: var(--muted); font-size: 11px; }
+@media (max-width: 760px) { .source-layout { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .dropzone { transition: none; } }
 </style>

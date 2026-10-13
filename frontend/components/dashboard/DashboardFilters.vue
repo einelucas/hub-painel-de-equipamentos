@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { X } from "lucide-vue-next";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import type { CatalogItem } from "~/types/equipment";
-import { EQUIPMENT_STAGES } from "~/utils/stages";
+import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 
-defineProps<{
+const props = defineProps<{
   areas: CatalogItem[];
   disciplines: CatalogItem[];
-  /** Área pertence à Unidade: sem unidade selecionada não há catálogo de áreas. */
-  areaDisabled: boolean;
 }>();
 const emit = defineEmits<{ change: []; clear: [] }>();
 
@@ -18,58 +17,64 @@ const stage = defineModel<number | null>("stage", { required: true });
 
 const hasActive = computed(() => areaId.value !== null || disciplineId.value !== null || stage.value !== null);
 
-function selected(event: Event): string {
-  return (event.target as HTMLSelectElement).value;
-}
+const areaOptions = computed(() => toOptions(props.areas));
+const disciplineOptions = computed(() => toOptions(props.disciplines));
 
-function onArea(event: Event): void {
-  areaId.value = selected(event) || null;
+function onArea(value: string): void {
+  areaId.value = value || null;
   emit("change");
 }
 
-function onStage(event: Event): void {
-  const value = selected(event);
+function onStage(value: string): void {
   stage.value = value === "" ? null : Number(value);
   emit("change");
 }
 
-function onDiscipline(event: Event): void {
-  disciplineId.value = selected(event) || null;
+function onDiscipline(value: string): void {
+  disciplineId.value = value || null;
   emit("change");
 }
 </script>
 
 <template>
   <div class="dashboard-filters" data-testid="dashboard-filters">
-    <label class="field">
+    <div class="field">
       <span>Área</span>
-      <select
-        :value="areaId ?? ''"
-        :disabled="areaDisabled"
-        :title="areaDisabled ? 'Selecione uma unidade para filtrar por área' : undefined"
-        data-testid="dashboard-filter-area"
+      <SearchableSelect
+        :model-value="areaId ?? ''"
+        :options="areaOptions"
+        label="Área"
+        placeholder="Buscar por código ou nome"
+        empty-label="Todas as áreas"
+        test-id="dashboard-filter-area"
         @change="onArea"
-      >
-        <option value="">Todas as áreas</option>
-        <option v-for="item in areas" :key="item.id" :value="item.id">{{ item.name }}</option>
-      </select>
-    </label>
-    <label class="field">
+      />
+    </div>
+    <div class="field">
       <span>Fase</span>
-      <select :value="stage === null ? '' : String(stage)" data-testid="dashboard-filter-stage" @change="onStage">
-        <option value="">Todas as fases</option>
-        <option v-for="(name, index) in EQUIPMENT_STAGES" :key="name" :value="String(index)">
-          {{ index }} · {{ name }}
-        </option>
-      </select>
-    </label>
-    <label class="field">
+      <SearchableSelect
+        :model-value="stage === null ? '' : String(stage)"
+        :options="STAGE_OPTIONS"
+        :sorted="false"
+        label="Fase"
+        placeholder="Buscar fase"
+        empty-label="Todas as fases"
+        test-id="dashboard-filter-stage"
+        @change="onStage"
+      />
+    </div>
+    <div class="field">
       <span>Disciplina</span>
-      <select :value="disciplineId ?? ''" data-testid="dashboard-filter-discipline" @change="onDiscipline">
-        <option value="">Todas as disciplinas</option>
-        <option v-for="item in disciplines" :key="item.id" :value="item.id">{{ item.name }}</option>
-      </select>
-    </label>
+      <SearchableSelect
+        :model-value="disciplineId ?? ''"
+        :options="disciplineOptions"
+        label="Disciplina"
+        placeholder="Buscar disciplina"
+        empty-label="Todas as disciplinas"
+        test-id="dashboard-filter-discipline"
+        @change="onDiscipline"
+      />
+    </div>
     <button
       v-if="hasActive"
       type="button"
