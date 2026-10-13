@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Literal
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -37,6 +37,32 @@ def _batch_profile(summary: dict | None) -> tuple[str, str]:
         return str(recorded[0].get("profileId")), str(recorded[0].get("sha256"))
     profile = default_profile()
     return profile.profile_id, profile.sha256
+
+
+def restage_decision(
+    *,
+    existing_status: str,
+    existing_parser_version: str,
+    existing_summary: dict | None,
+    profile: ImportProfile,
+) -> Literal["reuse", "restage", "conflict"]:
+    """O que fazer quando o mesmo arquivo já tem batch neste contexto.
+
+    - outro profile: conflito (reinterpretar mudaria o formato da evidência);
+    - mesmo profile e parser: reutiliza o batch;
+    - batch já aplicado: reutiliza a evidência original, mesmo que o profile/parser
+      tenha evoluído — nunca reinterpreta o que já escreveu no domínio;
+    - batch nunca aplicado (inclusive análise com erro) e nova versão do profile/parser:
+      reanalisa no mesmo batch.
+    """
+    staged_profile_id, staged_sha = _batch_profile(existing_summary)
+    if staged_profile_id != profile.profile_id:
+        return "conflict"
+    if staged_sha == profile.sha256 and existing_parser_version == PARSER_VERSION:
+        return "reuse"
+    if existing_status == "APPLIED":
+        return "reuse"
+    return "restage"
 
 
 @dataclass(slots=True, frozen=True)
@@ -112,16 +138,19 @@ async def stage_import(
         )
         if existing is None:  # pragma: no cover - defesa contra anomalia transacional
             raise RuntimeError("conflito de batch sem registro recuperável")
-        staged_profile_id, staged_sha = _batch_profile(existing.summary)
-        if staged_sha == profile.sha256 and existing.parser_version == PARSER_VERSION:
-            return await _existing_batch_result(session, existing.id)
-        if existing.status != "STAGED" or staged_profile_id != profile.profile_id:
-            # Outro profile, ou batch já usado para escrever no domínio: reinterpretar
-            # mudaria a evidência. Só uma NOVA VERSÃO do mesmo profile reanalisa.
+        decision = restage_decision(
+            existing_status=existing.status,
+            existing_parser_version=existing.parser_version,
+            existing_summary=existing.summary,
+            profile=profile,
+        )
+        if decision == "conflict":
             raise StagedWithDifferentProfileError(
                 f"arquivo já staged no batch {existing.id} com outro ImportProfile; "
                 "use o mesmo profile ou um contexto/arquivo novo"
             )
+        if decision == "reuse":
+            return await _existing_batch_result(session, existing.id)
         # Batch nunca aplicado e nova versão do mesmo profile: a análise é refeita
         # no MESMO batch, substituindo só o staging.
         await session.execute(delete(MondayImportIssue).where(MondayImportIssue.batch_id == existing.id))

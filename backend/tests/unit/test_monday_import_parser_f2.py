@@ -225,3 +225,24 @@ def test_reads_singular_supplier_and_corporate_code_as_text() -> None:
         not {"0.Fornecedor", "Cód. Fornecedor. CS", "0.Área (padrão)", "z.0.Área"}
         & parsed.unknown_equipment_fields
     )
+
+
+def test_export_without_subelementos_column_still_finds_main_header() -> None:
+    # Monday omite a coluna "Subelementos" quando nenhum item exportado tem subitens.
+    workbook = build_xlsx(
+        [
+            ["Equipamentos Obra Sintética"],
+            ["Fase 0 - Nova Demanda"],
+            ["Name", "A.Status", "0.Fornecedor"],
+            ["Equipamento Sintético", "0.Nova demanda", "FORNECEDOR A"],
+        ]
+    )
+
+    parsed = parse_monday_xlsx(workbook, source_name="f2.xlsx")
+    codes = {issue.code for issue in parsed.issues}
+    assert "missing_main_header" not in codes
+    assert not [issue for issue in parsed.issues if issue.severity == "error"]
+    equipment = parsed.equipments[0]
+    assert equipment.normalized["name"] == "Equipamento Sintético"
+    assert equipment.normalized["current_stage"] == 0
+    assert equipment.components == []

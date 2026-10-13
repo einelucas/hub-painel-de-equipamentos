@@ -46,7 +46,7 @@ def test_valid_profiles_load_and_have_stable_identity() -> None:
     assert a.sha256 != b.sha256
     assert (default_profile().profile_id, default_profile().version) == (
         "monday-equipamentos-legacy",
-        3,
+        4,
     )
 
 

@@ -1,6 +1,6 @@
 {
   "profile_id": "monday-equipamentos-legacy",
-  "version": 3,
+  "version": 4,
   "source_system": "monday",
   "description": "Board de equipamentos do Monday (layout padrão do Hub).",
   "board": {
@@ -22,7 +22,6 @@
   "equipment": {
     "header_signature": [
       "name",
-      "subelements_raw",
       "current_stage"
     ],
     "required": [

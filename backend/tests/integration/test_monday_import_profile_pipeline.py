@@ -227,12 +227,16 @@ async def test_new_version_of_same_profile_restages_unapplied_batch(db_session) 
     batch = await db_session.get(MondayImportBatch, first.batch_id)
     assert batch is not None and batch.summary["import_profiles"] == [newer.identity()]
 
-    # depois de aplicado, nem a nova versão reinterpreta o arquivo
+    # depois de aplicado, nem a nova versão reinterpreta o arquivo: a evidência original
+    # é reutilizada (sem conflito), mantendo o profile com que foi aplicado
     batch.status = "APPLIED"
     await db_session.flush()
     newest = profile_b().model_copy(update={"version": 3, "description": "versão sintética 3"})
-    with pytest.raises(StagedWithDifferentProfileError):
-        await stage_import(db_session, project_context_id=ids["context_id"], source=source, profile=newest)
+    reused = await stage_import(
+        db_session, project_context_id=ids["context_id"], source=source, profile=newest
+    )
+    assert (reused.batch_id, reused.created, reused.restaged) == (first.batch_id, False, False)
+    assert batch.summary["import_profiles"] == [newer.identity()]
 
 
 async def test_new_parser_version_restages_unapplied_batch(db_session) -> None:
