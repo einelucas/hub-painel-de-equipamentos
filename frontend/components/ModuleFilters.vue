@@ -37,7 +37,7 @@ function onEquipment(value: string): void {
 </script>
 
 <template>
-  <section class="surface filter-surface" aria-label="Filtros globais do módulo">
+  <section class="surface filter-surface" aria-label="Filtros globais do módulo" :aria-busy="context.loading || context.optionsLoading">
     <div class="filter-grid">
       <div class="field">
         <span>Unidade</span>
@@ -59,7 +59,7 @@ function onEquipment(value: string): void {
         <SearchableSelect
           :model-value="context.selectedProjectContext"
           :options="projectContextOptions"
-          :disabled="!context.selectedUnit || context.loading"
+          :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
           label="Obra"
           placeholder="Buscar obra"
           empty-label="Todas as obras"
@@ -72,7 +72,7 @@ function onEquipment(value: string): void {
         <SearchableSelect
           :model-value="context.selectedEquipment"
           :options="equipmentOptions"
-          :disabled="!context.selectedUnit || context.loading"
+          :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
           label="Equipamento"
           placeholder="Buscar equipamento"
           empty-label="Todos os equipamentos"
@@ -82,13 +82,17 @@ function onEquipment(value: string): void {
       </div>
       <div class="filter-extra"><slot /></div>
       <div v-if="props.showRefresh" class="filter-actions">
-        <button class="btn" :disabled="props.refreshing" @click="emit('change')">
-          <RefreshCw :size="15" /> Atualizar
+        <button class="btn" :disabled="props.refreshing" :aria-busy="props.refreshing" @click="emit('change')">
+          <span v-if="props.refreshing" class="spinner-small" aria-hidden="true" />
+          <RefreshCw v-else :size="15" /> {{ props.refreshing ? "Atualizando..." : "Atualizar" }}
         </button>
         <slot name="actions" />
       </div>
     </div>
-    <p v-if="!context.selectedUnit" class="filter-hint">
+    <p v-if="context.loading || context.optionsLoading" class="filter-hint filter-loading" role="status">
+      <span class="spinner-small" aria-hidden="true" /> Carregando opções de filtro...
+    </p>
+    <p v-else-if="!context.selectedUnit" class="filter-hint">
       Sem unidade selecionada os números consolidam todas as unidades disponíveis para você.
     </p>
   </section>
@@ -106,6 +110,7 @@ function onEquipment(value: string): void {
 .filter-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 /* Seletores pesquisáveis (inclusive os do slot) com a mesma fonte dos selects vizinhos. */
 .filter-grid :deep(.searchable-select__control input) { font-size: inherit; }
+.filter-loading { display: flex; align-items: center; gap: 7px; }
 .filter-hint { margin: 10px 0 0; color: #8b96a5; font-size: 11.5px; }
 @media (max-width: 640px) { .filter-grid > .field, .filter-extra > :slotted(.field) { flex-basis: 100%; } .filter-actions { width: 100%; } .filter-actions .btn { flex: 1; } }
 </style>

@@ -68,7 +68,10 @@ async function confirmEndSanitation(text: string): Promise<void> {
       </div>
     </div>
 
-    <div class="surface-body">
+    <div class="surface-body" :aria-busy="busy">
+      <p v-if="busy" class="busy-hint" role="status">
+        <span class="spinner-small" aria-hidden="true" /> Processando ação...
+      </p>
       <!-- Estado normal -->
       <div v-if="isActive" class="actions-row">
         <div class="actions-main">
@@ -403,4 +406,5 @@ async function confirmEndSanitation(text: string): Promise<void> {
     margin-top: 4px;
   }
 }
+.busy-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; color: #65748a; font-size: 12px; }
 </style>

@@ -40,6 +40,7 @@ const responsibleUserId = ref("");
 const areaId = ref("");
 const workPackageId = ref("");
 const exporting = ref(false);
+const exportProgress = ref("");
 const page = ref(1);
 const loading = ref(true);
 const refreshing = ref(false);
@@ -191,7 +192,9 @@ function currentQuery(pageSize: number, page: number): Record<string, unknown> {
 }
 
 async function exportAll(): Promise<void> {
+  if (exporting.value) return;
   exporting.value = true;
+  exportProgress.value = "";
   error.value = "";
   try {
     // Percorre as páginas do recorte para não exportar só o que está na tela.
@@ -205,6 +208,7 @@ async function exportAll(): Promise<void> {
       );
       rows.push(...result.items);
       totalPages = result.pagination.totalPages;
+      exportProgress.value = totalPages > 1 ? `Exportando página ${page} de ${totalPages}...` : "";
       page += 1;
     } while (page <= totalPages && page <= EXPORT_PAGE_LIMIT);
 
@@ -231,6 +235,7 @@ async function exportAll(): Promise<void> {
       caught instanceof Error ? caught.message : "Não foi possível exportar.";
   } finally {
     exporting.value = false;
+    exportProgress.value = "";
   }
 }
 
@@ -288,8 +293,9 @@ onMounted(async () => {
           <span>Busca</span>
           <div class="search-control">
             <input v-model="search" placeholder="Nome do equipamento" />
-            <button class="btn" type="submit">
-              <Search :size="16" /> Buscar
+            <button class="btn" type="submit" :disabled="refreshing" :aria-busy="refreshing">
+              <span v-if="refreshing" class="spinner-small" aria-hidden="true" />
+              <Search v-else :size="16" /> Buscar
             </button>
           </div>
         </form>
@@ -305,11 +311,13 @@ onMounted(async () => {
           <button
             class="btn"
             :disabled="exporting || loading"
+            :aria-busy="exporting"
             data-testid="export-button"
             @click="exportAll"
           >
-            <CloudDownload :size="16" />
-            {{ exporting ? "Exportando..." : "Exportar" }}
+            <span v-if="exporting" class="spinner-small" aria-hidden="true" />
+            <CloudDownload v-else :size="16" />
+            {{ exporting ? (exportProgress || "Exportando...") : "Exportar" }}
           </button>
           <button
             v-if="auth.can('equipments:write')"
@@ -413,8 +421,8 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div v-if="loading" class="queue-state">
-          <span class="spinner" /> Carregando equipamentos...
+        <div v-if="loading" class="queue-state" role="status" aria-busy="true">
+          <span class="spinner" aria-hidden="true" /> Carregando equipamentos...
         </div>
         <div v-else-if="error" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2>
@@ -422,14 +430,15 @@ onMounted(async () => {
           <button class="btn" @click="load">Tentar novamente</button>
         </div>
         <template v-else>
-          <EquipmentTable :equipments="equipments" />
+          <div v-if="refreshing" class="progress-indeterminate" role="progressbar" aria-label="Atualizando equipamentos" />
+          <EquipmentTable :equipments="equipments" :aria-busy="refreshing" />
           <div
             v-if="pagination && pagination.totalPages > 1"
             class="pagination"
           >
             <button
               class="btn small"
-              :disabled="page <= 1"
+              :disabled="refreshing || page <= 1"
               @click="
                 page -= 1;
                 load();
@@ -440,7 +449,7 @@ onMounted(async () => {
             <span>Página {{ page }} de {{ pagination.totalPages }}</span>
             <button
               class="btn small"
-              :disabled="page >= pagination.totalPages"
+              :disabled="refreshing || page >= pagination.totalPages"
               @click="
                 page += 1;
                 load();

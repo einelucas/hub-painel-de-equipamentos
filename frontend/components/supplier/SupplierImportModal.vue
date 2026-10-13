@@ -190,5 +190,4 @@ async function submit(): Promise<void> {
 .total { margin: 8px 0 0; color: var(--muted, #6b7a8f); font-size: 11.5px; }
 .errors { max-height: 180px; margin: 10px 0 0; padding: 0 0 0 16px; overflow-y: auto; color: var(--stop, #a4453a); }
 .actions { display: flex; justify-content: flex-end; gap: 8px; }
-.spinner-small { width: 14px; height: 14px; border-width: 2px; }
 </style>

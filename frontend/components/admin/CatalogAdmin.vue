@@ -32,6 +32,8 @@ const api = useApi();
 const items = ref<CatalogItem[]>([]);
 const loading = ref(false);
 const saving = ref(false);
+const togglingId = ref<string | null>(null);
+let loadVersion = 0;
 const error = ref("");
 const formError = ref("");
 const editingId = ref<string | null>(null);
@@ -54,21 +56,26 @@ const visibleItems = computed(() => {
 const blocked = computed(() => Boolean(props.requiresParent));
 
 async function load(): Promise<void> {
+  const version = ++loadVersion;
   if (blocked.value) {
     items.value = [];
+    loading.value = false;
     return;
   }
   loading.value = true;
   error.value = "";
   try {
     // Visão administrativa: inclui inativos para permitir reativar (exige catalogs:manage).
-    items.value = (
+    const result = (
       await api.get<CatalogList<CatalogItem>>(props.path, { ...props.query, include_inactive: "true" })
     ).items;
+    if (version !== loadVersion) return;
+    items.value = result;
   } catch (caught) {
+    if (version !== loadVersion) return;
     error.value = caught instanceof Error ? caught.message : `Não foi possível carregar ${props.label}.`;
   } finally {
-    loading.value = false;
+    if (version === loadVersion) loading.value = false;
   }
 }
 
@@ -97,6 +104,7 @@ function cancel(): void {
 }
 
 async function submit(): Promise<void> {
+  if (saving.value) return;
   if (!form.name.trim() || (props.hasCode && !form.code.trim())) {
     formError.value = props.hasCode ? "Informe código e nome." : "Informe o nome.";
     return;
@@ -121,10 +129,12 @@ async function submit(): Promise<void> {
 
 /** Desativar some com o item das listas operacionais, por isso confirmamos. */
 async function toggleActive(item: CatalogItem): Promise<void> {
+  if (saving.value) return;
   if (item.active && !confirm(`Desativar "${item.name}"? Ele deixa de aparecer nos formulários.`)) {
     return;
   }
   saving.value = true;
+  togglingId.value = item.id;
   error.value = "";
   try {
     await api.patch(`${props.itemPath ?? props.path}/${item.id}`, { active: !item.active });
@@ -134,6 +144,7 @@ async function toggleActive(item: CatalogItem): Promise<void> {
     error.value = caught instanceof Error ? caught.message : "Não foi possível alterar a situação.";
   } finally {
     saving.value = false;
+    togglingId.value = null;
   }
 }
 
@@ -179,8 +190,8 @@ watch(
         <p v-if="formError" class="catalog-error" role="alert">{{ formError }}</p>
         <div class="catalog-form-actions">
           <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
-          <button type="submit" class="btn small primary" :disabled="saving">
-            <Check :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
+          <button type="submit" class="btn small primary" :disabled="saving" :aria-busy="saving">
+            <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
           </button>
         </div>
       </form>
@@ -217,8 +228,9 @@ watch(
             <button type="button" class="text-button" :disabled="saving" @click="startEdit(item)">
               <Pencil :size="12" /> Editar
             </button>
-            <button type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" @click="toggleActive(item)">
-              {{ item.active ? "Desativar" : "Reativar" }}
+            <button type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" :aria-busy="togglingId === item.id" @click="toggleActive(item)">
+              <span v-if="togglingId === item.id" class="spinner-small" aria-hidden="true" />
+              {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
             </button>
           </span>
         </li>
@@ -280,7 +292,6 @@ watch(
 .text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: var(--steel, #304f7e); font-size: 11.5px; font-weight: 750; cursor: pointer; }
 .text-button--quiet { color: var(--muted, #6b7a8f); }
 .text-button:hover:not(:disabled) { text-decoration: underline; }
-.spinner-small { width: 14px; height: 14px; border-width: 2px; }
 @media (max-width: 640px) {
   .catalog-form { grid-template-columns: 1fr; }
   .catalog-list li { grid-template-columns: auto minmax(0, 1fr); }

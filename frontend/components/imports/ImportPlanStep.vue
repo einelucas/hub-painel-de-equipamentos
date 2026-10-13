@@ -159,8 +159,9 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             />
           </div>
         </article>
-        <button v-if="mappingDirty" type="button" class="btn" :disabled="busy" @click="buildPlan">
-          Atualizar plano com as decisões
+        <button v-if="mappingDirty" type="button" class="btn" :disabled="busy" :aria-busy="busy" @click="buildPlan">
+          <span v-if="busy" class="spinner-small" aria-hidden="true" />
+          {{ busy ? "Atualizando plano..." : "Atualizar plano com as decisões" }}
         </button>
       </section>
 
@@ -196,8 +197,10 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
         class="btn primary"
         :disabled="!plan?.canApply || mappingDirty || busy"
         data-testid="import-confirm"
+        :aria-busy="busy"
         @click="apply"
       >
+        <span v-if="busy" class="spinner-small" aria-hidden="true" />
         {{ busy ? "Importando..." : "Confirmar importação" }}
       </button>
     </div>

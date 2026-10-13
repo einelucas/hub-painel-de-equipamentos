@@ -135,7 +135,17 @@ onMounted(async () => {
         />
       </ModuleFilters>
 
-      <div v-if="loading" class="surface loading-state" data-testid="dashboard-loading"><span class="spinner" /><p>Carregando painel...</p></div>
+      <div v-if="loading" class="stack" data-testid="dashboard-loading" role="status" aria-busy="true">
+        <p class="sr-only">Carregando painel...</p>
+        <section class="metric-grid" aria-hidden="true">
+          <div v-for="n in 6" :key="n" class="surface skeleton-card"><SkeletonBlock :lines="3" /></div>
+        </section>
+        <div class="chart-row" aria-hidden="true">
+          <div class="surface skeleton-card tall"><SkeletonBlock :lines="6" /></div>
+          <div class="surface skeleton-card tall"><SkeletonBlock :lines="6" /></div>
+        </div>
+        <div class="progress-indeterminate" role="progressbar" aria-label="Carregando painel" />
+      </div>
       <div v-else-if="error" class="surface empty-state state-card" role="alert" data-testid="dashboard-error">
         <h2>Não foi possível carregar o painel</h2><p>{{ error }}</p>
         <button class="btn" @click="load">Tentar novamente</button>
@@ -147,7 +157,8 @@ onMounted(async () => {
         <NuxtLink class="btn" to="/equipamentos">Ir para Equipamentos</NuxtLink>
       </div>
       <template v-else-if="summary">
-        <section class="metric-grid" aria-label="Indicadores do recorte atual">
+        <div v-if="refreshing" class="progress-indeterminate" role="progressbar" aria-label="Atualizando painel" />
+        <section class="metric-grid" :aria-busy="refreshing" aria-label="Indicadores do recorte atual">
           <MetricCard label="Equipamentos" :value="formatNumber(summary.totals.equipments, 0)" detail="No recorte atual" />
           <MetricCard label="Componentes" :value="formatNumber(summary.totals.components, 0)" detail="Subitens cadastrados" />
           <MetricCard label="Em andamento" :value="formatNumber(summary.totals.inProgress, 0)" detail="Etapas 0 a 7" />
@@ -189,6 +200,8 @@ onMounted(async () => {
 .metric-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .metric-grid :deep(.metric-card .value) { font-size: 20px; white-space: nowrap; }
 .state-card .btn { margin-top: 18px; }
+.skeleton-card { padding: 16px 18px; }
+.skeleton-card.tall { min-height: 260px; }
 .loading-state { display: grid; min-height: 320px; place-items: center; align-content: center; gap: 10px; color: #748197; }
 .chart-row { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .surface-header h2 { display: inline-flex; align-items: center; gap: 7px; }

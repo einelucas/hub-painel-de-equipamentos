@@ -34,6 +34,7 @@ const loading = ref(true);
 const saving = ref(false);
 const error = ref("");
 const showEapAdmin = ref(false);
+const reloadingEap = ref(false);
 
 const form = reactive({
   name: props.equipment?.name ?? "",
@@ -111,7 +112,13 @@ async function loadEapNodes(): Promise<void> {
 }
 
 async function eapCatalogChanged(): Promise<void> {
-  await loadEapNodes();
+  if (reloadingEap.value) return;
+  reloadingEap.value = true;
+  try {
+    await loadEapNodes();
+  } finally {
+    reloadingEap.value = false;
+  }
 }
 
 async function loadCatalogs(): Promise<void> {
@@ -156,6 +163,7 @@ async function loadCatalogs(): Promise<void> {
 }
 
 async function submit(): Promise<void> {
+  if (saving.value) return;
   if (!form.name.trim() || !form.projectContextId) {
     error.value = "Informe o nome e o contexto do equipamento.";
     return;
@@ -202,7 +210,7 @@ onMounted(loadCatalogs);
 </script>
 
 <template>
-  <div v-if="loading" class="form-loading">
+  <div v-if="loading" class="form-loading" role="status">
     <span class="spinner" />
     Carregando catálogos...
   </div>
@@ -364,7 +372,8 @@ onMounted(loadCatalogs);
         Cancelar
       </button>
 
-      <button type="submit" class="btn primary" :disabled="saving">
+      <button type="submit" class="btn primary" :disabled="saving" :aria-busy="saving">
+        <span v-if="saving" class="spinner-small" aria-hidden="true" />
         {{ saving ? "Salvando..." : "Salvar equipamento" }}
       </button>
     </div>

@@ -11,6 +11,7 @@ const api = useApi();
 const nodes = ref<EapNodeItem[]>([]);
 const loading = ref(false);
 const saving = ref(false);
+let loadVersion = 0;
 const error = ref("");
 const formError = ref("");
 const creating = ref(false);
@@ -95,14 +96,18 @@ const parentOptions = computed(() => {
 const parentSelectOptions = computed(() => toOptions(parentOptions.value, codeNameLabel));
 
 async function load(): Promise<void> {
+  const version = ++loadVersion;
   loading.value = true;
   error.value = "";
   try {
-    nodes.value = (await api.get<CatalogList<EapNodeItem>>("/eap-nodes")).items;
+    const result = (await api.get<CatalogList<EapNodeItem>>("/eap-nodes")).items;
+    if (version !== loadVersion) return;
+    nodes.value = result;
   } catch (caught) {
+    if (version !== loadVersion) return;
     error.value = caught instanceof Error ? caught.message : "Não foi possível carregar a Árvore EAP.";
   } finally {
-    loading.value = false;
+    if (version === loadVersion) loading.value = false;
   }
 }
 
@@ -139,6 +144,7 @@ function cancel(): void {
 }
 
 async function submit(): Promise<void> {
+  if (saving.value) return;
   if (!form.code.trim() || !form.name.trim()) {
     formError.value = "Informe código e nome.";
     return;
@@ -251,8 +257,8 @@ void load();
       <p v-if="formError" class="eap-error" role="alert">{{ formError }}</p>
       <div class="eap-form-actions">
         <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
-        <button type="submit" class="btn small primary" :disabled="saving" data-testid="eap-save">
-          <Check :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
+        <button type="submit" class="btn small primary" :disabled="saving" data-testid="eap-save" :aria-busy="saving">
+          <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
         </button>
       </div>
     </form>
@@ -358,7 +364,6 @@ void load();
 .eap-edit { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #8592a6; cursor: pointer; }
 .eap-edit:hover { background: #edf3fa; color: var(--steel, #304f7e); }
 .eap-edit:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 1px; }
-.spinner-small { width: 14px; height: 14px; border-width: 2px; }
 @media (max-width: 700px) {
   .eap-form { grid-template-columns: 1fr; }
   .eap-parent-field { grid-column: auto; }

@@ -10,7 +10,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const state = useEquipmentImport();
 provide(IMPORT_KEY, state);
-const { step, error, hasProgress, result, batches, totals, plan, selectedContext, files } = state;
+const { step, error, busy, statusMessage, locked, hasProgress, result, batches, totals, plan, selectedContext, files } = state;
 
 watch(
   () => props.open,
@@ -24,6 +24,7 @@ watch(
 
 /** Fechar no meio pede confirmação só quando já há análise feita. */
 function close(): void {
+  if (locked.value) return;
   if (hasProgress.value && !confirm("Fechar a importação? A análise já feita fica registrada, mas nada será importado.")) {
     return;
   }
@@ -120,6 +121,11 @@ const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
         <h3>{{ STEP_INTRO[step].title }}</h3>
         <p>{{ STEP_INTRO[step].text }}</p>
       </header>
+
+      <div v-if="busy && statusMessage" class="import-status" role="status" data-testid="import-status">
+        <span><span class="spinner-small" aria-hidden="true" /> {{ statusMessage }}</span>
+        <div class="progress-indeterminate" role="progressbar" aria-label="Processando" />
+      </div>
 
       <p v-if="error" class="import-error" role="alert" data-testid="import-error">{{ error }}</p>
 
@@ -223,6 +229,8 @@ const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
 .step-intro h3 { margin: 0; color: var(--ink); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
 .step-intro p { margin: 0; color: var(--muted); font-size: 12.5px; }
 
+.import-status { display: grid; gap: 8px; border: 1px solid var(--rule); border-radius: 10px; background: var(--wash); padding: 10px 12px; color: var(--ink); font-size: 12.5px; font-weight: 700; }
+.import-status .spinner-small { margin-right: 6px; vertical-align: -2px; }
 .import-error { margin: 0; border-left: 3px solid var(--stop); border-radius: 8px; background: var(--stop-wash); padding: 9px 12px; color: var(--stop); font-size: 12px; font-weight: 700; }
 
 /* ---------- Peças compartilhadas pelas etapas ---------- */

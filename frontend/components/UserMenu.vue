@@ -31,9 +31,12 @@ onBeforeUnmount(() =>
   document.removeEventListener("mousedown", onClickOutside),
 );
 
+const { pending: loggingOut, run: runLogout } = useAsyncAction(logout);
+
 async function handleLogout() {
+  if (loggingOut.value) return;
+  await runLogout();
   open.value = false;
-  await logout();
 }
 </script>
 
@@ -75,11 +78,14 @@ async function handleLogout() {
 
       <button
         type="button"
-        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
+        :disabled="loggingOut"
+        :aria-busy="loggingOut"
         @click="handleLogout"
       >
-        <LogOut class="size-4" />
-        Sair
+        <span v-if="loggingOut" class="spinner-small" aria-hidden="true" />
+        <LogOut v-else class="size-4" />
+        {{ loggingOut ? "Saindo..." : "Sair" }}
       </button>
     </div>
   </div>

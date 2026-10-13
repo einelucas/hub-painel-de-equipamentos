@@ -24,6 +24,7 @@ const emit = defineEmits<{ changed: [] }>();
 
 const api = useApi();
 const busy = ref(false);
+const activeId = ref<string | null>(null);
 const actionError = ref("");
 const showForm = ref(false);
 const editing = ref<PurchaseRequest | null>(null);
@@ -48,6 +49,7 @@ function closeForm(): void {
 }
 
 async function submit(values: EquipmentPurchaseRequestFormValues): Promise<void> {
+  if (busy.value) return;
   busy.value = true;
   actionError.value = "";
   const payload = {
@@ -71,7 +73,9 @@ async function submit(values: EquipmentPurchaseRequestFormValues): Promise<void>
 }
 
 async function removeItem(item: PurchaseRequest): Promise<void> {
+  if (busy.value) return;
   busy.value = true;
+  activeId.value = item.id;
   actionError.value = "";
   try {
     await api.delete(`/equipments/${props.equipmentId}/purchase-requests/${item.id}`);
@@ -80,6 +84,7 @@ async function removeItem(item: PurchaseRequest): Promise<void> {
     actionError.value = caught instanceof Error ? caught.message : "Não foi possível excluir a SC/OCI.";
   } finally {
     busy.value = false;
+    activeId.value = null;
   }
 }
 </script>
@@ -111,6 +116,7 @@ async function removeItem(item: PurchaseRequest): Promise<void> {
       :items="sorted"
       :editable="editable"
       :busy="busy"
+      :active-id="activeId"
       @edit="openEdit"
       @delete="removeItem"
     />

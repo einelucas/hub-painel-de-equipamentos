@@ -68,7 +68,7 @@ function openWaive(): void {
 }
 
 async function confirmWaive(): Promise<void> {
-  if (!justification.value.trim() || !props.group) {
+  if (busy.value || !justification.value.trim() || !props.group) {
     return;
   }
 
@@ -102,7 +102,7 @@ function openRevoke(): void {
 }
 
 async function confirmRevoke(): Promise<void> {
-  if (!props.waiver) return;
+  if (busy.value || !props.waiver) return;
 
   busy.value = true;
   actionError.value = "";
@@ -321,7 +321,9 @@ async function confirmRevoke(): Promise<void> {
           type="submit"
           class="btn primary"
           :disabled="!justification.trim() || busy"
+          :aria-busy="busy"
         >
+          <span v-if="busy" class="spinner-small" aria-hidden="true" />
           {{ busy ? "Salvando..." : "Confirmar dispensa" }}
         </button>
       </div>
@@ -372,7 +374,8 @@ async function confirmRevoke(): Promise<void> {
           Cancelar
         </button>
 
-        <button type="submit" class="btn danger-primary" :disabled="busy">
+        <button type="submit" class="btn danger-primary" :disabled="busy" :aria-busy="busy">
+          <span v-if="busy" class="spinner-small" aria-hidden="true" />
           {{ busy ? "Salvando..." : "Revogar dispensa" }}
         </button>
       </div>

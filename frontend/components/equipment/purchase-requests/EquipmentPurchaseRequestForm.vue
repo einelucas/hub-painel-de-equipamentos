@@ -53,7 +53,7 @@ const form = reactive<EquipmentPurchaseRequestFormValues>({
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <div class="form-actions">
       <button type="button" class="btn" @click="emit('cancel')">Cancelar</button>
-      <button type="submit" class="btn primary" :disabled="busy">{{ busy ? "Salvando..." : "Salvar" }}</button>
+      <button type="submit" class="btn primary" :disabled="busy" :aria-busy="busy"><span v-if="busy" class="spinner-small" aria-hidden="true" />{{ busy ? "Salvando..." : "Salvar" }}</button>
     </div>
   </form>
 </template>

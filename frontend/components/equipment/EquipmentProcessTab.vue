@@ -68,14 +68,14 @@ const purchaseRequestRequirementGroup = computed(() =>
 );
 
 async function advanceStage(): Promise<void> {
-  if (!props.advance || !props.advance.canExecute) return;
+  if (!props.advance || !props.advance.canExecute || props.advancing) return;
   if (await props.requestTransition(props.advance.targetStage))
     emit("advanced");
 }
 </script>
 
 <template>
-  <div v-if="loading" class="surface detail-state">
+  <div v-if="loading" class="surface detail-state" role="status">
     <span class="spinner" /> Carregando processo...
   </div>
   <div v-else-if="error" class="surface empty-state detail-state" role="alert">
@@ -137,11 +137,13 @@ async function advanceStage(): Promise<void> {
             v-if="advance"
             class="btn primary advance-button"
             :disabled="!advance.canExecute || advancing"
+            :aria-busy="advancing"
             data-testid="advance-button"
             @click="advanceStage"
           >
+            <span v-if="advancing" class="spinner-small" aria-hidden="true" />
             {{ advancing ? "Processando..." : advanceLabel
-            }}<ArrowRight :size="15" />
+            }}<ArrowRight v-if="!advancing" :size="15" />
           </button>
         </div>
       </section>

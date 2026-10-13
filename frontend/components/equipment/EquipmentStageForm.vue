@@ -98,7 +98,8 @@ function submit(): void {
       </div>
     </fieldset>
     <div v-if="editable" class="form-actions">
-      <button type="submit" class="btn" :disabled="saving" data-testid="save-process">
+      <button type="submit" class="btn" :disabled="saving" :aria-busy="saving" data-testid="save-process">
+        <span v-if="saving" class="spinner-small" aria-hidden="true" />
         {{ saving ? "Salvando..." : "Salvar alterações" }}
       </button>
     </div>

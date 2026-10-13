@@ -35,6 +35,7 @@ const userId = ref("");
 const dateFrom = ref("");
 const dateTo = ref("");
 const message = ref("");
+let loadVersion = 0;
 
 // GAP-019 (Etapa 6D): opções reais para os filtros de Equipamento/Usuário —
 // nenhum ID digitado à mão, sem busca avançada/query builder.
@@ -46,7 +47,9 @@ const userSelectOptions = computed(() =>
 );
 
 async function load() {
+  const version = ++loadVersion;
   loading.value = true;
+  message.value = "";
   try {
     const res = await api.get<{ items: Audit[]; pagination: { totalPages: number } }>("/auditoria", {
       page: page.value,
@@ -58,24 +61,33 @@ async function load() {
       date_from: dateFrom.value || undefined,
       date_to: dateTo.value || undefined,
     });
+    if (version !== loadVersion) return;
     items.value = res.items;
     pages.value = res.pagination.totalPages;
   } catch (cause) {
+    if (version !== loadVersion) return;
     message.value = cause instanceof Error ? cause.message : "Erro ao carregar auditoria.";
   } finally {
-    loading.value = false;
+    if (version === loadVersion) loading.value = false;
   }
 }
 
 watch([page, entity, action, equipmentId, userId, dateFrom, dateTo], load);
 onMounted(async () => {
-  const [equipments, users] = await Promise.all([
-    api.get<EquipmentList>("/equipments", { pageSize: 100, sortBy: "name" }),
-    api.get<CatalogList<UserOption>>("/usuarios"),
-  ]);
-  equipmentOptions.value = equipments.items;
-  userOptions.value = users.items;
-  await load();
+  // Opções dos filtros carregam junto da primeira página; falha nelas não bloqueia a listagem.
+  const options = (async () => {
+    try {
+      const [equipments, users] = await Promise.all([
+        api.get<EquipmentList>("/equipments", { pageSize: 100, sortBy: "name" }),
+        api.get<CatalogList<UserOption>>("/usuarios"),
+      ]);
+      equipmentOptions.value = equipments.items;
+      userOptions.value = users.items;
+    } catch {
+      // Filtros ficam sem opções; a listagem principal segue funcionando.
+    }
+  })();
+  await Promise.all([options, load()]);
 });
 </script>
 
@@ -124,16 +136,18 @@ onMounted(async () => {
         <Label for="au-date-to">Até</Label>
         <Input id="au-date-to" v-model="dateTo" type="date" @change="page = 1" />
       </div>
-      <Button variant="outline" size="icon" aria-label="Atualizar" @click="load">
-        <RefreshCw class="size-4" />
+      <Button variant="outline" size="icon" aria-label="Atualizar" :disabled="loading" :aria-busy="loading" @click="load">
+        <RefreshCw class="size-4" :class="{ 'animate-spin': loading }" />
       </Button>
     </div>
 
     <p v-if="message" class="text-sm text-danger">{{ message }}</p>
-    <p v-else-if="loading" class="text-sm text-neutralbrand">Carregando…</p>
+    <div v-else-if="loading && !items.length" class="space-y-2" role="status" aria-label="Carregando auditoria">
+      <SkeletonBlock :rows="6" />
+    </div>
 
     <template v-else>
-      <Table>
+      <Table :class="loading ? 'opacity-60 transition-opacity' : ''" :aria-busy="loading">
         <TableHeader>
           <TableRow>
             <TableHead>Quando</TableHead>

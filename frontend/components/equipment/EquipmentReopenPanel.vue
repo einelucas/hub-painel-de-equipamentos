@@ -43,6 +43,7 @@ function openReopenRequest(): void {
   showReopenRequest.value = true;
 }
 async function confirmReopenRequest(): Promise<void> {
+  if (props.busy) return;
   if (reopenTargetStage.value === "" || !reopenJustification.value.trim()) return;
   if (await props.requestReopen(Number(reopenTargetStage.value), reopenJustification.value.trim())) {
     showReopenRequest.value = false;
@@ -60,7 +61,7 @@ function openReopenDecision(mode: "approve" | "reject"): void {
 }
 async function confirmReopenDecision(): Promise<void> {
   const request = props.pendingReopenRequest;
-  if (!request) return;
+  if (!request || props.busy) return;
   const action = reopenDecisionMode.value === "approve" ? props.approveReopen : props.rejectReopen;
   if (await action(request.id, reopenDecisionNote.value.trim())) {
     showReopenDecision.value = false;
@@ -117,7 +118,7 @@ async function confirmReopenDecision(): Promise<void> {
       <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
       <div class="form-actions">
         <button type="button" class="btn" @click="showReopenRequest = false">Cancelar</button>
-        <button type="submit" class="btn primary" :disabled="reopenTargetStage === '' || !reopenJustification.trim() || busy">Solicitar</button>
+        <button type="submit" class="btn primary" :disabled="reopenTargetStage === '' || !reopenJustification.trim() || busy" :aria-busy="busy"><span v-if="busy" class="spinner-small" aria-hidden="true" />{{ busy ? "Enviando..." : "Solicitar" }}</button>
       </div>
     </form>
   </AppModal>
@@ -128,7 +129,8 @@ async function confirmReopenDecision(): Promise<void> {
       <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
       <div class="form-actions">
         <button type="button" class="btn" @click="showReopenDecision = false">Cancelar</button>
-        <button type="submit" class="btn primary" :disabled="busy">
+        <button type="submit" class="btn primary" :disabled="busy" :aria-busy="busy">
+          <span v-if="busy" class="spinner-small" aria-hidden="true" />
           {{ reopenDecisionMode === "approve" ? "Confirmar aprovação" : "Confirmar rejeição" }}
         </button>
       </div>

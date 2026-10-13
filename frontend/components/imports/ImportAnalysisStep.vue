@@ -83,9 +83,11 @@ const standby = computed(() =>
         class="btn primary"
         :disabled="!canProceed || busy"
         data-testid="import-to-mapping"
+        :aria-busy="busy"
         @click="loadMappingOptions"
       >
-        Continuar para o mapeamento
+        <span v-if="busy" class="spinner-small" aria-hidden="true" />
+        {{ busy ? "Carregando cadastros..." : "Continuar para o mapeamento" }}
       </button>
     </div>
   </div>

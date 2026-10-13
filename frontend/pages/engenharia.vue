@@ -25,7 +25,18 @@ const responsibleOptions = computed<SearchableOption[]>(() =>
   responsibles.value.map((item) => ({ id: item.id, label: item.name, searchText: item.email })),
 );
 
+const catalogsLoading = ref(false);
+
 async function loadFilterCatalogs(): Promise<void> {
+  catalogsLoading.value = true;
+  try {
+    await fetchFilterCatalogs();
+  } finally {
+    catalogsLoading.value = false;
+  }
+}
+
+async function fetchFilterCatalogs(): Promise<void> {
   disciplines.value = (await api.get<CatalogList<CatalogItem>>("/disciplines")).items;
   if (context.selectedUnit) {
     responsibles.value = (
@@ -94,6 +105,7 @@ onMounted(async () => {
           <SearchableSelect
             v-model="disciplineId"
             :options="disciplineOptions"
+            :disabled="catalogsLoading"
             label="Disciplina"
             placeholder="Buscar disciplina"
             empty-label="Todas"
@@ -106,7 +118,7 @@ onMounted(async () => {
           <SearchableSelect
             v-model="responsibleUserId"
             :options="responsibleOptions"
-            :disabled="!context.selectedUnit"
+            :disabled="!context.selectedUnit || catalogsLoading"
             :title="!context.selectedUnit ? 'Selecione uma unidade para filtrar por responsável' : undefined"
             label="Responsável"
             placeholder="Buscar responsável"

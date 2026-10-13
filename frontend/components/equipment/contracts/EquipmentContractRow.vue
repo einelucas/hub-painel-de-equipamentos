@@ -3,7 +3,13 @@ import { Download, Pencil, Trash2 } from "lucide-vue-next";
 import type { Contract } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 
-defineProps<{ contract: Contract; editable: boolean; busy: boolean }>();
+defineProps<{
+  contract: Contract;
+  editable: boolean;
+  busy: boolean;
+  activeId?: string | null;
+  downloadingId?: string | null;
+}>();
 const emit = defineEmits<{
   edit: [contract: Contract];
   delete: [contract: Contract];
@@ -21,9 +27,16 @@ const emit = defineEmits<{
       <button
         v-if="contract.file"
         class="text-button"
+        :disabled="downloadingId === contract.id"
+        :aria-busy="downloadingId === contract.id"
         @click="emit('download', contract)"
       >
-        <Download :size="13" /> {{ contract.file.fileName }}
+        <span
+          v-if="downloadingId === contract.id"
+          class="spinner-small"
+          aria-hidden="true"
+        />
+        <Download v-else :size="13" /> {{ contract.file.fileName }}
       </button>
       <span v-else>—</span>
     </TableCell>
@@ -39,9 +52,16 @@ const emit = defineEmits<{
         v-if="editable"
         class="text-button danger"
         :disabled="busy"
+        :aria-busy="activeId === contract.id"
         @click="emit('delete', contract)"
       >
-        <Trash2 :size="13" /> Excluir
+        <span
+          v-if="activeId === contract.id"
+          class="spinner-small"
+          aria-hidden="true"
+        />
+        <Trash2 v-else :size="13" />
+        {{ activeId === contract.id ? "Excluindo..." : "Excluir" }}
       </button>
     </TableCell>
   </TableRow>

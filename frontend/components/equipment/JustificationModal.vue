@@ -38,7 +38,8 @@ function submit(): void {
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <div class="form-actions">
         <button type="button" class="btn" @click="emit('close')">Cancelar</button>
-        <button type="submit" class="btn primary" :disabled="busy || (required && !text.trim())">
+        <button type="submit" class="btn primary" :disabled="busy || (required && !text.trim())" :aria-busy="busy">
+          <span v-if="busy" class="spinner-small" aria-hidden="true" />
           {{ busy ? "Processando..." : (confirmLabel ?? "Confirmar") }}
         </button>
       </div>

@@ -16,6 +16,8 @@ const busy = ref(false);
 const error = ref("");
 const actionError = ref("");
 const showLink = ref(false);
+const opening = ref(false);
+let loadingNow = false;
 
 const canWrite = computed(() => auth.can("suppliers:write"));
 const current = computed<EquipmentSupplier | null>(
@@ -27,6 +29,8 @@ const available = computed(() =>
 );
 
 async function load(): Promise<void> {
+  if (loadingNow) return;
+  loadingNow = true;
   loading.value = true;
   error.value = "";
   try {
@@ -38,16 +42,27 @@ async function load(): Promise<void> {
       caught instanceof Error ? caught.message : "Não foi possível carregar o fornecedor.";
   } finally {
     loading.value = false;
+    loadingNow = false;
   }
 }
 
 async function openLink(): Promise<void> {
+  if (opening.value) return;
+  opening.value = true;
   actionError.value = "";
-  showLink.value = true;
-  catalog.value = (await api.get<CatalogList<Supplier>>("/suppliers")).items;
+  try {
+    catalog.value = (await api.get<CatalogList<Supplier>>("/suppliers")).items;
+    showLink.value = true;
+  } catch (caught) {
+    actionError.value =
+      caught instanceof Error ? caught.message : "Não foi possível carregar os fornecedores.";
+  } finally {
+    opening.value = false;
+  }
 }
 
 async function run(action: () => Promise<unknown>, fallback: string): Promise<void> {
+  if (busy.value) return;
   busy.value = true;
   actionError.value = "";
   try {
@@ -91,15 +106,17 @@ onMounted(load);
         <h2>Fornecedor atual</h2>
         <p>Um equipamento pode trocar de fornecedor, mantendo no máximo um vínculo ativo por vez.</p>
       </div>
-      <button v-if="canWrite && !current" class="btn primary" :disabled="busy" @click="openLink">
+      <button v-if="canWrite && !current" class="btn primary" :disabled="busy || opening" :aria-busy="opening" @click="openLink">
+        <span v-if="opening" class="spinner-small" aria-hidden="true" />
         Vincular fornecedor
       </button>
-      <button v-else-if="canWrite" class="btn" :disabled="busy" data-testid="replace-supplier" @click="openLink">
-        <RefreshCw :size="15" /> Substituir fornecedor
+      <button v-else-if="canWrite" class="btn" :disabled="busy || opening" data-testid="replace-supplier" :aria-busy="opening" @click="openLink">
+        <span v-if="opening" class="spinner-small" aria-hidden="true" />
+        <RefreshCw v-else :size="15" /> Substituir fornecedor
       </button>
     </div>
 
-    <div v-if="loading" class="supplier-state" data-testid="suppliers-loading">
+    <div v-if="loading" class="supplier-state" data-testid="suppliers-loading" role="status">
       <span class="spinner" /> Carregando fornecedor...
     </div>
     <div v-else-if="error" class="empty-state table-empty" role="alert" data-testid="suppliers-error">
@@ -121,9 +138,11 @@ onMounted(load);
           v-if="canWrite"
           class="text-button danger"
           :disabled="busy"
+          :aria-busy="busy"
           @click="unlink(current.supplier.id)"
         >
-          <Trash2 :size="13" /> Encerrar vínculo
+          <span v-if="busy" class="spinner-small" aria-hidden="true" />
+          <Trash2 v-else :size="13" /> {{ busy ? "Encerrando..." : "Encerrar vínculo" }}
         </button>
       </div>
 

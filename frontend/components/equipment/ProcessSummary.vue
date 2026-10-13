@@ -141,7 +141,8 @@ const groups = computed(() => [
 
         <div class="edit-actions">
           <button type="button" class="btn" :disabled="saving" @click="cancelEdit(group.resource)">Cancelar</button>
-          <button type="submit" class="btn primary" :disabled="saving" :data-testid="`save-${group.resource}`">
+          <button type="submit" class="btn primary" :disabled="saving" :aria-busy="saving" :data-testid="`save-${group.resource}`">
+            <span v-if="saving" class="spinner-small" aria-hidden="true" />
             {{ saving ? "Salvando..." : "Salvar" }}
           </button>
         </div>

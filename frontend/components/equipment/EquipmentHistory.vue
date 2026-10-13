@@ -30,6 +30,7 @@ const api = useApi();
 const entries = ref<HistoryEntry[]>([]);
 const loading = ref(true);
 const error = ref("");
+let inFlight = false;
 
 const entryCountLabel = computed(() => {
   const count = entries.value.length;
@@ -93,6 +94,8 @@ function displayTitle(title: string): string {
 }
 
 async function load(): Promise<void> {
+  if (loading.value && inFlight) return;
+  inFlight = true;
   loading.value = true;
   error.value = "";
 
@@ -107,6 +110,7 @@ async function load(): Promise<void> {
         : "Não foi possível carregar o histórico.";
   } finally {
     loading.value = false;
+    inFlight = false;
   }
 }
 

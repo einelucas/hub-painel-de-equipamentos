@@ -10,6 +10,7 @@ const detail = ref<EquipmentDetail | null>(null);
 const loading = ref(true);
 const error = ref("");
 const showEdit = ref(false);
+let loadStarted = false;
 
 const tab = ref<
   "process" | "components" | "suppliers" | "comments" | "history"
@@ -46,6 +47,8 @@ const lastOperationalEvent = computed(
 );
 
 async function loadEquipment(): Promise<void> {
+  if (loadStarted) return;
+  loadStarted = true;
   loading.value = true;
   error.value = "";
   try {
@@ -59,6 +62,7 @@ async function loadEquipment(): Promise<void> {
         : "Não foi possível carregar o equipamento.";
   } finally {
     loading.value = false;
+    loadStarted = false;
   }
 }
 
@@ -83,7 +87,7 @@ onMounted(load);
     <NuxtLink class="admin-back" to="/dashboard"
       ><ArrowLeft :size="15" /> Voltar ao painel</NuxtLink
     >
-    <div v-if="loading" class="surface detail-state">
+    <div v-if="loading && !detail" class="surface detail-state" role="status">
       <span class="spinner" /> Carregando detalhe...
     </div>
     <div
@@ -95,7 +99,8 @@ onMounted(load);
       <p>{{ error }}</p>
       <button class="btn" @click="load">Tentar novamente</button>
     </div>
-    <div v-else-if="detail" class="stack">
+    <div v-else-if="detail" class="stack" :aria-busy="loading">
+      <div v-if="loading" class="progress-indeterminate" role="progressbar" aria-label="Atualizando" />
       <EquipmentOverview
         :equipment="detail.equipment"
         :current-stage="currentStage"

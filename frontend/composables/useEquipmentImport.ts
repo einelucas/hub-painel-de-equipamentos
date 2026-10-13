@@ -105,8 +105,30 @@ export function useEquipmentImport() {
   const mappingDirty = ref(false);
   const result = ref<ImportApplyResult | null>(null);
   const busy = ref(false);
+  /** Operação em andamento (para mensagem de status e progresso no modal). */
+  const phase = ref<"setup" | "contexts" | "analyze" | "mapping" | "plan" | "apply" | null>(null);
+  const analysisProgress = ref<{ current: number; total: number; fileName: string } | null>(null);
   const error = ref("");
   const stale = ref(false);
+  const loadingContexts = ref(false);
+  let contextsVersion = 0;
+
+  const statusMessage = computed(() => {
+    switch (phase.value) {
+      case "setup": return "Carregando opções de importação...";
+      case "contexts": return "Carregando obras da unidade...";
+      case "analyze": {
+        const progress = analysisProgress.value;
+        return progress ? `Analisando arquivo ${progress.current} de ${progress.total}...` : "Analisando planilhas...";
+      }
+      case "mapping": return "Carregando cadastros do Hub...";
+      case "plan": return "Montando o plano de importação...";
+      case "apply": return "Gravando a importação. Não feche esta janela...";
+      default: return "";
+    }
+  });
+  /** Fechar o modal durante análise ou gravação deixaria a operação órfã. */
+  const locked = computed(() => phase.value === "analyze" || phase.value === "apply");
 
   const selectedContext = computed(() => contexts.value.find((item) => item.id === selection.contextId) ?? null);
   const hasProgress = computed(() => batches.value.length > 0 && result.value === null);
@@ -121,7 +143,9 @@ export function useEquipmentImport() {
   );
 
   async function loadSetup(preferredUnitId = ""): Promise<void> {
+    if (busy.value) return;
     busy.value = true;
+    phase.value = "setup";
     error.value = "";
     try {
       const [unitList, profileList] = await Promise.all([
@@ -139,6 +163,7 @@ export function useEquipmentImport() {
       error.value = message(caught, "Não foi possível carregar as opções de importação.");
     } finally {
       busy.value = false;
+      phase.value = null;
     }
   }
 
@@ -147,8 +172,19 @@ export function useEquipmentImport() {
     contexts.value = [];
     selection.contextId = "";
     if (!selection.unitId) return;
-    contexts.value = (await api.get<CatalogList<CatalogItem>>(`/units/${selection.unitId}/project-contexts`)).items;
-    if (contexts.value.length === 1) selection.contextId = contexts.value[0]!.id;
+    const version = ++contextsVersion;
+    const unitId = selection.unitId;
+    loadingContexts.value = true;
+    try {
+      const items = (await api.get<CatalogList<CatalogItem>>(`/units/${unitId}/project-contexts`)).items;
+      if (version !== contextsVersion) return;
+      contexts.value = items;
+      if (contexts.value.length === 1) selection.contextId = contexts.value[0]!.id;
+    } catch (caught) {
+      if (version === contextsVersion) error.value = message(caught, "Não foi possível carregar as obras da unidade.");
+    } finally {
+      if (version === contextsVersion) loadingContexts.value = false;
+    }
   }
 
   /** Vários .xlsx de uma vez (um por fase). ZIP e outros formatos são recusados. */
@@ -165,14 +201,17 @@ export function useEquipmentImport() {
   }
 
   async function analyze(): Promise<void> {
-    if (!files.value.length || !selection.contextId || !selection.profileId) return;
+    if (busy.value || !files.value.length || !selection.contextId || !selection.profileId) return;
     busy.value = true;
+    phase.value = "analyze";
     error.value = "";
     batches.value = [];
     failures.value = [];
+    const total = files.value.length;
     try {
       // Sequencial: cada arquivo é um staging próprio (hash, batch, issues).
-      for (const candidate of files.value) {
+      for (const [index, candidate] of files.value.entries()) {
+        analysisProgress.value = { current: index + 1, total, fileName: candidate.name };
         const form = new FormData();
         form.append("projectContextId", selection.contextId);
         form.append("profileId", selection.profileId);
@@ -189,12 +228,16 @@ export function useEquipmentImport() {
       if (batches.value.length || failures.value.length) step.value = "analysis";
     } finally {
       busy.value = false;
+      phase.value = null;
+      analysisProgress.value = null;
     }
   }
 
   /** Alvos do mapping vêm dos catálogos existentes; nada é criado aqui. */
   async function loadMappingOptions(): Promise<void> {
+    if (busy.value) return;
     busy.value = true;
+    phase.value = "mapping";
     error.value = "";
     try {
       const [responsibles, disciplines, workPackages, eapNodes, supplierList] = await Promise.all([
@@ -226,6 +269,7 @@ export function useEquipmentImport() {
       error.value = message(caught, "Não foi possível carregar os cadastros do Hub.");
     } finally {
       busy.value = false;
+      phase.value = null;
     }
   }
 
@@ -253,8 +297,9 @@ export function useEquipmentImport() {
   }
 
   async function buildPlan(): Promise<void> {
-    if (!batches.value.length) return;
+    if (busy.value || !batches.value.length) return;
     busy.value = true;
+    phase.value = "plan";
     error.value = "";
     stale.value = false;
     try {
@@ -286,13 +331,15 @@ export function useEquipmentImport() {
       error.value = message(caught, "Não foi possível montar o plano.");
     } finally {
       busy.value = false;
+      phase.value = null;
     }
   }
 
   /** O backend reconstrói o plano e compara o hash: mudou algo, volta para revisão (PLAN_STALE). */
   async function apply(): Promise<void> {
-    if (!batches.value.length || !plan.value?.canApply || mappingDirty.value) return;
+    if (busy.value || !batches.value.length || !plan.value?.canApply || mappingDirty.value) return;
     busy.value = true;
+    phase.value = "apply";
     error.value = "";
     stale.value = false;
     try {
@@ -312,6 +359,7 @@ export function useEquipmentImport() {
       }
     } finally {
       busy.value = false;
+      phase.value = null;
     }
   }
 
@@ -345,6 +393,11 @@ export function useEquipmentImport() {
     mappingDirty,
     result,
     busy,
+    phase,
+    analysisProgress,
+    statusMessage,
+    locked,
+    loadingContexts,
     error,
     stale,
     selectedContext,

@@ -34,8 +34,9 @@ const props = withDefaults(
     size?: ButtonVariants["size"];
     type?: "button" | "submit" | "reset";
     class?: string;
+    loading?: boolean;
   }>(),
-  { type: "button", variant: "default", size: "default", class: undefined },
+  { type: "button", variant: "default", size: "default", class: undefined, loading: false },
 );
 </script>
 
@@ -43,8 +44,11 @@ const props = withDefaults(
   <button
     :type="props.type"
     data-slot="button"
+    :disabled="props.loading || undefined"
+    :aria-busy="props.loading || undefined"
     :class="cn(buttonVariants({ variant: props.variant, size: props.size }), props.class)"
   >
+    <span v-if="props.loading" class="spinner-small" aria-hidden="true" />
     <slot />
   </button>
 </template>

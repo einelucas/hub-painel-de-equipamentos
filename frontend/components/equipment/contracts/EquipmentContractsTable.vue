@@ -2,7 +2,13 @@
 import type { Contract } from "~/types/equipment";
 import EquipmentContractRow from "~/components/equipment/contracts/EquipmentContractRow.vue";
 
-defineProps<{ contracts: Contract[]; editable: boolean; busy: boolean }>();
+defineProps<{
+  contracts: Contract[];
+  editable: boolean;
+  busy: boolean;
+  activeId?: string | null;
+  downloadingId?: string | null;
+}>();
 const emit = defineEmits<{
   edit: [contract: Contract];
   delete: [contract: Contract];
@@ -36,6 +42,8 @@ const emit = defineEmits<{
           :contract="item"
           :editable="editable"
           :busy="busy"
+          :active-id="activeId"
+          :downloading-id="downloadingId"
           @edit="emit('edit', $event)"
           @delete="emit('delete', $event)"
           @download="emit('download', $event)"

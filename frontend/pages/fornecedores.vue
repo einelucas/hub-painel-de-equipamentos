@@ -13,6 +13,7 @@ const auth = useAuthStore();
 const suppliers = ref<Supplier[]>([]);
 const loading = ref(true);
 const saving = ref(false);
+let loadVersion = 0;
 const error = ref("");
 const formError = ref("");
 const search = ref("");
@@ -28,18 +29,22 @@ const allowed = computed(() => auth.can("suppliers:read"));
 const canWrite = computed(() => auth.can("suppliers:write"));
 
 async function load(): Promise<void> {
+  const version = ++loadVersion;
   loading.value = true;
   error.value = "";
   try {
     const query: Record<string, unknown> = {};
     if (search.value.trim()) query.search = search.value.trim();
     if (includeInactive.value) query.includeInactive = true;
-    suppliers.value = sortSuppliers((await api.get<CatalogList<Supplier>>("/suppliers", query)).items);
+    const result = sortSuppliers((await api.get<CatalogList<Supplier>>("/suppliers", query)).items);
+    if (version !== loadVersion) return;
+    suppliers.value = result;
   } catch (caught) {
+    if (version !== loadVersion) return;
     error.value =
       caught instanceof Error ? caught.message : "Não foi possível carregar os fornecedores.";
   } finally {
-    loading.value = false;
+    if (version === loadVersion) loading.value = false;
   }
 }
 
@@ -56,6 +61,7 @@ function openEdit(supplier: Supplier): void {
 }
 
 async function submit(values: SupplierFormValues): Promise<void> {
+  if (saving.value) return;
   saving.value = true;
   formError.value = "";
   try {
@@ -99,7 +105,9 @@ onMounted(() => {
             <span>Busca</span>
             <div class="search-control">
               <input v-model="search" placeholder="Código, razão social, nome fantasia ou CNPJ">
-              <button class="btn" type="submit"><Search :size="16" /> Buscar</button>
+              <button class="btn" type="submit" :disabled="loading" :aria-busy="loading">
+                <span v-if="loading" class="spinner-small" aria-hidden="true" /><Search v-else :size="16" /> {{ loading ? "Buscando..." : "Buscar" }}
+              </button>
             </div>
           </form>
           <label class="field field-check">
@@ -127,7 +135,7 @@ onMounted(() => {
             </p>
           </div>
         </div>
-        <div v-if="loading" class="list-state"><span class="spinner" /> Carregando fornecedores...</div>
+        <div v-if="loading && !suppliers.length" class="list-state" role="status"><span class="spinner" /> Carregando fornecedores...</div>
         <div v-else-if="error" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2><p>{{ error }}</p>
           <button class="btn" @click="load">Tentar novamente</button>
@@ -136,7 +144,7 @@ onMounted(() => {
           <h2>Nenhum fornecedor cadastrado</h2>
           <p>Cadastre o primeiro fornecedor para vinculá-lo a equipamentos.</p>
         </div>
-        <div v-else ref="listRoot" class="table-wrap" data-testid="supplier-scroll">
+        <div v-else ref="listRoot" class="table-wrap" :class="{ refreshing: loading }" :aria-busy="loading" data-testid="supplier-scroll">
           <Table>
             <TableHeader>
               <TableRow>
@@ -202,8 +210,9 @@ onMounted(() => {
 .list-card > .surface-header { flex: 0 0 auto; }
 .table-wrap { min-height: 0; flex: 1 1 auto; padding: 0 18px 18px; overflow: auto; overscroll-behavior: contain; }
 .table-wrap :deep(thead th) { position: sticky; top: 0; z-index: 1; background: #fff; }
+.table-wrap { transition: opacity 0.15s ease; }
+.table-wrap.refreshing { opacity: 0.6; }
 .list-sentinel { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; color: #748197; font-size: 12px; }
-.spinner-small { width: 14px; height: 14px; border-width: 2px; }
 .supplier-code { display: inline-flex; border-radius: 6px; padding: 3px 7px; background: #eef4fb; color: #315889; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .supplier-name { min-width: 220px; color: #263d5d; }
 .cnpj { font-variant-numeric: tabular-nums; white-space: nowrap; }

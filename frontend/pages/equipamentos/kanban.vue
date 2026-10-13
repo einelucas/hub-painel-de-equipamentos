@@ -34,6 +34,8 @@ const route = useRoute();
 const equipments = ref<Equipment[]>([]);
 const loading = ref(true);
 const error = ref("");
+const loadProgress = ref("");
+let requestVersion = 0;
 
 const allowed = computed(() => auth.can("equipments:read"));
 
@@ -147,8 +149,10 @@ const PAGE_SIZE = 100;
 const PAGE_LIMIT = 20;
 
 async function load(): Promise<void> {
+  const version = ++requestVersion;
   loading.value = true;
   error.value = "";
+  loadProgress.value = "";
 
   try {
     const rows: Equipment[] = [];
@@ -164,14 +168,18 @@ async function load(): Promise<void> {
         sortBy: "name",
       });
 
+      if (version !== requestVersion) return;
+
       rows.push(...result.items);
 
       totalPages = result.pagination.totalPages;
+      if (totalPages > 1) loadProgress.value = `Página ${Math.min(page, totalPages)} de ${totalPages}`;
       page += 1;
     } while (page <= totalPages && page <= PAGE_LIMIT);
 
     equipments.value = rows;
   } catch (caught) {
+    if (version !== requestVersion) return;
     error.value =
       caught instanceof Error
         ? caught.message
@@ -179,7 +187,10 @@ async function load(): Promise<void> {
 
     equipments.value = [];
   } finally {
-    loading.value = false;
+    if (version === requestVersion) {
+      loading.value = false;
+      loadProgress.value = "";
+    }
   }
 }
 
@@ -215,9 +226,9 @@ onMounted(async () => {
     <div v-else class="stack">
       <ModuleFilters :refreshing="loading" @change="load" />
 
-      <div v-if="loading" class="queue-state">
-        <span class="spinner" />
-        Carregando equipamentos...
+      <div v-if="loading" class="queue-state" role="status" aria-busy="true">
+        <span class="spinner" aria-hidden="true" />
+        Carregando equipamentos...{{ loadProgress ? ` (${loadProgress})` : "" }}
       </div>
 
       <div

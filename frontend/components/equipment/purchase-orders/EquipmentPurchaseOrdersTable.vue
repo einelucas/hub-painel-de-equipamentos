@@ -2,7 +2,7 @@
 import type { PurchaseOrder } from "~/types/equipment";
 import EquipmentPurchaseOrderRow from "~/components/equipment/purchase-orders/EquipmentPurchaseOrderRow.vue";
 
-defineProps<{ items: PurchaseOrder[]; editable: boolean; busy: boolean }>();
+defineProps<{ items: PurchaseOrder[]; editable: boolean; busy: boolean; activeId?: string | null }>();
 const emit = defineEmits<{
   edit: [item: PurchaseOrder];
   delete: [item: PurchaseOrder];
@@ -31,6 +31,7 @@ const emit = defineEmits<{
           :item="item"
           :editable="editable"
           :busy="busy"
+          :active-id="activeId"
           @edit="emit('edit', $event)"
           @delete="emit('delete', $event)"
         />

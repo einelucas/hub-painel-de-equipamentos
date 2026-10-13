@@ -131,7 +131,8 @@ function cnpj(supplier: Pick<Supplier, "taxId">): string | null {
         </p>
         <div class="form-actions">
           <button type="button" class="btn" @click="emit('close')">Cancelar</button>
-          <button type="submit" class="btn primary" :disabled="!chosen || props.busy">
+          <button type="submit" class="btn primary" :disabled="!chosen || props.busy" :aria-busy="props.busy">
+            <span v-if="props.busy" class="spinner-small" aria-hidden="true" />
             {{ props.busy ? "Salvando..." : replacing ? "Substituir" : "Vincular" }}
           </button>
         </div>

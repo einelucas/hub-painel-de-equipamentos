@@ -43,11 +43,11 @@ const term = ref("");
             <h2>{{ props.title }}</h2>
             <p>{{ props.description }}</p>
           </div>
-          <span v-if="props.refreshing && !props.loading" class="refresh-label"><span class="spinner spinner-small" /> Atualizando</span>
+          <span v-if="props.refreshing && !props.loading" class="refresh-label" role="status"><span class="spinner-small" aria-hidden="true" /> Atualizando</span>
         </div>
         <p class="queue-criteria">{{ props.criteria }}</p>
 
-        <div v-if="props.loading" class="queue-state" data-testid="queue-loading"><span class="spinner" /> Carregando fila...</div>
+        <div v-if="props.loading" class="queue-state" data-testid="queue-loading" role="status" aria-busy="true"><span class="spinner" aria-hidden="true" /> Carregando fila...</div>
         <div v-else-if="props.error" class="empty-state table-empty" role="alert" data-testid="queue-error">
           <h2>Não foi possível carregar</h2><p>{{ props.error }}</p>
           <button class="btn" @click="emit('reload')">Tentar novamente</button>
@@ -59,9 +59,9 @@ const term = ref("");
         <template v-else>
           <div class="table-wrap"><slot /></div>
           <div v-if="props.pagination && props.pagination.totalPages > 1" class="pagination">
-            <button class="btn small" :disabled="props.page <= 1" @click="emit('page', props.page - 1)">Anterior</button>
+            <button class="btn small" :disabled="props.refreshing || props.page <= 1" @click="emit('page', props.page - 1)">Anterior</button>
             <span>Página {{ props.page }} de {{ props.pagination.totalPages }}</span>
-            <button class="btn small" :disabled="props.page >= props.pagination.totalPages" @click="emit('page', props.page + 1)">Próxima</button>
+            <button class="btn small" :disabled="props.refreshing || props.page >= props.pagination.totalPages" @click="emit('page', props.page + 1)">Próxima</button>
           </div>
         </template>
       </section>

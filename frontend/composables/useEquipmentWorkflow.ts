@@ -53,7 +53,19 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
     );
   }
 
-  async function load(): Promise<void> {
+  let loadInFlight: Promise<void> | null = null;
+
+  /** Reaproveita a carga em andamento em vez de disparar outra em paralelo. */
+  function load(): Promise<void> {
+    if (!loadInFlight) {
+      loadInFlight = doLoad().finally(() => {
+        loadInFlight = null;
+      });
+    }
+    return loadInFlight;
+  }
+
+  async function doLoad(): Promise<void> {
     loading.value = true;
     error.value = "";
     try {
@@ -83,6 +95,7 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
     resource: ProcessResource,
     payload: Record<string, unknown>,
   ): Promise<boolean> {
+    if (saving.value) return false;
     saving.value = true;
     actionError.value = "";
     actionSuccess.value = "";
@@ -101,6 +114,7 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
   }
 
   async function requestTransition(targetStage: number): Promise<boolean> {
+    if (advancing.value) return false;
     advancing.value = true;
     actionError.value = "";
     actionSuccess.value = "";
@@ -121,6 +135,7 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
   }
 
   async function run<T>(action: () => Promise<T>, fallback: string): Promise<T | null> {
+    if (busy.value) return null;
     busy.value = true;
     actionError.value = "";
     actionSuccess.value = "";

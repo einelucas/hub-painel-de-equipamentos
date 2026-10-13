@@ -9,7 +9,7 @@ import SearchableSelect from "~/components/ui/SearchableSelect.vue";
  * Passo 1: obra (Unidade → ProjectContext ativo), formato da planilha e um ou
  * mais .xlsx (o Monday exporta um arquivo por grupo/fase ocupada).
  */
-const { units, contexts, profiles, selection, files, busy, loadContexts, selectFiles, analyze } = useImportState();
+const { units, contexts, profiles, selection, files, busy, loadingContexts, analysisProgress, loadContexts, selectFiles, analyze } = useImportState();
 
 const unitOptions = computed(() => toOptions(units.value));
 const contextOptions = computed(() => toOptions(contexts.value, codeNameLabel));
@@ -64,14 +64,15 @@ function size(bytes: number): string {
             v-model="selection.contextId"
             :options="contextOptions"
             :clearable="false"
-            :disabled="!selection.unitId"
+            :disabled="!selection.unitId || loadingContexts"
             label="Obra / contexto de projeto"
             placeholder="Buscar por código ou nome"
             empty-label="Selecione"
             test-id="import-context"
           />
         </div>
-        <p v-if="selection.unitId && contexts.length === 0" class="import-hint" data-testid="import-no-context">
+        <p v-if="loadingContexts" class="import-hint" role="status"><span class="spinner-small" aria-hidden="true" /> Carregando obras...</p>
+        <p v-else-if="selection.unitId && contexts.length === 0" class="import-hint" data-testid="import-no-context">
           Nenhuma obra ativa nesta unidade. Cadastre-a em Equipamentos → Administração → Projetos.
         </p>
 
@@ -119,19 +120,28 @@ function size(bytes: number): string {
         </p>
 
         <ul v-if="files.length" class="file-list" data-testid="import-file-list">
-          <li v-for="item in files" :key="`${item.name}:${item.size}`">
+          <li
+            v-for="(item, index) in files"
+            :key="`${item.name}:${item.size}`"
+            :class="{ 'is-current': busy && analysisProgress?.current === index + 1 }"
+          >
             <FileSpreadsheet :size="15" aria-hidden="true" />
             <span class="mono">{{ item.name }}</span>
-            <small class="mono">{{ size(item.size) }}</small>
+            <small class="mono">
+              <span v-if="busy && analysisProgress?.current === index + 1" class="spinner-small" aria-hidden="true" />
+              <template v-else-if="busy && analysisProgress !== null && analysisProgress.current > index + 1">Lido</template>
+              <template v-else>{{ size(item.size) }}</template>
+            </small>
           </li>
         </ul>
       </section>
     </div>
 
     <div class="import-actions">
-      <button type="button" class="btn primary" :disabled="!canAnalyze" data-testid="import-analyze" @click="analyze">
-        <FileUp :size="15" />
-        {{ busy ? "Analisando..." : files.length > 1 ? `Analisar ${files.length} planilhas` : "Analisar planilha" }}
+      <button type="button" class="btn primary" :disabled="!canAnalyze" :aria-busy="busy" data-testid="import-analyze" @click="analyze">
+        <span v-if="busy" class="spinner-small" aria-hidden="true" />
+        <FileUp v-else :size="15" />
+        {{ busy ? (analysisProgress ? `Analisando arquivo ${analysisProgress.current} de ${analysisProgress.total}...` : "Analisando...") : files.length > 1 ? `Analisar ${files.length} planilhas` : "Analisar planilha" }}
       </button>
     </div>
   </div>
@@ -172,6 +182,7 @@ function size(bytes: number): string {
 .file-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px 12px; border-bottom: 1px solid #edf1f6; color: var(--go); }
 .file-list li:last-child { border-bottom: 0; }
 .file-list span { overflow: hidden; color: var(--ink); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.file-list li.is-current { background: var(--wash); }
 .file-list small { color: var(--muted); font-size: 11px; }
 @media (max-width: 760px) { .source-layout { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .dropzone { transition: none; } }

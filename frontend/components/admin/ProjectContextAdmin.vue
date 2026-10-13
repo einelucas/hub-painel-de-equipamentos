@@ -35,6 +35,9 @@ const selectedId = ref("");
 const loadingUnits = ref(true);
 const loading = ref(false);
 const saving = ref(false);
+const togglingId = ref<string | null>(null);
+let contextsVersion = 0;
+let summaryVersion = 0;
 const error = ref("");
 const formError = ref("");
 const mode = ref<"idle" | "create" | "edit">("idle");
@@ -58,35 +61,44 @@ async function loadUnits(): Promise<void> {
 }
 
 async function loadContexts(): Promise<void> {
+  const version = ++contextsVersion;
   contexts.value = [];
   mode.value = "idle";
   if (!props.unitId) {
     selectedId.value = "";
+    loading.value = false;
     return;
   }
   loading.value = true;
   error.value = "";
   try {
     // Administração vê ativos e inativos (exige catalogs:manage); telas operacionais seguem só com ativos.
-    contexts.value = (
+    const result = (
       await api.get<CatalogList<CatalogItem>>(`/units/${props.unitId}/project-contexts`, {
         include_inactive: "true",
       })
     ).items;
+    if (version !== contextsVersion) return;
+    contexts.value = result;
     if (!contexts.value.some((item) => item.id === selectedId.value)) {
       selectedId.value = contexts.value[0]?.id ?? "";
     }
   } catch (caught) {
+    if (version !== contextsVersion) return;
     error.value = caught instanceof Error ? caught.message : "Não foi possível carregar os contextos.";
   } finally {
-    loading.value = false;
+    if (version === contextsVersion) loading.value = false;
   }
 }
 
 /** Resumo de preparação: só contagens das APIs existentes, sem regra nova. */
 async function loadSummary(): Promise<void> {
+  const version = ++summaryVersion;
   summary.error = "";
-  if (!props.unitId || !selectedId.value) return;
+  if (!props.unitId || !selectedId.value) {
+    summary.loading = false;
+    return;
+  }
   summary.loading = true;
   try {
     const [eapNodes, disciplines, workPackages] = await Promise.all([
@@ -94,13 +106,15 @@ async function loadSummary(): Promise<void> {
       api.get<CatalogList<CatalogItem>>("/disciplines"),
       api.get<CatalogList<CatalogItem>>("/work-packages"),
     ]);
+    if (version !== summaryVersion) return;
     summary.eapNodes = eapNodes.items.length;
     summary.disciplines = disciplines.items.filter((item) => item.active).length;
     summary.workPackages = workPackages.items.length;
   } catch (caught) {
+    if (version !== summaryVersion) return;
     summary.error = caught instanceof Error ? caught.message : "Não foi possível carregar o resumo.";
   } finally {
-    summary.loading = false;
+    if (version === summaryVersion) summary.loading = false;
   }
 }
 
@@ -135,6 +149,7 @@ function cancel(): void {
 }
 
 async function submit(): Promise<void> {
+  if (saving.value) return;
   const code = form.code.trim();
   const name = form.name.trim();
   if (!name) {
@@ -170,8 +185,10 @@ async function submit(): Promise<void> {
  */
 async function toggleActive(item: CatalogItem): Promise<void> {
   const message = `Desativar "${item.name}"? Ele deixa de aparecer nos formulários, mas continua aqui para reativação.`;
+  if (saving.value) return;
   if (item.active && !confirm(message)) return;
   saving.value = true;
+  togglingId.value = item.id;
   error.value = "";
   try {
     await api.patch(`/project-contexts/${item.id}`, { active: !item.active });
@@ -181,6 +198,7 @@ async function toggleActive(item: CatalogItem): Promise<void> {
     error.value = caught instanceof Error ? caught.message : "Não foi possível alterar a situação.";
   } finally {
     saving.value = false;
+    togglingId.value = null;
   }
 }
 
@@ -263,8 +281,8 @@ watch(selectedId, loadSummary);
         <p v-if="formError" class="projects-error" role="alert">{{ formError }}</p>
         <div class="project-form-actions">
           <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
-          <button type="submit" class="btn small primary" :disabled="saving" data-testid="project-save">
-            <Check :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
+          <button type="submit" class="btn small primary" :disabled="saving" data-testid="project-save" :aria-busy="saving">
+            <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
           </button>
         </div>
       </form>
@@ -297,8 +315,9 @@ watch(selectedId, loadSummary);
               <button type="button" class="text-button" :disabled="saving" @click="startEdit(item)">
                 <Pencil :size="12" /> Editar
               </button>
-              <button type="button" class="text-button" :disabled="saving" @click="toggleActive(item)">
-                {{ item.active ? "Desativar" : "Reativar" }}
+              <button type="button" class="text-button" :disabled="saving" :aria-busy="togglingId === item.id" @click="toggleActive(item)">
+                <span v-if="togglingId === item.id" class="spinner-small" aria-hidden="true" />
+                {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
               </button>
             </span>
           </li>
@@ -429,7 +448,6 @@ watch(selectedId, loadSummary);
 .readiness dt { color: var(--muted, #6b7a8f); }
 .readiness dd { margin: 0; color: var(--ink, #1f3352); font-family: var(--mono, monospace); font-size: 11.5px; font-weight: 700; text-align: right; }
 .readiness-actions { display: grid; justify-items: start; gap: 4px; border-top: 1px solid var(--rule, #dde5ef); padding-top: 10px; }
-.spinner-small { width: 14px; height: 14px; border-width: 2px; }
 @media (max-width: 760px) {
   .projects-layout { grid-template-columns: 1fr; }
   .readiness { position: static; }

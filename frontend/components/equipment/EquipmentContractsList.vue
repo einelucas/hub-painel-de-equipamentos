@@ -28,6 +28,8 @@ const emit = defineEmits<{ changed: [] }>();
 
 const api = useApi();
 const busy = ref(false);
+const activeId = ref<string | null>(null);
+const downloadingId = ref<string | null>(null);
 const actionError = ref("");
 const showForm = ref(false);
 const editing = ref<Contract | null>(null);
@@ -63,6 +65,7 @@ async function uploadFile(contractId: string, file: File): Promise<void> {
 }
 
 async function submit(values: EquipmentContractFormValues): Promise<void> {
+  if (busy.value) return;
   busy.value = true;
   actionError.value = "";
   const payload = {
@@ -96,7 +99,9 @@ async function submit(values: EquipmentContractFormValues): Promise<void> {
 }
 
 async function removeContract(item: Contract): Promise<void> {
+  if (busy.value) return;
   busy.value = true;
+  activeId.value = item.id;
   actionError.value = "";
   try {
     await api.delete(`/equipments/${props.equipmentId}/contracts/${item.id}`);
@@ -108,22 +113,34 @@ async function removeContract(item: Contract): Promise<void> {
         : "Não foi possível excluir o contrato.";
   } finally {
     busy.value = false;
+    activeId.value = null;
   }
 }
 
 async function downloadFile(item: Contract): Promise<void> {
-  if (!item.file) return;
-  const file = await api.download(
-    `/equipments/${props.equipmentId}/contracts/${item.id}/file`,
-  );
-  const url = URL.createObjectURL(file.blob);
-  const link = document.createElement("a");
-  link.href = url;
-  // O nome cadastrado continua sendo a fonte principal; o do
-  // Content-Disposition só é usado se ele faltar.
-  link.download = item.file.fileName || file.filename || "";
-  link.click();
-  URL.revokeObjectURL(url);
+  if (!item.file || downloadingId.value) return;
+  downloadingId.value = item.id;
+  actionError.value = "";
+  try {
+    const file = await api.download(
+      `/equipments/${props.equipmentId}/contracts/${item.id}/file`,
+    );
+    const url = URL.createObjectURL(file.blob);
+    const link = document.createElement("a");
+    link.href = url;
+    // O nome cadastrado continua sendo a fonte principal; o do
+    // Content-Disposition só é usado se ele faltar.
+    link.download = item.file.fileName || file.filename || "";
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (caught) {
+    actionError.value =
+      caught instanceof Error
+        ? caught.message
+        : "Não foi possível baixar o arquivo.";
+  } finally {
+    downloadingId.value = null;
+  }
 }
 </script>
 
@@ -168,6 +185,8 @@ async function downloadFile(item: Contract): Promise<void> {
       :contracts="sorted"
       :editable="editable"
       :busy="busy"
+      :active-id="activeId"
+      :downloading-id="downloadingId"
       @edit="openEdit"
       @delete="removeContract"
       @download="downloadFile"

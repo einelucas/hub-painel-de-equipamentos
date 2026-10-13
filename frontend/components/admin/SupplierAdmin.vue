@@ -21,6 +21,8 @@ const search = ref("");
 const includeInactive = ref(false);
 const loading = ref(false);
 const saving = ref(false);
+const togglingId = ref<string | null>(null);
+let loadVersion = 0;
 const error = ref("");
 const formError = ref("");
 const editing = ref<Supplier | null>(null);
@@ -39,18 +41,22 @@ const activeCount = computed(() => suppliers.value.filter((item) => item.active)
 const inactiveCount = computed(() => suppliers.value.length - activeCount.value);
 
 async function load(): Promise<void> {
+  const version = ++loadVersion;
   loading.value = true;
   error.value = "";
   try {
     const query: Record<string, unknown> = {};
     if (search.value.trim()) query.search = search.value.trim();
     if (includeInactive.value) query.includeInactive = true;
-    suppliers.value = (await api.get<CatalogList<Supplier>>("/suppliers", query)).items;
+    const result = (await api.get<CatalogList<Supplier>>("/suppliers", query)).items;
+    if (version !== loadVersion) return;
+    suppliers.value = result;
   } catch (caught) {
+    if (version !== loadVersion) return;
     error.value =
       caught instanceof Error ? caught.message : "Não foi possível carregar os fornecedores.";
   } finally {
-    loading.value = false;
+    if (version === loadVersion) loading.value = false;
   }
 }
 
@@ -81,6 +87,7 @@ function cancel(): void {
 }
 
 async function submit(values: SupplierFormValues): Promise<void> {
+  if (saving.value) return;
   saving.value = true;
   formError.value = "";
   try {
@@ -99,10 +106,12 @@ async function submit(values: SupplierFormValues): Promise<void> {
 
 /** Sem exclusão física: o fornecedor pode estar vinculado a equipamentos. */
 async function toggleActive(supplier: Supplier): Promise<void> {
+  if (saving.value) return;
   if (supplier.active && !confirm(`Desativar "${supplier.legalName}"? Ele não poderá ser vinculado.`)) {
     return;
   }
   saving.value = true;
+  togglingId.value = supplier.id;
   error.value = "";
   try {
     await api.patch(`/suppliers/${supplier.id}`, { active: !supplier.active });
@@ -112,6 +121,7 @@ async function toggleActive(supplier: Supplier): Promise<void> {
     error.value = caught instanceof Error ? caught.message : "Não foi possível alterar a situação.";
   } finally {
     saving.value = false;
+    togglingId.value = null;
   }
 }
 
@@ -137,6 +147,7 @@ watch(() => props.open, (open) => { if (open) void load(); }, { immediate: true 
             <template v-else>
               {{ activeCount }} ativo{{ activeCount === 1 ? "" : "s" }}<template v-if="inactiveCount"> · {{ inactiveCount }} inativo{{ inactiveCount === 1 ? "" : "s" }}</template><template v-if="search.trim()"> na busca</template>
             </template>
+            <span v-if="loading && suppliers.length" class="spinner-small" role="status" aria-label="Atualizando" />
           </p>
         </div>
         <div class="supplier-header-actions">
@@ -212,9 +223,11 @@ watch(() => props.open, (open) => { if (open) void load(); }, { immediate: true 
               class="text-button"
               :class="{ 'text-button--quiet': supplier.active }"
               :disabled="saving"
+              :aria-busy="togglingId === supplier.id"
               @click="toggleActive(supplier)"
             >
-              {{ supplier.active ? "Desativar" : "Reativar" }}
+              <span v-if="togglingId === supplier.id" class="spinner-small" aria-hidden="true" />
+              {{ togglingId === supplier.id ? "Salvando..." : supplier.active ? "Desativar" : "Reativar" }}
             </button>
           </span>
         </li>
@@ -293,7 +306,6 @@ watch(() => props.open, (open) => { if (open) void load(); }, { immediate: true 
 .supplier-footer { margin: 0; text-align: right; }
 .supplier-footer a { color: var(--steel, #304f7e); font-size: 12px; font-weight: 750; text-decoration: none; }
 .supplier-footer a:hover { text-decoration: underline; }
-.spinner-small { width: 14px; height: 14px; border-width: 2px; }
 @media (max-width: 640px) {
   .supplier-list li { grid-template-columns: minmax(0, 1fr) auto; }
   .supplier-code { display: none; }

@@ -3,7 +3,7 @@ import { Pencil, Trash2 } from "lucide-vue-next";
 import type { PurchaseOrder } from "~/types/equipment";
 import { formatCurrency, formatDateOnly } from "~/utils/format";
 
-defineProps<{ item: PurchaseOrder; editable: boolean; busy: boolean }>();
+defineProps<{ item: PurchaseOrder; editable: boolean; busy: boolean; activeId?: string | null }>();
 const emit = defineEmits<{
   edit: [item: PurchaseOrder];
   delete: [item: PurchaseOrder];
@@ -17,8 +17,10 @@ const emit = defineEmits<{
     <TableCell>{{ formatCurrency(item.amount) }}</TableCell>
     <TableCell class="row-actions">
       <button v-if="editable" class="text-button" @click="emit('edit', item)"><Pencil :size="13" /> Editar</button>
-      <button v-if="editable" class="text-button danger" :disabled="busy" @click="emit('delete', item)">
-        <Trash2 :size="13" /> Excluir
+      <button v-if="editable" class="text-button danger" :disabled="busy" :aria-busy="activeId === item.id" @click="emit('delete', item)">
+        <span v-if="activeId === item.id" class="spinner-small" aria-hidden="true" />
+        <Trash2 v-else :size="13" />
+        {{ activeId === item.id ? "Excluindo..." : "Excluir" }}
       </button>
     </TableCell>
   </TableRow>

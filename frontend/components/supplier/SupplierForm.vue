@@ -148,8 +148,9 @@ function submit(): void {
       <button type="button" class="btn" :class="{ small: props.compact }" @click="emit('cancel')">
         <X v-if="props.compact" :size="13" /> Cancelar
       </button>
-      <button type="submit" class="btn primary" :class="{ small: props.compact }" :disabled="props.saving">
-        <Check v-if="props.compact" :size="13" />
+      <button type="submit" class="btn primary" :class="{ small: props.compact }" :disabled="props.saving" :aria-busy="props.saving">
+        <span v-if="props.saving" class="spinner-small" aria-hidden="true" />
+        <Check v-else-if="props.compact" :size="13" />
         {{ props.saving ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar fornecedor" }}
       </button>
     </div>

@@ -16,6 +16,9 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
   const loading = ref(false);
   const error = ref("");
   const loaded = ref(false);
+  /** Carregando opções dependentes (obras/equipamentos) após trocar o filtro. */
+  const optionsLoading = ref(false);
+  let optionsVersion = 0;
 
   const selectedUnitLabel = computed(() => {
     const unit = units.value.find((item) => item.id === selectedUnit.value);
@@ -37,11 +40,14 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
       selectedProjectContext.value = "";
       return;
     }
-    projectContexts.value = (
+    const version = optionsVersion;
+    const items = (
       await useApi().get<CatalogList<CatalogItem>>(
         `/units/${selectedUnit.value}/project-contexts`,
       )
     ).items;
+    if (version !== optionsVersion) return;
+    projectContexts.value = items;
     if (!projectContexts.value.some((item) => item.id === selectedProjectContext.value)) {
       selectedProjectContext.value = "";
     }
@@ -61,7 +67,9 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
     if (selectedProjectContext.value) {
       query.project_context_id = selectedProjectContext.value;
     }
+    const version = optionsVersion;
     const result = await useApi().get<EquipmentList>("/equipments", query);
+    if (version !== optionsVersion) return;
     equipmentOptions.value = result.items;
     selectedEquipment.value = compatibleEquipment(equipmentOptions.value, selectedEquipment.value);
   }
@@ -124,12 +132,18 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
     selectedProjectContext.value = "";
     selectedEquipment.value = "";
     error.value = "";
+    const version = ++optionsVersion;
+    optionsLoading.value = true;
     try {
       await loadProjectContexts();
+      if (version !== optionsVersion) return;
       await loadEquipmentOptions();
     } catch (caught) {
+      if (version !== optionsVersion) return;
       error.value =
         caught instanceof Error ? caught.message : "Não foi possível carregar os equipamentos.";
+    } finally {
+      if (version === optionsVersion) optionsLoading.value = false;
     }
   }
 
@@ -141,11 +155,16 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
       : "";
     selectedEquipment.value = "";
     error.value = "";
+    const version = ++optionsVersion;
+    optionsLoading.value = true;
     try {
       await loadEquipmentOptions();
     } catch (caught) {
+      if (version !== optionsVersion) return;
       error.value =
         caught instanceof Error ? caught.message : "Não foi possível carregar os equipamentos.";
+    } finally {
+      if (version === optionsVersion) optionsLoading.value = false;
     }
   }
 
@@ -163,6 +182,7 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
     selectedUnitLabel,
     apiQuery,
     loading,
+    optionsLoading,
     error,
     loaded,
     initialize,

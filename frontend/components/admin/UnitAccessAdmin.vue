@@ -19,6 +19,7 @@ const loadingUser = ref(false);
 const saving = ref(false);
 const error = ref("");
 const feedback = ref("");
+let userVersion = 0;
 
 const userOptions = computed(() =>
   users.value.map((user) => ({ id: user.id, label: `${user.name} · ${user.role}`, searchText: user.email })),
@@ -43,18 +44,25 @@ async function load(): Promise<void> {
 }
 
 async function selectUser(): Promise<void> {
+  const version = ++userVersion;
   current.value = null;
   feedback.value = "";
-  if (!selectedUser.value) return;
+  if (!selectedUser.value) {
+    loadingUser.value = false;
+    return;
+  }
   loadingUser.value = true;
   error.value = "";
   try {
-    current.value = await api.get<UserUnits>(`/usuarios/${selectedUser.value}/units`);
-    checked.value = new Set(current.value.units.map((unit) => unit.id));
+    const result = await api.get<UserUnits>(`/usuarios/${selectedUser.value}/units`);
+    if (version !== userVersion) return;
+    current.value = result;
+    checked.value = new Set(result.units.map((unit) => unit.id));
   } catch (caught) {
+    if (version !== userVersion) return;
     error.value = caught instanceof Error ? caught.message : "Não foi possível carregar os acessos.";
   } finally {
-    loadingUser.value = false;
+    if (version === userVersion) loadingUser.value = false;
   }
 }
 
@@ -66,7 +74,7 @@ function toggle(unitId: string): void {
 }
 
 async function save(): Promise<void> {
-  if (!selectedUser.value || isAdminUser.value) return;
+  if (saving.value || loadingUser.value || !selectedUser.value || isAdminUser.value) return;
   saving.value = true;
   error.value = "";
   feedback.value = "";
@@ -134,8 +142,8 @@ onMounted(load);
           <p v-if="units.length === 0" class="access-hint">Nenhuma unidade cadastrada ainda.</p>
           <div class="access-actions">
             <span v-if="feedback" class="access-feedback">{{ feedback }}</span>
-            <button type="button" class="btn small primary" :disabled="saving" data-testid="access-save" @click="save">
-              <Save :size="13" /> {{ saving ? "Salvando..." : "Salvar acessos" }}
+            <button type="button" class="btn small primary" :disabled="saving" data-testid="access-save" :aria-busy="saving" @click="save">
+              <span v-if="saving" class="spinner-small" aria-hidden="true" /><Save v-else :size="13" /> {{ saving ? "Salvando..." : "Salvar acessos" }}
             </button>
           </div>
         </template>
@@ -175,6 +183,5 @@ onMounted(load);
 .access-list input { width: 16px; height: 16px; accent-color: var(--steel, #304f7e); }
 .access-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--rule, #dde5ef); padding-top: 12px; }
 .access-feedback { color: var(--go, #3f7a2e); font-size: 12px; font-weight: 700; }
-.spinner-small { width: 14px; height: 14px; border-width: 2px; }
 @media (prefers-reduced-motion: reduce) { .access-list label { transition: none; } }
 </style>
