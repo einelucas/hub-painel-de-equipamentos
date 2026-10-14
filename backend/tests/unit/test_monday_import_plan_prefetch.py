@@ -100,7 +100,7 @@ async def test_prefetch_builds_lookup_maps() -> None:
             assert in_values == ["E1"]
             return [equipment]
         if entity is EquipmentSupplier:
-            return [("E1", "S1"), ("E1", "S2")]
+            return [("E1", "S1", "L1"), ("E1", "S2", "L2")]
         if entity is Contract:
             return [contract_first, contract_second]
         if entity in (Negotiation, LegalProcess, PurchaseRequest, PurchaseOrder):
@@ -128,6 +128,7 @@ async def test_prefetch_builds_lookup_maps() -> None:
     # Primeira linha vence, como o `session.scalar` por linha fazia.
     assert prefetch.equipment_id_by_name == {"Bomba": "E9"}
     assert prefetch.current_supplier == {"E1": "S1"}
+    assert prefetch.current_supplier_link == {"E1": "L1"}
     assert prefetch.equipments == {"E1": equipment}
     assert prefetch.components == {"C1": component}
     assert prefetch.sub_entity(Contract, "E1") is contract_first

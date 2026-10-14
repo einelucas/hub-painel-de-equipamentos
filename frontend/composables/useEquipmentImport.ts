@@ -2,6 +2,7 @@ import { computed, reactive, ref } from "vue";
 import { ApiError } from "~/services/api/error";
 import type { CatalogItem, CatalogList, EapNodeItem, Responsible, Supplier, Unit } from "~/types/equipment";
 import type {
+  ImportApplyJob,
   ImportApplyResult,
   ImportBatch,
   ImportFileFailure,
@@ -39,6 +40,10 @@ export const MAPPING_SECTIONS: { key: MappingSection; label: string }[] = [
 ];
 
 const BASE = "/imports/monday";
+const APPLY_POLL_START_MS = 1500;
+const APPLY_POLL_MAX_MS = 5000;
+const APPLY_POLL_LIMIT_MS = 30 * 60 * 1000;
+const APPLY_POLL_MAX_FAILURES = 5;
 
 export function isXlsx(fileName: string): boolean {
   return fileName.toLowerCase().endsWith(".xlsx");
@@ -107,6 +112,7 @@ export function useEquipmentImport() {
   const busy = ref(false);
   /** Operação em andamento (para mensagem de status e progresso no modal). */
   const phase = ref<"setup" | "contexts" | "analyze" | "mapping" | "plan" | "apply" | null>(null);
+  const applyProgress = ref<{ stage: ImportApplyJob["stage"]; progress: number } | null>(null);
   const analysisProgress = ref<{ current: number; total: number; fileName: string } | null>(null);
   const error = ref("");
   const stale = ref(false);
@@ -123,7 +129,11 @@ export function useEquipmentImport() {
       }
       case "mapping": return "Carregando cadastros do Hub...";
       case "plan": return "Montando o plano de importação...";
-      case "apply": return "Gravando a importação. Não feche esta janela...";
+      case "apply": {
+        const stage = applyProgress.value?.stage;
+        const label = stage === "RECONCILING" ? "Conferindo os dados gravados" : "Gravando a importação";
+        return `${label}${applyProgress.value ? ` (${applyProgress.value.progress}%)` : ""}. Não feche esta janela...`;
+      }
       default: return "";
     }
   });
@@ -303,26 +313,22 @@ export function useEquipmentImport() {
     error.value = "";
     stale.value = false;
     try {
-      let nextPlan = await api.post<ImportPlan>(`${BASE}/plan`, {
+      // O servidor já aplica as seleções automáticas de fornecedor neste mesmo plano
+      // e as devolve em `automaticSupplierSelections` (o apply precisa do mesmo mapping).
+      const nextPlan = await api.post<ImportPlan>(`${BASE}/plan`, {
         batchIds: batchIds(),
         mapping: mapping.value,
+        autoSelectSuppliers: true,
       });
-      const automaticSelections = (nextPlan.supplierSuggestions ?? []).filter(
-        (item) =>
-          item.sourceMatched &&
-          item.supplierId &&
-          !(item.sourceKey in mapping.value.supplierSelections),
+      const automaticSelections = (nextPlan.automaticSupplierSelections ?? []).filter(
+        (item) => !(item.sourceKey in mapping.value.supplierSelections),
       );
       if (automaticSelections.length) {
         const supplierSelections = { ...mapping.value.supplierSelections };
         for (const item of automaticSelections) {
-          supplierSelections[item.sourceKey] = { action: "USE", supplierId: item.supplierId! };
+          supplierSelections[item.sourceKey] = { action: "USE", supplierId: item.supplierId };
         }
         mapping.value = { ...mapping.value, supplierSelections };
-        nextPlan = await api.post<ImportPlan>(`${BASE}/plan`, {
-          batchIds: batchIds(),
-          mapping: mapping.value,
-        });
       }
       plan.value = nextPlan;
       mappingDirty.value = false;
@@ -335,31 +341,73 @@ export function useEquipmentImport() {
     }
   }
 
-  /** O backend reconstrói o plano e compara o hash: mudou algo, volta para revisão (PLAN_STALE). */
+  /** Consulta o job até concluir (intervalo cresce de 1,5 s a 5 s; limite de 30 min). */
+  async function pollApplyJob(jobId: string): Promise<ImportApplyJob> {
+    const deadline = Date.now() + APPLY_POLL_LIMIT_MS;
+    let delay = APPLY_POLL_START_MS;
+    let failures = 0;
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(Math.round(delay * 1.3), APPLY_POLL_MAX_MS);
+      try {
+        const job = await api.get<ImportApplyJob>(`${BASE}/apply/${jobId}`);
+        failures = 0;
+        applyProgress.value = { stage: job.stage, progress: job.progress };
+        if (job.status !== "RUNNING") return job;
+      } catch (caught) {
+        // Erro definitivo (404/403) aborta; falha de rede/5xx é transitória (a gravação segue no servidor).
+        if (caught instanceof ApiError && caught.status >= 400 && caught.status < 500) throw caught;
+        failures += 1;
+        if (failures >= APPLY_POLL_MAX_FAILURES) throw caught;
+      }
+      if (Date.now() > deadline) {
+        throw new Error("A importação está demorando mais que o esperado. Confira o resultado antes de repetir.");
+      }
+    }
+  }
+
+  /**
+   * O backend valida, responde 202 e aplica em segundo plano (reconstrói o plano e compara o hash);
+   * aqui o front acompanha o job. Plano velho (PLAN_STALE) volta para a revisão do plano.
+   */
   async function apply(): Promise<void> {
     if (busy.value || !batches.value.length || !plan.value?.canApply || mappingDirty.value) return;
     busy.value = true;
     phase.value = "apply";
+    applyProgress.value = null;
     error.value = "";
     stale.value = false;
+    const markStale = () => {
+      stale.value = true;
+      plan.value = null;
+      error.value = "Os dados mudaram desde que o plano foi gerado. Revise o plano novamente.";
+    };
     try {
-      result.value = await api.post<ImportApplyResult>(`${BASE}/apply`, {
+      const started = await api.post<ImportApplyJob>(`${BASE}/apply`, {
         batchIds: batchIds(),
         mapping: mapping.value,
         planSha256: plan.value.planSha256,
       });
-      step.value = "result";
+      const job = started.status === "RUNNING" ? await pollApplyJob(started.jobId) : started;
+      if (job.status === "COMPLETED" && job.result) {
+        result.value = job.result;
+        step.value = "result";
+      } else if (job.errorCode === "PLAN_STALE") {
+        markStale();
+      } else {
+        error.value = job.error || "Não foi possível aplicar a importação.";
+      }
     } catch (caught) {
-      if (caught instanceof ApiError && caught.status === 409) {
-        stale.value = true;
-        plan.value = null;
-        error.value = "Os dados mudaram desde que o plano foi gerado. Revise o plano novamente.";
+      // 409 do POST: PLAN_STALE (plano velho) ou APPLY_IN_PROGRESS (já há apply nesta obra).
+      if (caught instanceof ApiError && caught.status === 409 && !`${caught.message}`.includes("APPLY_IN_PROGRESS")) {
+        markStale();
       } else {
         error.value = message(caught, "Não foi possível aplicar a importação.");
       }
     } finally {
       busy.value = false;
       phase.value = null;
+      applyProgress.value = null;
     }
   }
 

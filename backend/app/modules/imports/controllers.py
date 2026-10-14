@@ -6,17 +6,17 @@ por unidade do ProjectContext é validado no backend — nunca só na UI.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, require_permission
 from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.imports import services
+from app.modules.imports import apply_jobs, services
 from app.modules.imports.schemas import (
     ImportApplyIn,
-    ImportApplyOut,
+    ImportApplyJobOut,
     ImportBatchOut,
     ImportPlanIn,
     ImportPlanOut,
@@ -76,14 +76,28 @@ async def post_plan(
     """Plano ÚNICO para o conjunto de batches (ex.: um XLSX por fase ocupada).
 
     Valida o mapping e monta o plano — somente leitura: nada é gravado no domínio."""
-    return await services.plan_batches(session, actor, body.batch_ids, body.mapping)
+    return await services.plan_batches(
+        session, actor, body.batch_ids, body.mapping, auto_select_suppliers=body.auto_select_suppliers
+    )
 
 
-@router.post("/apply", response_model=ImportApplyOut)
+@router.post("/apply", response_model=ImportApplyJobOut, status_code=status.HTTP_202_ACCEPTED)
 async def post_apply(
     body: ImportApplyIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
-) -> ImportApplyOut:
-    """Aplica o plano confirmado do conjunto (409 PLAN_STALE se o plano mudou) e reconcilia."""
-    return await services.apply_batches(session, actor, body.batch_ids, body.mapping, body.plan_sha256)
+) -> ImportApplyJobOut:
+    """Valida e inicia o apply em segundo plano (202 + job). 409 APPLY_IN_PROGRESS se a obra
+    já tem um apply rodando; PLAN_STALE (plano mudou) chega pelo job (`errorCode`)."""
+    job, _ = await apply_jobs.start_apply(session, actor, body.batch_ids, body.mapping, body.plan_sha256)
+    return apply_jobs.to_out(job)
+
+
+@router.get("/apply/{job_id}", response_model=ImportApplyJobOut)
+async def get_apply(
+    job_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_write),
+) -> ImportApplyJobOut:
+    """Estado, progresso e (quando concluído) o resultado do apply."""
+    return apply_jobs.to_out(await apply_jobs.get_job(session, actor, job_id))

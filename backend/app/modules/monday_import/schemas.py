@@ -158,6 +158,8 @@ class StageImportResult:
     issues: int
     # True quando um batch nunca aplicado foi reanalisado com um profile novo.
     restaged: bool = False
+    # Workbook recém-gravado (só quando houve escrita de staging); evita reler o que acabou de ser salvo.
+    workbook: ParsedWorkbook | None = field(default=None, compare=False, repr=False)
 
 
 def source_filename(source: str | Path) -> str:

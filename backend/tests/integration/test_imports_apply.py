@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date
 
 from sqlalchemy import func, select
@@ -13,13 +14,37 @@ from app.models.supplier import EquipmentSupplier, Supplier
 from tests.integration.test_imports_plan import mapping, plan, seed, stage, synthetic_board
 
 
+class _Outcome:
+    """Imita a resposta síncrona antiga: o apply agora é 202 + job consultado por polling."""
+
+    def __init__(self, status_code: int, body: dict, text: str = "") -> None:
+        self.status_code = status_code
+        self._body = body
+        self.text = text or str(body)
+
+    def json(self) -> dict:
+        return self._body
+
+
 async def apply(client, headers, batch_ids: str | list[str], body: dict, plan_sha: str):
     ids = [batch_ids] if isinstance(batch_ids, str) else batch_ids
-    return await client.post(
+    response = await client.post(
         "/api/v1/imports/monday/apply",
         json={"batchIds": ids, "mapping": body, "planSha256": plan_sha},
         headers=headers,
     )
+    if response.status_code != 202:
+        return response
+    job_id = response.json()["jobId"]
+    for _ in range(600):
+        job = (await client.get(f"/api/v1/imports/monday/apply/{job_id}", headers=headers)).json()
+        if job["status"] == "COMPLETED":
+            return _Outcome(200, job["result"])
+        if job["status"] == "FAILED":
+            status = {"PLAN_STALE": 409}.get(job["errorCode"], 422)
+            return _Outcome(status, {"error": job["error"]})
+        await asyncio.sleep(0.1)
+    raise AssertionError("apply job não terminou")
 
 
 async def _count(db_session, model) -> int:
@@ -161,6 +186,46 @@ async def test_supplier_requires_explicit_confirmation_and_reimport_does_not_dup
         again["planSha256"],
     )
     assert second.status_code == 200
+    assert await _count(db_session, EquipmentSupplier) == 1
+
+
+async def test_opt_in_auto_select_suppliers_plan_then_apply_with_merged_mapping(
+    client, auth_header, db_session
+) -> None:
+    ids = await seed(client, auth_header, db_session)
+    admin = auth_header("ADMIN")
+    supplier = Supplier(corporate_code="9002", legal_name="Fornecedor Automático SA")
+    db_session.add(supplier)
+    await db_session.commit()
+    supplier_id = supplier.id
+    batch = await stage(
+        client, admin, ids["context"], synthetic_board(name="Auto", supplier="9002"), "auto.xlsx"
+    )
+    base_mapping = mapping(ids)
+
+    # Sem o opt-in nada é pré-selecionado.
+    default_plan = (await plan(client, admin, batch["batchId"], base_mapping)).json()
+    assert default_plan["automaticSupplierSelections"] == []
+
+    response = await client.post(
+        "/api/v1/imports/monday/plan",
+        json={"batchIds": [batch["batchId"]], "mapping": base_mapping, "autoSelectSuppliers": True},
+        headers=admin,
+    )
+    assert response.status_code == 200, response.text
+    planned = response.json()
+    [automatic] = planned["automaticSupplierSelections"]
+    assert automatic["supplierId"] == supplier_id
+
+    merged = base_mapping | {
+        "supplierSelections": {automatic["sourceKey"]: {"action": "USE", "supplierId": supplier_id}}
+    }
+    # O plano recalculado com o mapping mesclado tem o mesmo hash devolvido com o opt-in.
+    replanned = (await plan(client, admin, batch["batchId"], merged)).json()
+    assert replanned["planSha256"] == planned["planSha256"]
+
+    result = await apply(client, admin, batch["batchId"], merged, planned["planSha256"])
+    assert result.status_code == 200, result.text
     assert await _count(db_session, EquipmentSupplier) == 1
 
 

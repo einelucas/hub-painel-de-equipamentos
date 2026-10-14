@@ -110,6 +110,9 @@ class ImportPlanIn(CamelModel):
 
     batch_ids: list[str] = Field(min_length=1, max_length=MAX_BATCHES_PER_IMPORT)
     mapping: MappingFileSchema = Field(default_factory=MappingFileSchema)
+    # Opt-in: o servidor pré-seleciona (USE) fornecedores sugeridos pela própria planilha
+    # e devolve as seleções em `automaticSupplierSelections` para o cliente mesclar no mapping.
+    auto_select_suppliers: bool = False
 
 
 class MappingIssueOut(CamelModel):
@@ -185,6 +188,13 @@ class SupplierSuggestionOut(CamelModel):
     selected_supplier_id: str | None = None
 
 
+class AutomaticSupplierSelectionOut(CamelModel):
+    """Seleção `USE` aplicada pelo servidor neste plano (evidência da planilha)."""
+
+    source_key: str
+    supplier_id: str
+
+
 class ImportPlanOut(CamelModel):
     batch_ids: list[str]
     project_context_id: str
@@ -202,6 +212,8 @@ class ImportPlanOut(CamelModel):
     catalogs: list[CatalogItemOut] = []
     responsibles: ResponsibleSummaryOut = ResponsibleSummaryOut()
     supplier_suggestions: list[SupplierSuggestionOut] = []
+    # O cliente deve incorporá-las ao mapping para que o apply reconstrua o mesmo plano.
+    automatic_supplier_selections: list[AutomaticSupplierSelectionOut] = []
     eap: EapSummaryOut
     has_blocked: bool
     # Só aplica sem mapping inválido e sem nenhum item BLOCKED.
@@ -243,3 +255,19 @@ class ImportApplyOut(CamelModel):
     reconciliation: ImportReconciliationOut
     # Divergência nunca é reportada como sucesso simples.
     has_divergences: bool
+
+
+class ImportApplyJobOut(CamelModel):
+    """Estado do apply em segundo plano (202 no POST; consultado por polling)."""
+
+    job_id: str
+    status: str  # RUNNING | COMPLETED | FAILED
+    stage: str  # QUEUED | APPLYING | RECONCILING | DONE
+    progress: int  # 0-100, estimado pela etapa
+    project_context_id: str
+    error: str | None = None
+    # PLAN_STALE | APPLY_FAILED | INVALID | INTERRUPTED
+    error_code: str | None = None
+    result: ImportApplyOut | None = None
+    created_at: str
+    finished_at: str | None = None

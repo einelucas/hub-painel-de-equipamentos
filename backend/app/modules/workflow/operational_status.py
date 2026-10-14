@@ -9,6 +9,8 @@ um campo mutável isolado sem rastro.
 
 from __future__ import annotations
 
+import uuid
+from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import select
@@ -17,12 +19,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser
 from app.core.errors import DomainError
 from app.core.permissions import Permission, assert_can
+from app.models.common import utcnow
 from app.models.equipment import Equipment
 from app.models.workflow_extras import OperationalStatusEvent
 from app.modules.equipments.schemas import UserRefOut
 from app.modules.workflow.schemas import EquipmentOperationalStatusOut, OperationalStatusEventOut
 from app.modules.workflow.services import _get_equipment
-from app.shared.audit import record_audit
+from app.shared.audit import build_audit_row, record_audit
 
 _AUDIT_ACTIONS = {
     "STANDBY_ENTERED": "equipment.standby_entered",
@@ -71,6 +74,52 @@ async def record_operational_status_change(
         new_data={"operationalStatus": resulting_status, "justification": justification},
         metadata={"equipmentId": equipment.id, "stageAtEvent": stage_at_event, **(audit_metadata or {})},
     )
+
+
+@dataclass(slots=True, frozen=True)
+class OperationalStatusChangeRows:
+    """Linhas (nomes de coluna) que `record_operational_status_change` gravaria."""
+
+    event_row: dict[str, Any]
+    audit_row: dict[str, Any]
+    resulting_status: str
+
+
+def build_operational_status_change_rows(
+    *,
+    equipment_id: str,
+    previous_status: str,
+    kind: str,
+    resulting_status: str,
+    stage_at_event: int,
+    justification: str | None,
+    actor_id: str,
+    audit_action: str | None = None,
+    audit_metadata: dict[str, Any] | None = None,
+) -> OperationalStatusChangeRows:
+    """Variante pura de `record_operational_status_change` para escrita em lote:
+    mesmo evento e mesma auditoria, como linhas de tabela, sem tocar na sessão.
+    Quem chama é responsável por gravar `resulting_status` no equipamento."""
+    event_row = {
+        "id": str(uuid.uuid4()),
+        "equipment_id": equipment_id,
+        "kind": kind,
+        "resulting_status": resulting_status,
+        "stage_at_event": stage_at_event,
+        "justification": justification or "",
+        "actor_id": actor_id,
+        "occurred_at": utcnow(),
+    }
+    audit_row = build_audit_row(
+        user_id=actor_id,
+        action=audit_action or _AUDIT_ACTIONS[kind],
+        entity="Equipment",
+        entity_id=equipment_id,
+        previous_data={"operationalStatus": previous_status},
+        new_data={"operationalStatus": resulting_status, "justification": justification},
+        metadata={"equipmentId": equipment_id, "stageAtEvent": stage_at_event, **(audit_metadata or {})},
+    )
+    return OperationalStatusChangeRows(event_row, audit_row, resulting_status)
 
 
 async def _apply(

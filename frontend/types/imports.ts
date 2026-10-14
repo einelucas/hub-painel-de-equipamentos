@@ -115,6 +115,7 @@ export interface ImportPlan {
   catalogs?: CatalogItem[];
   responsibles?: { resolved: number; unresolved: number };
   supplierSuggestions?: SupplierSuggestion[];
+  automaticSupplierSelections?: { sourceKey: string; supplierId: string }[];
   eap: { resolved: number; multiple: number; none: number; notFound: number; create?: number; conflict?: number; unresolved?: number };
   hasBlocked: boolean;
   canApply: boolean;
@@ -156,6 +157,17 @@ export interface ImportApplyResult {
     divergences: ImportDivergence[];
   };
   hasDivergences: boolean;
+}
+
+/** Estado do apply em segundo plano (POST 202 e GET de polling). */
+export interface ImportApplyJob {
+  jobId: string;
+  status: "RUNNING" | "COMPLETED" | "FAILED";
+  stage: "QUEUED" | "APPLYING" | "RECONCILING" | "DONE";
+  progress: number;
+  error: string | null;
+  errorCode: "PLAN_STALE" | "APPLY_FAILED" | "INVALID" | "INTERRUPTED" | null;
+  result: ImportApplyResult | null;
 }
 
 export interface ImportOption {

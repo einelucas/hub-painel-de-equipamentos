@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -18,7 +18,7 @@ from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import defer, selectinload
 
 from app.models.audit import AuditLog
 from app.models.equipment import Equipment, EquipmentComponent
@@ -155,6 +155,9 @@ class MigrationPlan:
     catalog_items: list[CatalogPlanItem] = field(default_factory=list)
     # Responsável: resolvido por mapping ou pendente (nunca cria User).
     responsible_summary: dict[str, int] = field(default_factory=lambda: {"resolved": 0, "unresolved": 0})
+    # Estado do banco carregado pelo `build_plan` (`_PlanPrefetch`), reaproveitado
+    # pelo apply para não reconsultar linha a linha. Fora do hash e do `to_dict`.
+    prefetch: Any = field(default=None, repr=False, compare=False)
 
     @property
     def catalog_counts(self) -> dict[str, dict[str, int]]:
@@ -326,7 +329,9 @@ class _PlanPrefetch:
     equipment_id_by_name: dict[str, str] = field(default_factory=dict)
     equipments: dict[str, Equipment] = field(default_factory=dict)
     current_supplier: dict[str, str] = field(default_factory=dict)
-    sub_entities: dict[type[Any], dict[str, Any]] = field(default_factory=dict)
+    # equipment_id -> id da linha EquipmentSupplier ativa (usada pelo apply para encerrá-la).
+    current_supplier_link: dict[str, str] = field(default_factory=dict)
+    sub_entities:dict[type[Any], dict[str, Any]] = field(default_factory=dict)
     components: dict[str, EquipmentComponent] = field(default_factory=dict)
     human_touched: set[tuple[str, str]] = field(default_factory=set)
 
@@ -397,13 +402,17 @@ class _PlanPrefetch:
             for equipment in equipments:
                 prefetch.equipments[equipment.id] = equipment
             suppliers = await session.execute(
-                select(EquipmentSupplier.equipment_id, EquipmentSupplier.supplier_id).where(
+                select(
+                    EquipmentSupplier.equipment_id, EquipmentSupplier.supplier_id, EquipmentSupplier.id
+                ).where(
                     EquipmentSupplier.equipment_id.in_(chunk),
                     EquipmentSupplier.ended_at.is_(None),
                 )
             )
-            for equipment_id, supplier_id in suppliers:
-                prefetch.current_supplier.setdefault(equipment_id, supplier_id)
+            for equipment_id, supplier_id, link_id in suppliers:
+                if equipment_id not in prefetch.current_supplier:
+                    prefetch.current_supplier[equipment_id] = supplier_id
+                    prefetch.current_supplier_link[equipment_id] = link_id
             for model in _SUB_ENTITY_MODELS:
                 by_equipment = prefetch.sub_entities.setdefault(model, {})
                 for row in await session.scalars(select(model).where(model.equipment_id.in_(chunk))):
@@ -580,6 +589,21 @@ def _plan_sub_entity(
     )
 
 
+async def load_batch_records(session: AsyncSession, batch_ids: Sequence[str]) -> list[MondayImportRecord]:
+    """Registros staged dos batches, sem o raw_payload (grande e nunca usado no plano)."""
+    return list(
+        (
+            await session.execute(
+                select(MondayImportRecord)
+                .where(MondayImportRecord.batch_id.in_(batch_ids))
+                .options(defer(MondayImportRecord.raw_payload))
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
 async def build_plan(
     session: AsyncSession,
     *,
@@ -587,8 +611,10 @@ async def build_plan(
     batch_ids: list[str],
     mapping: ValidatedMapping,
     evidence: CatalogEvidence | None = None,
+    records: Sequence[MondayImportRecord] | None = None,
 ) -> MigrationPlan:
-    """`evidence=None` agrega as fontes padrão (catálogo oficial local, rótulos do
+    """`records` permite reaproveitar os registros já carregados (sem raw_payload).
+    `evidence=None` agrega as fontes padrão (catálogo oficial local, rótulos do
     Monday, LGE configurada e `catalogEvidence` do mapping)."""
     if not batch_ids:
         raise ValueError("informe ao menos um batch")
@@ -606,11 +632,8 @@ async def build_plan(
     if wrong_context:
         raise ValueError(f"batch(es) de outro contexto: {sorted(wrong_context)}")
 
-    records = (
-        (await session.execute(select(MondayImportRecord).where(MondayImportRecord.batch_id.in_(batch_ids))))
-        .scalars()
-        .all()
-    )
+    if records is None:
+        records = await load_batch_records(session, batch_ids)
     records_by_id = {record.id: record for record in records}
 
     equipment_groups: dict[str, list[tuple[str, MondayImportRecord]]] = {}
@@ -1204,4 +1227,5 @@ async def build_plan(
     plan.catalog_items = catalogs.items
     plan.eap_summary = dict(catalogs.eap_summary)
     plan.responsible_summary = dict(catalogs.responsible_summary)
+    plan.prefetch = prefetch
     return plan

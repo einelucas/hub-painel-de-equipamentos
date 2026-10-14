@@ -8,6 +8,8 @@ já registrados em `external_mapping`.
 
 from __future__ import annotations
 
+from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -112,33 +114,87 @@ def _length(model: type[Any], column: str) -> int | None:
     return getattr(model.__table__.columns[column].type, "length", None)
 
 
-async def _latest_normalized(
-    session: AsyncSession, *, project_context_id: str, record_kind: str, source_key: str
-) -> tuple[dict[str, Any] | None, bool]:
-    """Mescla todos os batches já staged do contexto para este identificador.
+# Limite de valores por `IN (...)`: o asyncpg aceita até 32767 parâmetros por statement.
+_IN_CHUNK = 1000
+
+
+def _chunks(values: Iterable[str]) -> Iterator[list[str]]:
+    ordered = sorted(set(values))
+    for start in range(0, len(ordered), _IN_CHUNK):
+        yield ordered[start : start + _IN_CHUNK]
+
+
+def _merge_normalized(records: list[MondayImportRecord]) -> tuple[dict[str, Any] | None, bool]:
+    """Mescla todos os batches já staged do contexto para um identificador.
     Devolve `(None, True)` quando há conflito entre batches (não comparável)."""
-    records = (
-        (
-            await session.execute(
+    if not records:
+        return None, False
+    merged = _merge_group([(record.batch_id, record) for record in records])
+    if merged.conflict_detail is not None:
+        return None, True
+    return merged.normalized, False
+
+
+async def _staged_by_source_key(
+    session: AsyncSession, *, project_context_id: str, record_kind: str, source_keys: Iterable[str]
+) -> dict[str, list[MondayImportRecord]]:
+    """Registros staged do contexto (todos os batches) agrupados por `source_key`,
+    em poucas consultas `IN (...)` em vez de uma por identificador."""
+    grouped: dict[str, list[MondayImportRecord]] = defaultdict(list)
+    for chunk in _chunks(source_keys):
+        records = (
+            await session.scalars(
                 select(MondayImportRecord)
                 .join(MondayImportBatch, MondayImportBatch.id == MondayImportRecord.batch_id)
                 .where(
                     MondayImportBatch.project_context_id == project_context_id,
                     MondayImportRecord.record_kind == record_kind,
-                    MondayImportRecord.source_key == source_key,
+                    MondayImportRecord.source_key.in_(chunk),
                 )
             )
-        )
-        .scalars()
-        .all()
+        ).all()
+        for record in records:
+            grouped[record.source_key].append(record)
+    return grouped
+
+
+async def _latest_normalized(
+    session: AsyncSession, *, project_context_id: str, record_kind: str, source_key: str
+) -> tuple[dict[str, Any] | None, bool]:
+    """Versão unitária (mantida por compatibilidade) de `_staged_by_source_key`."""
+    grouped = await _staged_by_source_key(
+        session, project_context_id=project_context_id, record_kind=record_kind, source_keys=[source_key]
     )
-    if not records:
-        return None, False
-    entries = [(record.batch_id, record) for record in records]
-    merged = _merge_group(entries)
-    if merged.conflict_detail is not None:
-        return None, True
-    return merged.normalized, False
+    return _merge_normalized(grouped.get(source_key, []))
+
+
+async def _load_equipments(session: AsyncSession, equipment_ids: Iterable[str]) -> dict[str, Equipment]:
+    equipments: dict[str, Equipment] = {}
+    for chunk in _chunks(equipment_ids):
+        rows = (
+            (
+                await session.scalars(
+                    select(Equipment)
+                    .where(Equipment.id.in_(chunk))
+                    .options(
+                        joinedload(Equipment.discipline),
+                        joinedload(Equipment.responsible_user),
+                        selectinload(Equipment.work_package_links),
+                        joinedload(Equipment.negotiation),
+                        joinedload(Equipment.legal_process),
+                        selectinload(Equipment.contracts),
+                        selectinload(Equipment.purchase_requests),
+                        selectinload(Equipment.purchase_orders),
+                        selectinload(Equipment.components),
+                    )
+                )
+            )
+            .unique()
+            .all()
+        )
+        for equipment in rows:
+            equipments[equipment.id] = equipment
+    return equipments
 
 
 async def reconcile_domain(
@@ -169,31 +225,43 @@ async def reconcile_domain(
     )
     components_compared = 0
 
-    for equipment_mapping in mappings:
-        equipment = await session.scalar(
-            select(Equipment)
-            .where(Equipment.id == equipment_mapping.target_entity_id)
-            .options(
-                joinedload(Equipment.discipline),
-                joinedload(Equipment.responsible_user),
-                selectinload(Equipment.work_package_links),
-                joinedload(Equipment.negotiation),
-                joinedload(Equipment.legal_process),
-                selectinload(Equipment.contracts),
-                selectinload(Equipment.purchase_requests),
-                selectinload(Equipment.purchase_orders),
-                selectinload(Equipment.components),
+    # Banco remoto (Neon): tudo que o laço compara é carregado em lote (poucas
+    # consultas `IN (...)`), e o laço só consulta dicionários. O escopo continua
+    # sendo a obra inteira (todos os vínculos de equipamento do contexto).
+    equipments = await _load_equipments(session, (item.target_entity_id for item in mappings))
+    equipment_staged = await _staged_by_source_key(
+        session,
+        project_context_id=project_context_id,
+        record_kind="equipment",
+        source_keys=(item.external_id for item in mappings if item.target_entity_id in equipments),
+    )
+    component_ids = {component.id for equipment in equipments.values() for component in equipment.components}
+    component_mappings_by_target: dict[str, list[ExternalMapping]] = defaultdict(list)
+    for chunk in _chunks(component_ids):
+        for component_mapping in (
+            await session.scalars(
+                select(ExternalMapping).where(
+                    ExternalMapping.project_context_id == project_context_id,
+                    ExternalMapping.source_system == SOURCE_SYSTEM,
+                    ExternalMapping.source_entity_type == "component",
+                    ExternalMapping.target_entity_id.in_(chunk),
+                )
             )
-        )
+        ).all():
+            component_mappings_by_target[component_mapping.target_entity_id].append(component_mapping)
+    component_staged = await _staged_by_source_key(
+        session,
+        project_context_id=project_context_id,
+        record_kind="component",
+        source_keys=(item.external_id for items in component_mappings_by_target.values() for item in items),
+    )
+
+    for equipment_mapping in mappings:
+        equipment = equipments.get(equipment_mapping.target_entity_id)
         if equipment is None:
             continue
 
-        normalized, conflict = await _latest_normalized(
-            session,
-            project_context_id=project_context_id,
-            record_kind="equipment",
-            source_key=equipment_mapping.external_id,
-        )
+        normalized, conflict = _merge_normalized(equipment_staged.get(equipment_mapping.external_id, []))
         fields: list[FieldComparison] = []
         if conflict or normalized is None:
             status: FieldStatus = "NOT_COMPARABLE"
@@ -362,34 +430,17 @@ async def reconcile_domain(
             )
         )
 
-        component_mappings = (
-            (
-                await session.execute(
-                    select(ExternalMapping).where(
-                        ExternalMapping.project_context_id == project_context_id,
-                        ExternalMapping.source_system == SOURCE_SYSTEM,
-                        ExternalMapping.source_entity_type == "component",
-                        ExternalMapping.target_entity_id.in_([item.id for item in equipment.components]),
-                    )
-                )
-            )
-            .scalars()
-            .all()
-        )
+        component_pairs = [
+            (component, component_mapping)
+            for component in {item.id: item for item in equipment.components}.values()
+            for component_mapping in component_mappings_by_target.get(component.id, [])
+        ]
         component_match = 0
         component_mismatch = 0
-        component_total = len(component_mappings)
-        for component_mapping in component_mappings:
-            component = next(
-                (item for item in equipment.components if item.id == component_mapping.target_entity_id), None
-            )
-            if component is None:
-                continue
-            component_normalized, component_conflict = await _latest_normalized(
-                session,
-                project_context_id=project_context_id,
-                record_kind="component",
-                source_key=component_mapping.external_id,
+        component_total = len(component_pairs)
+        for component, component_mapping in component_pairs:
+            component_normalized, component_conflict = _merge_normalized(
+                component_staged.get(component_mapping.external_id, [])
             )
             components_compared += 1
             if component_conflict or component_normalized is None:

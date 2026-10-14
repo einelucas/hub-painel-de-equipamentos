@@ -17,6 +17,7 @@ from app.models.equipment import (
 )
 from app.models.monday_import import (
     ExternalMapping,
+    MondayApplyJob,
     MondayImportBatch,
     MondayImportIssue,
     MondayImportRecord,
@@ -61,6 +62,7 @@ __all__ = [
     "MondayImportBatch",
     "MondayImportIssue",
     "MondayImportRecord",
+    "MondayApplyJob",
     "MondayMigrationRun",
     "Negotiation",
     "NotificationEvent",

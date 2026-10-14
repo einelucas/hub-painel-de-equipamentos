@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import select
@@ -23,6 +25,7 @@ from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.scope import assert_context_allowed
 from app.models.monday_import import MondayImportBatch, MondayImportIssue, MondayImportRecord
 from app.modules.imports.schemas import (
+    AutomaticSupplierSelectionOut,
     CatalogItemOut,
     EapSummaryOut,
     ImportApplyOut,
@@ -51,14 +54,20 @@ from app.modules.monday_import.catalog_planner import CatalogPlanItem
 from app.modules.monday_import.catalog_sources import default_catalog_evidence
 from app.modules.monday_import.domain_reconciliation import reconcile_domain
 from app.modules.monday_import.eap_resolution import EapResolver
-from app.modules.monday_import.mapping_file import MappingFileSchema, ValidatedMapping, validate_mapping
+from app.modules.monday_import.mapping_file import (
+    MappingFileSchema,
+    SupplierSelectionIn,
+    ValidatedMapping,
+    validate_mapping,
+)
 from app.modules.monday_import.normalization import canonical_text
-from app.modules.monday_import.plan import MigrationPlan, build_plan
+from app.modules.monday_import.plan import MigrationPlan, build_plan, load_batch_records
 from app.modules.monday_import.profile import (
     ImportProfileError,
     load_runtime_profile,
     runtime_profiles,
 )
+from app.modules.monday_import.schemas import ParsedWorkbook
 from app.modules.monday_import.service import StagedWithDifferentProfileError, stage_import
 from app.modules.monday_import.xlsx import XlsxReadError
 from app.modules.suppliers.suggestions import SupplierSuggestionResolver
@@ -128,7 +137,12 @@ async def stage_upload(
         ) from exc
     batch = await session.get(MondayImportBatch, result.batch_id)
     assert batch is not None
-    summary = await _summary(session, batch, already_staged=not result.created and not result.restaged)
+    summary = await _summary(
+        session,
+        batch,
+        already_staged=not result.created and not result.restaged,
+        workbook=result.workbook,
+    )
     # Só identificadores e contagens: nunca conteúdo de células.
     logger.info(
         "monday import staged batch=%s sha256=%s profile=%s created=%s equipments=%s components=%s errors=%s",
@@ -165,28 +179,51 @@ def _distinct(values: list[Any]) -> list[str]:
 
 
 async def _summary(
-    session: AsyncSession, batch: MondayImportBatch, *, already_staged: bool
+    session: AsyncSession,
+    batch: MondayImportBatch,
+    *,
+    already_staged: bool,
+    workbook: ParsedWorkbook | None = None,
 ) -> ImportBatchOut:
-    records = (
-        (await session.execute(select(MondayImportRecord).where(MondayImportRecord.batch_id == batch.id)))
-        .scalars()
-        .all()
-    )
-    issues = (
-        (
-            await session.execute(
-                select(MondayImportIssue)
-                .where(MondayImportIssue.batch_id == batch.id)
-                .order_by(MondayImportIssue.severity.asc(), MondayImportIssue.row_number.asc().nulls_first())
-            )
+    """Com `workbook` (staging recém-gravado) o resumo sai da memória, sem reler o banco."""
+    if workbook is not None:
+        equipments = [equipment.normalized for equipment in workbook.equipments]
+        groups = sorted({equipment.group_name for equipment in workbook.equipments if equipment.group_name})
+        component_count = workbook.component_count
+        # Mesma ordem da consulta: severidade asc, row_number asc com NULL primeiro.
+        issues: list[Any] = sorted(
+            workbook.issues,
+            key=lambda issue: (issue.severity, issue.row_number is not None, issue.row_number or 0),
         )
-        .scalars()
-        .all()
-    )
-    equipments = [record.normalized_payload for record in records if record.record_kind == "equipment"]
-    groups = sorted(
-        {record.group_name for record in records if record.record_kind == "equipment" and record.group_name}
-    )
+    else:
+        records = (
+            (await session.execute(select(MondayImportRecord).where(MondayImportRecord.batch_id == batch.id)))
+            .scalars()
+            .all()
+        )
+        issues = list(
+            (
+                await session.execute(
+                    select(MondayImportIssue)
+                    .where(MondayImportIssue.batch_id == batch.id)
+                    .order_by(
+                        MondayImportIssue.severity.asc(),
+                        MondayImportIssue.row_number.asc().nulls_first(),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        equipments = [record.normalized_payload for record in records if record.record_kind == "equipment"]
+        groups = sorted(
+            {
+                record.group_name
+                for record in records
+                if record.record_kind == "equipment" and record.group_name
+            }
+        )
+        component_count = sum(1 for record in records if record.record_kind == "component")
     operational = Counter(
         str(payload["operational_status"]) for payload in equipments if payload.get("operational_status")
     )
@@ -218,7 +255,7 @@ async def _summary(
             else None
         ),
         equipments=len(equipments),
-        components=sum(1 for record in records if record.record_kind == "component"),
+        components=component_count,
         warnings=sum(1 for issue in issues if issue.severity == "warning"),
         errors=errors,
         unknown_fields=list(summary.get("unknown_fields") or []),
@@ -343,35 +380,29 @@ async def build_batches_plan(
     return project_context_id, unique_ids, validated, plan
 
 
-async def _labels(session: AsyncSession, batch_ids: list[str]) -> dict[str, str]:
+def _labels_from(records: list[MondayImportRecord]) -> dict[str, str]:
     """source_key -> nome legível (para listar bloqueios sem expor JSON bruto)."""
-    records = (
-        (await session.execute(select(MondayImportRecord).where(MondayImportRecord.batch_id.in_(batch_ids))))
-        .scalars()
-        .all()
-    )
     return {
         record.source_key: str(record.normalized_payload.get("name") or record.source_key)
         for record in records
     }
 
 
-async def _supplier_suggestions(
-    session: AsyncSession,
-    batch_ids: list[str],
-    mapping: ValidatedMapping,
-) -> list[SupplierSuggestionOut]:
-    records = (
-        await session.scalars(
-            select(MondayImportRecord).where(
-                MondayImportRecord.batch_id.in_(batch_ids),
-                MondayImportRecord.record_kind == "equipment",
-            )
-        )
-    ).all()
+@dataclass(slots=True)
+class _RecordSuggestion:
+    record: MondayImportRecord
+    equipment_name: str
+    source_value: str | None
+    suggestion: Any
+
+
+async def _resolve_supplier_suggestions(
+    session: AsyncSession, records: list[MondayImportRecord]
+) -> list[_RecordSuggestion]:
     resolver = await SupplierSuggestionResolver.load(session)
-    result: list[SupplierSuggestionOut] = []
-    for record in sorted(records, key=lambda item: item.source_key):
+    result: list[_RecordSuggestion] = []
+    equipments = [record for record in records if record.record_kind == "equipment"]
+    for record in sorted(equipments, key=lambda item: item.source_key):
         payload = record.normalized_payload
         equipment_name = str(payload.get("name") or record.source_key)
         raw_names = [str(value) for value in payload.get("suppliers_raw") or [] if value]
@@ -383,12 +414,22 @@ async def _supplier_suggestions(
             source_code=str(source_code) if source_code else None,
             source_name=source_name,
         )
+        result.append(_RecordSuggestion(record, equipment_name, source_value, suggestion))
+    return result
+
+
+def _supplier_suggestions_out(
+    items: list[_RecordSuggestion], mapping: ValidatedMapping
+) -> list[SupplierSuggestionOut]:
+    result: list[SupplierSuggestionOut] = []
+    for item in items:
+        record, suggestion = item.record, item.suggestion
         selected = mapping.supplier_selections.get(record.source_key)
         result.append(
             SupplierSuggestionOut(
                 source_key=record.source_key,
-                equipment_name=equipment_name,
-                source_value=source_value,
+                equipment_name=item.equipment_name,
+                source_value=item.source_value,
                 supplier_id=suggestion.supplier_id if suggestion else None,
                 supplier_name=suggestion.supplier_name if suggestion else None,
                 corporate_code=suggestion.corporate_code if suggestion else None,
@@ -415,12 +456,49 @@ _GROUP_LABELS = {
 
 
 async def plan_batches(
-    session: AsyncSession, actor: CurrentUser, batch_ids: list[str], mapping: MappingFileSchema
+    session: AsyncSession,
+    actor: CurrentUser,
+    batch_ids: list[str],
+    mapping: MappingFileSchema,
+    *,
+    auto_select_suppliers: bool = False,
 ) -> ImportPlanOut:
-    project_context_id, unique_ids, validated, plan = await build_batches_plan(
-        session, actor, batch_ids, mapping
+    unique_ids = list(dict.fromkeys(batch_ids))
+    batches = [await _staged_batch_ready(session, actor, batch_id) for batch_id in unique_ids]
+    contexts = {batch.project_context_id for batch in batches}
+    if len(contexts) != 1:
+        raise DomainError("Todos os arquivos de uma importação devem ser da mesma obra.")
+    [project_context_id] = contexts
+    # Registros carregados uma vez (sem raw_payload) e reaproveitados por plan, rótulos e sugestões.
+    records = await load_batch_records(session, unique_ids)
+    suggestion_items = await _resolve_supplier_suggestions(session, records)
+    # Opt-in: fornecedor sugerido por evidência da própria planilha é selecionado
+    # (sem sobrescrever escolha explícita) neste plano; o cliente mescla no mapping do apply.
+    automatic = (
+        {
+            item.record.source_key: SupplierSelectionIn(action="USE", supplier_id=item.suggestion.supplier_id)
+            for item in suggestion_items
+            if item.suggestion is not None
+            and item.suggestion.source_matched
+            and item.suggestion.supplier_id
+            and item.record.source_key not in mapping.supplier_selections
+        }
+        if auto_select_suppliers
+        else {}
     )
-    labels = await _labels(session, unique_ids)
+    if automatic:
+        mapping = mapping.model_copy(
+            update={"supplier_selections": {**mapping.supplier_selections, **automatic}}
+        )
+    validated = await validate_mapping(session, mapping, project_context_id=project_context_id)
+    plan = await build_plan(
+        session,
+        project_context_id=project_context_id,
+        batch_ids=unique_ids,
+        mapping=validated,
+        records=records,
+    )
+    labels = _labels_from(records)
     groups = []
     blocked = []
     for name, items in plan.all_groups.items():
@@ -494,7 +572,11 @@ async def plan_batches(
         ),
         catalogs=[_catalog_item_out(item) for item in plan.catalog_items],
         responsibles=ResponsibleSummaryOut(**plan.responsible_summary),
-        supplier_suggestions=await _supplier_suggestions(session, unique_ids, validated),
+        supplier_suggestions=_supplier_suggestions_out(suggestion_items, validated),
+        automatic_supplier_selections=[
+            AutomaticSupplierSelectionOut(source_key=key, supplier_id=str(selection.supplier_id))
+            for key, selection in sorted(automatic.items())
+        ],
         has_blocked=plan.has_blocked,
         can_apply=not plan.has_blocked and not validated.has_errors,
     )
@@ -509,23 +591,46 @@ def _text(value: Any) -> str | None:
     return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
+async def validate_apply_request(
+    session: AsyncSession, actor: CurrentUser, batch_ids: list[str], mapping: MappingFileSchema
+) -> tuple[str, list[str]]:
+    """Checagens baratas, síncronas, do `apply` (escopo, batches prontos, mesma obra, mapping).
+
+    Não monta o plano: o plano (caro, com prefetch preso à sessão) é reconstruído pelo job
+    em sessão própria."""
+    unique_ids = list(dict.fromkeys(batch_ids))
+    batches = [await _staged_batch_ready(session, actor, batch_id) for batch_id in unique_ids]
+    contexts = {batch.project_context_id for batch in batches}
+    if len(contexts) != 1:
+        raise DomainError("Todos os arquivos de uma importação devem ser da mesma obra.")
+    [project_context_id] = contexts
+    validated = await validate_mapping(session, mapping, project_context_id=project_context_id)
+    if validated.has_errors:
+        raise DomainError("Mapping inválido: revise as associações antes de aplicar.")
+    return project_context_id, unique_ids
+
+
 async def apply_batches(
     session: AsyncSession,
     actor: CurrentUser,
     batch_ids: list[str],
     mapping: MappingFileSchema,
     expected_plan_sha256: str,
+    on_stage: Callable[[str], Awaitable[None]] | None = None,
 ) -> ImportApplyOut:
     """Reconstrói o plano (mesmo caminho do `plan`), confere o hash e chama `apply_plan`.
 
     O ator é sempre o usuário autenticado; o escopo por unidade já foi validado
     ao carregar cada batch. Auditoria, ExternalMapping e transação são do motor.
+    `on_stage` (opcional) recebe o nome da etapa para o progresso do job.
     """
     project_context_id, unique_ids, validated, plan = await build_batches_plan(
         session, actor, batch_ids, mapping
     )
     if validated.has_errors:
         raise DomainError("Mapping inválido: revise as associações antes de aplicar.")
+    if on_stage is not None:
+        await on_stage("APPLYING")
     try:
         result = await apply_plan(session, plan=plan, expected_plan_sha256=expected_plan_sha256, actor=actor)
     except PlanStaleError as exc:
@@ -533,6 +638,8 @@ async def apply_batches(
     except PlanBlockedError as exc:
         raise DomainError("O plano tem itens bloqueados e não pode ser aplicado.") from exc
 
+    if on_stage is not None:
+        await on_stage("RECONCILING")
     report = await reconcile_domain(session, project_context_id=project_context_id, mapping=validated)
     divergences = [
         ImportDivergenceOut(

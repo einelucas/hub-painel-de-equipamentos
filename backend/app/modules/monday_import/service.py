@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from typing import BinaryIO, Literal
 
@@ -20,7 +22,7 @@ from app.models.monday_import import (
 )
 from app.modules.monday_import.dry_run import build_dry_run_report
 from app.modules.monday_import.mappings import SOURCE_SYSTEM
-from app.modules.monday_import.parser import PARSER_VERSION, parse_monday_xlsx
+from app.modules.monday_import.parser import PARSER_VERSION, _source_bytes, parse_monday_xlsx
 from app.modules.monday_import.profile import ImportProfile, default_profile
 from app.modules.monday_import.schemas import ParsedWorkbook, StageImportResult
 
@@ -85,6 +87,36 @@ async def _existing_batch_result(session: AsyncSession, batch_id: str) -> StageI
     return StageImportResult(batch_id=batch_id, created=False, records=records, issues=issues)
 
 
+async def _find_batch(
+    session: AsyncSession, project_context_id: str, file_sha256: str
+) -> MondayImportBatch | None:
+    return await session.scalar(
+        select(MondayImportBatch).where(
+            MondayImportBatch.project_context_id == project_context_id,
+            MondayImportBatch.source_system == SOURCE_SYSTEM,
+            MondayImportBatch.file_sha256 == file_sha256,
+        )
+    )
+
+
+def _early_decision(
+    existing: MondayImportBatch, profile: ImportProfile
+) -> Literal["reuse", "restage", "conflict"]:
+    return restage_decision(
+        existing_status=existing.status,
+        existing_parser_version=existing.parser_version,
+        existing_summary=existing.summary,
+        profile=profile,
+    )
+
+
+def _conflict_error(existing: MondayImportBatch) -> StagedWithDifferentProfileError:
+    return StagedWithDifferentProfileError(
+        f"arquivo já staged no batch {existing.id} com outro ImportProfile; "
+        "use o mesmo profile ou um contexto/arquivo novo"
+    )
+
+
 async def stage_import(
     session: AsyncSession,
     *,
@@ -105,7 +137,18 @@ async def stage_import(
         raise ValueError("project_context não encontrado")
 
     profile = profile or default_profile()
-    workbook = parse_monday_xlsx(source, source_name=source_name, profile=profile)
+    # O SHA-256 vem dos bytes (igual ao do parser) para decidir reuso/conflito ANTES do parse caro.
+    data, filename = _source_bytes(source, source_name)
+    file_sha256 = sha256(data).hexdigest()
+    existing_before = await _find_batch(session, project_context_id, file_sha256)
+    if existing_before is not None:
+        early = _early_decision(existing_before, profile)
+        if early == "conflict":
+            raise _conflict_error(existing_before)
+        if early == "reuse":
+            return await _existing_batch_result(session, existing_before.id)
+    # openpyxl/XML é CPU-bound: fora do event loop.
+    workbook = await asyncio.to_thread(parse_monday_xlsx, data, source_name=filename, profile=profile)
     report_payload = build_dry_run_report([workbook]).to_dict()
     report_payload.pop("issues", None)
     proposed_batch_id = str(uuid.uuid4())
@@ -129,26 +172,12 @@ async def stage_import(
         )
     ).scalar_one_or_none()
     if inserted_id is None:
-        existing = await session.scalar(
-            select(MondayImportBatch).where(
-                MondayImportBatch.project_context_id == project_context_id,
-                MondayImportBatch.source_system == SOURCE_SYSTEM,
-                MondayImportBatch.file_sha256 == workbook.file_sha256,
-            )
-        )
+        existing = await _find_batch(session, project_context_id, workbook.file_sha256)
         if existing is None:  # pragma: no cover - defesa contra anomalia transacional
             raise RuntimeError("conflito de batch sem registro recuperável")
-        decision = restage_decision(
-            existing_status=existing.status,
-            existing_parser_version=existing.parser_version,
-            existing_summary=existing.summary,
-            profile=profile,
-        )
+        decision = _early_decision(existing, profile)
         if decision == "conflict":
-            raise StagedWithDifferentProfileError(
-                f"arquivo já staged no batch {existing.id} com outro ImportProfile; "
-                "use o mesmo profile ou um contexto/arquivo novo"
-            )
+            raise _conflict_error(existing)
         if decision == "reuse":
             return await _existing_batch_result(session, existing.id)
         # Batch nunca aplicado e nova versão do mesmo profile: a análise é refeita
@@ -163,7 +192,12 @@ async def stage_import(
         await session.flush()
         result = await _write_staging(session, existing.id, workbook)
         return StageImportResult(
-            batch_id=existing.id, created=False, records=result.records, issues=result.issues, restaged=True
+            batch_id=existing.id,
+            created=False,
+            records=result.records,
+            issues=result.issues,
+            restaged=True,
+            workbook=workbook,
         )
 
     return await _write_staging(session, inserted_id, workbook)
@@ -230,6 +264,7 @@ async def _write_staging(session: AsyncSession, batch_id: str, workbook: ParsedW
         created=True,
         records=record_count,
         issues=len(workbook.issues),
+        workbook=workbook,
     )
 
 

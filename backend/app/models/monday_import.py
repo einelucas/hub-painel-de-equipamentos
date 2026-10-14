@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -136,6 +136,49 @@ class MondayMigrationRun(Base):
         ),
         Index("monday_migration_run_context_idx", "project_context_id"),
         Index("monday_migration_run_plan_idx", "plan_sha256"),
+    )
+
+
+class MondayApplyJob(Base):
+    """Execução em segundo plano do `apply` (progresso + resultado para o polling).
+
+    Fica fora de `MondayMigrationRun` porque o run só é criado dentro da transação
+    única do apply (invisível até o commit); o job é gravado e commitado ANTES, o que
+    permite consultar o estado e impedir dois applies simultâneos na mesma obra
+    (índice único parcial em `status = 'RUNNING'`).
+    """
+
+    __tablename__ = "monday_apply_job"
+
+    id: Mapped[str] = uuid_pk()
+    project_context_id: Mapped[str] = mapped_column(
+        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+    )
+    actor_id: Mapped[str] = mapped_column(
+        String, ForeignKey("User.id", ondelete="RESTRICT"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="RUNNING")
+    stage: Mapped[str] = mapped_column(String(40), nullable=False, default="QUEUED")
+    batch_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    plan_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    migration_run_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    error: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(Timestamp3, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('RUNNING', 'COMPLETED', 'FAILED')", name="monday_apply_job_status_check"
+        ),
+        Index(
+            "monday_apply_job_running_key",
+            "project_context_id",
+            unique=True,
+            postgresql_where=text("status = 'RUNNING'"),
+        ),
     )
 
 

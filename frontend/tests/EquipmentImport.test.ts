@@ -9,7 +9,7 @@ import ImportResultStep from "~/components/imports/ImportResultStep.vue";
 import ImportSourceStep from "~/components/imports/ImportSourceStep.vue";
 import { isXlsx, mergeSourceValues } from "~/composables/useEquipmentImport";
 import { ApiError } from "~/services/api/error";
-import type { ImportApplyResult, ImportBatch, ImportPlan } from "~/types/imports";
+import type { ImportApplyJob, ImportApplyResult, ImportBatch, ImportPlan } from "~/types/imports";
 import { chooseOption, isDisabled, shownValue } from "./support/searchableSelect";
 
 // Dados 100% sintéticos.
@@ -91,10 +91,27 @@ interface ApiOverrides {
   upload?: (form: FormData) => Promise<unknown>;
   plan?: () => Promise<unknown>;
   apply?: () => Promise<unknown>;
+  /** Apply em segundo plano: POST devolve o job RUNNING e o GET entrega estes estados em sequência. */
+  applyJobs?: Array<Partial<ImportApplyJob>>;
+}
+
+function job(overrides: Partial<ImportApplyJob> = {}): ImportApplyJob {
+  return {
+    jobId: "job-1",
+    status: "COMPLETED",
+    stage: "DONE",
+    progress: 100,
+    error: null,
+    errorCode: null,
+    result: applyResult(),
+    ...overrides,
+  };
 }
 
 function setup(permissions = ["equipments:write"], overrides: ApiOverrides = {}, selectedUnit = "u-tst") {
+  const jobQueue = [...(overrides.applyJobs ?? [])];
   const get = vi.fn(async (path: string) => {
+    if (path.includes("/imports/monday/apply/")) return job(jobQueue.shift() ?? {});
     const table: Record<string, unknown> = {
       "/units": { items: UNITS },
       "/imports/monday/profiles": { items: PROFILES },
@@ -131,7 +148,10 @@ function setup(permissions = ["equipments:write"], overrides: ApiOverrides = {},
   );
   const post = vi.fn(async (path: string) => {
     if (path.endsWith("/plan")) return (overrides.plan ?? (async () => plan()))();
-    if (path.endsWith("/apply")) return (overrides.apply ?? (async () => applyResult()))();
+    if (path.endsWith("/apply")) {
+      if (overrides.applyJobs) return job({ status: "RUNNING", stage: "QUEUED", progress: 5, result: null });
+      return job({ result: (await (overrides.apply ?? (async () => applyResult()))()) as ImportApplyResult });
+    }
     throw new Error(`rota inesperada ${path}`);
   });
   vi.stubGlobal("useApi", () => ({ get, post, upload }));
@@ -350,6 +370,7 @@ describe("Importar equipamentos", () => {
         eapNodes: { Diversos: "eap-19" },
         supplierSelections: {},
       },
+      autoSelectSuppliers: true,
     });
     expect(wrapper.get("[data-testid='plan-eap']").text()).toContain("EAP identificada: 1");
     expect(wrapper.get("[data-testid='plan-group-Equipamentos']").text()).toContain("2");
@@ -421,10 +442,11 @@ describe("Importar equipamentos", () => {
           "normalized-name:compressor": { action: "USE", supplierId: "supplier-1" },
         },
       }),
+      autoSelectSuppliers: true,
     });
   });
 
-  it("pré-seleciona correspondência exata da origem e reconstrói o plano", async () => {
+  it("pré-seleciona correspondência exata da origem em uma única chamada de plano", async () => {
     let calls = 0;
     const { post } = setup(["equipments:write"], {
       plan: async () => {
@@ -442,24 +464,22 @@ describe("Importar equipamentos", () => {
               evidence: ["Código corporativo exato."],
               requiresRegistration: false,
               sourceMatched: true,
-              selectedAction: calls > 1 ? "USE" : null,
-              selectedSupplierId: calls > 1 ? "supplier-1" : null,
+              selectedAction: "USE",
+              selectedSupplierId: "supplier-1",
             },
           ],
+          automaticSupplierSelections: [{ sourceKey: "normalized-name:compressor", supplierId: "supplier-1" }],
         });
       },
     });
     const wrapper = mountButton();
     await goToPlan(wrapper);
 
-    expect(calls).toBe(2);
+    expect(calls).toBe(1);
     expect(post).toHaveBeenLastCalledWith("/imports/monday/plan", {
       batchIds: ["b-1"],
-      mapping: expect.objectContaining({
-        supplierSelections: {
-          "normalized-name:compressor": { action: "USE", supplierId: "supplier-1" },
-        },
-      }),
+      mapping: expect.objectContaining({ supplierSelections: {} }),
+      autoSelectSuppliers: true,
     });
     expect(wrapper.get("[role='combobox']").element).toHaveProperty(
       "value",
@@ -483,6 +503,62 @@ describe("Importar equipamentos", () => {
     );
     expect(wrapper.get("[data-testid='import-result-title']").text()).toBe("Importação concluída");
     expect(wrapper.get("[data-testid='result-created']").text()).toBe("5");
+  });
+
+  it("acompanha o apply em segundo plano por polling até concluir", async () => {
+    try {
+      const { get } = setup(["equipments:write"], {
+        applyJobs: [
+          { status: "RUNNING", stage: "APPLYING", progress: 15, result: null },
+          { status: "RUNNING", stage: "RECONCILING", progress: 85, result: null },
+          {},
+        ],
+      });
+      const wrapper = mountButton();
+      await goToPlan(wrapper);
+      vi.useFakeTimers();
+      await wrapper.get("[data-testid='import-confirm']").trigger("click");
+      for (let i = 0; i < 6; i += 1) await vi.advanceTimersByTimeAsync(2000);
+      await wrapper.vm.$nextTick();
+      const polls = get.mock.calls.filter(([path]) => String(path).includes("/imports/monday/apply/job-1"));
+      expect(polls).toHaveLength(3);
+      expect(wrapper.get("[data-testid='import-result-title']").text()).toBe("Importação concluída");
+      expect(wrapper.get("[data-testid='result-created']").text()).toBe("5");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("job FAILED com PLAN_STALE volta para revisão; outra falha mostra a mensagem", async () => {
+    try {
+      setup(["equipments:write"], {
+        applyJobs: [{ status: "FAILED", stage: "APPLYING", errorCode: "PLAN_STALE", error: "PLAN_STALE: x", result: null }],
+      });
+      const wrapper = mountButton();
+      await goToPlan(wrapper);
+      vi.useFakeTimers();
+      await wrapper.get("[data-testid='import-confirm']").trigger("click");
+      await vi.advanceTimersByTimeAsync(2000);
+      await wrapper.vm.$nextTick();
+      expect(wrapper.find("[data-testid='import-stale']").exists()).toBe(true);
+      expect(wrapper.find("[data-testid='import-step-result']").exists()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("409 APPLY_IN_PROGRESS não é tratado como plano velho", async () => {
+    setup(["equipments:write"], {
+      apply: async () => {
+        throw new ApiError("APPLY_IN_PROGRESS: já existe uma importação em andamento", 409, {});
+      },
+    });
+    const wrapper = mountButton();
+    await goToPlan(wrapper);
+    await wrapper.get("[data-testid='import-confirm']").trigger("click");
+    await settle(wrapper);
+    expect(wrapper.find("[data-testid='import-stale']").exists()).toBe(false);
+    expect(wrapper.text()).toContain("APPLY_IN_PROGRESS");
   });
 
   it("PLAN_STALE (409) volta para revisão do plano", async () => {
