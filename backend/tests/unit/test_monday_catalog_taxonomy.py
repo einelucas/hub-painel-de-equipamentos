@@ -535,21 +535,42 @@ def test_eletrica_instrumentacao_and_ei_unify_into_ei() -> None:
         },
     }
     evidence = load_official_catalog_evidence(document)
-    for raw in ("Elétrica", "Instrumentação", "E&I", "eletrica".replace("eletrica", "Elétrica")):
+    for raw in ("Elétrica", "Instrumentação", "E&I", "EI", "Elétrica e Instrumentação"):
         target = discipline_target_name(raw)
-        assert target == "E&I", raw
+        assert target == "Elétrica e Instrumentação", raw
         decision = decide_discipline(target, evidence.discipline_code(target), {}, {})
         assert decision is not None and decision.action is CatalogAction.CREATE, raw
-        assert (decision.code, decision.name) == ("EI", "E&I")
+        assert (decision.code, decision.name) == ("E&I", "Elétrica e Instrumentação")
     # ELE/EIA não geram disciplinas separadas.
     assert not evidence.discipline_code("Instrumentação").found
 
 
 def test_ei_resolves_to_existing_hub_discipline() -> None:
-    by_name, by_code = _disc_indexes(DisciplineEntry("d-ei", "EI", "E&I", True))
-    decision = decide_discipline("E&I", NONE, by_name, by_code)
+    by_name, by_code = _disc_indexes(DisciplineEntry("d-ei", "E&I", "Elétrica e Instrumentação", True))
+    decision = decide_discipline("Elétrica e Instrumentação", NONE, by_name, by_code)
     assert decision is not None and decision.action is CatalogAction.EXISTING
     assert decision.discipline_id == "d-ei"
+
+
+def test_legacy_ei_sigla_from_source_does_not_conflict_with_new_code() -> None:
+    from app.modules.monday_import.catalog_evidence import CatalogEvidence
+
+    by_name, by_code = _disc_indexes(DisciplineEntry("d-ei", "E&I", "Elétrica e Instrumentação", True))
+    evidence = CatalogEvidence()
+    evidence.add_discipline("E&I", "EI", EvidenceSource.MONDAY)  # sigla legada na origem
+    decision = decide_discipline(
+        "Elétrica e Instrumentação", evidence.discipline_code("Elétrica e Instrumentação"), by_name, by_code
+    )
+    assert decision is not None and decision.action is CatalogAction.EXISTING
+
+
+def test_unified_discipline_is_not_composite_but_others_are() -> None:
+    from app.modules.monday_import.catalog_taxonomy import is_composite_discipline
+
+    assert not is_composite_discipline("E&I")
+    assert not is_composite_discipline("Elétrica e Instrumentação")
+    assert is_composite_discipline("Civil/Grãos")
+    assert is_composite_discipline("Civil & Mecânica")
 
 
 def test_text_longer_than_column_is_not_written_and_is_reported() -> None:

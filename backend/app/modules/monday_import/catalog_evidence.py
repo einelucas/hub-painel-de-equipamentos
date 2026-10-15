@@ -165,6 +165,9 @@ class CatalogEvidence:
     # -- registro ---------------------------------------------------------------------
 
     def add_discipline(self, name: str, code: str, source: EvidenceSource) -> None:
+        # Elétrica/Instrumentação/EI/E&I convergem para a disciplina única E&I.
+        if evidence_key(name) in _UNIFIED_NAME_KEYS or code.strip().upper() in _UNIFIED_SOURCE_CODES:
+            name, code = UNIFIED_DISCIPLINE_NAME, UNIFIED_DISCIPLINE_CODE
         self.discipline_codes.add(evidence_key(name), code.strip(), source)
         self.sources_loaded.add(source)
 
@@ -344,10 +347,16 @@ def load_lge_evidence(path: str | Path, evidence: CatalogEvidence | None = None)
 
 
 # Elétrica (ELE) e Instrumentação (EIA) do catálogo oficial são centralizadas na
-# disciplina única E&I (EI): nunca geram disciplinas separadas.
-UNIFIED_DISCIPLINE_NAME = "E&I"
-UNIFIED_DISCIPLINE_CODE = "EI"
-_UNIFIED_SOURCE_CODES = frozenset({"ELE", "EL", "EIA"})
+# disciplina única "Elétrica e Instrumentação" (code "E&I"): nunca geram
+# disciplinas separadas.
+UNIFIED_DISCIPLINE_NAME = "Elétrica e Instrumentação"
+UNIFIED_DISCIPLINE_CODE = "E&I"
+_UNIFIED_SOURCE_CODES = frozenset({"ELE", "EL", "EIA", "EI", "E&I"})
+# Nomes/siglas de origem que significam a disciplina unificada (forma comparável).
+UNIFIED_DISCIPLINE_SOURCE_NAMES = ("E&I", "EI", "Elétrica", "Instrumentação", UNIFIED_DISCIPLINE_NAME)
+
+
+_UNIFIED_NAME_KEYS = frozenset(evidence_key(item) for item in UNIFIED_DISCIPLINE_SOURCE_NAMES)
 
 
 def _unify_discipline(name: str, code: str) -> tuple[str, str]:

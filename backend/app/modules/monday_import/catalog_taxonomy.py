@@ -25,6 +25,8 @@ from enum import StrEnum
 
 from app.domain.eap import AREA_CODE_RE, PROCESS_CODE_RE, EapLevel
 from app.modules.monday_import.catalog_evidence import (
+    UNIFIED_DISCIPLINE_NAME,
+    UNIFIED_DISCIPLINE_SOURCE_NAMES,
     EvidenceLookup,
     SupplierEvidence,
     evidence_key,
@@ -337,10 +339,9 @@ class DisciplineDecision:
 # da disciplina. Não é fuzzy: só a forma comparável exata da chave é aceita.
 DISCIPLINE_ALIASES: Mapping[str, str] = {
     "Metal Mec.": "Metal Mecânica.",
-    # Elétrica e Instrumentação foram centralizadas numa disciplina única (code EI).
-    "Elétrica": "E&I",
-    "Instrumentação": "E&I",
-    "E&I": "E&I",
+    # Elétrica e Instrumentação foram centralizadas numa disciplina única
+    # (name "Elétrica e Instrumentação", code "E&I").
+    **{source: UNIFIED_DISCIPLINE_NAME for source in UNIFIED_DISCIPLINE_SOURCE_NAMES},
 }
 _DISCIPLINE_ALIAS_INDEX = {evidence_key(source): target for source, target in DISCIPLINE_ALIASES.items()}
 _COMPOSITE_RE = re.compile(r"[&/+]")
@@ -354,8 +355,8 @@ def discipline_target_name(name: str | None) -> str | None:
 
 
 def is_composite_discipline(name: str) -> bool:
-    """ "Civil/Grãos": mais de uma disciplina/contexto num valor só. "E&I" é a
-    disciplina unificada (alias conhecido), não composta."""
+    """ "Civil/Grãos": mais de uma disciplina/contexto num valor só. "E&I" (e os
+    demais aliases da disciplina unificada) é alias conhecido, não composto."""
     if evidence_key(name) in _DISCIPLINE_ALIAS_INDEX:
         return False
     return bool(_COMPOSITE_RE.search(name))
@@ -373,7 +374,7 @@ def decide_discipline(
         return None
     name_clean = name.strip()
     if is_composite_discipline(name_clean) and not code_evidence.found:
-        # Valor composto ("E&I", "Civil/Grãos") nunca é resolvido por nome, nem para
+        # Valor composto ("Civil/Grãos") nunca é resolvido por nome, nem para
         # um registro legado de mesmo nome: só mapping explícito ou fonte oficial.
         return DisciplineDecision(
             CatalogAction.UNRESOLVED,
