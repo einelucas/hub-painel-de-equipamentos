@@ -510,9 +510,9 @@ def test_discipline_alias_is_exact_not_fuzzy() -> None:
 
 def test_discipline_composite_values_are_unresolved_not_blocking() -> None:
     evidence = CatalogEvidence()
-    for name, code in (("Elétrica", "ELE"), ("Instrumentação", "EIA"), ("Civil", "CIV")):
+    for name, code in (("Civil", "CIV"),):
         evidence.add_discipline(name, code, EvidenceSource.OFFICIAL_CATALOG)
-    for raw in ("E&I", "Civil/Grãos"):
+    for raw in ("Civil/Grãos", "Mec + Elet"):
         decision = decide_discipline(raw, evidence.discipline_code(raw), {}, {})
         assert decision is not None and decision.action is CatalogAction.UNRESOLVED, raw
         assert decision.issue_code == "DISCIPLINE_COMPOSITE_UNRESOLVED"
@@ -520,13 +520,36 @@ def test_discipline_composite_values_are_unresolved_not_blocking() -> None:
     assert not is_blocking_issue("DISCIPLINE_COMPOSITE_UNRESOLVED")
 
 
-def test_composite_value_is_not_resolved_by_legacy_record_with_same_name() -> None:
-    # Registro legado "E&I" (código sintético LEG) existe no Hub: não é resolução automática.
-    by_name, by_code = _disc_indexes(DisciplineEntry("d-leg", "LEG", "E&I", True))
+def test_eletrica_instrumentacao_and_ei_unify_into_ei() -> None:
+    from app.modules.monday_import.catalog_evidence import load_official_catalog_evidence
+    from app.modules.monday_import.catalog_taxonomy import discipline_target_name
+
+    document = {
+        "nodes": [],
+        "source": {
+            "disciplines": [
+                {"code": "ELE", "name": "Elétrica"},
+                {"code": "EIA", "name": "Instrumentação"},
+                {"code": "CIV", "name": "Civil"},
+            ]
+        },
+    }
+    evidence = load_official_catalog_evidence(document)
+    for raw in ("Elétrica", "Instrumentação", "E&I", "eletrica".replace("eletrica", "Elétrica")):
+        target = discipline_target_name(raw)
+        assert target == "E&I", raw
+        decision = decide_discipline(target, evidence.discipline_code(target), {}, {})
+        assert decision is not None and decision.action is CatalogAction.CREATE, raw
+        assert (decision.code, decision.name) == ("EI", "E&I")
+    # ELE/EIA não geram disciplinas separadas.
+    assert not evidence.discipline_code("Instrumentação").found
+
+
+def test_ei_resolves_to_existing_hub_discipline() -> None:
+    by_name, by_code = _disc_indexes(DisciplineEntry("d-ei", "EI", "E&I", True))
     decision = decide_discipline("E&I", NONE, by_name, by_code)
-    assert decision is not None and decision.action is CatalogAction.UNRESOLVED
-    assert decision.issue_code == "DISCIPLINE_COMPOSITE_UNRESOLVED"
-    assert decision.discipline_id is None
+    assert decision is not None and decision.action is CatalogAction.EXISTING
+    assert decision.discipline_id == "d-ei"
 
 
 def test_text_longer_than_column_is_not_written_and_is_reported() -> None:

@@ -337,6 +337,10 @@ class DisciplineDecision:
 # da disciplina. Não é fuzzy: só a forma comparável exata da chave é aceita.
 DISCIPLINE_ALIASES: Mapping[str, str] = {
     "Metal Mec.": "Metal Mecânica.",
+    # Elétrica e Instrumentação foram centralizadas numa disciplina única (code EI).
+    "Elétrica": "E&I",
+    "Instrumentação": "E&I",
+    "E&I": "E&I",
 }
 _DISCIPLINE_ALIAS_INDEX = {evidence_key(source): target for source, target in DISCIPLINE_ALIASES.items()}
 _COMPOSITE_RE = re.compile(r"[&/+]")
@@ -350,7 +354,10 @@ def discipline_target_name(name: str | None) -> str | None:
 
 
 def is_composite_discipline(name: str) -> bool:
-    """ "E&I", "Civil/Grãos": mais de uma disciplina/contexto num valor só."""
+    """ "Civil/Grãos": mais de uma disciplina/contexto num valor só. "E&I" é a
+    disciplina unificada (alias conhecido), não composta."""
+    if evidence_key(name) in _DISCIPLINE_ALIAS_INDEX:
+        return False
     return bool(_COMPOSITE_RE.search(name))
 
 

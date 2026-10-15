@@ -343,6 +343,19 @@ def load_lge_evidence(path: str | Path, evidence: CatalogEvidence | None = None)
     return evidence
 
 
+# Elétrica (ELE) e Instrumentação (EIA) do catálogo oficial são centralizadas na
+# disciplina única E&I (EI): nunca geram disciplinas separadas.
+UNIFIED_DISCIPLINE_NAME = "E&I"
+UNIFIED_DISCIPLINE_CODE = "EI"
+_UNIFIED_SOURCE_CODES = frozenset({"ELE", "EL", "EIA"})
+
+
+def _unify_discipline(name: str, code: str) -> tuple[str, str]:
+    if code.strip().upper() in _UNIFIED_SOURCE_CODES:
+        return UNIFIED_DISCIPLINE_NAME, UNIFIED_DISCIPLINE_CODE
+    return name, code
+
+
 def add_official_catalog_evidence(
     evidence: CatalogEvidence,
     eap_names: Iterable[tuple[str, str]],
@@ -352,6 +365,7 @@ def add_official_catalog_evidence(
     for code, name in eap_names:
         evidence.add_eap_name(code, name, EvidenceSource.OFFICIAL_CATALOG)
     for name, code in disciplines:
+        name, code = _unify_discipline(name, code)
         evidence.add_discipline(name, code, EvidenceSource.OFFICIAL_CATALOG)
     return evidence
 
