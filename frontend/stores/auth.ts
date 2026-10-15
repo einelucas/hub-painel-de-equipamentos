@@ -30,8 +30,25 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   /** Login local: e-mail e senha conferidos pelo backend contra o banco. */
-  async function loginWithPassword(email: string, password: string): Promise<void> {
-    const session = await useApi().post<{ accessToken: string }>("/auth/login", { email, password });
+  async function loginWithPassword(email: string, password: string): Promise<"ok" | "password-change-required"> {
+    const session = await useApi().post<{ accessToken?: string; passwordChangeRequired?: boolean }>("/auth/login", {
+      email,
+      password,
+    });
+    // Senha padrão ainda vigente: não há sessão até a definição de uma nova senha.
+    if (session.passwordChangeRequired || !session.accessToken) return "password-change-required";
+    token.value = session.accessToken;
+    if (!(await loadUser())) throw new Error("A API recusou a sessão recebida.");
+    return "ok";
+  }
+
+  /** Primeiro acesso: troca a senha padrão pela nova e já abre a sessão. */
+  async function setInitialPassword(email: string, currentPassword: string, newPassword: string): Promise<void> {
+    const session = await useApi().post<{ accessToken: string }>("/auth/set-password", {
+      email,
+      currentPassword,
+      newPassword,
+    });
     token.value = session.accessToken;
     if (!(await loadUser())) throw new Error("A API recusou a sessão recebida.");
   }
@@ -55,5 +72,5 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = null;
   }
 
-  return { token, user, loading, authenticated, isAdmin, can, loadUser, loginWithPassword, revokeSession, acceptToken, clear };
+  return { token, user, loading, authenticated, isAdmin, can, loadUser, loginWithPassword, setInitialPassword, revokeSession, acceptToken, clear };
 });

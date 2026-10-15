@@ -78,3 +78,91 @@ async def test_upsert_resets_password(client, db_session) -> None:
     new = await client.post("/api/v1/auth/login", json={"email": EMAIL, "password": "NovaSenha123"})
     assert old.status_code == 401
     assert new.status_code == 200
+
+
+DEFAULT = "INP@2026"
+NEW_EMAIL = "novo@inpasa.com.br"
+
+
+async def _seed_default(db_session) -> None:
+    await upsert_local_user(db_session, email=NEW_EMAIL, password=DEFAULT, name="Novo", role=Role.VIEWER)
+    await db_session.commit()
+
+
+async def test_login_with_default_password_requires_change_without_session(client, db_session) -> None:
+    await _seed_default(db_session)
+    response = await client.post("/api/v1/auth/login", json={"email": NEW_EMAIL, "password": DEFAULT})
+    assert response.status_code == 200
+    assert response.json() == {"passwordChangeRequired": True}
+    assert (await db_session.execute(select(Session))).first() is None
+
+
+async def test_set_password_flow(client, db_session) -> None:
+    await _seed_default(db_session)
+    body = {"email": NEW_EMAIL, "currentPassword": DEFAULT}
+
+    for bad in ("curta1", "somenteletras", "12345678", DEFAULT):
+        resp = await client.post("/api/v1/auth/set-password", json={**body, "newPassword": bad})
+        assert resp.status_code == 422
+
+    ok = await client.post("/api/v1/auth/set-password", json={**body, "newPassword": "MinhaSenha2026"})
+    assert ok.status_code == 200
+    token = ok.json()["accessToken"]
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.status_code == 200
+
+    old = await client.post("/api/v1/auth/login", json={"email": NEW_EMAIL, "password": DEFAULT})
+    assert old.status_code == 401
+    login = await client.post("/api/v1/auth/login", json={"email": NEW_EMAIL, "password": "MinhaSenha2026"})
+    assert "accessToken" in login.json()
+    again = await client.post("/api/v1/auth/set-password", json={**body, "newPassword": "OutraSenha2026"})
+    assert again.status_code == 401
+
+
+async def test_set_password_rejects_unknown_wrong_and_inactive(client, db_session) -> None:
+    from app.models.user import User
+
+    await _seed_default(db_session)
+    await _seed_admin(db_session)
+    await db_session.execute(update(User).where(User.email == NEW_EMAIL).values(active=False))
+    await db_session.commit()
+    cases = [
+        {"email": "ninguem@inpasa.com.br", "currentPassword": DEFAULT},
+        {"email": EMAIL, "currentPassword": PASSWORD},
+        {"email": NEW_EMAIL, "currentPassword": DEFAULT},
+    ]
+    responses = [
+        await client.post("/api/v1/auth/set-password", json={**c, "newPassword": "NovaSenha2026"})
+        for c in cases
+    ]
+    assert {r.status_code for r in responses} == {401}
+    assert len({r.text for r in responses}) == 1
+
+
+async def test_seed_default_users_is_idempotent_and_keeps_changed_password(client, db_session) -> None:
+    import importlib.util
+    import pathlib
+
+    spec = importlib.util.spec_from_file_location(
+        "seed_default_password_users",
+        pathlib.Path(__file__).resolve().parents[2] / "scripts" / "seed_default_password_users.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    await module.seed(db_session)
+    await db_session.commit()
+    lucas = "lucas.pinheiro@inpasa.com.br"
+    first = await client.post("/api/v1/auth/login", json={"email": lucas, "password": DEFAULT})
+    assert first.json() == {"passwordChangeRequired": True}
+    await client.post(
+        "/api/v1/auth/set-password",
+        json={"email": lucas, "currentPassword": DEFAULT, "newPassword": "MinhaSenha2026"},
+    )
+
+    await module.seed(db_session)
+    await db_session.commit()
+    old = await client.post("/api/v1/auth/login", json={"email": lucas, "password": DEFAULT})
+    assert old.status_code == 401
+    ok = await client.post("/api/v1/auth/login", json={"email": lucas, "password": "MinhaSenha2026"})
+    assert "accessToken" in ok.json()

@@ -11,7 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, extract_bearer_token, require_user
 from app.core.config import Settings, get_settings
 from app.core.database import get_session
-from app.core.local_auth import authenticate, create_session, revoke_session
+from app.core.local_auth import (
+    authenticate,
+    change_default_password,
+    create_session,
+    is_default_password,
+    revoke_session,
+)
 from app.core.permissions import permissions_for
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -22,6 +28,12 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
 
+class SetPasswordRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    currentPassword: str = Field(min_length=1, max_length=256)
+    newPassword: str = Field(min_length=1, max_length=256)
+
+
 @router.post("/login")
 async def login(
     payload: LoginRequest,
@@ -30,6 +42,9 @@ async def login(
     settings: Settings = Depends(get_settings),
 ) -> dict:
     user = await authenticate(session, payload.email, payload.password)
+    if is_default_password(payload.password):
+        # Primeiro acesso: sem sessão até o usuário definir uma nova senha.
+        return {"passwordChangeRequired": True}
     token, record = await create_session(
         session,
         user,
@@ -41,7 +56,26 @@ async def login(
     return {"accessToken": token, "expiresAt": record.expiresAt.isoformat() + "Z"}
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_model=None, response_class=Response)
+@router.post("/set-password")
+async def set_password(
+    payload: SetPasswordRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+) -> dict:
+    user = await change_default_password(session, payload.email, payload.currentPassword, payload.newPassword)
+    token, record = await create_session(
+        session,
+        user,
+        ttl=timedelta(hours=settings.local_auth_session_hours),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("User-Agent"),
+    )
+    await session.commit()
+    return {"accessToken": token, "expiresAt": record.expiresAt.isoformat() + "Z"}
+
+
+@router.post("/logout",status_code=status.HTTP_204_NO_CONTENT, response_model=None, response_class=Response)
 async def logout(request: Request, session: AsyncSession = Depends(get_session)) -> None:
     token = extract_bearer_token(request)
     if token:

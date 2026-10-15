@@ -16,7 +16,7 @@ from datetime import timedelta
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import UnauthorizedError
+from app.core.errors import DomainError, UnauthorizedError
 from app.models.common import utcnow
 from app.models.user import Account, Role, Session, User
 
@@ -27,6 +27,11 @@ _SCRYPT_N = 2**14
 _SCRYPT_R = 8
 _SCRYPT_P = 1
 _INVALID_CREDENTIALS = "E-mail ou senha inválidos"
+
+# Senha inicial entregue aos usuários; enquanto for a senha vigente, o login não
+# abre sessão e exige a definição de uma nova senha (primeiro acesso).
+DEFAULT_PASSWORD = "INP@2026"
+MIN_PASSWORD_LENGTH = 8
 
 
 def hash_password(password: str) -> str:
@@ -114,6 +119,41 @@ async def authenticate(session: AsyncSession, email: str, password: str) -> User
     user, stored = row
     if not stored or not verify_password(password, stored) or not user.active:
         raise UnauthorizedError(_INVALID_CREDENTIALS)
+    return user
+
+
+def is_default_password(password: str) -> bool:
+    return hmac.compare_digest(password.encode(), DEFAULT_PASSWORD.encode())
+
+
+def validate_new_password(password: str) -> None:
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise DomainError(f"A nova senha deve ter ao menos {MIN_PASSWORD_LENGTH} caracteres.")
+    if not any(c.isalpha() for c in password) or not any(c.isdigit() for c in password):
+        raise DomainError("A nova senha deve conter letras e números.")
+    if is_default_password(password):
+        raise DomainError("A nova senha não pode ser a senha padrão.")
+
+
+async def change_default_password(
+    session: AsyncSession, email: str, current_password: str, new_password: str
+) -> User:
+    """Primeiro acesso: troca a senha padrão por uma nova.
+
+    Só funciona enquanto a senha vigente for a padrão; qualquer outra situação
+    (e-mail inexistente, inativo, senha errada ou já trocada) devolve o mesmo 401.
+    """
+    user = await authenticate(session, email, current_password)
+    if not is_default_password(current_password):
+        raise UnauthorizedError(_INVALID_CREDENTIALS)
+    validate_new_password(new_password)
+    account = (
+        await session.execute(
+            select(Account).where(Account.userId == user.id, Account.providerId == CREDENTIAL_PROVIDER_ID)
+        )
+    ).scalar_one()
+    account.password = hash_password(new_password)
+    await session.flush()
     return user
 
 

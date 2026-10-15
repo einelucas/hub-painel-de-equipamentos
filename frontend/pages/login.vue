@@ -28,12 +28,53 @@ async function oidc() {
   }
 }
 
+const changeOpen = ref(false);
+const newPassword = ref("");
+const confirmPassword = ref("");
+const changeError = ref("");
+const DEFAULT_PASSWORD = "INP@2026";
+
+function passwordProblem(): string {
+  if (newPassword.value.length < 8) return "A nova senha deve ter ao menos 8 caracteres.";
+  if (!/[A-Za-z]/.test(newPassword.value) || !/\d/.test(newPassword.value)) return "A nova senha deve conter letras e números.";
+  if (newPassword.value === DEFAULT_PASSWORD) return "A nova senha não pode ser a senha padrão.";
+  if (newPassword.value !== confirmPassword.value) return "A confirmação não confere com a nova senha.";
+  return "";
+}
+
+function closeChange() {
+  if (loading.value) return;
+  changeOpen.value = false;
+  newPassword.value = "";
+  confirmPassword.value = "";
+  changeError.value = "";
+}
+
+async function submitNewPassword() {
+  if (loading.value) return;
+  changeError.value = passwordProblem();
+  if (changeError.value) return;
+  loading.value = true;
+  try {
+    await store.setInitialPassword(email.value, password.value, newPassword.value);
+    changeOpen.value = false;
+    await navigateTo("/dashboard");
+  } catch (cause) {
+    changeError.value = cause instanceof Error ? cause.message : "Não foi possível definir a nova senha.";
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function submit() {
   if (loading.value) return;
   loading.value = true;
   error.value = "";
   try {
-    await store.loginWithPassword(email.value, password.value);
+    if ((await store.loginWithPassword(email.value, password.value)) === "password-change-required") {
+      changeOpen.value = true;
+      return;
+    }
     await navigateTo("/dashboard");
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : "Não foi possível entrar.";
@@ -78,6 +119,28 @@ async function submit() {
 
       <p v-if="error" class="login-error" role="alert">{{ error }}</p>
     </section>
+
+    <AppModal :open="changeOpen" title="Defina sua nova senha" @close="closeChange">
+      <form id="first-access-form" class="grid gap-3" :aria-busy="loading" @submit.prevent="submitNewPassword">
+        <p class="text-sm">Este é o seu primeiro acesso (ou a senha padrão ainda está ativa). Escolha uma nova senha para continuar.</p>
+        <label class="field">
+          <span>Nova senha</span>
+          <input v-model="newPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <label class="field">
+          <span>Confirmar nova senha</span>
+          <input v-model="confirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <small>Mínimo de 8 caracteres, com letras e números, diferente da senha padrão.</small>
+        <p v-if="changeError" class="login-error" role="alert">{{ changeError }}</p>
+      </form>
+      <template #actions>
+        <button type="button" class="btn" :disabled="loading" @click="closeChange">Cancelar</button>
+        <button type="submit" form="first-access-form" class="btn primary" :disabled="loading" :aria-busy="loading">
+          {{ loading ? "Salvando..." : "Salvar nova senha" }}
+        </button>
+      </template>
+    </AppModal>
   </div>
 </template>
 
