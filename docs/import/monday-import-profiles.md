@@ -97,6 +97,21 @@ São definidos em `mappings.EQUIPMENT_CONCEPTS` e `COMPONENT_CONCEPTS`.
 
 A semântica de tipo (data, inteiro, booleano…) é do código e vale para qualquer profile.
 
+### Colunas financeiras e de acompanhamento (profile `monday-equipamentos-legacy` v5)
+
+Board "Equipamentos - NMT Armazém" (colunas com prefixo numérico):
+
+| Coluna da origem | Conceito | Tipo | Destino |
+|---|---|---|---|
+| `0.Custo Previsto` (ou `Custo Previsto`) | `planned_cost_candidate` | decimal (aceita `R$ 1.234,56`) | `Equipment.capex_estimated`, **só quando não há `CAPEX Estimado`** (que tem prioridade) |
+| `7.Valor da OC` (ou `Valor da OC`) | `purchase_order_amount` | decimal | `PurchaseOrder.amount`; zero/negativo é tratado como vazio e nunca sobrescreve valor gravado |
+| `Diferença Negociação` | `negotiation_difference_days_observed` | inteiro com sinal (dias) | só staging (`normalized`/`raw`) |
+| `Conferência` | `review_status_observed` | texto | só staging |
+| `Status de Prazo` | `deadline_status_observed` | texto | só staging |
+| `Pessoas` | `people_observed` | texto | só staging; o responsável do equipamento continua vindo de `0.Responsável` |
+
+Erros de fórmula (`#REF!`, `#N/A`, `#DIV/0!`...) em colunas decimais e inteiras viram vazio, sem issue. A mudança sobe `PARSER_VERSION` para `monday-xlsx-v6`: batches **não aplicados** são reanalisados no restage; batches já aplicados reutilizam a evidência original (reimporte em novo batch para coletar as colunas novas).
+
 ## Identidade
 
 | Item | Com ID estável (`external_id_concept` preenchido na linha) | Sem ID |
@@ -141,7 +156,7 @@ São opcionais e vêm de `expected_counts` no profile ou de `--expected-counts a
 
 ## Rastreabilidade (sem migration)
 
-O `stage` registra `import_profiles` no `summary` (JSON) do batch, com `parser_version = monday-xlsx-v3`. O `plan`, o `apply` e o `reconcile` leem o normalizado já persistido e não pedem profile. Restage do mesmo arquivo (mesmo SHA-256) no mesmo contexto com **outro** profile é recusado (`StagedWithDifferentProfileError`). Batches anteriores à P1.1 são tratados como lidos pelo profile histórico.
+O `stage` registra `import_profiles` no `summary` (JSON) do batch, com `parser_version = monday-xlsx-v6`. O `plan`, o `apply` e o `reconcile` leem o normalizado já persistido e não pedem profile. Restage do mesmo arquivo (mesmo SHA-256) no mesmo contexto com **outro** profile é recusado (`StagedWithDifferentProfileError`). Batches anteriores à P1.1 são tratados como lidos pelo profile histórico.
 
 ## Profile histórico
 

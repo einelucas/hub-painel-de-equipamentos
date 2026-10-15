@@ -18,6 +18,7 @@ from app.modules.monday_import.mappings import (
     BOOLEAN_FIELDS,
     DATE_FIELDS,
     DATE_LIST_FIELDS,
+    DECIMAL_FIELDS,
     NONNEGATIVE_INTEGER_FIELDS,
     SIGNED_INTEGER_FIELDS,
     fallback_component_key,
@@ -48,7 +49,7 @@ from app.modules.monday_import.schemas import (
 )
 from app.modules.monday_import.xlsx import XlsxRow, read_first_sheet
 
-PARSER_VERSION = "monday-xlsx-v5"
+PARSER_VERSION = "monday-xlsx-v6"
 
 
 def _source_bytes(
@@ -163,7 +164,7 @@ def _normalize_fields(
                 value = normalize_external_id(raw_value)
             elif field == STATUS_CONCEPT:
                 value = profile.resolve_stage(raw_value).stage
-            elif field in {"capex_estimated", "planned_cost_candidate"}:
+            elif field in DECIMAL_FIELDS:
                 value = normalize_decimal(raw_value)
             else:
                 value = clean_text(raw_value)

@@ -84,7 +84,7 @@ async def test_profile_b_pipeline_stage_plan_apply_reconcile(db_session) -> None
 
     batch = await db_session.get(MondayImportBatch, staged.batch_id)
     assert batch is not None
-    assert batch.parser_version == "monday-xlsx-v5"
+    assert batch.parser_version == "monday-xlsx-v6"
     assert batch.summary["import_profiles"] == [profile_b().identity()]
 
     mapping = await validate_mapping(db_session, _mapping(ids), project_context_id=ids["context_id"])
@@ -256,4 +256,4 @@ async def test_new_parser_version_restages_unapplied_batch(db_session) -> None:
     )
 
     assert (again.batch_id, again.created, again.restaged) == (first.batch_id, False, True)
-    assert batch.parser_version == "monday-xlsx-v5"
+    assert batch.parser_version == "monday-xlsx-v6"

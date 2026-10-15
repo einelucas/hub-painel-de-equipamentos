@@ -1,6 +1,6 @@
 {
   "profile_id": "monday-equipamentos-legacy",
-  "version": 4,
+  "version": 5,
   "source_system": "monday",
   "description": "Board de equipamentos do Monday (layout padrão do Hub).",
   "board": {
@@ -167,7 +167,24 @@
         "CAPEX Estimado"
       ],
       "planned_cost_candidate": [
-        "Custo Previsto"
+        "Custo Previsto",
+        "0.Custo Previsto"
+      ],
+      "purchase_order_amount": [
+        "7.Valor da OC",
+        "Valor da OC"
+      ],
+      "review_status_observed": [
+        "Conferência"
+      ],
+      "negotiation_difference_days_observed": [
+        "Diferença Negociação"
+      ],
+      "deadline_status_observed": [
+        "Status de Prazo"
+      ],
+      "people_observed": [
+        "Pessoas"
       ]
     },
     "ignored_headers": [

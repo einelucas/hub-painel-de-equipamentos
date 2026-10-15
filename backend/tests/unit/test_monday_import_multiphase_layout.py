@@ -35,8 +35,9 @@ IGNORED = {
     "S.Escalonamento",
     "Unidade",
 }
-# Sem semântica comprovada (vazias ou sem conceito no Hub): continuam UNKNOWN.
-STILL_UNKNOWN = {"Conferência", "Pessoas", "Status de Prazo", "Diferença Negociação"}
+# Profile v5 reconhece todas as colunas conhecidas do board (as de acompanhamento ficam
+# no staging como *_observed); só colunas realmente novas continuam UNKNOWN.
+STILL_UNKNOWN: set[str] = set()
 
 
 def _parse(content: bytes):

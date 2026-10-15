@@ -19,6 +19,14 @@ _FALSE_TEXT = {"false", "0", "nao", "não", "no", "n", "unchecked"}
 _SPACE_RE = re.compile(r"\s+")
 
 
+# Erros de fórmula do Excel/Monday que chegam como texto na célula.
+_FORMULA_ERRORS = {"#ref!", "#n/a", "#div/0!", "#value!", "#name?", "#num!", "#null!", "#error!"}
+
+
+def is_formula_error(value: Any) -> bool:
+    return isinstance(value, str) and value.strip().casefold() in _FORMULA_ERRORS
+
+
 def clean_text(value: Any) -> str | None:
     if value is None:
         return None
@@ -129,7 +137,7 @@ def normalize_integer(value: Any, *, allow_negative: bool = True) -> int | None:
     if value is None:
         return None
     text = clean_text(value)
-    if text is None:
+    if text is None or is_formula_error(text):
         return None
     try:
         number = Decimal(text.replace(" ", ""))
@@ -173,7 +181,7 @@ def normalize_decimal(value: Any) -> str | None:
     if isinstance(value, int | float) and not isinstance(value, bool):
         return format(Decimal(str(value)), "f")
     text = clean_text(value)
-    if text is None:
+    if text is None or is_formula_error(text):
         return None
     compact = re.sub(r"[^0-9,.-]", "", text)
     if "," in compact and "." in compact:

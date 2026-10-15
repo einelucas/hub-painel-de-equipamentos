@@ -492,6 +492,24 @@ def _fit_text_columns(
     return fitted, issues, blocking
 
 
+def _capex_from_normalized(normalized: dict[str, Any]) -> Decimal | None:
+    """`CAPEX Estimado` tem prioridade; sem ele, o `Custo Previsto` do board
+    (planned_cost_candidate) é o orçamento previsto do equipamento."""
+    capex = _as_decimal(normalized.get("capex_estimated"))
+    if capex is not None:
+        return capex
+    return _as_decimal(normalized.get("planned_cost_candidate"))
+
+
+def _purchase_order_amount(normalized: dict[str, Any]) -> Decimal | None:
+    """`Valor da OC`: zero ou negativo não é valor (coluna vazia/estornada no
+    Monday vem como 0) e nunca sobrescreve um valor já gravado."""
+    amount = _as_decimal(normalized.get("purchase_order_amount"))
+    if amount is None or amount <= 0:
+        return None
+    return amount
+
+
 def _diff(existing: Any, incoming: dict[str, Any]) -> dict[str, Any]:
     changed: dict[str, Any] = {}
     for field_name, value in incoming.items():
@@ -779,7 +797,7 @@ async def build_plan(
             "discipline_id": resolved.discipline_id,
             "responsible_user_id": resolved.responsible_user_id,
             "criticality": normalized.get("criticality_observed"),
-            "capex_estimated": _as_decimal(normalized.get("capex_estimated")),
+            "capex_estimated": _capex_from_normalized(normalized),
             "current_stage": current_stage,
             # "5.Data de Entrega pelo contrato": desde a migration 0007 a entrega
             # contratual pertence ao equipamento (fim da janela), não ao Contract.
@@ -1006,6 +1024,7 @@ async def build_plan(
             payload={
                 "order_number": normalized.get("purchase_order_number"),
                 "ordered_at": _as_date(normalized.get("purchase_order_at")),
+                "amount": _purchase_order_amount(normalized),
             },
         )
         if order_item:
@@ -1065,6 +1084,7 @@ async def build_plan(
                 {
                     "order_number": normalized.get("purchase_order_number"),
                     "ordered_at": _as_date(normalized.get("purchase_order_at")),
+                    "amount": _purchase_order_amount(normalized),
                 },
             ),
         ]

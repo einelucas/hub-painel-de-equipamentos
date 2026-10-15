@@ -64,6 +64,14 @@ EQUIPMENT_CONCEPTS: Final = frozenset(
         # Candidato a CAPEX ainda não validado: campo próprio para que o
         # plan/apply NUNCA o grave como capex_estimated.
         "planned_cost_candidate",
+        # "7.Valor da OC": valor da ordem de compra (PurchaseOrder.amount).
+        "purchase_order_amount",
+        # Colunas de acompanhamento do board (fórmulas/validação do Monday).
+        # Ficam no staging (normalized/raw) como evidência; não gravam no domínio.
+        "review_status_observed",  # "Conferência"
+        "negotiation_difference_days_observed",  # "Diferença Negociação" (dias, pode ser negativo)
+        "deadline_status_observed",  # "Status de Prazo"
+        "people_observed",  # "Pessoas" (coluna People do Monday, texto)
     }
 )
 COMPONENT_CONCEPTS: Final = frozenset(
@@ -126,7 +134,9 @@ SIGNED_INTEGER_FIELDS: Final = {
     # Contadores de fórmula do Monday: negativo = prazo vencido (valor legítimo).
     "negotiation_lead_time_observed",
     "negotiation_max_days_observed",
+    "negotiation_difference_days_observed",
 }
+DECIMAL_FIELDS: Final = {"capex_estimated", "planned_cost_candidate", "purchase_order_amount"}
 
 
 def provisional_equipment_key(name: str) -> str:
