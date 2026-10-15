@@ -21,7 +21,6 @@ from typing import Any, Literal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.scope import user_can_access_unit
 from app.models.equipment import Discipline, ProjectContext, ProjectEap, WorkPackage
 from app.models.user import User
 from app.modules.monday_import.catalog_evidence import CatalogEvidence
@@ -108,9 +107,10 @@ class CatalogPlanner:
         self.users_by_name = users_by_name
         self.linked_eap_node_ids = linked_eap_node_ids
         self._items: dict[tuple[str, str], CatalogPlanItem] = {}
-        self._user_access: dict[str, bool] = {}
         self.eap_summary: dict[str, int] = {}
         self.responsible_summary: dict[str, int] = {"resolved": 0, "unresolved": 0}
+        # Informativo (fora do contrato do plan): resolvidos só pelo primeiro nome.
+        self.responsible_first_name_matches = 0
 
     @classmethod
     async def load(
@@ -285,10 +285,11 @@ class CatalogPlanner:
             return
         user_id = self.mapping.resolve_responsible(name)
         if user_id is None:
-            candidates = self.users_by_name.get(canonical_text(name), [])
-            # Nome exato e único entre usuários ativos com acesso à unidade.
-            if len(candidates) == 1 and await self._can_access(session, candidates[0]):
-                user_id = candidates[0]
+            user_id = match_responsible(name, self.users_by_name)
+            if user_id is not None:
+                canonical = canonical_text(name)
+                if canonical and not self.users_by_name.get(canonical):
+                    self.responsible_first_name_matches += 1
         if user_id is None:
             self.responsible_summary["unresolved"] += 1
             result.issues.append(
@@ -301,11 +302,6 @@ class CatalogPlanner:
             return
         self.responsible_summary["resolved"] += 1
         result.responsible_user_id = user_id
-
-    async def _can_access(self, session: AsyncSession, user_id: str) -> bool:
-        if user_id not in self._user_access:
-            self._user_access[user_id] = await user_can_access_unit(session, user_id, self.unit_id)
-        return self._user_access[user_id]
 
     # -- Work Package --------------------------------------------------------------
 
@@ -359,6 +355,29 @@ class CatalogPlanner:
                 result.work_packages_complete = False
         if create_codes:
             result.refs["workPackageCodes"] = sorted(create_codes)
+
+def match_responsible(name: str, users_by_name: dict[str, list[str]]) -> str | None:
+    """Match automático do responsável entre usuários ATIVOS (índice: nome completo
+    canônico → ids). Primeiro pelo primeiro nome: 1 único usuário com esse primeiro nome
+    resolve; vários → desempate pelo nome completo canônico exato; senão None.
+
+    Risco conhecido e aceito (decisão do usuário): "Anderson Silva" na planilha resolve
+    para "Anderson dos Santos" se este for o único Anderson ativo."""
+    tokens = canonical_text(name).split()
+    if not tokens:
+        return None
+    first = tokens[0]
+    by_first = [
+        user_id for full, ids in users_by_name.items() if full.split()[:1] == [first] for user_id in ids
+    ]
+    if len(by_first) == 1:
+        return by_first[0]
+    if len(by_first) > 1:
+        exact = users_by_name.get(canonical_text(name), [])
+        if len(exact) == 1:
+            return exact[0]
+    return None
+
 
 async def _discipline_index(
     session: AsyncSession,

@@ -362,6 +362,35 @@ def is_composite_discipline(name: str) -> bool:
     return bool(_COMPOSITE_RE.search(name))
 
 
+_MIN_ABBREVIATION_LEN = 3
+
+
+def _tokens_match(source_tokens: list[str], hub_tokens: list[str]) -> bool:
+    """Mesmo número de palavras; cada palavra da origem é igual à do Hub ou, se tiver
+    ao menos 3 letras, é prefixo dela ("mec" ~ "mecanica"). Sem distância de edição."""
+    if len(source_tokens) != len(hub_tokens):
+        return False
+    return all(
+        src == hub or (len(src) >= _MIN_ABBREVIATION_LEN and hub.startswith(src))
+        for src, hub in zip(source_tokens, hub_tokens, strict=True)
+    )
+
+
+def match_discipline_by_name(name: str, by_name: Mapping[str, DisciplineEntry]) -> DisciplineEntry | None:
+    """Match tolerante entre o valor da origem e as disciplinas ATIVAS do Hub: nome
+    normalizado (acento/caixa/pontuação/espaços) ou abreviação por prefixo de palavra.
+    Só resolve com exatamente 1 candidato; ambíguo ou nenhum → None."""
+    source_tokens = evidence_key(name).split()
+    if not source_tokens:
+        return None
+    candidates = {
+        entry.id: entry
+        for entry in by_name.values()
+        if entry.active and _tokens_match(source_tokens, evidence_key(entry.name).split())
+    }
+    return next(iter(candidates.values())) if len(candidates) == 1 else None
+
+
 def decide_discipline(
     name: str | None,
     code_evidence: EvidenceLookup,
@@ -385,6 +414,9 @@ def decide_discipline(
             detail={"sourceValue": name_clean},
         )
     entry = by_name.get(canonical_text(name_clean))
+    if entry is None:
+        # Nome normalizado/abreviado (ex.: "Metal Mec." ~ "Metal Mecânica"): só com 1 candidato ativo.
+        entry = match_discipline_by_name(name_clean, by_name)
 
     if entry is not None:
         if not entry.active:

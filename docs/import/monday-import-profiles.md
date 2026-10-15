@@ -208,3 +208,17 @@ Os exemplos completos estão em `backend/tests/fixtures/monday/profiles/` (layou
 - ProjectEap.
 - Fornecedores.
 - Representação de `NOT_APPLICABLE` no domínio: o plan continua bloqueando `STAGE_NOT_APPLICABLE`.
+
+## Match automático de responsáveis e disciplinas
+
+O **MappingFile** sempre tem precedência. Sem mapeamento, o plan tenta:
+
+**Responsável** (só usuários ativos; nunca cria usuário):
+1. compara o primeiro nome da planilha (sem acentos/caixa/espaços extras) com o primeiro nome dos usuários;
+2. exatamente 1 usuário com esse primeiro nome → resolvido (ex.: `Ediel` → `Ediel Nascimento`);
+3. mais de um → desempate pelo nome completo canônico exato (`Anderson dos Santos`); se não sobrar exatamente 1, `RESPONSIBLE_UNRESOLVED`;
+4. nenhum candidato → `RESPONSIBLE_UNRESOLVED`.
+
+Risco conhecido (decisão assumida): se houver um único `Anderson` ativo, `Anderson Silva` na planilha resolve para `Anderson dos Santos`. Revise o plan quando o sobrenome divergir.
+
+**Disciplina**: o nome é comparado normalizado (sem acentos/caixa/pontuação/espaços extras) e aceita abreviação por prefixo de palavra com pelo menos 3 letras, com o mesmo número de palavras (`Metal Mec.` ↔ `Metal Mecânica`, `Automacao` ↔ `Automação`). Resolve só com exatamente 1 disciplina ativa candidata; ambíguo ou sem candidato segue as regras de evidência (CREATE/UNRESOLVED). Não há fuzzy por distância de edição. Valores compostos (`Civil/Grãos`) continuam `DISCIPLINE_COMPOSITE_UNRESOLVED`, sigla divergente continua `DISCIPLINE_CONFLICT`, e `Elétrica`/`Instrumentação`/`EI`/`E&I` seguem unificadas em `E&I · Elétrica e Instrumentação`.

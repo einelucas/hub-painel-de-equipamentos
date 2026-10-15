@@ -592,3 +592,145 @@ def test_required_text_longer_than_column_blocks() -> None:
     _, issues, blocking = _fit_text_columns(Equipment, {"name": "X" * 500}, source_key="k")
     assert blocking is True and [issue.code for issue in issues] == ["FIELD_TOO_LONG_REQUIRED"]
     assert is_blocking_issue("FIELD_TOO_LONG_REQUIRED")
+
+
+# --- Discipline: match tolerante por nome normalizado / abreviação ---------------
+
+
+def test_discipline_tolerant_match_accent_case_and_abbreviation() -> None:
+    by_name, by_code = _disc_indexes(
+        DisciplineEntry("d-mm", "MEC", "Metal Mecânica", True),
+        DisciplineEntry("d-au", "AUT", "Automação", True),
+    )
+    for raw, expected in (
+        ("Metal Mec.", "d-mm"),
+        ("METAL MECANICA", "d-mm"),
+        ("  metal   mecânica. ", "d-mm"),
+        ("Automacao", "d-au"),
+        ("AUTOMAÇÃO", "d-au"),
+        ("Autom.", "d-au"),
+    ):
+        decision = decide_discipline(raw, NONE, by_name, by_code)
+        assert decision is not None and decision.action is CatalogAction.EXISTING, raw
+        assert decision.discipline_id == expected, raw
+
+
+def test_discipline_tolerant_match_is_not_fuzzy() -> None:
+    by_name, by_code = _disc_indexes(DisciplineEntry("d-mm", "MEC", "Metal Mecânica", True))
+    for raw in ("Metal Mecnica", "Metal Me.", "Mec.", "Metal"):  # typo, prefixo curto, nº de palavras
+        decision = decide_discipline(raw, NONE, by_name, by_code)
+        assert decision is not None and decision.action is CatalogAction.UNRESOLVED, raw
+
+
+def test_discipline_tolerant_match_ambiguous_is_not_resolved() -> None:
+    by_name, by_code = _disc_indexes(
+        DisciplineEntry("d1", "MEC", "Mecânica", True),
+        DisciplineEntry("d2", "MEP", "Mecatrônica", True),
+    )
+    decision = decide_discipline("Mec.", NONE, by_name, by_code)
+    assert decision is not None and decision.action is CatalogAction.UNRESOLVED
+    assert decision.discipline_id is None
+
+
+def test_discipline_tolerant_match_ignores_inactive_candidates() -> None:
+    by_name, by_code = _disc_indexes(
+        DisciplineEntry("d1", "MEC", "Mecânica", True),
+        DisciplineEntry("d2", "MEP", "Mecatrônica", False),
+    )
+    decision = decide_discipline("Mec.", NONE, by_name, by_code)
+    assert decision is not None and decision.action is CatalogAction.EXISTING
+    assert decision.discipline_id == "d1"
+
+
+def test_discipline_tolerant_match_keeps_code_conflict() -> None:
+    by_name, by_code = _disc_indexes(DisciplineEntry("d-mm", "MEC", "Metal Mecânica", True))
+    decision = decide_discipline("Metal Mec.", _found("XYZ"), by_name, by_code)
+    assert decision is not None and decision.action is CatalogAction.CONFLICT
+    assert decision.issue_code == "DISCIPLINE_CONFLICT"
+
+
+def test_discipline_composite_not_resolved_by_tolerant_match() -> None:
+    by_name, by_code = _disc_indexes(DisciplineEntry("d1", "CIV", "Civil", True))
+    decision = decide_discipline("Civil/Grãos", NONE, by_name, by_code)
+    assert decision is not None and decision.action is CatalogAction.UNRESOLVED
+    assert decision.issue_code == "DISCIPLINE_COMPOSITE_UNRESOLVED"
+
+
+def test_discipline_eletrica_uppercase_resolves_to_unified_ei() -> None:
+    from app.modules.monday_import.catalog_taxonomy import discipline_target_name
+
+    by_name, by_code = _disc_indexes(DisciplineEntry("d-ei", "E&I", "Elétrica e Instrumentação", True))
+    for raw in ("ELETRICA", "Instrumentacao", "ei"):
+        decision = decide_discipline(discipline_target_name(raw), NONE, by_name, by_code)
+        assert decision is not None and decision.action is CatalogAction.EXISTING, raw
+        assert decision.discipline_id == "d-ei"
+
+
+# --- Responsável: primeiro nome, desempate por nome completo -----------------------
+
+
+def _users(*people: tuple[str, str]) -> dict[str, list[str]]:
+    index: dict[str, list[str]] = {}
+    for user_id, full_name in people:
+        index.setdefault(canonical_text(full_name), []).append(user_id)
+    return index
+
+
+def test_responsible_unique_first_name_resolves() -> None:
+    from app.modules.monday_import.catalog_planner import match_responsible
+
+    users = _users(("u1", "Ediel Nascimento"), ("u2", "Maria Souza"))
+    assert match_responsible("Ediel", users) == "u1"
+    assert match_responsible("  EDIEL  ", users) == "u1"
+    assert match_responsible("Édiel Nascimento", users) == "u1"
+    assert match_responsible("Joao", users) is None  # zero candidatos
+
+
+def test_responsible_duplicate_first_name_tiebreak_by_full_name() -> None:
+    from app.modules.monday_import.catalog_planner import match_responsible
+
+    users = _users(("u1", "Anderson dos Santos"), ("u2", "Anderson Lima"))
+    assert match_responsible("Anderson dos Santos", users) == "u1"
+    assert match_responsible("anderson   LIMA", users) == "u2"
+
+
+def test_responsible_duplicate_first_name_without_tiebreak_is_unresolved() -> None:
+    from app.modules.monday_import.catalog_planner import match_responsible
+
+    users = _users(("u1", "Anderson dos Santos"), ("u2", "Anderson Lima"))
+    assert match_responsible("Anderson", users) is None
+    assert match_responsible("Anderson Silva", users) is None
+    twins = _users(("u1", "Ana Paula"), ("u2", "Ana Paula"))
+    assert match_responsible("Ana Paula", twins) is None
+
+
+def test_responsible_known_risk_surname_mismatch_resolves_by_first_name() -> None:
+    from app.modules.monday_import.catalog_planner import match_responsible
+
+    users = _users(("u1", "Anderson dos Santos"))
+    assert match_responsible("Anderson Silva", users) == "u1"  # risco aceito
+
+
+def test_responsible_inactive_users_are_not_in_index() -> None:
+    from app.modules.monday_import.catalog_planner import match_responsible
+
+    # O índice real só contém usuários ativos: o inativo não participa do match.
+    active_only = _users(("u2", "Ediel Souza"))
+    assert match_responsible("Ediel", active_only) == "u2"
+
+
+def test_responsible_manual_mapping_takes_precedence() -> None:
+    import asyncio
+    from types import SimpleNamespace
+
+    from app.modules.monday_import.catalog_planner import CatalogPlanner
+
+    planner = CatalogPlanner.__new__(CatalogPlanner)
+    planner.users_by_name = _users(("u1", "Ediel Nascimento"))
+    planner.mapping = SimpleNamespace(resolve_responsible=lambda _name: "u-manual")
+    planner.responsible_summary = {"resolved": 0, "unresolved": 0}
+    planner.responsible_first_name_matches = 0
+    result = SimpleNamespace(issues=[], responsible_user_id=None)
+    asyncio.run(planner._resolve_responsible(None, {"responsible_name": "Ediel"}, result))  # type: ignore[arg-type]
+    assert result.responsible_user_id == "u-manual"
+    assert planner.responsible_first_name_matches == 0
