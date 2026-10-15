@@ -138,7 +138,7 @@ onMounted(async () => {
       <div v-if="loading" class="stack" data-testid="dashboard-loading" role="status" aria-busy="true">
         <p class="sr-only">Carregando painel...</p>
         <section class="metric-grid" aria-hidden="true">
-          <div v-for="n in 6" :key="n" class="surface skeleton-card"><SkeletonBlock :lines="3" /></div>
+          <div v-for="n in 5" :key="n" class="surface skeleton-card"><SkeletonBlock :lines="3" /></div>
         </section>
         <div class="chart-row" aria-hidden="true">
           <div class="surface skeleton-card tall"><SkeletonBlock :lines="6" /></div>
@@ -164,7 +164,9 @@ onMounted(async () => {
           <MetricCard label="Em andamento" :value="formatNumber(summary.totals.inProgress, 0)" detail="Etapas 0 a 7" />
           <MetricCard label="Concluídos" :value="formatNumber(summary.totals.completed, 0)" detail="Etapa 8" tone="good" />
           <MetricCard label="Valor emitido em OC" :value="formatCurrency(summary.totals.purchaseOrderAmount)" :detail="`${formatNumber(summary.totals.purchaseOrders, 0)} OC(s) emitida(s)`" />
+          <!-- desativado temporariamente: dashboard será repensado
           <MetricCard label="CAPEX estimado" :value="formatCurrency(summary.totals.capexEstimated)" detail="Soma dos valores informados" />
+          -->
         </section>
 
         <div class="chart-row">
