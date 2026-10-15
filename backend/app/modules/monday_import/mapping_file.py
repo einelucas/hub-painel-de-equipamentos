@@ -19,7 +19,6 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.scope import user_can_access_unit
 from app.domain.eap import EQUIPMENT_EAP_LEVELS
 from app.models.equipment import Area, Discipline, EapNode, ProjectContext, WorkPackage
 from app.models.supplier import Supplier
@@ -260,16 +259,6 @@ async def validate_mapping(
             issues.append(
                 MappingIssue(
                     "inactive_user", "error", "responsibles", f"usuário {user_id} está inativo", source
-                )
-            )
-        elif not await user_can_access_unit(session, user_id, context.unit_id):
-            issues.append(
-                MappingIssue(
-                    "user_without_unit_access",
-                    "error",
-                    "responsibles",
-                    f"usuário {user_id} não tem acesso à unidade do contexto",
-                    source,
                 )
             )
         else:

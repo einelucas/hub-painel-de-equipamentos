@@ -215,7 +215,9 @@ async def test_mapping_validation_rejects_bad_references(db_session) -> None:
     codes = {issue.code for issue in result.issues}
     assert "unknown_user" in codes
     assert "inactive_user" in codes
-    assert "user_without_unit_access" in codes
+    # Responsável não exige vínculo com a unidade (basta existir e estar ativo).
+    assert "user_without_unit_access" not in codes
+    assert result.responsibles["semacesso"] == other["responsible_id"]
     assert "area_wrong_unit" in codes
     assert "work_package_wrong_context" not in codes
     assert result.work_packages["wperrado"] == other["work_package_1"]

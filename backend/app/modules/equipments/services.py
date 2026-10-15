@@ -16,7 +16,6 @@ from app.core.scope import (
     assert_context_allowed,
     assert_equipment_allowed,
     restrict_to_units,
-    user_can_access_unit,
 )
 from app.domain.eap import EQUIPMENT_EAP_LEVELS, EapLevel
 from app.domain.equipment_calculations import (
@@ -316,8 +315,6 @@ async def _validate_relations(
         user = await session.get(User, responsible_user_id)
         if user is None or not user.active:
             raise DomainError("Responsável inválido ou inativo")
-        if not await user_can_access_unit(session, responsible_user_id, context.unit_id):
-            raise DomainError("O responsável não tem acesso à unidade do equipamento")
     return context
 
 

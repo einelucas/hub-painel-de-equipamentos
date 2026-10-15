@@ -29,21 +29,15 @@ async def list_responsibles(
 ) -> list[ResponsibleOut]:
     """Usuários ativos que podem ser responsáveis por equipamentos da unidade.
 
-    Inclui quem tem vínculo com a unidade e os ADMIN, que são globais por perfil.
+    Qualquer usuário ativo (inclusive VIEWER sem vínculo com a unidade) pode ser
+    responsável; ser responsável não concede permissão nem acesso adicional.
+    A unidade só é validada para o ator que consulta.
     """
     await assert_unit_allowed(session, actor, unit_id)
-    linked = (
-        select(User)
-        .join(UserUnitAccess, UserUnitAccess.user_id == User.id)
-        .where(UserUnitAccess.unit_id == unit_id, User.active.is_(True))
-    )
-    admins = select(User).where(User.active.is_(True), User.role == Role.ADMIN)
-    rows = list((await session.execute(linked)).scalars().all())
-    rows += list((await session.execute(admins)).scalars().all())
-    unique = {user.id: user for user in rows}
+    rows = (await session.execute(select(User).where(User.active.is_(True)))).scalars().all()
     return [
         ResponsibleOut(id=user.id, name=user.name, email=user.email)
-        for user in sorted(unique.values(), key=lambda item: item.name.lower())
+        for user in sorted(rows, key=lambda item: item.name.lower())
     ]
 
 

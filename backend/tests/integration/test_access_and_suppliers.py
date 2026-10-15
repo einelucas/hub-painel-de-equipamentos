@@ -188,7 +188,7 @@ async def test_admin_units_are_global_by_role(client, auth_header) -> None:
     assert rejected.status_code == 422
 
 
-async def test_responsibles_are_scoped_and_assignable(client, auth_header) -> None:
+async def test_responsibles_include_any_active_user_and_are_assignable(client, auth_header) -> None:
     allowed = await _unit(client, auth_header, "RESP")
     other = await _unit(client, auth_header, "RESP2")
     analyst_id = await _user_id(client, auth_header, "ANALYST")
@@ -213,18 +213,27 @@ async def test_responsibles_are_scoped_and_assignable(client, auth_header) -> No
     assert accepted.status_code == 201
     assert accepted.json()["responsibleUser"]["id"] == analyst_id
 
-    # O analista não tem acesso à outra unidade, então não pode ser responsável lá.
-    rejected = await client.post(
-        "/api/v1/equipments",
-        json={
-            "projectContextId": other["context"],
-            "name": "Responsavel invalido",
-            "responsibleUserId": analyst_id,
-        },
-        headers=auth_header("ADMIN"),
-    )
-    assert rejected.status_code == 422
-    assert "acesso" in rejected.json()["error"].lower()
+    # Responsável não exige vínculo: o analista sem acesso à outra unidade e um VIEWER
+    # sem vínculo algum também podem ser responsáveis e aparecem na listagem.
+    viewer_id = await _user_id(client, auth_header, "VIEWER")
+    listed_other = (
+        await client.get(
+            f"/api/v1/responsibles?unit_id={other['unit']}", headers=auth_header("ADMIN")
+        )
+    ).json()["items"]
+    assert {analyst_id, viewer_id} <= {item["id"] for item in listed_other}
+    for index, user_id in enumerate((analyst_id, viewer_id)):
+        response = await client.post(
+            "/api/v1/equipments",
+            json={
+                "projectContextId": other["context"],
+                "name": f"Responsavel sem vinculo {index}",
+                "responsibleUserId": user_id,
+            },
+            headers=auth_header("ADMIN"),
+        )
+        assert response.status_code == 201
+        assert response.json()["responsibleUser"]["id"] == user_id
 
 
 async def test_equipments_filter_by_responsible(client, auth_header) -> None:
