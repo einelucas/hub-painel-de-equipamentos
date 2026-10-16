@@ -39,6 +39,12 @@ async def allowed_unit_ids(session: AsyncSession, actor: CurrentUser) -> set[str
 
 async def assert_unit_allowed(session: AsyncSession, actor: CurrentUser, unit_id: str) -> None:
     allowed = await allowed_unit_ids(session, actor)
+    ensure_unit_allowed(allowed, unit_id)
+
+
+def ensure_unit_allowed(allowed: set[str] | None, unit_id: str) -> None:
+    """Valida um ID contra um escopo já carregado, evitando uma segunda
+    consulta a `user_unit_access` no mesmo request."""
     if allowed is not None and unit_id not in allowed:
         raise NotFoundError(_DENIED)
 

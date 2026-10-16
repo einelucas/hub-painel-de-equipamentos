@@ -2,6 +2,7 @@ import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from "axios
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useApi } from "~/composables/useApi";
 import { ApiError } from "~/services/api/error";
+import { clearApiCache } from "~/services/api/cache";
 import { filenameFromContentDisposition, http, serializeQuery } from "~/services/api/http";
 
 // "Servidor" falso: registra o que sairia pela rede e devolve a resposta
@@ -33,6 +34,7 @@ function json(status: number, body?: unknown): Reply {
 }
 
 beforeEach(() => {
+  clearApiCache();
   calls = [];
   replies = [];
   vi.stubGlobal("useRuntimeConfig", () => ({ public: { apiBaseUrl: "http://api.test/api/v1" } }));
@@ -59,6 +61,52 @@ beforeEach(() => {
     if (reply.status >= 200 && reply.status < 300) return response;
     throw new AxiosError(`Request failed with status code ${reply.status}`, AxiosError.ERR_BAD_RESPONSE, config, {}, response);
   };
+});
+
+describe("useApi — cache de leitura", () => {
+  it("reutiliza GETs de catálogo dentro do TTL e reduz duas leituras para uma chamada HTTP", async () => {
+    serve(json(200, { items: [{ id: "d-1" }] }));
+    const api = useApi();
+    const first = await api.get("/disciplines");
+    const second = await api.get("/disciplines");
+    expect(second).toEqual(first);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("coalesce chamadas simultâneas com a mesma URL e query", async () => {
+    serve(json(200, { items: [] }));
+    const api = useApi();
+    await Promise.all([
+      api.get("/equipments", { page: 1, unit_id: "u-1" }),
+      api.get("/equipments", { page: 1, unit_id: "u-1" }),
+    ]);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("separa filtros, permite renovação forçada e invalida após mutação", async () => {
+    serve(
+      json(200, { items: [1] }),
+      json(200, { items: [2] }),
+      json(200, { items: [3] }),
+      json(200, { ok: true }),
+      json(200, { items: [4] }),
+    );
+    const api = useApi();
+    await api.get("/equipments", { page: 1 });
+    await api.get("/equipments", { page: 2 });
+    await api.get("/equipments", { page: 1 }, { force: true });
+    await api.patch("/equipments/e-1", { name: "Novo" });
+    await api.get("/equipments", { page: 1 });
+    expect(calls).toHaveLength(5);
+  });
+
+  it("não cacheia endpoints de autenticação", async () => {
+    serve(json(200, { id: "u-1" }), json(200, { id: "u-1" }));
+    const api = useApi();
+    await api.get("/auth/me");
+    await api.get("/auth/me");
+    expect(calls).toHaveLength(2);
+  });
 });
 
 afterEach(() => {
@@ -142,8 +190,8 @@ describe("useApi — query params (mesma serialização do $fetch)", () => {
     const api = useApi();
     await api.get("/disciplines");
     await api.get("/disciplines", { unit_id: undefined });
+    // As duas formas geram a mesma chave canônica e compartilham o cache.
     expect(calls.map((call) => call.url)).toEqual([
-      "http://api.test/api/v1/disciplines",
       "http://api.test/api/v1/disciplines",
     ]);
   });

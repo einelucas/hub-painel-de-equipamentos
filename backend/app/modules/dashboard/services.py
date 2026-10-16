@@ -21,7 +21,7 @@ from app.core.auth import CurrentUser
 from app.core.scope import (
     allowed_unit_ids,
     assert_context_allowed,
-    assert_unit_allowed,
+    ensure_unit_allowed,
     restrict_to_units,
 )
 from app.domain.equipment_calculations import (
@@ -135,11 +135,11 @@ async def get_summary(
     equipment_id: str | None,
     filters: DashboardFilters | None = None,
 ) -> DashboardSummaryOut:
-    if unit_id:
-        await assert_unit_allowed(session, actor, unit_id)
     if project_context_id:
         await assert_context_allowed(session, actor, project_context_id)
     allowed = await allowed_unit_ids(session, actor)
+    if unit_id:
+        ensure_unit_allowed(allowed, unit_id)
     scope = _scope(
         unit_id,
         project_context_id,
@@ -159,47 +159,60 @@ async def get_summary(
     total = sum(counts.values())
     completed = counts.get(FINAL_STAGE, 0)
 
-    components = (
-        await session.execute(
-            select(func.count(EquipmentComponent.id)).join(
-                scope, EquipmentComponent.equipment_id == scope.c.id
-            )
-        )
-    ).scalar_one()
-
-    capex = (
-        await session.execute(
-            select(func.coalesce(func.sum(Equipment.capex_estimated), 0)).join(
-                scope, Equipment.id == scope.c.id
-            )
-        )
-    ).scalar_one()
-
-    order_count, order_amount = (
+    # As quatro métricas percorriam o mesmo recorte em quatro round-trips
+    # sequenciais. Subconsultas escalares mantêm as agregações independentes
+    # (sem multiplicar linhas de componentes/OCs) e trazem tudo em uma ida ao
+    # PostgreSQL. Isso reduz o caminho crítico sem alterar nenhuma fórmula.
+    components_query = (
+        select(func.count(EquipmentComponent.id))
+        .join(scope, EquipmentComponent.equipment_id == scope.c.id)
+        .scalar_subquery()
+    )
+    capex_query = (
+        select(func.coalesce(func.sum(Equipment.capex_estimated), 0))
+        .join(scope, Equipment.id == scope.c.id)
+        .scalar_subquery()
+    )
+    order_count_query = (
+        select(func.count(PurchaseOrder.id))
+        .join(scope, PurchaseOrder.equipment_id == scope.c.id)
+        .where(PurchaseOrder.order_number.is_not(None))
+        .scalar_subquery()
+    )
+    order_amount_query = (
+        select(func.coalesce(func.sum(PurchaseOrder.amount), 0))
+        .join(scope, PurchaseOrder.equipment_id == scope.c.id)
+        .where(PurchaseOrder.order_number.is_not(None))
+        .scalar_subquery()
+    )
+    negotiations_done_query = (
+        select(func.count(Negotiation.id))
+        .join(scope, Negotiation.equipment_id == scope.c.id)
+        .where(Negotiation.negotiated_at.is_not(None))
+        .scalar_subquery()
+    )
+    components, capex, order_count, order_amount, negotiations_done = (
         await session.execute(
             select(
-                func.count(PurchaseOrder.id),
-                func.coalesce(func.sum(PurchaseOrder.amount), 0),
+                components_query,
+                capex_query,
+                order_count_query,
+                order_amount_query,
+                negotiations_done_query,
             )
-            .join(scope, PurchaseOrder.equipment_id == scope.c.id)
-            .where(PurchaseOrder.order_number.is_not(None))
         )
     ).one()
-
-    negotiations_done = (
-        await session.execute(
-            select(func.count(Negotiation.id))
-            .join(scope, Negotiation.equipment_id == scope.c.id)
-            .where(Negotiation.negotiated_at.is_not(None))
-        )
-    ).scalar_one()
 
     startup = await _next_startup(session, scope)
     reference_date = datetime.now(UTC).date()
     scoped_equipments = await _load_scoped_equipments(session, scope)
-    deadlines = _deadlines_summary(scoped_equipments, reference_date=reference_date)
+    deadline_aggregates = [
+        (equipment, _component_deadline_aggregates(equipment))
+        for equipment in scoped_equipments
+    ]
+    deadlines = _deadlines_summary(deadline_aggregates, reference_date=reference_date)
     negotiation_deadline_status = _negotiation_deadline_status_summary(
-        scoped_equipments, reference_date=reference_date
+        deadline_aggregates, reference_date=reference_date
     )
 
     return DashboardSummaryOut(
@@ -263,15 +276,18 @@ def _component_deadline_aggregates(equipment: Equipment) -> EquipmentDeadlineAgg
     )
 
 
-def _deadlines_summary(equipments: Sequence[Equipment], *, reference_date: date) -> DeadlinesSummaryOut:
+def _deadlines_summary(
+    equipment_aggregates: Sequence[tuple[Equipment, EquipmentDeadlineAggregates]],
+    *,
+    reference_date: date,
+) -> DeadlinesSummaryOut:
     """Card "Situação de prazos" (Etapa 6C.1): distribui o recorte atual
     pelo Status Necessidade da Obra oficial. Mesma função de domínio do
     detalhe do equipamento (`calculate_work_need_status`) — nada é
     recalculado ou reclassificado aqui, só agregado por contagem."""
     counts = dict.fromkeys(_WORK_NEED_FIELD_BY_STATUS.values(), 0)
     without_deadline = 0
-    for equipment in equipments:
-        aggregates = _component_deadline_aggregates(equipment)
+    for _equipment, aggregates in equipment_aggregates:
         status = calculate_work_need_status(
             delivery_deadline=aggregates.min_delivery_deadline, reference_date=reference_date
         )
@@ -280,7 +296,7 @@ def _deadlines_summary(equipments: Sequence[Equipment], *, reference_date: date)
         else:
             counts[_WORK_NEED_FIELD_BY_STATUS[status]] += 1
 
-    total = len(equipments)
+    total = len(equipment_aggregates)
     return DeadlinesSummaryOut(
         available=True,
         total=total,
@@ -291,7 +307,9 @@ def _deadlines_summary(equipments: Sequence[Equipment], *, reference_date: date)
 
 
 def _negotiation_deadline_status_summary(
-    equipments: Sequence[Equipment], *, reference_date: date
+    equipment_aggregates: Sequence[tuple[Equipment, EquipmentDeadlineAggregates]],
+    *,
+    reference_date: date,
 ) -> NegotiationDeadlineStatusSummaryOut:
     """Card "Status dos prazos de negociação": widget do Monday equivalente
     ao GAP-014, agregado por contagem sobre o recorte atual. Mesma função
@@ -301,8 +319,7 @@ def _negotiation_deadline_status_summary(
     (ver `_NEGOTIATION_DEADLINE_FIELD_BY_STATUS`)."""
     counts = dict.fromkeys(_NEGOTIATION_DEADLINE_FIELD_BY_STATUS.values(), 0)
     not_calculable = 0
-    for equipment in equipments:
-        aggregates = _component_deadline_aggregates(equipment)
+    for equipment, aggregates in equipment_aggregates:
         negotiated_at = equipment.negotiation.negotiated_at if equipment.negotiation else None
         status = calculate_negotiation_status(
             negotiation_deadline=aggregates.min_negotiation_deadline,
@@ -316,7 +333,7 @@ def _negotiation_deadline_status_summary(
             counts[field] += 1
 
     return NegotiationDeadlineStatusSummaryOut(
-        total=len(equipments), not_calculable=not_calculable, **counts
+        total=len(equipment_aggregates), not_calculable=not_calculable, **counts
     )
 
 

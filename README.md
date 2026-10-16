@@ -75,6 +75,9 @@ A administração é contextual, dentro da aba em que o dado é usado e só para
 
 Consulte [docs/etapa-01-primeiro-fluxo.md](docs/etapa-01-primeiro-fluxo.md), [docs/etapa-02-workflow-aquisicao.md](docs/etapa-02-workflow-aquisicao.md) [docs/etapa-03-dashboard-navegacao-filas.md](docs/etapa-03-dashboard-navegacao-filas.md) [docs/etapa-04-consolidacao-operacional.md](docs/etapa-04-consolidacao-operacional.md) e [docs/etapa-04-1-administracao-contextual.md](docs/etapa-04-1-administracao-contextual.md) para contratos, decisões e limitações.
 
+As otimizações e medições de carregamento estão registradas em
+[docs/etapa-02-desempenho.md](docs/etapa-02-desempenho.md).
+
 A fundação de migração do Monday está documentada em
 [docs/migration/monday-import-architecture.md](docs/migration/monday-import-architecture.md), com o
 mapeamento completo em [docs/migration/monday-c2-mapping.md](docs/migration/monday-c2-mapping.md).

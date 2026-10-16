@@ -7,6 +7,11 @@ import {
   type ApiQuery,
   type ApiRequestOptions,
 } from "~/services/api/http";
+import {
+  cachedApiGet,
+  clearApiCache,
+  type ApiCacheOptions,
+} from "~/services/api/cache";
 
 export type { ApiDownload, ApiQuery, ApiRequestOptions } from "~/services/api/http";
 
@@ -20,7 +25,16 @@ export function useApi() {
   const context = (): ApiContext => ({ baseURL: config.public.apiBaseUrl, token: auth.token });
 
   async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-    return responseData(await sendRequest<T>(context(), path, options));
+    const result = responseData(await sendRequest<T>(context(), path, options));
+    if ((options.method ?? "GET") !== "GET") clearApiCache();
+    return result;
+  }
+
+  function get<T>(path: string, query?: ApiQuery, cacheOptions: ApiCacheOptions = {}): Promise<T> {
+    const requestContext = context();
+    return cachedApiGet(requestContext, path, query, cacheOptions, async () =>
+      responseData(await sendRequest<T>(requestContext, path, { method: "GET", query })),
+    );
   }
 
   /** Envia `FormData` (o boundary do multipart é definido pelo cliente HTTP). */
@@ -39,7 +53,7 @@ export function useApi() {
   }
 
   return {
-    get: <T>(path: string, query?: ApiQuery) => request<T>(path, { method: "GET", query }),
+    get,
     post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
     put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
     patch: <T>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
@@ -48,5 +62,6 @@ export function useApi() {
     request,
     upload,
     download,
+    clearCache: clearApiCache,
   };
 }

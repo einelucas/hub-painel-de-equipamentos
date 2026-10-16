@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -101,6 +101,7 @@ class Contract(Base):
         CheckConstraint(
             "file_size_bytes IS NULL OR file_size_bytes >= 0", name="contract_file_size_check"
         ),
+        Index("contract_equipment_created_idx", "equipment_id", "created_at"),
     )
 
 
@@ -123,6 +124,7 @@ class PurchaseRequest(Base):
 
     __table_args__ = (
         CheckConstraint("kind IS NULL OR kind IN ('SC', 'OCI')", name="purchase_request_kind_check"),
+        Index("purchase_request_equipment_created_idx", "equipment_id", "created_at"),
     )
 
 
@@ -145,4 +147,5 @@ class PurchaseOrder(Base):
 
     __table_args__ = (
         CheckConstraint("amount IS NULL OR amount >= 0", name="purchase_order_amount_check"),
+        Index("purchase_order_equipment_created_idx", "equipment_id", "created_at"),
     )

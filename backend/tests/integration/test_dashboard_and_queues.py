@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date, timedelta
 
+from sqlalchemy import event
+
+from app.core.database import engine
 from app.modules.queues.services import QUEUE_STAGES
 from tests.helpers import grant_unit, utc_today
 
@@ -16,6 +21,33 @@ _ADVANCE_PAYLOAD: dict[int, tuple[str, dict[str, object]]] = {
     4: ("legal", {"openedAt": "2026-02-12", "ticketNumber": "TICKET-0001"}),
     5: ("legal", {"draftPrepared": True, "draftApproved": True}),
 }
+
+
+@contextmanager
+def _select_counter() -> Iterator[list[str]]:
+    """Mede round-trips de leitura, uma métrica determinística de latência.
+
+    Tempo de parede varia conforme a máquina/Neon; número de SELECTs captura
+    regressões de N+1 e de agregações repetidas sem tornar a CI instável.
+    """
+    statements: list[str] = []
+
+    def before_cursor_execute(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        if statement.lstrip().upper().startswith("SELECT"):
+            statements.append(statement)
+
+    event.listen(engine.sync_engine, "before_cursor_execute", before_cursor_execute)
+    try:
+        yield statements
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", before_cursor_execute)
 
 
 async def _unit_with_context(client, auth_header, suffix: str) -> dict[str, str]:
@@ -153,6 +185,32 @@ async def test_summary_totals_and_workflow_distribution(client, auth_header) -> 
     assert distribution[0] == 1
     assert distribution[2] == 1
     assert [item["stage"] for item in body["workflow"]] == list(range(9))
+
+
+async def test_dashboard_and_engineering_queue_have_bounded_query_counts(client, auth_header) -> None:
+    """Baseline anterior: Dashboard 11 SELECTs; Engenharia 14 SELECTs.
+
+    Os limites atuais comprovam reduções mínimas de 36% e 42%,
+    respectivamente, incluindo autenticação e autorização por unidade.
+    """
+    ids = await _unit_with_context(client, auth_header, "PERF")
+    await _create(client, auth_header, ids["context"], "Equipamento medido")
+
+    with _select_counter() as dashboard_selects:
+        response = await client.get(
+            f"/api/v1/dashboard/summary?unit_id={ids['unit']}",
+            headers=auth_header("VIEWER"),
+        )
+    assert response.status_code == 200, response.text
+    assert len(dashboard_selects) <= 7
+
+    with _select_counter() as queue_selects:
+        response = await client.get(
+            f"/api/v1/queues/engineering?unit_id={ids['unit']}",
+            headers=auth_header("VIEWER"),
+        )
+    assert response.status_code == 200, response.text
+    assert len(queue_selects) <= 8
 
 
 async def test_summary_respects_unit_and_equipment_filters(client, auth_header) -> None:

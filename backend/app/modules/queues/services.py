@@ -22,7 +22,7 @@ from app.core.auth import CurrentUser
 from app.core.scope import (
     allowed_unit_ids,
     assert_context_allowed,
-    assert_unit_allowed,
+    ensure_unit_allowed,
     restrict_to_units,
 )
 from app.models.equipment import STAGES, Equipment, EquipmentComponent, EquipmentWorkPackage, ProjectContext
@@ -33,7 +33,6 @@ from app.models.process import (
     PurchaseOrder,
     PurchaseRequest,
 )
-from app.models.supplier import EquipmentSupplier
 from app.models.workflow_extras import RequirementWaiver
 from app.modules.equipments.schemas import (
     NamedRefOut,
@@ -117,13 +116,13 @@ async def _load_page(
     page = max(1, filters.page)
     page_size = min(100, max(1, filters.page_size))
     stage_range = QUEUE_STAGES[queue]
-    if filters.unit_id:
-        await assert_unit_allowed(session, actor, filters.unit_id)
     if filters.project_context_id:
         context = await assert_context_allowed(session, actor, filters.project_context_id)
         if filters.unit_id and context.unit_id != filters.unit_id:
             return [], PaginationOut(page=page, page_size=page_size, total=0, total_pages=0)
     allowed_units = await allowed_unit_ids(session, actor)
+    if filters.unit_id:
+        ensure_unit_allowed(allowed_units, filters.unit_id)
     total = (
         await session.execute(
             _filtered(
@@ -201,23 +200,31 @@ async def _bulk_many(
 async def _process_states(
     session: AsyncSession,
     equipment_ids: list[str],
+    queue: str,
     equipments: dict[str, Equipment] | None = None,
+    supplier_equipment_ids: set[str] | None = None,
 ) -> dict[str, ProcessState]:
-    negotiations = await _bulk(session, Negotiation, equipment_ids)
-    legals = await _bulk(session, LegalProcess, equipment_ids)
-    contracts = await _bulk_many(session, Contract, equipment_ids)
-    requests = await _bulk_many(session, PurchaseRequest, equipment_ids)
-    orders = await _bulk_many(session, PurchaseOrder, equipment_ids)
-    supplier_equipment_ids = {
-        row[0]
-        for row in (
-            await session.execute(
-                select(EquipmentSupplier.equipment_id).where(
-                    EquipmentSupplier.equipment_id.in_(equipment_ids)
-                )
-            )
-        ).all()
-    }
+    """Carrega somente os processos usados pela fila atual.
+
+    Antes, toda fila buscava negociação, jurídico, contratos, SC/OCI, OCs e
+    fornecedor (seis SELECTs), embora cada intervalo de etapas use apenas
+    parte desses dados. O recorte explícito preserva a mesma ProcessState e
+    elimina quatro ou cinco consultas por carregamento.
+    """
+    negotiations = await _bulk(session, Negotiation, equipment_ids) if queue == "engineering" else {}
+    legals = await _bulk(session, LegalProcess, equipment_ids) if queue == "legal" else {}
+    contracts = await _bulk_many(session, Contract, equipment_ids) if queue == "legal" else {}
+    requests = (
+        await _bulk_many(session, PurchaseRequest, equipment_ids)
+        if queue == "procurement"
+        else {}
+    )
+    orders = (
+        await _bulk_many(session, PurchaseOrder, equipment_ids)
+        if queue == "procurement"
+        else {}
+    )
+    supplier_equipment_ids = supplier_equipment_ids or set()
     equipments = equipments or {}
     return {
         equipment_id: ProcessState(
@@ -319,7 +326,9 @@ async def engineering_queue(
 ) -> EngineeringQueueOut:
     equipments, pagination = await _load_page(session, "engineering", filters, actor)
     ids = [item.id for item in equipments]
-    states = await _process_states(session, ids, {item.id: item for item in equipments})
+    states = await _process_states(
+        session, ids, "engineering", {item.id: item for item in equipments}
+    )
     counts = await _component_counts(session, ids)
     waived = await _bulk_waived_groups(session, ids)
     return EngineeringQueueOut(
@@ -356,7 +365,7 @@ async def _component_counts(session: AsyncSession, equipment_ids: list[str]) -> 
 async def legal_queue(session: AsyncSession, filters: QueueFilters, actor: CurrentUser) -> LegalQueueOut:
     equipments, pagination = await _load_page(session, "legal", filters, actor)
     ids = [item.id for item in equipments]
-    states = await _process_states(session, ids, {item.id: item for item in equipments})
+    states = await _process_states(session, ids, "legal", {item.id: item for item in equipments})
     waived = await _bulk_waived_groups(session, ids)
     items: list[LegalRowOut] = []
     for equipment in equipments:
@@ -387,8 +396,14 @@ async def procurement_queue(
 ) -> ProcurementQueueOut:
     equipments, pagination = await _load_page(session, "procurement", filters, actor)
     ids = [item.id for item in equipments]
-    states = await _process_states(session, ids, {item.id: item for item in equipments})
     suppliers = await primary_suppliers(session, ids)
+    states = await _process_states(
+        session,
+        ids,
+        "procurement",
+        {item.id: item for item in equipments},
+        set(suppliers),
+    )
     waived = await _bulk_waived_groups(session, ids)
     items: list[ProcurementRowOut] = []
     for equipment in equipments:
