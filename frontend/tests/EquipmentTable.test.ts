@@ -163,5 +163,29 @@ describe("EquipmentTable", () => {
     const badge = wrapper.get("[data-testid='equipment-discipline']");
     expect(badge.get(".tip-badge-label").text()).toBe("ELE");
     expect(badge.get("[role='tooltip']").text()).toBe("Elétrica");
+    expect(badge.attributes("style")).toContain("--badge-color: #b0dc51");
+    expect(badge.classes()).toContain("discipline-badge");
+  });
+
+  it("exibe criticidade em card padronizado com a cor do catálogo", () => {
+    const wrapper = mount(EquipmentTable, {
+      props: {
+        equipments: [{
+          ...equipment,
+          criticality: "Médio 90~180",
+          criticalityLabel: { id: "crit-1", name: "Médio 90~180", color: "#777ae5" },
+        }],
+      },
+      global: {
+        stubs: {
+          Table: passthrough, TableHeader: passthrough, TableRow: passthrough,
+          TableHead: passthrough, TableBody: passthrough, TableCell: passthrough,
+          NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+        },
+      },
+    });
+    const badge = wrapper.get("[data-testid='criticality-badge']");
+    expect(badge.text()).toBe("Médio 90~180");
+    expect(badge.attributes("style")).toContain("--badge-color: #777ae5");
   });
 });

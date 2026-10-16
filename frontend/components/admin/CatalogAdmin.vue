@@ -16,6 +16,8 @@ const props = defineProps<{
   /** Query da listagem, ex.: { unit_id }. */
   query?: Record<string, string>;
   hasCode: boolean;
+  /** Cor hexadecimal usada por badges do catálogo. */
+  hasColor?: boolean;
   /** Campo de significado/descrição, usado atualmente por Work Packages. */
   hasDescription?: boolean;
   /** Mensagem quando falta selecionar o pai (unidade/contexto). */
@@ -38,7 +40,7 @@ const error = ref("");
 const formError = ref("");
 const editingId = ref<string | null>(null);
 const creating = ref(false);
-const form = reactive({ name: "", code: "", description: "" });
+const form = reactive({ name: "", code: "", description: "", color: "#777ae5" });
 const search = ref("");
 
 const activeCount = computed(() => items.value.filter((item) => item.active).length);
@@ -86,6 +88,7 @@ function startCreate(): void {
   form.name = "";
   form.code = "";
   form.description = "";
+  form.color = "#777ae5";
 }
 
 function startEdit(item: CatalogItem): void {
@@ -95,6 +98,7 @@ function startEdit(item: CatalogItem): void {
   form.name = item.name;
   form.code = item.code ?? "";
   form.description = item.description ?? "";
+  form.color = item.color ?? "#777ae5";
 }
 
 function cancel(): void {
@@ -114,6 +118,7 @@ async function submit(): Promise<void> {
   const payload: Record<string, unknown> = { name: form.name.trim() };
   if (props.hasCode) payload.code = form.code.trim();
   if (props.hasDescription) payload.description = form.description.trim() || null;
+  if (props.hasColor) payload.color = form.color;
   try {
     if (editingId.value) await api.patch(`${props.itemPath ?? props.path}/${editingId.value}`, payload);
     else await api.post(props.path, { ...payload, ...(props.parent ?? {}) });
@@ -178,6 +183,10 @@ watch(
         <p class="catalog-form-title">{{ editingId ? "Editar registro" : `Novo registro em ${props.label}` }}</p>
         <label v-if="props.hasCode" class="field"><span>Código *</span><input v-model="form.code" maxlength="60" required></label>
         <label class="field" :class="{ 'full': !props.hasCode }"><span>Nome *</span><input v-model="form.name" maxlength="200" required></label>
+        <label v-if="props.hasColor" class="field color-field">
+          <span>Cor *</span>
+          <span class="color-control"><input v-model="form.color" type="color" required><code>{{ form.color }}</code></span>
+        </label>
         <label v-if="props.hasDescription" class="field description-field">
           <span>Descrição</span>
           <textarea
@@ -211,9 +220,10 @@ watch(
         <li
           v-for="item in visibleItems"
           :key="item.id"
-          :class="{ inactive: !item.active, editing: item.id === editingId, 'no-code': !props.hasCode }"
+          :class="{ inactive: !item.active, editing: item.id === editingId, 'no-code': !props.hasCode, 'has-swatch': props.hasColor }"
           :data-testid="`catalog-item-${item.id}`"
         >
+          <span v-if="props.hasColor" class="catalog-swatch" :style="{ backgroundColor: item.color ?? '#64748b' }" aria-hidden="true" />
           <span v-if="props.hasCode" class="catalog-code">{{ item.code ?? "—" }}</span>
           <span class="catalog-name">
             <strong>{{ item.name }}</strong>
@@ -253,7 +263,10 @@ watch(
 .catalog-form { display: grid; grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr); gap: 10px 12px; border: 1px solid #c9d8ec; border-radius: 12px; padding: 14px; background: var(--wash, #f3f6fb); }
 .catalog-form-title { grid-column: 1 / -1; margin: 0; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 800; }
 .catalog-form .full { grid-column: 1 / -1; }
-.description-field { grid-column: 1 / -1; }
+.description-field, .color-field { grid-column: 1 / -1; }
+.color-control { display: flex; align-items: center; gap: 10px; }
+.color-control input { width: 44px; height: 34px; border: 1px solid var(--rule, #dde5ef); border-radius: 8px; padding: 3px; background: #fff; cursor: pointer; }
+.color-control code { color: var(--muted, #6b7a8f); font-size: 12px; text-transform: uppercase; }
 .description-field textarea { min-height: 72px; resize: vertical; }
 .catalog-form .catalog-error { grid-column: 1 / -1; }
 .catalog-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
@@ -275,11 +288,14 @@ watch(
   background: #fff;
 }
 .catalog-list li.no-code { grid-template-columns: minmax(0, 1fr) auto auto; }
+.catalog-list li.has-swatch { grid-template-columns: auto auto minmax(0, 1fr) auto auto; }
+.catalog-list li.no-code.has-swatch { grid-template-columns: auto minmax(0, 1fr) auto auto; }
 .catalog-list li:last-child { border-bottom: 0; }
 .catalog-list li:hover { background: #fafcfe; }
 .catalog-list li.editing { background: #f1f6fd; }
 .catalog-list li.inactive .catalog-name strong, .catalog-list li.inactive .catalog-code { color: #9aa6b5; }
 .catalog-code { min-width: 64px; color: var(--steel, #304f7e); font-family: var(--mono, monospace); font-size: 12px; font-weight: 700; }
+.catalog-swatch { width: 14px; height: 14px; border: 2px solid rgb(255 255 255 / 75%); border-radius: 999px; box-shadow: 0 0 0 1px #d5deea; }
 .catalog-name { display: grid; min-width: 0; gap: 1px; }
 .catalog-name strong { overflow: hidden; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .catalog-name small { overflow: hidden; color: var(--muted, #6b7a8f); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }

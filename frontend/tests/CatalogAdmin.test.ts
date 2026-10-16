@@ -125,6 +125,26 @@ describe("CatalogAdmin", () => {
       description: "Instalações elétricas provisórias",
     });
   });
+
+  it("cria etiqueta com a cor escolhida", async () => {
+    const { wrapper, post } = mountAdmin({
+      path: "/criticality-labels",
+      label: "Criticidades",
+      hasCode: false,
+      hasColor: true,
+    });
+    await settle(wrapper);
+    await wrapper.get(".catalog-header button").trigger("click");
+    await wrapper.get("form input[maxlength='200']").setValue("Urgente");
+    await wrapper.get("form input[type='color']").setValue("#cc3344");
+    await wrapper.get("form").trigger("submit");
+    await settle(wrapper);
+
+    expect(post).toHaveBeenCalledWith("/criticality-labels", {
+      name: "Urgente",
+      color: "#cc3344",
+    });
+  });
 });
 
 describe("CatalogAdmin · contextos de projeto", () => {

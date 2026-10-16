@@ -35,6 +35,14 @@ class DisciplineOut(CamelModel):
     id: str
     code: str
     name: str
+    color: str | None
+    active: bool
+
+
+class CriticalityLabelOut(CamelModel):
+    id: str
+    name: str
+    color: str
     active: bool
 
 
@@ -50,7 +58,9 @@ class WorkPackageOut(CamelModel):
 
 
 class CatalogListOut(CamelModel):
-    items: list[UnitOut | ProjectContextOut | AreaOut | DisciplineOut | WorkPackageOut]
+    items: list[
+        UnitOut | ProjectContextOut | AreaOut | DisciplineOut | CriticalityLabelOut | WorkPackageOut
+    ]
 
 
 class UnitCreateIn(CamelModel):
@@ -136,6 +146,24 @@ class AreaCreateIn(CamelModel):
 class DisciplineCreateIn(CamelModel):
     code: str = Field(min_length=1, max_length=40)
     name: str = Field(min_length=1, max_length=160)
+    color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class CriticalityLabelCreateIn(CamelModel):
+    name: str = Field(min_length=1, max_length=40)
+    color: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class CriticalityLabelUpdateIn(CamelModel):
+    name: str | None = Field(default=None, min_length=1, max_length=40)
+    color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    active: bool | None = None
+
+    @model_validator(mode="after")
+    def has_update(self) -> CriticalityLabelUpdateIn:
+        if not self.model_fields_set:
+            raise ValueError("Informe ao menos um campo para atualizar")
+        return self
 
 
 class WorkPackageCreateIn(CamelModel):
@@ -152,6 +180,7 @@ class CatalogUpdateIn(CamelModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=200)
     code: str | None = Field(default=None, min_length=1, max_length=60)
+    color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     active: bool | None = None
 
     @model_validator(mode="after")

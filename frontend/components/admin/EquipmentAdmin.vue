@@ -26,6 +26,7 @@ const CATALOGS = [
   { key: "units", label: "Unidades" },
   { key: "areas", label: "Árvore EAP" },
   { key: "disciplines", label: "Disciplinas" },
+  { key: "criticalities", label: "Criticidades" },
   { key: "workPackages", label: "Work Packages" },
 ];
 
@@ -110,6 +111,15 @@ watch(
           path="/disciplines"
           label="Disciplinas"
           :has-code="true"
+          :has-color="true"
+          @changed="onChanged"
+        />
+        <CatalogAdmin
+          v-else-if="catalog === 'criticalities'"
+          path="/criticality-labels"
+          label="Criticidades"
+          :has-code="false"
+          :has-color="true"
           @changed="onChanged"
         />
         <template v-else>

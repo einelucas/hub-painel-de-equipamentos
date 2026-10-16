@@ -7,6 +7,8 @@ import { stageTone } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
+import DisciplineBadge from "~/components/equipment/DisciplineBadge.vue";
+import CriticalityBadge from "~/components/equipment/CriticalityBadge.vue";
 
 /**
  * Seção "Resumo" do detalhe do equipamento — identificação, badges de
@@ -35,7 +37,7 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
       <div class="detail-field"><span>Unidade</span><strong>{{ equipment.unit.name }}</strong></div>
       <div class="detail-field"><span>Contexto</span><strong>{{ equipment.projectContext.code ? `${equipment.projectContext.code} · ${equipment.projectContext.name}` : equipment.projectContext.name }}</strong></div>
       <div class="detail-field"><span>Área</span><strong data-testid="equipment-location">{{ equipmentLocationLabel(equipment) ?? "—" }}</strong></div>
-      <div class="detail-field"><span>Disciplina</span><strong>{{ equipment.discipline?.name ?? "—" }}</strong></div>
+      <div class="detail-field"><span>Disciplina</span><strong><DisciplineBadge v-if="equipment.discipline" :discipline="equipment.discipline" /><template v-else>—</template></strong></div>
       <div class="detail-field">
         <span>Work Packages</span>
         <WorkPackageChips
@@ -55,7 +57,7 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
         </strong>
       </div>
       <div class="detail-field"><span>Startup</span><strong>{{ formatDateOnly(equipment.startupAt) }}</strong></div>
-      <div class="detail-field"><span>Criticidade</span><strong>{{ equipment.criticality ?? "—" }}</strong></div>
+      <div class="detail-field"><span>Criticidade</span><strong><CriticalityBadge v-if="equipment.criticalityLabel || equipment.criticality" :label="equipment.criticalityLabel?.name ?? equipment.criticality!" :color="equipment.criticalityLabel?.color" /><template v-else>—</template></strong></div>
       <div class="detail-field"><span>CAPEX estimado</span><strong>{{ formatCurrency(equipment.capexEstimated) }}</strong></div>
       <div class="detail-field"><span>Valor total do projeto</span><strong>{{ formatCurrency(equipment.projectTotalValue) }}</strong></div>
       <div class="detail-field">

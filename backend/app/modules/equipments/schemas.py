@@ -16,6 +16,10 @@ class NamedRefOut(CamelModel):
     code: str | None = None
 
 
+class ColoredNamedRefOut(NamedRefOut):
+    color: str | None = None
+
+
 class WorkPackageRefOut(NamedRefOut):
     description: str | None = None
 
@@ -111,6 +115,7 @@ class EquipmentCreateIn(CamelModel):
     work_package_ids: list[str] = Field(default_factory=list)
     responsible_user_id: str | None = None
     criticality: str | None = Field(default=None, max_length=40)
+    criticality_label_id: str | None = None
     capex_estimated: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
     # Etapa 7A: preenchidos manualmente — nunca calculados a partir da soma
     # das OCs nem de fórmula alguma.
@@ -161,6 +166,7 @@ class EquipmentUpdateIn(CamelModel):
     work_package_ids: list[str] | None = None
     responsible_user_id: str | None = None
     criticality: str | None = Field(default=None, max_length=40)
+    criticality_label_id: str | None = None
     capex_estimated: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
     project_total_value: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=2)
     contractual_delivery_start: date | None = None
@@ -238,12 +244,13 @@ class EquipmentOut(CamelModel):
     origin: str | None
     startup_at: date | None
     criticality: str | None
+    criticality_label: ColoredNamedRefOut | None = None
     current_stage: int
     stage_name: str
     capex_estimated: Decimal | None
     project_context: NamedRefOut
     unit: NamedRefOut
-    discipline: NamedRefOut | None
+    discipline: ColoredNamedRefOut | None
     eap_node: EquipmentEapNodeOut | None
     # Legado: mantido na resposta durante a transição, sem sincronização.
     area: NamedRefOut | None

@@ -40,6 +40,7 @@ function equipment(): Equipment {
     origin: null,
     startupAt: null,
     criticality: null,
+    criticalityLabel: { id: "crit-1", name: "Médio 90~180", color: "#777ae5" },
     currentStage: 0,
     stageName: "Nova demanda",
     capexEstimated: null,
@@ -87,6 +88,9 @@ describe("EquipmentForm", () => {
         return { items: [{ id: "ctx-1", name: "Caldeira 4", active: true }] };
       }
       if (path === "/disciplines" || path === "/responsibles") return { items: [] };
+      if (path === "/criticality-labels") {
+        return { items: [{ id: "crit-1", name: "Médio 90~180", color: "#777ae5", active: true }] };
+      }
       if (path === "/work-packages") return { items: workPackages };
       if (path === "/eap-nodes") return { items: [process, area, island] };
       throw new Error(`GET inesperado: ${path}`);
@@ -102,6 +106,7 @@ describe("EquipmentForm", () => {
 
     expect(get).toHaveBeenCalledWith("/eap-nodes", { active: true });
     expect(get).toHaveBeenCalledWith("/work-packages");
+    expect(get).toHaveBeenCalledWith("/criticality-labels");
     expect(get).not.toHaveBeenCalledWith("/work-packages", expect.anything());
     expect(wrapper.get("[data-testid='edit-eaps']").text()).toContain("Editar EAPs");
 
@@ -122,6 +127,7 @@ describe("EquipmentForm", () => {
       expect.objectContaining({
         eapNodeId: "eap-area",
         workPackageIds: workPackages.map((item) => item.id),
+        criticalityLabelId: "crit-1",
       }),
     );
     expect(patch.mock.calls[0]![1]).not.toHaveProperty("areaId");

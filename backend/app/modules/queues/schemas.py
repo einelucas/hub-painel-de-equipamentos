@@ -4,6 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from app.modules.equipments.schemas import (
+    ColoredNamedRefOut,
     NamedRefOut,
     PaginationOut,
     UserRefOut,
@@ -33,13 +34,14 @@ class QueueRowOut(CamelModel):
 
 
 class EngineeringRowOut(QueueRowOut):
-    discipline: NamedRefOut | None
+    discipline: ColoredNamedRefOut | None
     area: NamedRefOut | None
     # 0..N — ver nota de depreciação em `equipments.schemas.EquipmentOut.work_package`.
     work_packages: list[WorkPackageRefOut]
     responsible_user: UserRefOut | None
     startup_at: date | None
     criticality: str | None
+    criticality_label: ColoredNamedRefOut | None = None
     components_count: int
 
 

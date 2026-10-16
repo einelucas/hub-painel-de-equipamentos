@@ -225,7 +225,7 @@ async function exportAll(): Promise<void> {
         Responsável: item.responsibleUser?.name ?? "",
         Etapa: `${item.currentStage} · ${item.stageName}`,
         Startup: formatDateOnly(item.startupAt),
-        Criticidade: item.criticality ?? "",
+        Criticidade: item.criticalityLabel?.name ?? item.criticality ?? "",
         Componentes: item.componentsCount,
       })),
     );

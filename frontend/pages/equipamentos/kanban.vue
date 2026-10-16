@@ -7,7 +7,6 @@ import {
   Layers3,
   MapPin,
   UserRound,
-  Wrench,
 } from "lucide-vue-next";
 
 import type { Equipment, EquipmentList } from "~/types/equipment";
@@ -349,10 +348,11 @@ onMounted(async () => {
                   </div>
 
                   <div v-if="item.discipline || equipmentLocationLabel(item)" class="card-meta-row">
-                    <span v-if="item.discipline" class="meta-chip">
-                      <Wrench :size="11" />
-                      {{ item.discipline.name }}
-                    </span>
+                    <DisciplineBadge
+                      v-if="item.discipline"
+                      :discipline="item.discipline"
+                      :focusable="false"
+                    />
                     <span v-if="equipmentLocationLabel(item)" class="meta-chip">
                       <MapPin :size="11" />
                       {{ equipmentLocationLabel(item) }}

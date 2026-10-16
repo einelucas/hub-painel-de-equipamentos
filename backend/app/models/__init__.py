@@ -4,6 +4,7 @@ from app.models.access import UserModuleContextPreference, UserUnitAccess
 from app.models.audit import AuditLog
 from app.models.equipment import (
     Area,
+    CriticalityLabel,
     Discipline,
     EapNode,
     Equipment,
@@ -51,6 +52,7 @@ __all__ = [
     "Area",
     "Comment",
     "Contract",
+    "CriticalityLabel",
     "Discipline",
     "EapNode",
     "Equipment",

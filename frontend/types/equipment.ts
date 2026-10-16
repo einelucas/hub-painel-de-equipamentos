@@ -10,6 +10,7 @@ export interface CatalogItem {
   name: string;
   code?: string | null;
   description?: string | null;
+  color?: string | null;
   unitId?: string;
   projectContextId?: string;
   active: boolean;
@@ -49,6 +50,7 @@ export interface NamedRef {
   name: string;
   code?: string | null;
   description?: string | null;
+  color?: string | null;
 }
 
 export interface UserRef {
@@ -126,6 +128,7 @@ export interface Equipment {
   origin: string | null;
   startupAt: string | null;
   criticality: string | null;
+  criticalityLabel?: NamedRef | null;
   currentStage: number;
   stageName: string;
   capexEstimated: string | number | null;
@@ -520,6 +523,7 @@ export interface EngineeringRow extends QueueRow {
   responsibleUser: UserRef | null;
   startupAt: string | null;
   criticality: string | null;
+  criticalityLabel?: NamedRef | null;
   componentsCount: number;
 }
 

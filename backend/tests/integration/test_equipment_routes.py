@@ -204,6 +204,77 @@ async def test_catalog_creation_and_read_permissions(client, auth_header) -> Non
     assert contexts.json()["items"][0]["id"] == ids["context"]
 
 
+async def test_equipment_uses_admin_managed_criticality_label(client, auth_header) -> None:
+    catalogs = await _catalogs(client, auth_header, "CRIT")
+    created_label = await client.post(
+        "/api/v1/criticality-labels",
+        json={"name": "Parada imediata", "color": "#cc3344"},
+        headers=auth_header("ADMIN"),
+    )
+    assert created_label.status_code == 201, created_label.text
+    label = created_label.json()
+
+    created = await client.post(
+        "/api/v1/equipments",
+        json={
+            "projectContextId": catalogs["context"],
+            "name": "Equipamento crítico",
+            "criticalityLabelId": label["id"],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["criticalityLabel"] == {
+        "id": label["id"],
+        "name": "Parada imediata",
+        "code": None,
+        "color": "#cc3344",
+    }
+    # Espelho textual preserva consumidores legados, mas o FK é a fonte editável.
+    assert created.json()["criticality"] == "Parada imediata"
+
+    updated_label = await client.patch(
+        f"/api/v1/criticality-labels/{label['id']}",
+        json={"name": "Parada programada", "color": "#aa2255"},
+        headers=auth_header("ADMIN"),
+    )
+    assert updated_label.status_code == 200, updated_label.text
+
+    detail = await client.get(
+        f"/api/v1/equipments/{created.json()['id']}", headers=auth_header("VIEWER")
+    )
+    assert detail.status_code == 200
+    assert detail.json()["equipment"]["criticalityLabel"]["name"] == "Parada programada"
+    assert detail.json()["equipment"]["criticalityLabel"]["color"] == "#aa2255"
+
+
+async def test_equipment_rejects_inactive_criticality_label(client, auth_header) -> None:
+    catalogs = await _catalogs(client, auth_header, "CRIT-OFF")
+    label = (
+        await client.post(
+            "/api/v1/criticality-labels",
+            json={"name": "Etiqueta inativa", "color": "#445566"},
+            headers=auth_header("ADMIN"),
+        )
+    ).json()
+    await client.patch(
+        f"/api/v1/criticality-labels/{label['id']}",
+        json={"active": False},
+        headers=auth_header("ADMIN"),
+    )
+
+    response = await client.post(
+        "/api/v1/equipments",
+        json={
+            "projectContextId": catalogs["context"],
+            "name": "Equipamento inválido",
+            "criticalityLabelId": label["id"],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert response.status_code == 422
+
+
 async def test_equipment_defaults_filters_search_and_pagination(client, auth_header) -> None:
     first = await _catalogs(client, auth_header, "A")
     second = await _catalogs(client, auth_header, "B")

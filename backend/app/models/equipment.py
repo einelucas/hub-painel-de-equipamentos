@@ -155,9 +155,23 @@ class Discipline(Base):
     id: Mapped[str] = uuid_pk()
     code: Mapped[str] = mapped_column(String(40), nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
+    color: Mapped[str | None] = mapped_column(String(7), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     equipments: Mapped[list[Equipment]] = relationship(back_populates="discipline")
+
+
+class CriticalityLabel(Base):
+    """Etiqueta global e administrável para classificar a criticidade."""
+
+    __tablename__ = "criticality_label"
+
+    id: Mapped[str] = uuid_pk()
+    name: Mapped[str] = mapped_column(String(40), nullable=False, unique=True)
+    color: Mapped[str] = mapped_column(String(7), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    equipments: Mapped[list[Equipment]] = relationship(back_populates="criticality_label")
 
 
 class WorkPackage(Base):
@@ -243,6 +257,9 @@ class Equipment(Base):
         ForeignKey("User.id", ondelete="SET NULL"), nullable=True
     )
     criticality: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    criticality_label_id: Mapped[str | None] = mapped_column(
+        ForeignKey("criticality_label.id", ondelete="SET NULL"), nullable=True
+    )
     current_stage: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     capex_estimated: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
     # Etapa 7 — estado operacional (ACTIVE/STANDBY/CANCELLED/IN_SANITATION),
@@ -262,6 +279,7 @@ class Equipment(Base):
 
     project_context: Mapped[ProjectContext] = relationship(back_populates="equipments")
     discipline: Mapped[Discipline | None] = relationship(back_populates="equipments")
+    criticality_label: Mapped[CriticalityLabel | None] = relationship(back_populates="equipments")
     area: Mapped[Area | None] = relationship(back_populates="equipments")
     eap_node: Mapped[EapNode | None] = relationship()
     work_package: Mapped[WorkPackage | None] = relationship(back_populates="equipments")
@@ -338,6 +356,7 @@ class Equipment(Base):
             "name",
         ),
         Index("equipment_discipline_stage_idx", "discipline_id", "current_stage"),
+        Index("equipment_criticality_label_id_idx", "criticality_label_id"),
         Index("equipment_responsible_stage_idx", "responsible_user_id", "current_stage"),
         Index("equipment_eap_node_id_idx", "eap_node_id"),
         Index("equipment_current_stage_idx", "current_stage"),

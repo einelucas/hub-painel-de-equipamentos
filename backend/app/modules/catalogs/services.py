@@ -16,6 +16,7 @@ from app.core.scope import (
 from app.domain.eap import EapLevel, validate_eap_node
 from app.models.equipment import (
     Area,
+    CriticalityLabel,
     Discipline,
     EapNode,
     ProjectContext,
@@ -164,6 +165,13 @@ async def list_areas(
 async def list_disciplines(session: AsyncSession, *, include_inactive: bool = False) -> list[Discipline]:
     """Disciplinas são globais: não pertencem a uma unidade."""
     return await _list(session, Discipline, *_situation(Discipline, include_inactive))
+
+
+async def list_criticality_labels(
+    session: AsyncSession, *, include_inactive: bool = False
+) -> list[CriticalityLabel]:
+    """Etiquetas globais, independentes de unidade e obra."""
+    return await _list(session, CriticalityLabel, *_situation(CriticalityLabel, include_inactive))
 
 
 async def list_work_packages(

@@ -32,6 +32,7 @@ from app.domain.equipment_calculations import (
 from app.models.equipment import (
     STAGES,
     Area,
+    CriticalityLabel,
     Discipline,
     EapNode,
     Equipment,
@@ -44,6 +45,7 @@ from app.models.equipment import (
 from app.models.supplier import EquipmentSupplier
 from app.models.user import User
 from app.modules.equipments.schemas import (
+    ColoredNamedRefOut,
     ComponentCalculatedOut,
     ComponentOut,
     EquipmentCalculatedOut,
@@ -74,6 +76,7 @@ def _base_load_options() -> tuple[Any, ...]:
         joinedload(Equipment.area),
         joinedload(Equipment.eap_node),
         joinedload(Equipment.discipline),
+        joinedload(Equipment.criticality_label),
         joinedload(Equipment.work_package),
         selectinload(Equipment.work_package_links).joinedload(EquipmentWorkPackage.work_package),
         joinedload(Equipment.responsible_user),
@@ -210,16 +213,26 @@ def _equipment_out(equipment: Equipment, components_count: int | None = None) ->
         origin=equipment.origin,
         startup_at=equipment.startup_at,
         criticality=equipment.criticality,
+        criticality_label=(
+            ColoredNamedRefOut(
+                id=equipment.criticality_label.id,
+                name=equipment.criticality_label.name,
+                color=equipment.criticality_label.color,
+            )
+            if equipment.criticality_label
+            else None
+        ),
         current_stage=equipment.current_stage,
         stage_name=STAGES[equipment.current_stage],
         capex_estimated=equipment.capex_estimated,
         project_context=NamedRefOut(id=context.id, code=context.code, name=context.name),
         unit=NamedRefOut(id=context.unit.id, name=context.unit.name),
         discipline=(
-            NamedRefOut(
+            ColoredNamedRefOut(
                 id=equipment.discipline.id,
                 code=equipment.discipline.code,
                 name=equipment.discipline.name,
+                color=equipment.discipline.color,
             )
             if equipment.discipline
             else None
@@ -290,6 +303,7 @@ async def _validate_relations(
     eap_node_id: str | None,
     area_id: str | None,
     discipline_id: str | None,
+    criticality_label_id: str | None,
     responsible_user_id: str | None,
 ) -> ProjectContext:
     context = await session.get(ProjectContext, project_context_id)
@@ -311,6 +325,10 @@ async def _validate_relations(
         discipline = await session.get(Discipline, discipline_id)
         if discipline is None or not discipline.active:
             raise DomainError("Disciplina inválida ou inativa")
+    if criticality_label_id:
+        label = await session.get(CriticalityLabel, criticality_label_id)
+        if label is None or not label.active:
+            raise DomainError("Etiqueta de criticidade inválida ou inativa")
     if responsible_user_id:
         user = await session.get(User, responsible_user_id)
         if user is None or not user.active:
@@ -486,9 +504,14 @@ async def create_equipment(
         eap_node_id=values.get("eap_node_id"),
         area_id=values.get("area_id"),
         discipline_id=values.get("discipline_id"),
+        criticality_label_id=values.get("criticality_label_id"),
         responsible_user_id=values.get("responsible_user_id"),
     )
     await _validate_work_packages(session, work_package_ids=work_package_ids)
+    if values.get("criticality_label_id"):
+        label = await session.get(CriticalityLabel, values["criticality_label_id"])
+        assert label is not None
+        values["criticality"] = label.name
     equipment = Equipment(**values, current_stage=0)
     session.add(equipment)
     await session.flush()
@@ -583,11 +606,21 @@ async def update_equipment(
         eap_node_id=changes.get("eap_node_id", equipment.eap_node_id),
         area_id=changes.get("area_id", equipment.area_id),
         discipline_id=changes.get("discipline_id", equipment.discipline_id),
+        criticality_label_id=changes.get("criticality_label_id", equipment.criticality_label_id),
         responsible_user_id=changes.get("responsible_user_id", equipment.responsible_user_id),
     )
     if work_package_ids_provided:
         assert new_work_package_ids is not None
         await _validate_work_packages(session, work_package_ids=new_work_package_ids)
+
+    if "criticality_label_id" in changes:
+        label_id = changes["criticality_label_id"]
+        if label_id:
+            label = await session.get(CriticalityLabel, label_id)
+            assert label is not None
+            changes["criticality"] = label.name
+        else:
+            changes["criticality"] = None
 
     previous: dict[str, Any] = {}
     changed: dict[str, Any] = {}

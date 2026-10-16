@@ -35,6 +35,7 @@ from app.models.process import (
 )
 from app.models.workflow_extras import RequirementWaiver
 from app.modules.equipments.schemas import (
+    ColoredNamedRefOut,
     NamedRefOut,
     PaginationOut,
     UserRefOut,
@@ -138,6 +139,7 @@ async def _load_page(
                     joinedload(Equipment.project_context).joinedload(ProjectContext.unit),
                     joinedload(Equipment.area),
                     joinedload(Equipment.discipline),
+                    joinedload(Equipment.criticality_label),
                     selectinload(Equipment.work_package_links).joinedload(
                         EquipmentWorkPackage.work_package
                     ),
@@ -278,10 +280,15 @@ def _pending(
     ]
 
 
-def _named(item: Any) -> NamedRefOut | None:
+def _named(item: Any) -> ColoredNamedRefOut | None:
     if item is None:
         return None
-    return NamedRefOut(id=item.id, name=item.name, code=getattr(item, "code", None))
+    return ColoredNamedRefOut(
+        id=item.id,
+        name=item.name,
+        code=getattr(item, "code", None),
+        color=getattr(item, "color", None),
+    )
 
 
 def _named_work_packages(links: list[EquipmentWorkPackage]) -> list[WorkPackageRefOut]:
@@ -341,6 +348,7 @@ async def engineering_queue(
                 responsible_user=_user(equipment.responsible_user),
                 startup_at=equipment.startup_at,
                 criticality=equipment.criticality,
+                criticality_label=_named(equipment.criticality_label),
                 components_count=counts.get(equipment.id, 0),
             )
             for equipment in equipments

@@ -7,13 +7,24 @@ from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission, assert_can
 from app.domain.eap import EapLevel
-from app.models.equipment import Area, Discipline, EapNode, ProjectContext, Unit, WorkPackage
+from app.models.equipment import (
+    Area,
+    CriticalityLabel,
+    Discipline,
+    EapNode,
+    ProjectContext,
+    Unit,
+    WorkPackage,
+)
 from app.modules.catalogs import services
 from app.modules.catalogs.schemas import (
     AreaCreateIn,
     AreaOut,
     CatalogListOut,
     CatalogUpdateIn,
+    CriticalityLabelCreateIn,
+    CriticalityLabelOut,
+    CriticalityLabelUpdateIn,
     DisciplineCreateIn,
     DisciplineOut,
     EapNodeCreateIn,
@@ -202,6 +213,31 @@ async def post_discipline(
     )
 
 
+@router.get("/criticality-labels", response_model=CatalogListOut)
+async def get_criticality_labels(
+    include_inactive: bool = Query(False, description=_INCLUDE_INACTIVE_HELP),
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_READ)),
+) -> CatalogListOut:
+    items = await services.list_criticality_labels(
+        session, include_inactive=_admin_listing(actor, include_inactive)
+    )
+    return CatalogListOut(items=[CriticalityLabelOut.model_validate(item) for item in items])
+
+
+@router.post(
+    "/criticality-labels", response_model=CriticalityLabelOut, status_code=status.HTTP_201_CREATED
+)
+async def post_criticality_label(
+    body: CriticalityLabelCreateIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
+) -> CriticalityLabelOut:
+    return CriticalityLabelOut.model_validate(
+        await services.create_catalog(session, CriticalityLabel, values=body.model_dump(), actor=actor)
+    )
+
+
 @router.get("/work-packages", response_model=CatalogListOut)
 async def get_work_packages(
     # Parâmetro legado aceito, mas não restringe o catálogo corporativo.
@@ -291,6 +327,23 @@ async def patch_discipline(
         actor=actor,
     )
     return DisciplineOut.model_validate(item)
+
+
+@router.patch("/criticality-labels/{item_id}", response_model=CriticalityLabelOut)
+async def patch_criticality_label(
+    item_id: str,
+    body: CriticalityLabelUpdateIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> CriticalityLabelOut:
+    item = await services.update_catalog(
+        session,
+        CriticalityLabel,
+        item_id=item_id,
+        changes=body.model_dump(exclude_unset=True),
+        actor=actor,
+    )
+    return CriticalityLabelOut.model_validate(item)
 
 
 @router.patch("/work-packages/{item_id}", response_model=WorkPackageOut)

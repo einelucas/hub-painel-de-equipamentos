@@ -3,7 +3,8 @@ import type { Equipment } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 import StageBadge from "~/components/equipment/StageBadge.vue";
 import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
-import TipBadge from "~/components/ui/TipBadge.vue";
+import DisciplineBadge from "~/components/equipment/DisciplineBadge.vue";
+import CriticalityBadge from "~/components/equipment/CriticalityBadge.vue";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 
 defineProps<{ equipments: Equipment[] }>();
@@ -23,14 +24,14 @@ defineProps<{ equipments: Equipment[] }>();
           <TableCell>{{ equipment.projectContext.code ?? equipment.projectContext.name }}</TableCell>
           <TableCell data-testid="equipment-location">{{ equipmentLocationLabel(equipment) ?? "—" }}</TableCell>
           <TableCell>
-            <TipBadge v-if="equipment.discipline" :label="equipment.discipline.code ?? equipment.discipline.name" :tip="equipment.discipline.name" data-testid="equipment-discipline" />
+            <DisciplineBadge v-if="equipment.discipline" :discipline="equipment.discipline" data-testid="equipment-discipline" />
             <span v-else>—</span>
           </TableCell>
           <TableCell><WorkPackageChips :items="equipment.workPackages" /></TableCell>
           <TableCell>{{ equipment.responsibleUser?.name ?? "—" }}</TableCell>
           <TableCell><StageBadge :stage="equipment.currentStage" :name="equipment.stageName" /></TableCell>
           <TableCell>{{ formatDateOnly(equipment.startupAt) }}</TableCell>
-          <TableCell>{{ equipment.criticality ?? "—" }}</TableCell>
+          <TableCell><CriticalityBadge v-if="equipment.criticalityLabel || equipment.criticality" :label="equipment.criticalityLabel?.name ?? equipment.criticality!" :color="equipment.criticalityLabel?.color" /><span v-else>—</span></TableCell>
           <TableCell class="text-center font-semibold">{{ equipment.componentsCount }}</TableCell>
           <TableCell><NuxtLink class="detail-link" :to="`/equipamentos/${equipment.id}`">Ver detalhes</NuxtLink></TableCell>
         </TableRow>

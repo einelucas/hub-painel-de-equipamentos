@@ -27,6 +27,7 @@ const auth = useAuthStore();
 const contexts = ref<CatalogItem[]>([]);
 const eapNodes = ref<EapNodeItem[]>([]);
 const disciplines = ref<CatalogItem[]>([]);
+const criticalityLabels = ref<CatalogItem[]>([]);
 const workPackages = ref<CatalogItem[]>([]);
 const responsibles = ref<Responsible[]>([]);
 
@@ -34,6 +35,7 @@ const loading = ref(true);
 const saving = ref(false);
 const error = ref("");
 const showEapAdmin = ref(false);
+const showCriticalityAdmin = ref(false);
 const reloadingEap = ref(false);
 
 const form = reactive({
@@ -47,7 +49,7 @@ const form = reactive({
   // Relação N:N com pacotes de trabalho.
   workPackageIds: props.equipment?.workPackages.map((item) => item.id) ?? [],
 
-  criticality: props.equipment?.criticality ?? "",
+  criticalityLabelId: props.equipment?.criticalityLabel?.id ?? "",
   capexEstimated: props.equipment?.capexEstimated?.toString() ?? "",
   responsibleUserId: props.equipment?.responsibleUser?.id ?? "",
   projectTotalValue: props.equipment?.projectTotalValue?.toString() ?? "",
@@ -73,6 +75,13 @@ const disciplineOptions = computed(() =>
     id: item.id,
     label: item.code ? `${item.code} · ${item.name}` : item.name,
     searchText: [item.code, item.name].filter(Boolean).join(" "),
+  })),
+);
+const criticalityOptions = computed(() =>
+  criticalityLabels.value.map((item) => ({
+    id: item.id,
+    label: item.name,
+    searchText: item.name,
   })),
 );
 const workPackageOptions = computed(() =>
@@ -108,6 +117,19 @@ async function loadEapNodes(): Promise<void> {
   );
   if (!eapNodes.value.some((item) => item.id === form.eapNodeId)) {
     form.eapNodeId = "";
+  }
+}
+
+async function loadCriticalityLabels(): Promise<void> {
+  criticalityLabels.value = (
+    await api.get<CatalogList<CatalogItem>>("/criticality-labels")
+  ).items;
+  if (!form.criticalityLabelId && props.equipment?.criticality) {
+    const legacy = props.equipment.criticality.trim().toLocaleLowerCase("pt-BR");
+    form.criticalityLabelId =
+      criticalityLabels.value.find(
+        (item) => item.name.trim().toLocaleLowerCase("pt-BR") === legacy,
+      )?.id ?? "";
   }
 }
 
@@ -151,7 +173,7 @@ async function loadCatalogs(): Promise<void> {
       form.projectContextId = contexts.value[0]!.id;
     }
 
-    await Promise.all([loadEapNodes(), loadWorkPackages()]);
+    await Promise.all([loadEapNodes(), loadWorkPackages(), loadCriticalityLabels()]);
   } catch (caught) {
     error.value =
       caught instanceof Error
@@ -180,7 +202,7 @@ async function submit(): Promise<void> {
     disciplineId: form.disciplineId || null,
     eapNodeId: form.eapNodeId || null,
     workPackageIds: form.workPackageIds,
-    criticality: form.criticality || null,
+    criticalityLabelId: form.criticalityLabelId || null,
     capexEstimated:
       form.capexEstimated === "" ? null : Number(form.capexEstimated),
     responsibleUserId: form.responsibleUserId || null,
@@ -306,15 +328,28 @@ onMounted(loadCatalogs);
         <input v-model="form.startupAt" type="date" />
       </label>
 
-      <label class="field">
-        <span>Criticidade</span>
-
-        <input
-          v-model="form.criticality"
-          maxlength="40"
-          placeholder="Conforme classificação oficial"
+      <div class="field">
+        <div class="field-label-row">
+          <span>Criticidade</span>
+          <button
+            v-if="auth.can('catalogs:manage')"
+            type="button"
+            class="eap-manage-button"
+            data-testid="edit-criticalities"
+            @click="showCriticalityAdmin = true"
+          >
+            <Pencil :size="12" /> Editar etiquetas
+          </button>
+        </div>
+        <SearchableSelect
+          v-model="form.criticalityLabelId"
+          :options="criticalityOptions"
+          label="Criticidade"
+          placeholder="Buscar criticidade"
+          empty-label="Não informada"
+          test-id="criticality-select"
         />
-      </label>
+      </div>
 
       <label class="field">
         <span>CAPEX estimado</span>
@@ -381,6 +416,15 @@ onMounted(loadCatalogs);
 
   <AppModal :open="showEapAdmin" title="Editar Árvore EAP" @close="showEapAdmin = false">
     <EapTreeAdmin @changed="eapCatalogChanged" />
+  </AppModal>
+  <AppModal :open="showCriticalityAdmin" title="Editar criticidades" @close="showCriticalityAdmin = false">
+    <CatalogAdmin
+      path="/criticality-labels"
+      label="Criticidades"
+      :has-code="false"
+      :has-color="true"
+      @changed="loadCriticalityLabels"
+    />
   </AppModal>
 </template>
 

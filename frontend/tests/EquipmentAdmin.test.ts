@@ -18,6 +18,7 @@ const ROUTES: Record<string, unknown> = {
     items: [{ id: "ep1", code: "01", name: "Processo Sintético", level: "PROCESS", parentId: null, active: true }],
   },
   "/disciplines": { items: [] },
+  "/criticality-labels": { items: [] },
   "/work-packages": { items: [] },
 };
 

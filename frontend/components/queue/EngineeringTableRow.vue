@@ -3,7 +3,7 @@ import type { EngineeringRow } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 import StageBadge from "~/components/equipment/StageBadge.vue";
 import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
-import TipBadge from "~/components/ui/TipBadge.vue";
+import DisciplineBadge from "~/components/equipment/DisciplineBadge.vue";
 
 /**
  * Linha comum às duas visões da fila de Engenharia (normal/agrupada) — a
@@ -19,7 +19,7 @@ defineProps<{ row: EngineeringRow; showResponsible: boolean }>();
     <TableCell>{{ row.unit.name }}</TableCell>
     <TableCell><StageBadge :stage="row.currentStage" :name="row.currentStageName" /></TableCell>
     <TableCell>
-      <TipBadge v-if="row.discipline" :label="row.discipline.code ?? row.discipline.name" :tip="row.discipline.name" data-testid="engineering-discipline" />
+      <DisciplineBadge v-if="row.discipline" :discipline="row.discipline" data-testid="engineering-discipline" />
       <span v-else>—</span>
     </TableCell>
     <TableCell>{{ row.area?.name ?? "—" }}</TableCell>

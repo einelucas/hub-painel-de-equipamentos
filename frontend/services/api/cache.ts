@@ -19,7 +19,7 @@ let generation = 0;
 const UNCACHED_PREFIXES = ["/auth/", "/notifications", "/module-context/defaults"];
 const CATALOG_PATHS = [
   /^\/units(?:\/[^/]+\/project-contexts)?$/,
-  /^\/(?:disciplines|eap-nodes|work-packages|responsibles|suppliers)$/,
+  /^\/(?:disciplines|criticality-labels|eap-nodes|work-packages|responsibles|suppliers)$/,
 ];
 const DATA_PATHS = [/^\/equipments(?:\/[^/]+)?$/, /^\/dashboard\//, /^\/queues\//];
 
