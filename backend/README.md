@@ -65,6 +65,17 @@ python -m app.modules.local_auth create-user --email admin@inpasa.com.br --name 
 A senha é pedida no terminal (ou lida de `LOCAL_AUTH_PASSWORD`), nunca passada como argumento. Os tokens
 `dev-*` de `DEV_AUTH_ENABLED` continuam funcionando fora de produção.
 
+Para completar as credenciais iniciais de Lucas e Diego já cadastrados em `User`, execute uma única vez,
+no container do backend conectado ao banco correto:
+
+```bash
+python scripts/seed_default_password_users.py
+```
+
+Se o acesso disponível for somente o SQL Editor do Neon, execute
+`scripts/repair_default_password_users_neon.sql`. As duas opções são idempotentes e não sobrescrevem uma
+senha que já tenha sido alterada.
+
 ## Catálogo global de fornecedores
 
 A planilha aprovada é convertida em um artefato JSON versionado e validável sem banco. A carga consulta
