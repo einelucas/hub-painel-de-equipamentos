@@ -1,6 +1,13 @@
 import { defineStore } from "pinia";
+import type { ModuleContextDefaults } from "~/types/api";
 import type { CatalogItem, CatalogList, Equipment, EquipmentList, Unit } from "~/types/equipment";
-import { compatibleEquipment, initialUnit } from "~/utils/equipmentFilters";
+import { compatibleEquipment } from "~/utils/equipmentFilters";
+
+export interface ModuleContextQuery {
+  unit?: string;
+  project?: string;
+  equipment?: string;
+}
 
 /**
  * Contexto global do módulo: Unidade, Obra e Equipamento formam um filtro dependente.
@@ -24,6 +31,10 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
     const unit = units.value.find((item) => item.id === selectedUnit.value);
     return unit?.name ?? "Todas as unidades";
   });
+
+  function compatibleUnit(unitId: string): string {
+    return units.value.some((item) => item.id === unitId) ? unitId : "";
+  }
 
   /** Filtros que vão para a API; chaves omitidas quando não há seleção. */
   const apiQuery = computed<Record<string, string>>(() => {
@@ -74,10 +85,8 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
     selectedEquipment.value = compatibleEquipment(equipmentOptions.value, selectedEquipment.value);
   }
 
-  /** Carrega as unidades uma vez por sessão e aplica os filtros vindos da URL. */
-  async function initialize(
-    query: { unit?: string; project?: string; equipment?: string } = {},
-  ): Promise<void> {
+  /** Carrega uma vez por sessão. URL explícita vence o contexto inicial da API. */
+  async function initialize(query: ModuleContextQuery = {}): Promise<void> {
     if (loaded.value) {
       await applyFromQuery(query);
       return;
@@ -85,10 +94,26 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
     loading.value = true;
     error.value = "";
     try {
-      units.value = (await useApi().get<CatalogList<Unit>>("/units")).items;
-      selectedUnit.value = initialUnit(units.value, query.unit ?? "");
-      selectedProjectContext.value = query.project ?? "";
-      selectedEquipment.value = query.equipment ?? "";
+      const api = useApi();
+      const [unitList, defaults] = await Promise.all([
+        api.get<CatalogList<Unit>>("/units"),
+        api.get<ModuleContextDefaults>("/module-context/defaults").catch(() => null),
+      ]);
+      units.value = unitList.items;
+      const hasExplicitFilter = Object.values(query).some((value) => value !== undefined);
+      if (hasExplicitFilter) {
+        selectedUnit.value = compatibleUnit(query.unit ?? "");
+        selectedProjectContext.value = query.project ?? "";
+        selectedEquipment.value = query.equipment ?? "";
+      } else if (!defaults || defaults.firstAccess) {
+        selectedUnit.value = "";
+        selectedProjectContext.value = "";
+        selectedEquipment.value = "";
+      } else {
+        selectedUnit.value = compatibleUnit(defaults.unitId ?? "");
+        selectedProjectContext.value = defaults.projectContextId ?? "";
+        selectedEquipment.value = "";
+      }
       await loadProjectContexts();
       await loadEquipmentOptions();
       loaded.value = true;
@@ -101,18 +126,21 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
   }
 
   /** Reaplica filtros de uma URL compartilhada sem recarregar as unidades. */
-  async function applyFromQuery(query: {
-    unit?: string;
-    project?: string;
-    equipment?: string;
-  }): Promise<void> {
-    const nextUnit = initialUnit(units.value, query.unit ?? selectedUnit.value);
+  async function applyFromQuery(query: ModuleContextQuery): Promise<void> {
+    const hasExplicitFilter = Object.values(query).some((value) => value !== undefined);
+    if (!hasExplicitFilter) return;
+
+    const unitExplicit = query.unit !== undefined;
+    const projectExplicit = query.project !== undefined;
+    const equipmentExplicit = query.equipment !== undefined;
+    const nextUnit = unitExplicit ? compatibleUnit(query.unit ?? "") : selectedUnit.value;
     const unitChanged = nextUnit !== selectedUnit.value;
     const previousProject = selectedProjectContext.value;
     selectedUnit.value = nextUnit;
-    if (unitChanged) selectedProjectContext.value = query.project ?? "";
-    else selectedProjectContext.value = query.project ?? "";
-    if (query.equipment !== undefined) selectedEquipment.value = query.equipment;
+    if (projectExplicit) selectedProjectContext.value = query.project ?? "";
+    else if (unitChanged) selectedProjectContext.value = "";
+    if (equipmentExplicit) selectedEquipment.value = query.equipment ?? "";
+    else if (unitChanged) selectedEquipment.value = "";
     if (unitChanged || (selectedUnit.value && projectContexts.value.length === 0)) {
       await loadProjectContexts();
     } else if (!projectContexts.value.some((item) => item.id === selectedProjectContext.value)) {
@@ -122,8 +150,11 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
       unitChanged ||
       previousProject !== selectedProjectContext.value ||
       equipmentOptions.value.length === 0
-    ) await loadEquipmentOptions();
-    else selectedEquipment.value = compatibleEquipment(equipmentOptions.value, selectedEquipment.value);
+    ) {
+      await loadEquipmentOptions();
+    } else {
+      selectedEquipment.value = compatibleEquipment(equipmentOptions.value, selectedEquipment.value);
+    }
   }
 
   /** Trocar a unidade sempre descarta um equipamento incompatível. */

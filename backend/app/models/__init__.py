@@ -1,6 +1,6 @@
 """Modelos compartilhados pela base do Painel de Equipamentos."""
 
-from app.models.access import UserUnitAccess
+from app.models.access import UserModuleContextPreference, UserUnitAccess
 from app.models.audit import AuditLog
 from app.models.equipment import (
     Area,
@@ -78,6 +78,7 @@ __all__ = [
     "SupplierRecommendationEvidence",
     "Unit",
     "UserUnitAccess",
+    "UserModuleContextPreference",
     "WorkflowException",
     "WorkflowTransition",
     "WorkPackage",

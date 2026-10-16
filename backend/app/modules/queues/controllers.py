@@ -21,6 +21,7 @@ _read = require_permission(Permission.EQUIPMENTS_READ)
 
 def _queue_filters(
     unit_id: str | None = Query(default=None),
+    project_context_id: str | None = Query(default=None),
     equipment_id: str | None = Query(default=None),
     stage: int | None = Query(default=None, ge=0, le=8),
     search: str | None = Query(default=None, max_length=200),
@@ -30,6 +31,7 @@ def _queue_filters(
 ) -> QueueFilters:
     return QueueFilters(
         unit_id=unit_id,
+        project_context_id=project_context_id,
         equipment_id=equipment_id,
         stage=stage,
         search=search,
@@ -41,6 +43,7 @@ def _queue_filters(
 
 def _engineering_queue_filters(
     unit_id: str | None = Query(default=None),
+    project_context_id: str | None = Query(default=None),
     equipment_id: str | None = Query(default=None),
     stage: int | None = Query(default=None, ge=0, le=8),
     search: str | None = Query(default=None, max_length=200),
@@ -54,6 +57,7 @@ def _engineering_queue_filters(
 ) -> QueueFilters:
     return QueueFilters(
         unit_id=unit_id,
+        project_context_id=project_context_id,
         equipment_id=equipment_id,
         stage=stage,
         search=search,

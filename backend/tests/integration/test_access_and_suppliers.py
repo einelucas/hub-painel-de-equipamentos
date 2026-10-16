@@ -135,6 +135,22 @@ async def test_user_without_units_sees_nothing(client, auth_header) -> None:
     assert (await client.get("/api/v1/equipments", headers=headers)).json()["items"] == []
 
 
+async def test_module_context_default_never_uses_project_outside_user_scope(
+    client, auth_header
+) -> None:
+    allowed = await _unit(client, auth_header, "DEFAULT-OK")
+    await _unit(client, auth_header, "DEFAULT-NO")
+    await _grant(client, auth_header, "ANALYST", [allowed["unit"]])
+    headers = auth_header("ANALYST")
+
+    first = await client.get("/api/v1/module-context/defaults", headers=headers)
+    following = await client.get("/api/v1/module-context/defaults", headers=headers)
+
+    assert first.json()["firstAccess"] is True
+    assert following.json()["unitId"] == allowed["unit"]
+    assert following.json()["projectContextId"] == allowed["context"]
+
+
 async def test_user_units_endpoints_are_admin_only_and_audited(
     client, auth_header, db_session
 ) -> None:

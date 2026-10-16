@@ -30,6 +30,7 @@ const auth = useAuthStore();
 const api = useApi();
 const context = useModuleContextStore();
 const route = useRoute();
+const router = useRouter();
 
 const equipments = ref<Equipment[]>([]);
 const loading = ref(true);
@@ -194,6 +195,22 @@ async function load(): Promise<void> {
   }
 }
 
+async function syncQuery(): Promise<void> {
+  const query: Record<string, string> = { ...(route.query as Record<string, string>) };
+  if (context.selectedUnit) query.unit = context.selectedUnit;
+  else delete query.unit;
+  if (context.selectedProjectContext) query.project = context.selectedProjectContext;
+  else delete query.project;
+  if (context.selectedEquipment) query.equipment = context.selectedEquipment;
+  else delete query.equipment;
+  await router.replace({ query });
+}
+
+async function reload(): Promise<void> {
+  await syncQuery();
+  await load();
+}
+
 onMounted(async () => {
   if (!allowed.value) {
     loading.value = false;
@@ -202,12 +219,17 @@ onMounted(async () => {
 
   await context.initialize({
     unit: typeof route.query.unit === "string" ? route.query.unit : undefined,
+    project:
+      typeof route.query.project === "string"
+        ? route.query.project
+        : undefined,
     equipment:
       typeof route.query.equipment === "string"
         ? route.query.equipment
         : undefined,
   });
 
+  await syncQuery();
   await load();
 });
 </script>
@@ -224,7 +246,7 @@ onMounted(async () => {
     </div>
 
     <div v-else class="stack">
-      <ModuleFilters :refreshing="loading" @change="load" />
+      <ModuleFilters show-project-context :refreshing="loading" @change="reload" />
 
       <div v-if="loading" class="queue-state" role="status" aria-busy="true">
         <span class="spinner" aria-hidden="true" />

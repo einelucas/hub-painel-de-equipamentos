@@ -36,3 +36,16 @@ class UserUnitAccess(Base):
         Index("user_unit_access_user_unit_key", "user_id", "unit_id", unique=True),
         Index("user_unit_access_user_id_idx", "user_id"),
     )
+
+
+class UserModuleContextPreference(Base):
+    """Estado mínimo necessário para distinguir o primeiro acesso ao módulo."""
+
+    __tablename__ = "user_module_context_preference"
+
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("User.id", ondelete="CASCADE"), primary_key=True
+    )
+    first_access_at: Mapped[datetime] = mapped_column(
+        Timestamp3, nullable=False, default=utcnow
+    )

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import select
 
 from app.core.local_auth import DEFAULT_PASSWORD
 from app.models.audit import AuditLog
+from app.models.equipment import ProjectContext
 from app.models.user import Account, User
 
 
@@ -107,3 +110,45 @@ async def test_update_user_records_audit_trail(client, auth_header, db_session) 
 
     result = await db_session.execute(select(User).where(User.id == user_id))
     assert result.scalar_one().role.value == "ANALYST"
+
+
+async def test_module_context_first_access_then_uses_latest_allowed_project(
+    client, auth_header, db_session
+) -> None:
+    admin = auth_header("ADMIN")
+    unit = (
+        await client.post("/api/v1/units", json={"name": "Unidade filtros"}, headers=admin)
+    ).json()
+    older = (
+        await client.post(
+            f"/api/v1/units/{unit['id']}/project-contexts",
+            json={"name": "Obra antiga"},
+            headers=admin,
+        )
+    ).json()
+    newer = (
+        await client.post(
+            f"/api/v1/units/{unit['id']}/project-contexts",
+            json={"name": "Obra recente"},
+            headers=admin,
+        )
+    ).json()
+    old_row = await db_session.get(ProjectContext, older["id"])
+    new_row = await db_session.get(ProjectContext, newer["id"])
+    assert old_row is not None and new_row is not None
+    old_row.created_at = datetime(2026, 1, 1)
+    new_row.created_at = datetime(2026, 2, 1)
+    await db_session.commit()
+
+    first = await client.get("/api/v1/module-context/defaults", headers=admin)
+    assert first.status_code == 200
+    assert first.json()["firstAccess"] is True
+    assert first.json()["unitId"] is None
+    assert first.json()["projectContextId"] is None
+    assert first.json()["firstAccessAt"] is not None
+
+    following = await client.get("/api/v1/module-context/defaults", headers=admin)
+    assert following.status_code == 200
+    assert following.json()["firstAccess"] is False
+    assert following.json()["unitId"] == unit["id"]
+    assert following.json()["projectContextId"] == newer["id"]

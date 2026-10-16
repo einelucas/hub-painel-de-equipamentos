@@ -19,7 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.auth import CurrentUser
-from app.core.scope import allowed_unit_ids, assert_unit_allowed, restrict_to_units
+from app.core.scope import (
+    allowed_unit_ids,
+    assert_context_allowed,
+    assert_unit_allowed,
+    restrict_to_units,
+)
 from app.models.equipment import STAGES, Equipment, EquipmentComponent, EquipmentWorkPackage, ProjectContext
 from app.models.process import (
     Contract,
@@ -64,6 +69,7 @@ ProcessModel = TypeVar(
 @dataclass(frozen=True, slots=True)
 class QueueFilters:
     unit_id: str | None = None
+    project_context_id: str | None = None
     equipment_id: str | None = None
     stage: int | None = None
     search: str | None = None
@@ -91,6 +97,8 @@ def _filtered(
         stmt = stmt.where(Equipment.discipline_id == filters.discipline_id)
     if filters.unit_id:
         stmt = stmt.where(ProjectContext.unit_id == filters.unit_id)
+    if filters.project_context_id:
+        stmt = stmt.where(Equipment.project_context_id == filters.project_context_id)
     if filters.equipment_id:
         stmt = stmt.where(Equipment.id == filters.equipment_id)
     if filters.stage is not None:
@@ -111,6 +119,10 @@ async def _load_page(
     stage_range = QUEUE_STAGES[queue]
     if filters.unit_id:
         await assert_unit_allowed(session, actor, filters.unit_id)
+    if filters.project_context_id:
+        context = await assert_context_allowed(session, actor, filters.project_context_id)
+        if filters.unit_id and context.unit_id != filters.unit_id:
+            return [], PaginationOut(page=page, page_size=page_size, total=0, total_pages=0)
     allowed_units = await allowed_unit_ids(session, actor)
     total = (
         await session.execute(

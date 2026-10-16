@@ -22,6 +22,7 @@ onMounted(async () => {
   }
   await queue.initialize({
     unit: typeof route.query.unit === "string" ? route.query.unit : undefined,
+    project: typeof route.query.project === "string" ? route.query.project : undefined,
     equipment: typeof route.query.equipment === "string" ? route.query.equipment : undefined,
   });
 });

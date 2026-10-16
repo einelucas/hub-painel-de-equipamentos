@@ -25,7 +25,7 @@ const term = ref("");
       <p>Seu perfil não tem acesso à leitura de equipamentos deste módulo.</p>
     </div>
     <template v-else>
-      <ModuleFilters :refreshing="props.refreshing" @change="emit('reload')">
+      <ModuleFilters show-project-context :refreshing="props.refreshing" @change="emit('reload')">
         <form class="field field-wide queue-search" @submit.prevent="emit('search', term)">
           <span>Busca</span>
           <div class="search-control">

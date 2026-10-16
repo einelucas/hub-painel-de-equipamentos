@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser
@@ -18,6 +19,10 @@ from app.core.local_auth import (
     normalize_email,
 )
 from app.core.permissions import Role as PermissionRole
+from app.core.scope import allowed_unit_ids
+from app.models.access import UserModuleContextPreference
+from app.models.common import utcnow
+from app.models.equipment import ProjectContext, Unit
 from app.models.user import Account, User
 from app.models.user import Role as UserRole
 from app.shared.audit import record_audit
@@ -35,6 +40,42 @@ def _to_permission_role(role: UserRole | PermissionRole) -> PermissionRole:
 async def list_users(session: AsyncSession) -> list[User]:
     result = await session.execute(select(User).order_by(User.createdAt.asc()))
     return list(result.scalars().all())
+
+
+async def module_context_defaults(
+    session: AsyncSession, *, actor: CurrentUser
+) -> tuple[bool, UserModuleContextPreference, ProjectContext | None]:
+    """Registra o primeiro acesso e resolve a obra inicial dos seguintes.
+
+    O INSERT com conflito ignorado torna duas primeiras requisições concorrentes
+    determinísticas: apenas uma recebe ``first_access=True``. A obra sugerida é
+    sempre a ativa criada mais recentemente dentro das unidades permitidas.
+    """
+    first_access_at = utcnow()
+    inserted = await session.scalar(
+        insert(UserModuleContextPreference)
+        .values(user_id=actor.id, first_access_at=first_access_at)
+        .on_conflict_do_nothing(index_elements=["user_id"])
+        .returning(UserModuleContextPreference.user_id)
+    )
+    preference = await session.get(UserModuleContextPreference, actor.id)
+    if inserted is not None:
+        assert preference is not None
+        return True, preference, None
+    assert preference is not None
+
+    allowed = await allowed_unit_ids(session, actor)
+    stmt = (
+        select(ProjectContext)
+        .join(Unit, ProjectContext.unit_id == Unit.id)
+        .where(ProjectContext.active.is_(True), Unit.active.is_(True))
+        .order_by(ProjectContext.created_at.desc(), ProjectContext.id.desc())
+        .limit(1)
+    )
+    if allowed is not None:
+        stmt = stmt.where(ProjectContext.unit_id.in_(allowed))
+    context = (await session.execute(stmt)).scalar_one_or_none()
+    return False, preference, context
 
 
 async def create_user(

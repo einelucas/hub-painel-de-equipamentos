@@ -5,6 +5,8 @@ export type QueueEndpoint = "engineering" | "legal" | "procurement";
 /** Carrega uma fila operacional respeitando os filtros globais do módulo. */
 export function useQueue<T>(endpoint: QueueEndpoint) {
   const api = useApi();
+  const route = useRoute();
+  const router = useRouter();
   const context = useModuleContextStore();
   const items = ref<T[]>([]) as Ref<T[]>;
   const pagination = ref<Pagination | null>(null);
@@ -50,14 +52,27 @@ export function useQueue<T>(endpoint: QueueEndpoint) {
     }
   }
 
-  async function initialize(query: { unit?: string; equipment?: string }): Promise<void> {
+  async function syncQuery(): Promise<void> {
+    const query: Record<string, string> = { ...(route.query as Record<string, string>) };
+    if (context.selectedUnit) query.unit = context.selectedUnit;
+    else delete query.unit;
+    if (context.selectedProjectContext) query.project = context.selectedProjectContext;
+    else delete query.project;
+    if (context.selectedEquipment) query.equipment = context.selectedEquipment;
+    else delete query.equipment;
+    await router.replace({ query });
+  }
+
+  async function initialize(query: { unit?: string; project?: string; equipment?: string }): Promise<void> {
     loading.value = true;
     await context.initialize(query);
+    await syncQuery();
     await load();
   }
 
   async function reload(): Promise<void> {
     page.value = 1;
+    await syncQuery();
     await load();
   }
 
@@ -76,6 +91,7 @@ export function useQueue<T>(endpoint: QueueEndpoint) {
     refreshing,
     error,
     initialize,
+    syncQuery,
     load,
     reload,
     goToPage,

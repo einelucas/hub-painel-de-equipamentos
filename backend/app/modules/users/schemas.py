@@ -27,6 +27,13 @@ class UserListOut(CamelModel):
     items: list[UserListItemOut]
 
 
+class ModuleContextDefaultsOut(CamelModel):
+    first_access: bool
+    first_access_at: datetime
+    unit_id: str | None
+    project_context_id: str | None
+
+
 class CreateUserIn(CamelModel):
     name: str = Field(min_length=1)
     email: str = Field(pattern=_EMAIL_PATTERN)

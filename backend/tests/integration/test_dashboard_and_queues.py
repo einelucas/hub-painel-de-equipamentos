@@ -674,6 +674,31 @@ async def test_queues_filter_by_unit_and_paginate(client, auth_header) -> None:
     assert len(page["items"]) == 1
 
 
+async def test_queues_filter_by_project_context(client, auth_header) -> None:
+    first = await _unit_with_context(client, auth_header, "QP1")
+    second_context = (
+        await client.post(
+            f"/api/v1/units/{first['unit']}/project-contexts",
+            json={"name": "Segunda obra da fila"},
+            headers=auth_header("ADMIN"),
+        )
+    ).json()
+    expected = await _create(client, auth_header, first["context"], "Da primeira obra")
+    await _create(client, auth_header, second_context["id"], "Da segunda obra")
+
+    response = await client.get(
+        "/api/v1/queues/engineering",
+        params={
+            "unit_id": first["unit"],
+            "project_context_id": first["context"],
+        },
+        headers=auth_header("VIEWER"),
+    )
+
+    assert response.status_code == 200
+    assert [item["equipmentId"] for item in response.json()["items"]] == [expected]
+
+
 async def test_queues_require_authentication(client) -> None:
     for queue in ("engineering", "legal", "procurement"):
         assert (await client.get(f"/api/v1/queues/{queue}")).status_code == 401

@@ -12,6 +12,7 @@ from app.modules.users import services
 from app.modules.users.schemas import (
     CreateUserIn,
     CreateUserOut,
+    ModuleContextDefaultsOut,
     UpdateUserIn,
     UpdateUserOut,
     UserBasicOut,
@@ -20,6 +21,22 @@ from app.modules.users.schemas import (
 )
 
 router = APIRouter()
+
+
+@router.get("/module-context/defaults", response_model=ModuleContextDefaultsOut)
+async def get_module_context_defaults(
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+) -> ModuleContextDefaultsOut:
+    first_access, preference, context = await services.module_context_defaults(
+        session, actor=current_user
+    )
+    return ModuleContextDefaultsOut(
+        first_access=first_access,
+        first_access_at=preference.first_access_at,
+        unit_id=context.unit_id if context is not None else None,
+        project_context_id=context.id if context is not None else None,
+    )
 
 
 @router.get("/usuarios", response_model=UserListOut)

@@ -44,3 +44,10 @@ export interface AdminUser extends UserSummary {
   lastLoginAt: string | null;
   createdAt: string;
 }
+
+export interface ModuleContextDefaults {
+  firstAccess: boolean;
+  firstAccessAt: string;
+  unitId: string | null;
+  projectContextId: string | null;
+}
