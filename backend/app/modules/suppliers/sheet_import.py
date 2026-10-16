@@ -17,9 +17,9 @@ import asyncio
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import bindparam, insert, select, update
+from sqlalchemy import Table, bindparam, insert, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -340,7 +340,7 @@ def chunked(items: list[Any], size: int) -> list[list[Any]]:
 
 async def apply_plan(session: AsyncSession, plan: ImportPlan) -> int:
     """Grava o plano em lotes, sem flush do ORM. Retorna o nº de statements."""
-    table = Supplier.__table__
+    table = cast(Table, Supplier.__table__)
     now = utcnow()
     statements = 0
 

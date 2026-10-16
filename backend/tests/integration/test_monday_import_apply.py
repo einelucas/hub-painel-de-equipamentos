@@ -185,12 +185,16 @@ async def test_plan_does_not_write_and_keeps_unmapped_catalog_values_as_warnings
     equipment_item = plan.equipments[0]
     assert equipment_item.action != "BLOCKED"
     codes = {issue.code for issue in equipment_item.issues}
-    assert {"RESPONSIBLE_UNRESOLVED", "DISCIPLINE_CODE_REQUIRED"} <= codes
+    # O responsável é resolvido automaticamente pelo primeiro nome quando a
+    # correspondência é única; somente a disciplina continua pendente.
+    assert "DISCIPLINE_CODE_REQUIRED" in codes
+    assert "RESPONSIBLE_UNRESOLVED" not in codes
+    assert equipment_item.payload["responsible_user_id"] == ids["responsible_id"]
     # WPs já existentes no contexto são reutilizados sem mapping (EXISTING).
     expected_work_packages = sorted([ids["work_package_1"], ids["work_package_2"]])
     assert equipment_item.payload["work_package_ids"] == expected_work_packages
     assert "unmapped_area" not in codes
-    assert plan.responsible_summary["unresolved"] >= 1
+    assert plan.responsible_summary["unresolved"] == 0
     assert (await db_session.execute(select(func.count(Equipment.id)))).scalar_one() == 0
 
 

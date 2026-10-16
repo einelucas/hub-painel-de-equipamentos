@@ -8,11 +8,18 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import KEYCLOAK_AUTH_PROVIDER, CurrentUser
+from app.core.auth import CurrentUser
 from app.core.errors import ConflictError, NotFoundError
+from app.core.local_auth import (
+    CREDENTIAL_PROVIDER_ID,
+    DEFAULT_PASSWORD,
+    LOCAL_AUTH_PROVIDER,
+    hash_password,
+    normalize_email,
+)
 from app.core.permissions import Role as PermissionRole
+from app.models.user import Account, User
 from app.models.user import Role as UserRole
-from app.models.user import User
 from app.shared.audit import record_audit
 
 
@@ -38,6 +45,7 @@ async def create_user(
     role: PermissionRole,
     admin: CurrentUser,
 ) -> User:
+    email = normalize_email(email)
     existing = await session.execute(select(User).where(User.email == email))
     if existing.scalar_one_or_none() is not None:
         raise ConflictError("Já existe um usuário com este e-mail")
@@ -48,10 +56,19 @@ async def create_user(
         role=_to_user_role(role),
         active=True,
         emailVerified=True,
-        authProvider=KEYCLOAK_AUTH_PROVIDER,
+        authProvider=LOCAL_AUTH_PROVIDER,
         externalUserId=None,
     )
     session.add(user)
+    await session.flush()
+    session.add(
+        Account(
+            userId=user.id,
+            accountId=user.id,
+            providerId=CREDENTIAL_PROVIDER_ID,
+            password=hash_password(DEFAULT_PASSWORD),
+        )
+    )
     await session.flush()
 
     await record_audit(

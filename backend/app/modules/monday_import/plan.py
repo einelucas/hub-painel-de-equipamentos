@@ -360,7 +360,7 @@ class _PlanPrefetch:
         prefetch = cls()
         for entity_type, keys in (("equipment", equipment_keys), ("component", component_keys)):
             for chunk in _chunks(keys):
-                rows = await session.scalars(
+                mapping_rows = await session.scalars(
                     select(ExternalMapping).where(
                         ExternalMapping.project_context_id == project_context_id,
                         ExternalMapping.source_system == SOURCE_SYSTEM,
@@ -368,18 +368,18 @@ class _PlanPrefetch:
                         ExternalMapping.external_id.in_(chunk),
                     )
                 )
-                for row in rows:
-                    prefetch.mappings[(entity_type, row.external_id)] = row
+                for external_mapping in mapping_rows:
+                    prefetch.mappings[(entity_type, external_mapping.external_id)] = external_mapping
 
         # Colisão de nome (só consultada para equipamento sem vínculo de origem).
         for chunk in _chunks(name for name in equipment_names if isinstance(name, str)):
-            rows = await session.execute(
+            equipment_name_rows = await session.execute(
                 select(Equipment.id, Equipment.name).where(
                     Equipment.project_context_id == project_context_id,
                     Equipment.name.in_(chunk),
                 )
             )
-            for equipment_id, name in rows:
+            for equipment_id, name in equipment_name_rows:
                 prefetch.equipment_id_by_name.setdefault(name, equipment_id)
 
         equipment_ids = [
@@ -401,7 +401,7 @@ class _PlanPrefetch:
             )
             for equipment in equipments:
                 prefetch.equipments[equipment.id] = equipment
-            suppliers = await session.execute(
+            supplier_rows = await session.execute(
                 select(
                     EquipmentSupplier.equipment_id, EquipmentSupplier.supplier_id, EquipmentSupplier.id
                 ).where(
@@ -409,14 +409,16 @@ class _PlanPrefetch:
                     EquipmentSupplier.ended_at.is_(None),
                 )
             )
-            for equipment_id, supplier_id, link_id in suppliers:
+            for equipment_id, supplier_id, link_id in supplier_rows:
                 if equipment_id not in prefetch.current_supplier:
                     prefetch.current_supplier[equipment_id] = supplier_id
                     prefetch.current_supplier_link[equipment_id] = link_id
             for model in _SUB_ENTITY_MODELS:
                 by_equipment = prefetch.sub_entities.setdefault(model, {})
-                for row in await session.scalars(select(model).where(model.equipment_id.in_(chunk))):
-                    by_equipment.setdefault(row.equipment_id, row)
+                for sub_entity in await session.scalars(
+                    select(model).where(model.equipment_id.in_(chunk))
+                ):
+                    by_equipment.setdefault(sub_entity.equipment_id, sub_entity)
         for chunk in _chunks(component_ids):
             for component in await session.scalars(
                 select(EquipmentComponent).where(EquipmentComponent.id.in_(chunk))
@@ -428,10 +430,12 @@ class _PlanPrefetch:
             "EquipmentComponent": list(prefetch.components),
         }
         for model in _SUB_ENTITY_MODELS:
-            audited[model.__name__] = [row.id for row in prefetch.sub_entities.get(model, {}).values()]
+            audited[model.__name__] = [
+                sub_entity.id for sub_entity in prefetch.sub_entities.get(model, {}).values()
+            ]
         for entity, ids in audited.items():
             for chunk in _chunks(ids):
-                rows = await session.execute(
+                audit_rows = await session.execute(
                     select(AuditLog.entity, AuditLog.entityId)
                     .where(
                         AuditLog.entity == entity,
@@ -440,7 +444,9 @@ class _PlanPrefetch:
                     )
                     .distinct()
                 )
-                prefetch.human_touched.update((row_entity, row_id) for row_entity, row_id in rows)
+                prefetch.human_touched.update(
+                    (row_entity, row_id) for row_entity, row_id in audit_rows
+                )
         return prefetch
 
 

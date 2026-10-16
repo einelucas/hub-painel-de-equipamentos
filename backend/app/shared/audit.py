@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import ColumnElement, and_, insert, select
+from sqlalchemy import ColumnElement, Table, and_, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditLog
@@ -142,7 +142,7 @@ async def bulk_insert_audit(
     (um round-trip por lote, sem flush do ORM). Retorna o nº de statements."""
     if not rows:
         return 0
-    table = AuditLog.__table__
+    table = cast(Table, AuditLog.__table__)
     size = chunk_size or chunk_size_for(len(table.columns))
     statements = 0
     for start in range(0, len(rows), size):

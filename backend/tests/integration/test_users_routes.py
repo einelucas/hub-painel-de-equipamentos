@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from sqlalchemy import select
 
+from app.core.local_auth import DEFAULT_PASSWORD
 from app.models.audit import AuditLog
-from app.models.user import User
+from app.models.user import Account, User
 
 
 async def _current_user_id(client, auth_header, role: str) -> str:
@@ -30,6 +31,33 @@ async def test_only_admin_can_list_and_create_users(client, auth_header) -> None
     assert listed.status_code == 200
     emails = {u["email"] for u in listed.json()["items"]}
     assert "ana@example.com" in emails
+
+
+async def test_created_user_receives_local_first_access_credential(
+    client, auth_header, db_session
+) -> None:
+    created = await client.post(
+        "/api/v1/usuarios",
+        json={"name": "Diego Costa", "email": "Diego.Costa@Inpasa.com.br", "role": "ADMIN"},
+        headers=auth_header("ADMIN"),
+    )
+    assert created.status_code == 201
+    user_id = created.json()["user"]["id"]
+    assert created.json()["user"]["email"] == "diego.costa@inpasa.com.br"
+
+    credential = (
+        await db_session.execute(select(Account).where(Account.userId == user_id))
+    ).scalar_one()
+    assert credential.providerId == "credential"
+    assert credential.password is not None
+    assert credential.password != DEFAULT_PASSWORD
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "DIEGO.COSTA@INPASA.COM.BR", "password": DEFAULT_PASSWORD},
+    )
+    assert login.status_code == 200
+    assert login.json() == {"passwordChangeRequired": True}
 
 
 async def test_create_user_duplicate_email_conflicts(client, auth_header) -> None:
