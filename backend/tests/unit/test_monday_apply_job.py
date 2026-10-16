@@ -139,6 +139,21 @@ async def test_start_apply_creates_running_job_and_spawns_task(monkeypatch: pyte
     )
     await task
     assert (job.status, job.stage, job.project_context_id) == ("RUNNING", "QUEUED", "ctx-1")
+    assert job.mapping_payload == {
+        "responsibles": {},
+        "areas": {},
+        "disciplines": {},
+        "workPackages": {},
+        "eapNodes": {},
+        "supplierSelections": {},
+        "catalogEvidence": {
+            "disciplines": {},
+            "workPackages": {},
+            "eapProcesses": {},
+            "suppliers": {},
+        },
+    }
+    assert job.lease_id and job.heartbeat_at and job.attempt_count == 1
     assert ran == ["job-1"]
 
 

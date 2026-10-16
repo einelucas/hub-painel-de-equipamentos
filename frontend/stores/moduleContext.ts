@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import type { ModuleContextDefaults } from "~/types/api";
 import type { CatalogItem, CatalogList, Equipment, EquipmentList, Unit } from "~/types/equipment";
 import { compatibleEquipment } from "~/utils/equipmentFilters";
+import { collectAllPages } from "~/utils/pagination";
 
 export interface ModuleContextQuery {
   unit?: string;
@@ -79,9 +80,11 @@ export const useModuleContextStore = defineStore("moduleContext", () => {
       query.project_context_id = selectedProjectContext.value;
     }
     const version = optionsVersion;
-    const result = await useApi().get<EquipmentList>("/equipments", query);
+    const items = await collectAllPages((page) =>
+      useApi().get<EquipmentList>("/equipments", { ...query, page }),
+    );
     if (version !== optionsVersion) return;
-    equipmentOptions.value = result.items;
+    equipmentOptions.value = items;
     selectedEquipment.value = compatibleEquipment(equipmentOptions.value, selectedEquipment.value);
   }
 

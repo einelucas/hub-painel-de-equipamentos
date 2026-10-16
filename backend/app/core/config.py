@@ -56,12 +56,18 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
-    # Etapa 7A, seção I — storage de arquivo de contrato. `local` é seguro
-    # para DEV/teste (filesystem do processo); produção precisa de um
-    # provider real (S3/Azure Blob/etc.) ainda não definido — ver
-    # `app.core.storage`. Nunca inventamos credenciais de nuvem aqui.
-    storage_provider: Literal["local"] = Field(default="local", alias="STORAGE_PROVIDER")
+    # Arquivos de contrato: filesystem local em DEV/teste e S3 (ou serviço
+    # compatível) em produção. Credenciais também podem vir da cadeia padrão AWS.
+    storage_provider: Literal["local", "s3"] = Field(default="local", alias="STORAGE_PROVIDER")
     storage_local_dir: str = Field(default="./var/contract-files", alias="STORAGE_LOCAL_DIR")
+    storage_s3_bucket: str | None = Field(default=None, alias="STORAGE_S3_BUCKET")
+    storage_s3_endpoint_url: str | None = Field(default=None, alias="STORAGE_S3_ENDPOINT_URL")
+    storage_s3_region: str | None = Field(default=None, alias="STORAGE_S3_REGION")
+    storage_s3_access_key_id: str | None = Field(default=None, alias="STORAGE_S3_ACCESS_KEY_ID")
+    storage_s3_secret_access_key: str | None = Field(
+        default=None, alias="STORAGE_S3_SECRET_ACCESS_KEY"
+    )
+    storage_s3_prefix: str = Field(default="", alias="STORAGE_S3_PREFIX")
 
     # P1.3 — upload de XLSX do Monday pelo Hub. Só o staging é persistido;
     # os bytes do arquivo nunca são gravados.

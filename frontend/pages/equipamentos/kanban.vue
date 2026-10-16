@@ -15,6 +15,7 @@ import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { formatDateOnly } from "~/utils/format";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
+import { collectAllPages } from "~/utils/pagination";
 
 /**
  * Kanban somente leitura.
@@ -147,7 +148,6 @@ function countFor(key: ColumnKey): number {
 }
 
 const PAGE_SIZE = 100;
-const PAGE_LIMIT = 20;
 
 async function load(): Promise<void> {
   const version = ++requestVersion;
@@ -156,27 +156,21 @@ async function load(): Promise<void> {
   loadProgress.value = "";
 
   try {
-    const rows: Equipment[] = [];
-
-    let page = 1;
-    let totalPages = 1;
-
-    do {
-      const result = await api.get<EquipmentList>("/equipments", {
+    const rows = await collectAllPages<Equipment>(
+      (page) => api.get<EquipmentList>("/equipments", {
         ...context.apiQuery,
         page,
         pageSize: PAGE_SIZE,
         sortBy: "name",
-      });
+      }),
+      {
+        onProgress: (page, totalPages) => {
+          if (totalPages > 1) loadProgress.value = `Página ${page} de ${totalPages}`;
+        },
+      },
+    );
 
-      if (version !== requestVersion) return;
-
-      rows.push(...result.items);
-
-      totalPages = result.pagination.totalPages;
-      if (totalPages > 1) loadProgress.value = `Página ${Math.min(page, totalPages)} de ${totalPages}`;
-      page += 1;
-    } while (page <= totalPages && page <= PAGE_LIMIT);
+    if (version !== requestVersion) return;
 
     equipments.value = rows;
   } catch (caught) {

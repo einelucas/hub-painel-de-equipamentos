@@ -19,6 +19,7 @@ import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
+import { collectAllPages } from "~/utils/pagination";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -48,8 +49,6 @@ const error = ref("");
 const showForm = ref(false);
 const showAdmin = ref(false);
 let requestVersion = 0;
-// Teto de segurança: evita puxar volume ilimitado para o navegador.
-const EXPORT_PAGE_LIMIT = 20;
 
 const allowed = computed(() => auth.can("equipments:read"));
 const canCreate = computed(
@@ -198,19 +197,19 @@ async function exportAll(): Promise<void> {
   error.value = "";
   try {
     // Percorre as páginas do recorte para não exportar só o que está na tela.
-    const rows: Equipment[] = [];
-    let page = 1;
-    let totalPages = 1;
-    do {
-      const result = await api.get<EquipmentList>(
+    const rows = await collectAllPages<Equipment>(
+      (page) => api.get<EquipmentList>(
         "/equipments",
         currentQuery(100, page),
-      );
-      rows.push(...result.items);
-      totalPages = result.pagination.totalPages;
-      exportProgress.value = totalPages > 1 ? `Exportando página ${page} de ${totalPages}...` : "";
-      page += 1;
-    } while (page <= totalPages && page <= EXPORT_PAGE_LIMIT);
+      ),
+      {
+        onProgress: (currentPage, totalPages) => {
+          exportProgress.value = totalPages > 1
+            ? `Exportando página ${currentPage} de ${totalPages}...`
+            : "";
+        },
+      },
+    );
 
     useExport().excel(
       `equipamentos-${new Date().toISOString().slice(0, 10)}`,

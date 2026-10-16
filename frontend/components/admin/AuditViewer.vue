@@ -4,6 +4,7 @@ import type { CatalogList, Equipment, EquipmentList } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
 import { toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import { collectAllPages } from "~/utils/pagination";
 
 interface Audit {
   id: string;
@@ -78,10 +79,12 @@ onMounted(async () => {
   const options = (async () => {
     try {
       const [equipments, users] = await Promise.all([
-        api.get<EquipmentList>("/equipments", { pageSize: 100, sortBy: "name" }),
+        collectAllPages((page) =>
+          api.get<EquipmentList>("/equipments", { page, pageSize: 100, sortBy: "name" }),
+        ),
         api.get<CatalogList<UserOption>>("/usuarios"),
       ]);
-      equipmentOptions.value = equipments.items;
+      equipmentOptions.value = equipments;
       userOptions.value = users.items;
     } catch {
       // Filtros ficam sem opções; a listagem principal segue funcionando.

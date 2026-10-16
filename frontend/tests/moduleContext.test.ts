@@ -32,7 +32,11 @@ function setup(defaults: {
     }
     if (path === "/equipments") {
       const unitId = query?.unit_id as keyof typeof equipments;
-      return { items: equipments[unitId] ?? [], pagination: {} };
+      const items = equipments[unitId] ?? [];
+      return {
+        items,
+        pagination: { page: 1, pageSize: 100, total: items.length, totalPages: 1 },
+      };
     }
     throw new Error(`GET inesperado: ${path}`);
   });

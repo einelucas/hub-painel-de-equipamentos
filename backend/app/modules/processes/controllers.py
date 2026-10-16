@@ -197,7 +197,7 @@ async def put_contract_file(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_write),
 ) -> ContractOut:
-    content = await file.read()
+    content = await file.read(_MAX_UPLOAD_BYTES + 1)
     if len(content) > _MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="Arquivo excede o tamanho máximo permitido (20 MB).")
     item = await services.upload_contract_file(

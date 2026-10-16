@@ -78,6 +78,9 @@ Consulte [docs/etapa-01-primeiro-fluxo.md](docs/etapa-01-primeiro-fluxo.md), [do
 As otimizações e medições de carregamento estão registradas em
 [docs/etapa-02-desempenho.md](docs/etapa-02-desempenho.md).
 
+Os limites de registros, retomada de importação e armazenamento de contratos estão registrados em
+[docs/etapa-03-confiabilidade-operacional.md](docs/etapa-03-confiabilidade-operacional.md).
+
 A fundação de migração do Monday está documentada em
 [docs/migration/monday-import-architecture.md](docs/migration/monday-import-architecture.md), com o
 mapeamento completo em [docs/migration/monday-c2-mapping.md](docs/migration/monday-c2-mapping.md).

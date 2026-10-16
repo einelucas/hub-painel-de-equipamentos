@@ -9,9 +9,11 @@ PurchaseOrder são 1:N desde a Etapa 7A — cada `POST` cria um registro novo;
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any, TypeVar
+from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -21,7 +23,7 @@ from sqlalchemy.orm import joinedload
 from app.core.auth import CurrentUser
 from app.core.errors import DomainError, NotFoundError
 from app.core.scope import assert_equipment_allowed
-from app.core.storage import get_contract_file_storage
+from app.core.storage import StorageObjectNotFoundError, get_contract_file_storage
 from app.models.equipment import Equipment
 from app.models.process import (
     Contract,
@@ -44,6 +46,7 @@ from app.shared.audit import record_audit
 
 ProcessModel = TypeVar("ProcessModel", Negotiation, LegalProcess)
 ManyProcessModel = TypeVar("ManyProcessModel", Contract, PurchaseRequest, PurchaseOrder)
+logger = logging.getLogger(__name__)
 
 
 async def _assert_equipment(
@@ -297,8 +300,7 @@ async def delete_item(
 ) -> None:
     await _assert_equipment(session, equipment_id, actor)
     instance = await _item_or_404(session, model, equipment_id, item_id)
-    if isinstance(instance, Contract) and instance.file_storage_key:
-        await get_contract_file_storage().delete(instance.file_storage_key)
+    storage_key = instance.file_storage_key if isinstance(instance, Contract) else None
     await session.delete(instance)
     await record_audit(
         session,
@@ -309,6 +311,11 @@ async def delete_item(
         metadata={"equipmentId": equipment_id},
     )
     await session.commit()
+    if storage_key:
+        try:
+            await get_contract_file_storage().delete(storage_key)
+        except Exception:
+            logger.exception("contract storage cleanup failed after delete contract=%s", item_id)
 
 
 _MAX_CONTRACT_FILE_BYTES = 20 * 1024 * 1024  # 20 MB — teto explícito de upload.
@@ -331,27 +338,39 @@ async def upload_contract_file(
     if len(content) > _MAX_CONTRACT_FILE_BYTES:
         raise DomainError("Arquivo excede o tamanho máximo permitido (20 MB).")
     storage = get_contract_file_storage()
-    key = f"contracts/{contract.id}/{file_name}"
+    old_key = contract.file_storage_key
+    key = f"contracts/{contract.id}/{uuid4()}"
     await storage.save(key, content)
-    if contract.file_storage_key and contract.file_storage_key != key:
-        await storage.delete(contract.file_storage_key)
     contract.file_storage_key = key
     contract.file_name = file_name
     contract.file_content_type = content_type
     contract.file_size_bytes = len(content)
     contract.file_uploaded_by_id = actor.id
     contract.file_uploaded_at = datetime.now(UTC).replace(tzinfo=None)
-    await session.flush()
-    await record_audit(
-        session,
-        user_id=actor.id,
-        action="contract.file_uploaded",
-        entity="Contract",
-        entity_id=contract.id,
-        new_data={"fileName": file_name, "fileSizeBytes": len(content)},
-        metadata={"equipmentId": equipment_id},
-    )
-    await session.commit()
+    try:
+        await session.flush()
+        await record_audit(
+            session,
+            user_id=actor.id,
+            action="contract.file_uploaded",
+            entity="Contract",
+            entity_id=contract.id,
+            new_data={"fileName": file_name, "fileSizeBytes": len(content)},
+            metadata={"equipmentId": equipment_id},
+        )
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        try:
+            await storage.delete(key)
+        except Exception:
+            logger.exception("contract storage rollback cleanup failed key=%s", key)
+        raise
+    if old_key and old_key != key:
+        try:
+            await storage.delete(old_key)
+        except Exception:
+            logger.exception("old contract object cleanup failed key=%s", old_key)
     await session.refresh(contract)
     return contract
 
@@ -363,5 +382,8 @@ async def download_contract_file(
     contract = await _item_or_404(session, Contract, equipment_id, contract_id)
     if not contract.file_storage_key:
         raise NotFoundError("Este contrato não possui arquivo.")
-    content = await get_contract_file_storage().load(contract.file_storage_key)
+    try:
+        content = await get_contract_file_storage().load(contract.file_storage_key)
+    except StorageObjectNotFoundError as exc:
+        raise NotFoundError("O arquivo do contrato não foi encontrado no armazenamento.") from exc
     return content, contract

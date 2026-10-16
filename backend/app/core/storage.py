@@ -1,28 +1,20 @@
-"""Abstração de object storage para arquivos de contrato (Etapa 7A, seção I).
-
-O projeto não tinha nenhuma estratégia de storage antes desta etapa. Em vez
-de acoplar o domínio a filesystem ou inventar credenciais de nuvem, isto
-define uma interface mínima (`ContractFileStorage`) com uma implementação
-local segura para DEV/teste. Produção com `storage_provider="local"` é
-bloqueada explicitamente — o provider real (S3/Azure Blob/etc.) é uma
-pendência de infraestrutura registrada em
-`docs/validation/etapa-07-operational-business-rules.md`, não decidida
-aqui.
-
-Metadados do arquivo (nome, tipo, tamanho, quem/quando) ficam no Postgres
-(`Contract.file_*`); só os bytes passam por aqui.
-"""
+"""Object storage dos arquivos de contrato."""
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.core.config import get_settings
 
 
 class StorageNotConfiguredError(Exception):
-    """Produção sem um provider de storage real configurado."""
+    """Provider ausente ou incompleto."""
+
+
+class StorageObjectNotFoundError(Exception):
+    """Objeto referenciado no banco não existe mais no storage."""
 
 
 class ContractFileStorage(Protocol):
@@ -34,17 +26,16 @@ class ContractFileStorage(Protocol):
 
 
 class LocalContractFileStorage:
-    """Grava no filesystem do processo. Correto para DEV/teste; nunca usar
-    em produção (efêmero em qualquer ambiente com deploy imutável/múltiplas
-    instâncias)."""
+    """Filesystem persistente apenas para desenvolvimento e testes."""
 
     def __init__(self, base_dir: str) -> None:
-        self._base_dir = Path(base_dir)
+        self._base_dir = Path(base_dir).resolve()
 
     def _path(self, key: str) -> Path:
-        # `key` é sempre gerado pelo serviço (uuid do contrato + sufixo),
-        # nunca vem direto de input do usuário — sem risco de path traversal.
-        return self._base_dir / key
+        path = (self._base_dir / key).resolve()
+        if not path.is_relative_to(self._base_dir):
+            raise ValueError("Chave de storage inválida.")
+        return path
 
     async def save(self, key: str, content: bytes) -> None:
         path = self._path(key)
@@ -52,7 +43,10 @@ class LocalContractFileStorage:
         path.write_bytes(content)
 
     async def load(self, key: str) -> bytes:
-        return self._path(key).read_bytes()
+        try:
+            return self._path(key).read_bytes()
+        except FileNotFoundError as exc:
+            raise StorageObjectNotFoundError(key) from exc
 
     async def delete(self, key: str) -> None:
         path = self._path(key)
@@ -60,15 +54,58 @@ class LocalContractFileStorage:
             path.unlink()
 
 
+class S3ContractFileStorage:
+    """Implementação S3 compatível (AWS, Railway Bucket, R2, MinIO etc.)."""
+
+    def __init__(self, *, bucket: str, prefix: str = "", client: Any) -> None:
+        self._bucket = bucket
+        self._prefix = prefix.strip("/")
+        self._client = client
+
+    def _key(self, key: str) -> str:
+        return f"{self._prefix}/{key}" if self._prefix else key
+
+    async def save(self, key: str, content: bytes) -> None:
+        await asyncio.to_thread(
+            self._client.put_object, Bucket=self._bucket, Key=self._key(key), Body=content
+        )
+
+    async def load(self, key: str) -> bytes:
+        try:
+            response = await asyncio.to_thread(
+                self._client.get_object, Bucket=self._bucket, Key=self._key(key)
+            )
+            return await asyncio.to_thread(response["Body"].read)
+        except self._client.exceptions.NoSuchKey as exc:
+            raise StorageObjectNotFoundError(key) from exc
+
+    async def delete(self, key: str) -> None:
+        await asyncio.to_thread(
+            self._client.delete_object, Bucket=self._bucket, Key=self._key(key)
+        )
+
+
 def get_contract_file_storage() -> ContractFileStorage:
     settings = get_settings()
+    if settings.storage_provider == "s3":
+        if not settings.storage_s3_bucket:
+            raise StorageNotConfiguredError("STORAGE_S3_BUCKET é obrigatório para STORAGE_PROVIDER=s3.")
+        import boto3
+
+        client = boto3.client(
+            "s3",
+            endpoint_url=settings.storage_s3_endpoint_url,
+            region_name=settings.storage_s3_region,
+            aws_access_key_id=settings.storage_s3_access_key_id,
+            aws_secret_access_key=settings.storage_s3_secret_access_key,
+        )
+        return S3ContractFileStorage(
+            bucket=settings.storage_s3_bucket,
+            prefix=settings.storage_s3_prefix,
+            client=client,
+        )
     if settings.is_production:
-        # Nenhum provider real de produção foi definido ainda — bloqueia em
-        # vez de gravar arquivo de contrato real num filesystem efêmero.
         raise StorageNotConfiguredError(
-            "STORAGE_PROVIDER='local' não é seguro em produção. Configure um "
-            "provider real (S3/Azure Blob/etc.) antes de habilitar upload de "
-            "contrato em produção — pendência de infraestrutura registrada "
-            "em docs/validation/etapa-07-operational-business-rules.md."
+            "STORAGE_PROVIDER=local não é seguro em produção; configure STORAGE_PROVIDER=s3."
         )
     return LocalContractFileStorage(settings.storage_local_dir)
