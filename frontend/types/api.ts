@@ -38,3 +38,9 @@ export interface UserSummary {
   role: Role;
   active: boolean;
 }
+
+export interface AdminUser extends UserSummary {
+  authProvider: string;
+  lastLoginAt: string | null;
+  createdAt: string;
+}

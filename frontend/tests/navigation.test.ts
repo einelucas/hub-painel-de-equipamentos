@@ -17,6 +17,7 @@ describe("NAV_ITEMS", () => {
       "/fornecedores",
       "/equipamentos/kanban",
     ]);
+    expect(NAV_ITEMS.map((item) => item.to)).not.toContain("/usuarios");
   });
 
   it("dá um ícone próprio a cada item, sem repetir", () => {
