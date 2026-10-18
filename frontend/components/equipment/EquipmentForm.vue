@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { Pencil } from "lucide-vue-next";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import { DEFAULT_ORIGIN, originOptions } from "~/utils/origin";
 import type {
   CatalogItem,
   CatalogList,
@@ -41,7 +42,7 @@ const reloadingEap = ref(false);
 const form = reactive({
   name: props.equipment?.name ?? "",
   projectContextId: props.equipment?.projectContext.id ?? "",
-  origin: props.equipment?.origin ?? "",
+  origin: props.equipment?.origin ?? DEFAULT_ORIGIN,
   startupAt: props.equipment?.startupAt ?? "",
   disciplineId: props.equipment?.discipline?.id ?? "",
   eapNodeId: props.equipment?.eapNode?.id ?? "",
@@ -63,6 +64,9 @@ const contextOptions = computed(() =>
     label: item.code ? `${item.code} · ${item.name}` : item.name,
   })),
 );
+// Lista fixa do domínio, acrescida do valor atual quando ele estiver fora do
+// vocabulário (registros antigos do Monday, ex.: "Importado").
+const originSelectOptions = computed(() => originOptions(form.origin));
 const eapOptions = computed(() =>
   eapNodes.value.map((item) => ({
     id: item.id,
@@ -250,14 +254,14 @@ onMounted(loadCatalogs);
       </label>
 
       <div class="field">
-        <span>Contexto *</span>
+        <span>Obra *</span>
 
         <SearchableSelect
           v-model="form.projectContextId"
           :options="contextOptions"
           :clearable="false"
           required
-          label="Contexto"
+          label="Obra"
           placeholder="Buscar por código ou nome"
           empty-label="Selecione"
           test-id="project-context-select"
@@ -267,7 +271,11 @@ onMounted(loadCatalogs);
       <label class="field">
         <span>Origem</span>
 
-        <input v-model="form.origin" maxlength="160" />
+        <select v-model="form.origin" data-testid="origin-select">
+          <option v-for="option in originSelectOptions" :key="option" :value="option">
+            {{ option }}
+          </option>
+        </select>
       </label>
 
       <div class="field">

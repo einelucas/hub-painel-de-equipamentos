@@ -35,7 +35,7 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
     <div class="surface-header"><div><h2>Resumo</h2><p>Identificação e posição atual no processo.</p></div><button v-if="canEdit" class="btn" @click="emit('edit')"><Pencil :size="15" /> Editar</button></div>
     <div class="surface-body detail-grid">
       <div class="detail-field"><span>Unidade</span><strong>{{ equipment.unit.name }}</strong></div>
-      <div class="detail-field"><span>Contexto</span><strong>{{ equipment.projectContext.code ? `${equipment.projectContext.code} · ${equipment.projectContext.name}` : equipment.projectContext.name }}</strong></div>
+      <div class="detail-field"><span>Obra</span><strong>{{ equipment.projectContext.code ? `${equipment.projectContext.code} · ${equipment.projectContext.name}` : equipment.projectContext.name }}</strong></div>
       <div class="detail-field"><span>Área</span><strong data-testid="equipment-location">{{ equipmentLocationLabel(equipment) ?? "—" }}</strong></div>
       <div class="detail-field"><span>Disciplina</span><strong><DisciplineBadge v-if="equipment.discipline" :discipline="equipment.discipline" /><template v-else>—</template></strong></div>
       <div class="detail-field">
@@ -69,6 +69,9 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
           <template v-else>—</template>
         </strong>
       </div>
+      <!-- Origem fecha a grade na 4ª linha, ao lado de Entrega contratual e
+           abaixo de Criticidade — sem deslocar a sequência já conhecida. -->
+      <div class="detail-field"><span>Origem</span><strong>{{ equipment.origin?.trim() || "—" }}</strong></div>
     </div>
     <EquipmentWorkflowStepper :current-stage="currentStage" :next-stage-blocked="nextStageBlocked" />
     <p v-if="!isActive && lastOperationalEvent" class="operational-note" data-testid="operational-note">

@@ -80,6 +80,33 @@ async function settle(wrapper: ReturnType<typeof mount>): Promise<void> {
   await wrapper.vm.$nextTick();
 }
 
+/** Mocks de catálogo compartilhados pelos testes de Origem. */
+function formMocks(current: Equipment | null) {
+  const get = vi.fn(async (path: string) => {
+    if (path === "/units/unit-1/project-contexts") {
+      return { items: [{ id: "ctx-1", name: "Caldeira 4", active: true }] };
+    }
+    if (path === "/disciplines" || path === "/responsibles") return { items: [] };
+    if (path === "/criticality-labels") return { items: [] };
+    if (path === "/work-packages") return { items: workPackages };
+    if (path === "/eap-nodes") return { items: [process, area, island] };
+    throw new Error(`GET inesperado: ${path}`);
+  });
+  const patch = vi.fn().mockResolvedValue(current);
+  vi.stubGlobal("useApi", () => ({ get, post: vi.fn(), patch }));
+  vi.stubGlobal("useAuthStore", () => ({ can: () => true }));
+  return { get, patch };
+}
+
+async function mountForm(current: Equipment | null) {
+  const { patch } = formMocks(current);
+  const wrapper = mount(EquipmentForm, {
+    props: current ? { unitId: "unit-1", equipment: current } : { unitId: "unit-1" },
+  });
+  await settle(wrapper);
+  return { wrapper, patch };
+}
+
 describe("EquipmentForm", () => {
   it("edita pela EAP canônica e preserva os seis Work Packages N:N", async () => {
     const current = equipment();
@@ -131,5 +158,38 @@ describe("EquipmentForm", () => {
       }),
     );
     expect(patch.mock.calls[0]![1]).not.toHaveProperty("areaId");
+  });
+
+  it("Origem é um select fechado e preserva o valor antigo fora do vocabulário", async () => {
+    const current = { ...equipment(), origin: "Importado" };
+    const { wrapper, patch } = await mountForm(current);
+
+    const select = wrapper.get("[data-testid='origin-select']");
+    expect(select.findAll("option").map((option) => option.text())).toEqual([
+      "Nacional",
+      "Internacional",
+      "A definir",
+      "Importado",
+    ]);
+    expect((select.element as HTMLSelectElement).value).toBe("Importado");
+
+    await select.setValue("Internacional");
+    await wrapper.get("form").trigger("submit");
+    expect(patch).toHaveBeenCalledWith(
+      "/equipments/eq-1",
+      expect.objectContaining({ origin: "Internacional" }),
+    );
+  });
+
+  it("equipamento novo parte de A definir, sem opção livre", async () => {
+    const { wrapper } = await mountForm(null);
+
+    const select = wrapper.get("[data-testid='origin-select']");
+    expect(select.findAll("option").map((option) => option.text())).toEqual([
+      "Nacional",
+      "Internacional",
+      "A definir",
+    ]);
+    expect((select.element as HTMLSelectElement).value).toBe("A definir");
   });
 });
