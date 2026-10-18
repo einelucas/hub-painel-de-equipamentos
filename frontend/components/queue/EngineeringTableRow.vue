@@ -4,6 +4,7 @@ import { formatDateOnly } from "~/utils/format";
 import StageBadge from "~/components/equipment/StageBadge.vue";
 import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
 import DisciplineBadge from "~/components/equipment/DisciplineBadge.vue";
+import TipBadge from "~/components/ui/TipBadge.vue";
 
 /**
  * Linha comum às duas visões da fila de Engenharia (normal/agrupada) — a
@@ -22,7 +23,20 @@ defineProps<{ row: EngineeringRow; showResponsible: boolean }>();
       <DisciplineBadge v-if="row.discipline" :discipline="row.discipline" data-testid="engineering-discipline" />
       <span v-else>—</span>
     </TableCell>
-    <TableCell>{{ row.area?.name ?? "—" }}</TableCell>
+    <TableCell>
+      <!-- Localização pela EAP canônica: só o código no badge (economiza
+           largura), com o nome da área no balão ao passar o mouse. Cor única
+           definida no `TipBadge` — a EAP não tem cor própria no catálogo,
+           diferente de disciplinas e criticidades. -->
+      <TipBadge
+        v-if="row.eapNode"
+        data-testid="eap-node-badge"
+        tone="neutral"
+        :label="row.eapNode.code"
+        :tip="row.eapNode.name"
+      />
+      <span v-else>—</span>
+    </TableCell>
     <TableCell><WorkPackageChips :items="row.workPackages" /></TableCell>
     <TableCell v-if="showResponsible">{{ row.responsibleUser?.name ?? "—" }}</TableCell>
     <TableCell>{{ formatDateOnly(row.startupAt) }}</TableCell>

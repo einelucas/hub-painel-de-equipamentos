@@ -36,6 +36,7 @@ from app.models.process import (
 from app.models.workflow_extras import RequirementWaiver
 from app.modules.equipments.schemas import (
     ColoredNamedRefOut,
+    EquipmentEapNodeOut,
     NamedRefOut,
     PaginationOut,
     UserRefOut,
@@ -137,7 +138,7 @@ async def _load_page(
                 _filtered(select(Equipment), filters, stage_range, allowed_units)
                 .options(
                     joinedload(Equipment.project_context).joinedload(ProjectContext.unit),
-                    joinedload(Equipment.area),
+                    joinedload(Equipment.eap_node),
                     joinedload(Equipment.discipline),
                     joinedload(Equipment.criticality_label),
                     selectinload(Equipment.work_package_links).joinedload(
@@ -291,6 +292,19 @@ def _named(item: Any) -> ColoredNamedRefOut | None:
     )
 
 
+def _eap_node(item: Any) -> EquipmentEapNodeOut | None:
+    """Nó da EAP canônica do equipamento (a localização exibida nas filas)."""
+    if item is None:
+        return None
+    return EquipmentEapNodeOut(
+        id=item.id,
+        code=item.code,
+        name=item.name,
+        level=item.level,
+        active=item.active,
+    )
+
+
 def _named_work_packages(links: list[EquipmentWorkPackage]) -> list[WorkPackageRefOut]:
     return [
         WorkPackageRefOut(
@@ -343,7 +357,7 @@ async def engineering_queue(
             EngineeringRowOut(
                 **_base_fields(equipment, states[equipment.id], waived.get(equipment.id, set())),
                 discipline=_named(equipment.discipline),
-                area=_named(equipment.area),
+                eap_node=_eap_node(equipment.eap_node),
                 work_packages=_named_work_packages(equipment.work_package_links),
                 responsible_user=_user(equipment.responsible_user),
                 startup_at=equipment.startup_at,

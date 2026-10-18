@@ -518,7 +518,7 @@ export interface QueueRow {
 
 export interface EngineeringRow extends QueueRow {
   discipline: NamedRef | null;
-  area: NamedRef | null;
+  eapNode: EquipmentEapNode | null;
   workPackages: NamedRef[];
   responsibleUser: UserRef | null;
   startupAt: string | null;

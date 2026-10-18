@@ -33,7 +33,7 @@ function row(overrides: Partial<EngineeringRow> = {}): EngineeringRow {
     nextStageName: "Negociação",
     pending: [],
     discipline: { id: "d-1", name: "Metal Mec.", code: "MM" },
-    area: { id: "a-1", name: "Caldeira" },
+    eapNode: { id: "eap-1", code: "04.A", name: "Caldeira", level: "AREA", active: true },
     workPackages: [{ id: "wp-1", name: "Pacote 1", code: "CAL012" }],
     responsibleUser: { id: "u-1", name: "Analista Sintético A", email: "analista.a@example.test" },
     startupAt: "2027-10-27",
@@ -57,7 +57,10 @@ describe("EngineeringTable", () => {
     const discipline = wrapper.get("[data-testid='engineering-discipline']");
     expect(discipline.get(".tip-badge-label").text()).toBe("MM");
     expect(discipline.get("[role='tooltip']").text()).toBe("Metal Mec.");
-    expect(wrapper.text()).toContain("Caldeira");
+    // Localização: só o código da EAP no badge; o nome da área fica no balão.
+    const area = wrapper.get("[data-testid='eap-node-badge']");
+    expect(area.get(".tip-badge-label").text()).toBe("04.A");
+    expect(area.get("[role='tooltip']").text()).toBe("Caldeira");
     expect(wrapper.text()).toContain("CAL012");
     expect(wrapper.text()).toContain("Analista Sintético A");
     expect(wrapper.text()).toContain("27/10/2027");
@@ -66,7 +69,7 @@ describe("EngineeringTable", () => {
   it("visão normal: campos ausentes viram travessão, pacotes vazios também", () => {
     const partial = row({
       discipline: null,
-      area: null,
+      eapNode: null,
       workPackages: [],
       responsibleUser: null,
       startupAt: null,

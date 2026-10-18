@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from sqlalchemy import event
 
 from app.core.database import engine
+from app.models.equipment import EapNode
 from app.modules.queues.services import QUEUE_STAGES
 from tests.helpers import grant_unit, utc_today
 
@@ -676,6 +677,35 @@ async def test_engineering_queue_exposes_pending_requirement(client, auth_header
     assert row["nextStage"] == 2
     assert row["nextStageName"] == "Equalização"
     assert [item["code"] for item in row["pending"]] == ["NEGOTIATION_EQUALIZATION"]
+
+
+async def test_engineering_queue_exposes_eap_node_location(client, auth_header, db_session) -> None:
+    """A localização da linha vem da EAP canônica; o `area` legado saiu do payload."""
+    ids = await _unit_with_context(client, auth_header, "ENGEAP")
+    process = EapNode(code="01", name="Geração de Vapor", level="PROCESS")
+    db_session.add(process)
+    await db_session.flush()
+    area = EapNode(code="01.A", name="Caldeira", level="AREA", parent_id=process.id)
+    db_session.add(area)
+    await db_session.commit()
+
+    with_eap = await _create(client, auth_header, ids["context"], "Com EAP", eapNodeId=area.id)
+    without_eap = await _create(client, auth_header, ids["context"], "Sem EAP")
+
+    items = (
+        await client.get(f"/api/v1/queues/engineering?unit_id={ids['unit']}", headers=auth_header("VIEWER"))
+    ).json()["items"]
+    by_id = {item["equipmentId"]: item for item in items}
+
+    assert by_id[with_eap]["eapNode"] == {
+        "id": area.id,
+        "code": "01.A",
+        "name": "Caldeira",
+        "level": "AREA",
+        "active": True,
+    }
+    assert by_id[without_eap]["eapNode"] is None
+    assert "area" not in by_id[with_eap]
 
 
 async def test_legal_queue_returns_process_data(client, auth_header) -> None:

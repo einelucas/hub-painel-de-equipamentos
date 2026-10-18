@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from app.modules.equipments.schemas import (
     ColoredNamedRefOut,
+    EquipmentEapNodeOut,
     NamedRefOut,
     PaginationOut,
     UserRefOut,
@@ -35,7 +36,9 @@ class QueueRowOut(CamelModel):
 
 class EngineeringRowOut(QueueRowOut):
     discipline: ColoredNamedRefOut | None
-    area: NamedRefOut | None
+    # Localização canônica: o nó da EAP. Substitui o antigo `area` legado, que
+    # não é sincronizado com a EAP e deixava a coluna vazia na fila.
+    eap_node: EquipmentEapNodeOut | None
     # 0..N — ver nota de depreciação em `equipments.schemas.EquipmentOut.work_package`.
     work_packages: list[WorkPackageRefOut]
     responsible_user: UserRefOut | None

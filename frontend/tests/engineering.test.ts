@@ -14,7 +14,7 @@ function row(id: string, responsible: { id: string; name: string } | null): Engi
     nextStageName: "Negociação",
     pending: [],
     discipline: null,
-    area: null,
+    eapNode: null,
     workPackages: [],
     responsibleUser: responsible ? { ...responsible, email: `${responsible.id}@example.test` } : null,
     startupAt: null,
