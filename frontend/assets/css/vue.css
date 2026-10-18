@@ -217,6 +217,18 @@ button:disabled {
   box-shadow: 0 0 0 3px rgba(48, 79, 126, 0.12);
 }
 
+/* O `SearchableSelect` desenha a própria caixa (borda e foco ficam no wrapper
+   `.searchable-select__control`), mas é usado dentro de `.field` nos filtros
+   globais. Sem esta exceção, as regras genéricas acima alcançam o input
+   interno e criam um SEGUNDO contorno no foco (o anel cinza que aparece ao
+   clicar no campo). A especificidade maior garante a vitória sobre `.field`. */
+.field .searchable-select__control input,
+.field .searchable-select__control input:focus {
+  min-height: 0;
+  border: 0;
+  box-shadow: none;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
