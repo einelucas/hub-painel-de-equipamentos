@@ -62,12 +62,19 @@ describe("EquipmentTable", () => {
           TableBody: passthrough,
           TableCell: passthrough,
           NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+          TruncatedText: { props: ["text", "max"], template: "<span>{{ text }}</span>" },
         },
       },
     });
     expect(wrapper.text()).toContain("Bomba principal");
     expect(wrapper.text()).toContain("1 · Negociação");
-    expect(wrapper.get("a").attributes("href")).toBe("/equipamentos/eq-1");
+    expect(wrapper.get("a.name-link").attributes("href")).toBe("/equipamentos/eq-1");
+    expect(wrapper.get("a.name-link").text()).toBe("Bomba principal");
+    expect(wrapper.get("a.detail-link").attributes("href")).toBe("/equipamentos/eq-1");
+    expect(wrapper.get("a.detail-link").attributes("aria-label")).toBe("Ver detalhes de Bomba principal");
+    expect(wrapper.find("a.detail-link svg").exists()).toBe(true);
+    expect(wrapper.text()).toContain("Obra");
+    expect(wrapper.text()).not.toContain("Contexto");
     expect(wrapper.text()).toContain("—"); // sem work packages
   });
 
@@ -94,6 +101,7 @@ describe("EquipmentTable", () => {
           TableBody: passthrough,
           TableCell: passthrough,
           NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+          TruncatedText: { props: ["text", "max"], template: "<span>{{ text }}</span>" },
         },
       },
     });
@@ -129,6 +137,7 @@ describe("EquipmentTable", () => {
           TableBody: passthrough,
           TableCell: passthrough,
           NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+          TruncatedText: { props: ["text", "max"], template: "<span>{{ text }}</span>" },
         },
       },
     });
@@ -147,7 +156,7 @@ describe("EquipmentTable", () => {
 
   it("exibe a sigla da disciplina em badge, com o nome na legenda", () => {
     const wrapper = mount(EquipmentTable, {
-      props: { equipments: [{ ...equipment, discipline: { id: "d-1", name: "Elétrica", code: "ELE" } }] },
+      props: { equipments: [{ ...equipment, discipline: { id: "d-1", name: "Elétrica", code: "ELE", color: "#b0dc51" } }] },
       global: {
         stubs: {
           Table: passthrough,
@@ -157,6 +166,7 @@ describe("EquipmentTable", () => {
           TableBody: passthrough,
           TableCell: passthrough,
           NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+          TruncatedText: { props: ["text", "max"], template: "<span>{{ text }}</span>" },
         },
       },
     });
@@ -181,6 +191,7 @@ describe("EquipmentTable", () => {
           Table: passthrough, TableHeader: passthrough, TableRow: passthrough,
           TableHead: passthrough, TableBody: passthrough, TableCell: passthrough,
           NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+          TruncatedText: { props: ["text", "max"], template: "<span>{{ text }}</span>" },
         },
       },
     });

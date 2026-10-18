@@ -17,6 +17,7 @@ const globalStubs = {
     TableCell: passthrough,
     PendingBadge: passthrough,
     NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+    TruncatedText: { props: ["text", "max"], template: "<span>{{ text }}</span>" },
   },
 };
 
@@ -81,9 +82,13 @@ describe("EngineeringTable", () => {
       props: { rows: [row({ equipmentId: "eq-42" })], grouped: false },
       global: globalStubs,
     });
-    const link = wrapper.get("a");
+    const link = wrapper.get("a.text-button");
     expect(link.attributes("href")).toBe("/equipamentos/eq-42");
     expect(link.text()).toBe("Ver detalhes");
+
+    const nameLink = wrapper.get("a.name-link");
+    expect(nameLink.attributes("href")).toBe("/equipamentos/eq-42");
+    expect(nameLink.text()).toBe("Bomba Sintética A");
   });
 
   it("visão agrupada: agrupa por responsável, mostra título e contagem, e omite a coluna Responsável", () => {

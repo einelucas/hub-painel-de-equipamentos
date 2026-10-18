@@ -157,8 +157,14 @@ button:disabled {
   padding: 20px;
 }
 
+/* UI-002: a coluna do grid precisa poder encolher. Com a coluna em `auto`
+   (padrão), uma tabela larga empurra a coluna para além da largura da página
+   e, como o `body` tem `overflow-x: hidden`, o conteúdo é CORTADO em telas
+   menores (notebook) em vez de rolar. Com `minmax(0, 1fr)` a coluna encolhe e
+   a tabela passa a rolar dentro do próprio card (`Table` tem overflow-x). */
 .stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 

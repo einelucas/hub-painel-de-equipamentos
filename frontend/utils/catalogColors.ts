@@ -1,43 +1,39 @@
 import type { NamedRef } from "~/types/equipment";
 
-const DISCIPLINE_COLORS: Record<string, string> = {
-  CIV: "#216edf",
-  MEC: "#ff8358",
-  MM: "#ff8358",
-  "E&I": "#b0dc51",
-  EI: "#b0dc51",
-  ELE: "#b0dc51",
-  EIA: "#b0dc51",
-  AUT: "#e8697d",
-  CAL: "#fdbf6b",
-  PDC: "#b57de3",
-  OPE: "#17b897",
-  SUP: "#00a8cc",
-  PRO: "#845ec2",
-  MAN: "#e17055",
-  QUA: "#00b894",
-  LAB: "#0984e3",
-  OUT: "#747d8c",
-};
+/**
+ * Cinza neutro para itens de catálogo que ainda não têm cor cadastrada.
+ *
+ * As cores de disciplina e de criticidade são **dados do banco**, editáveis em
+ * Hub → Administração: o código não define nem sugere cor por item. Este valor
+ * só aparece enquanto o registro está sem cor (ex.: disciplina criada por uma
+ * importação antes de alguém configurá-la).
+ */
+export const CATALOG_FALLBACK_COLOR = "#64748b";
 
-export function disciplineColor(discipline: NamedRef): string {
-  const code = discipline.code?.trim().toUpperCase();
-  return discipline.color ?? (code ? DISCIPLINE_COLORS[code] : undefined) ?? "#64748b";
+/**
+ * Resolve a cor de um item de catálogo.
+ *
+ * A cor é sempre a que está gravada no banco (`color`), já validada em
+ * `#RRGGBB` na entrada da API. Sem cor cadastrada, cai no cinza neutro.
+ */
+export function catalogColor(color?: string | null): string {
+  return color?.trim() || CATALOG_FALLBACK_COLOR;
 }
 
-export function criticalityColor(label: string | null | undefined, color?: string | null): string {
-  if (color) return color;
-  const normalized = label?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase() ?? "";
-  if (normalized.startsWith("longo")) return "#6645a9";
-  if (normalized.startsWith("medio")) return "#777ae5";
-  if (normalized.startsWith("curto")) return "#79affd";
-  return "#64748b";
+/** Cor do badge de disciplina — sempre a cor cadastrada no banco. */
+export function disciplineColor(discipline: NamedRef): string {
+  return catalogColor(discipline.color);
+}
+
+/** Cor do badge de criticidade — sempre a cor cadastrada no banco. */
+export function criticalityColor(color?: string | null): string {
+  return catalogColor(color);
 }
 
 export function translucentBadgeStyle(color: string): Record<string, string> {
   return {
     "--badge-color": color,
-    "--badge-background": `${color}24`,
+    "--badge-background": `${color}67`,
     "--badge-border": `${color}52`,
   };
 }

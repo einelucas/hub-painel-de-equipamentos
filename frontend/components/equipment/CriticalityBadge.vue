@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { criticalityColor, translucentBadgeStyle } from "~/utils/catalogColors";
 
 const props = defineProps<{ label: string; color?: string | null }>();
-const style = computed(() => translucentBadgeStyle(criticalityColor(props.label, props.color)));
+const style = computed(() => translucentBadgeStyle(criticalityColor(props.color)));
 </script>
 
 <template>

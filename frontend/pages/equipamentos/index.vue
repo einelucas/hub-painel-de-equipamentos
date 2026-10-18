@@ -490,7 +490,17 @@ onMounted(async () => {
 }
 .search-control {
   display: flex;
+  min-width: 0;
   gap: 7px;
+}
+/* O input precisa poder encolher; sem isso ele impõe a largura mínima do
+   campo de busca e ajuda a estourar a barra de filtros em telas menores. */
+.search-control input {
+  flex: 1;
+  min-width: 0;
+}
+.search-control .btn {
+  flex: none;
 }
 .table-filters {
   display: grid;
@@ -566,5 +576,13 @@ onMounted(async () => {
   padding: 0 18px 18px;
   color: #68778c;
   font-size: 12px;
+}
+/* Notebook: filtros da tabela mais compactos, quebrando em mais linhas antes
+   de apertar as colunas. */
+@media (max-width: 1100px) {
+  .table-filters {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    padding: 14px 14px 12px;
+  }
 }
 </style>

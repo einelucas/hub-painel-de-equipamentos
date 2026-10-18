@@ -8,7 +8,7 @@ defineProps<{ row: ProcurementRow }>();
 
 <template>
   <TableRow>
-    <TableCell class="font-semibold">{{ row.equipmentName }}</TableCell>
+    <TableCell class="font-semibold"><NuxtLink class="name-link" :to="`/equipamentos/${row.equipmentId}`"><TruncatedText :text="row.equipmentName" /></NuxtLink></TableCell>
     <TableCell>{{ row.unit.name }}</TableCell>
     <TableCell>{{ row.responsibleUser?.name ?? "—" }}</TableCell>
     <TableCell><StageBadge :stage="row.currentStage" :name="row.currentStageName" /></TableCell>
@@ -26,4 +26,6 @@ defineProps<{ row: ProcurementRow }>();
 
 <style scoped>
 .text-button { color: #304f7e; font-size: 12px; font-weight: 750; text-decoration: none; }
+.name-link { color: #304f7e; text-decoration: none; }
+.name-link:hover { text-decoration: underline; }
 </style>

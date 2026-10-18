@@ -17,6 +17,7 @@ const globalStubs = {
     TableHead: { template: "<div class='head'><slot /></div>" },
     TableCell: { template: "<div class='cell'><slot /></div>" },
     NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
+    TruncatedText: { props: ["text", "max"], template: "<span>{{ text }}</span>" },
   },
 };
 
@@ -142,9 +143,13 @@ describe("ProcurementTable", () => {
 
   it("aponta o link Ver detalhes para /equipamentos/{id}", () => {
     const wrapper = mount(ProcurementTable, { props: { rows: [row({ equipmentId: "eq-42" })] }, global: globalStubs });
-    const link = wrapper.get("a");
+    const link = wrapper.get("a.text-button");
     expect(link.attributes("href")).toBe("/equipamentos/eq-42");
     expect(link.text()).toBe("Ver detalhes");
+
+    const nameLink = wrapper.get("a.name-link");
+    expect(nameLink.attributes("href")).toBe("/equipamentos/eq-42");
+    expect(nameLink.text()).toBe("Bomba Sintética A");
   });
 
   it("renderiza uma linha por equipamento, na ordem recebida", () => {
@@ -154,7 +159,7 @@ describe("ProcurementTable", () => {
       row({ equipmentId: "eq-3", equipmentName: "Motor" }),
     ];
     const wrapper = mount(ProcurementTable, { props: { rows }, global: globalStubs });
-    expect(wrapper.findAll("a").map((item) => item.attributes("href"))).toEqual([
+    expect(wrapper.findAll("a.text-button").map((item) => item.attributes("href"))).toEqual([
       "/equipamentos/eq-1",
       "/equipamentos/eq-2",
       "/equipamentos/eq-3",

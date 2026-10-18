@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from "vue";
 import { Check, Pencil, Plus, Search, X } from "lucide-vue-next";
 import type { CatalogItem, CatalogList } from "~/types/equipment";
+import { catalogColor } from "~/utils/catalogColors";
 
 /**
  * CRUD de um catálogo (sem exclusão física — desativar é o caminho).
@@ -223,7 +224,7 @@ watch(
           :class="{ inactive: !item.active, editing: item.id === editingId, 'no-code': !props.hasCode, 'has-swatch': props.hasColor }"
           :data-testid="`catalog-item-${item.id}`"
         >
-          <span v-if="props.hasColor" class="catalog-swatch" :style="{ backgroundColor: item.color ?? '#64748b' }" aria-hidden="true" />
+          <span v-if="props.hasColor" class="catalog-swatch" :style="{ backgroundColor: catalogColor(item.color) }" aria-hidden="true" />
           <span v-if="props.hasCode" class="catalog-code">{{ item.code ?? "—" }}</span>
           <span class="catalog-name">
             <strong>{{ item.name }}</strong>
