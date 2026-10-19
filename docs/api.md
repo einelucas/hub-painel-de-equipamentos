@@ -2,6 +2,10 @@
 
 Prefixo: `/api/v1`.
 
+Todos os caminhos listados neste documento são **relativos a esse prefixo**. Para chamar a API local, some
+`http://localhost:8000` ao caminho completo — por exemplo, `GET /health/live` corresponde a
+`GET http://localhost:8000/api/v1/health/live`. Nenhuma rota é publicada na raiz do servidor.
+
 ## Autorização por unidade
 
 Toda rota que toca dados de uma unidade respeita o escopo do usuário. ADMIN enxerga todas as unidades ativas; VIEWER e ANALYST, apenas as atribuídas em `user_unit_access`.
@@ -10,8 +14,12 @@ Recurso fora do escopo responde **404** com mensagem única, sem revelar se ele 
 
 ## Saúde
 
-- `GET /health/live`: indica que o processo está ativo.
-- `GET /health/ready`: verifica a conectividade com o banco.
+- `GET /health/live` → `/api/v1/health/live`: indica que o processo está ativo; responde `{"status": "ok"}`.
+- `GET /health/ready` → `/api/v1/health/ready`: verifica a conectividade com o banco; responde `{"status": "ok"}`
+  ou `503` com `{"status": "unavailable"}`.
+
+Ambas são públicas (sem autenticação) e servem para probes de orquestradores. Não existe rota de saúde na
+raiz: `GET /health` responde **404**, assim como qualquer caminho fora de `/api/v1`.
 
 ## Autenticação
 

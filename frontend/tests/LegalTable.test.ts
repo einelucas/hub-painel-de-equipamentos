@@ -90,7 +90,7 @@ describe("LegalTable", () => {
     const wrapper = mount(LegalTable, { props: { rows: [row()] }, global: globalStubs });
     const badge = wrapper.get(".stage-badge");
     expect(badge.text()).toBe("4 · Aprovação da minuta");
-    expect(badge.classes()).toContain("stage-badge--progress");
+    expect(badge.attributes("style")).toContain("rgba(52, 153, 112, 0.25)");
   });
 
   it("converte as flags de minuta em Sim/Não", () => {

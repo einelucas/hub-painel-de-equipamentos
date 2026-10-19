@@ -5,6 +5,7 @@ import StageBadge from "~/components/equipment/StageBadge.vue";
 import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
 import DisciplineBadge from "~/components/equipment/DisciplineBadge.vue";
 import TipBadge from "~/components/ui/TipBadge.vue";
+import { Eye } from "lucide-vue-next";
 
 /**
  * Linha comum às duas visões da fila de Engenharia (normal/agrupada) — a
@@ -41,12 +42,33 @@ defineProps<{ row: EngineeringRow; showResponsible: boolean }>();
     <TableCell v-if="showResponsible">{{ row.responsibleUser?.name ?? "—" }}</TableCell>
     <TableCell>{{ formatDateOnly(row.startupAt) }}</TableCell>
     <TableCell><PendingBadge :pending="row.pending" :next-stage-name="row.nextStageName" /></TableCell>
-    <TableCell><NuxtLink class="text-button" :to="`/equipamentos/${row.equipmentId}`">Ver detalhes</NuxtLink></TableCell>
+    <TableCell class="action-cell">
+      <NuxtLink
+        class="detail-link"
+        :to="`/equipamentos/${row.equipmentId}`"
+        title="Ver detalhes"
+        :aria-label="`Ver detalhes de ${row.equipmentName}`"
+      >
+        <Eye :size="19" aria-hidden="true" />
+      </NuxtLink>
+    </TableCell>
   </TableRow>
 </template>
 
 <style scoped>
-.text-button { color: #304f7e; font-size: 12px; font-weight: 750; text-decoration: none; white-space: nowrap; }
+.detail-link {
+  display: inline-flex;
+  align-items: center;
+  color: #304f7e;
+  text-decoration: none;
+  transition: color .14s ease, transform .14s ease;
+}
+.detail-link:hover { color: #213758; transform: scale(1.14); }
+.detail-link:focus-visible { border-radius: 6px; outline: 2px solid #304f7e; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .detail-link { transition: none; }
+  .detail-link:hover { transform: none; }
+}
 .name-link { color: #304f7e; text-decoration: none; }
 .name-link:hover { text-decoration: underline; }
 </style>

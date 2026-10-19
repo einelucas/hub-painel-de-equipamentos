@@ -99,7 +99,7 @@ describe("ProcurementTable", () => {
     const wrapper = mount(ProcurementTable, { props: { rows: [row()] }, global: globalStubs });
     const badge = wrapper.get(".stage-badge");
     expect(badge.text()).toBe("7 · Aprovação da OC");
-    expect(badge.classes()).toContain("stage-badge--advanced");
+    expect(badge.attributes("style")).toContain("rgba(255, 131, 88, 0.25)");
   });
 
   it("exibe número e data da SC/OCI e da OC, com datas formatadas", () => {

@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { Pencil } from "lucide-vue-next";
 import type { Equipment, OperationalStatus, OperationalStatusEvent } from "~/types/equipment";
 import { formatCurrency, formatDateOnly, formatDateTime } from "~/utils/format";
-import { stageTone } from "~/utils/stages";
+import { stageBadgeStyle } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import WorkPackageChips from "~/components/equipment/WorkPackageChips.vue";
@@ -28,6 +28,7 @@ const props = defineProps<{
 const emit = defineEmits<{ edit: [] }>();
 
 const isActive = computed(() => props.operationalStatus === "ACTIVE");
+const stageStyle = computed(() => stageBadgeStyle(props.currentStage, props.currentStageLabel));
 </script>
 
 <template>
@@ -47,7 +48,7 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
       </div>
       <div class="detail-field"><span>Responsável</span><strong>{{ equipment.responsibleUser?.name ?? "—" }}</strong></div>
       <div class="detail-field"><span>Fornecedor</span><strong>{{ equipment.supplier?.name ?? "—" }}</strong></div>
-      <div class="detail-field"><span>Etapa atual</span><strong><span class="stage-badge" :class="stageTone(currentStage)" data-testid="current-stage">{{ currentStage }} · {{ currentStageLabel }}</span></strong></div>
+      <div class="detail-field"><span>Etapa atual</span><strong><span class="stage-badge" :style="stageStyle" data-testid="current-stage">{{ currentStage }} · {{ currentStageLabel }}</span></strong></div>
       <div class="detail-field">
         <span>Estado operacional</span>
         <strong>
@@ -86,11 +87,7 @@ const isActive = computed(() => props.operationalStatus === "ACTIVE");
 .detail-field { display: grid; align-content: start; gap: 5px; }
 .detail-field > span { color: #7a879a; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 .detail-field strong { color: #2b3e58; font-size: 13px; font-weight: 700; }
-.stage-badge { display: inline-flex; border-radius: 999px; padding: 4px 8px; font-size: 11px; }
-.stage-badge--new { background: #eef2f7; color: #53647a; }
-.stage-badge--progress { background: #fff3df; color: #9b6418; }
-.stage-badge--advanced { background: #e8f1fc; color: #2f5f9c; }
-.stage-badge--complete { background: #eaf4e5; color: #477a32; }
+.stage-badge { display: inline-flex; border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 750; }
 .operational-badge { display: inline-flex; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 750; }
 .operational-badge--active { background: #eaf4e5; color: #477a32; }
 .operational-badge--standby { background: #fff3df; color: #9b6418; }

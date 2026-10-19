@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 import EngineeringTable from "~/components/queue/EngineeringTable.vue";
 import EngineeringTableHeader from "~/components/queue/EngineeringTableHeader.vue";
 import EngineeringTableRow from "~/components/queue/EngineeringTableRow.vue";
+import PendingBadge from "~/components/queue/PendingBadge.vue";
 import type { EngineeringRow } from "~/types/equipment";
 
 const passthrough = { template: "<div><slot /></div>" };
 const globalStubs = {
-  components: { EngineeringTableHeader, EngineeringTableRow },
+  components: { EngineeringTableHeader, EngineeringTableRow, PendingBadge },
   stubs: {
     Table: passthrough,
     TableHeader: passthrough,
@@ -15,7 +16,6 @@ const globalStubs = {
     TableHead: passthrough,
     TableBody: passthrough,
     TableCell: passthrough,
-    PendingBadge: passthrough,
     NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
     TruncatedText: { props: ["text", "max"], template: "<span>{{ text }}</span>" },
   },
@@ -85,9 +85,10 @@ describe("EngineeringTable", () => {
       props: { rows: [row({ equipmentId: "eq-42" })], grouped: false },
       global: globalStubs,
     });
-    const link = wrapper.get("a.text-button");
+    const link = wrapper.get("a.detail-link");
     expect(link.attributes("href")).toBe("/equipamentos/eq-42");
-    expect(link.text()).toBe("Ver detalhes");
+    expect(link.attributes("aria-label")).toBe("Ver detalhes de Bomba Sintética A");
+    expect(link.find("svg").exists()).toBe(true);
 
     const nameLink = wrapper.get("a.name-link");
     expect(nameLink.attributes("href")).toBe("/equipamentos/eq-42");
@@ -115,6 +116,37 @@ describe("EngineeringTable", () => {
     expect(wrapper.text()).toContain("Compressor");
     expect(wrapper.text()).toContain("Motor");
     expect(wrapper.text()).toContain("Válvula");
+  });
+
+  it("pendência: usa os badges padrão do app para pronto e para requisitos faltantes", () => {
+    const ready = mount(EngineeringTable, { props: { rows: [row()], grouped: false }, global: globalStubs });
+    expect(ready.get(".pending-badge--ready").text()).toBe("Pronto para Negociação");
+
+    const todo = mount(EngineeringTable, {
+      props: {
+        rows: [
+          row({
+            pending: [{ code: "NEG_EQUALIZED", field: "equalized", message: "Confirme a equalização da negociação." }],
+          }),
+        ],
+        grouped: false,
+      },
+      global: globalStubs,
+    });
+    expect(todo.text()).toContain("Falta para avançar");
+    expect(todo.get(".pending-badge--todo").text()).toBe("Confirme a equalização da negociação.");
+  });
+
+  it("visão agrupada: todas as tabelas usam a mesma grade de colunas", () => {
+    const rows = [
+      row({ equipmentId: "eq-1", responsibleUser: { id: "u-1", name: "Analista Sintético A", email: "a@x.com" } }),
+      row({ equipmentId: "eq-2", equipmentName: "Compressor", responsibleUser: { id: "u-2", name: "Analista Sintético B", email: "b@x.com" } }),
+    ];
+    const wrapper = mount(EngineeringTable, { props: { rows, grouped: true }, global: globalStubs });
+
+    const grids = wrapper.findAll("colgroup").map((group) => group.findAll("col").map((col) => col.attributes("style")));
+    expect(grids).toHaveLength(2);
+    expect(grids[1]).toEqual(grids[0]);
   });
 
   it("visão agrupada: sem linhas não gera nenhuma seção de grupo", () => {
