@@ -20,6 +20,8 @@ const props = defineProps<{
   equipment: Equipment;
   currentStage: number;
   currentStageLabel: string;
+  /** Data em que a etapa atual começou; `null` quando não há marco conhecido. */
+  stageEnteredAt?: string | null;
   operationalStatus: OperationalStatus;
   lastOperationalEvent: OperationalStatusEvent | null;
   nextStageBlocked: boolean;
@@ -74,7 +76,11 @@ const stageStyle = computed(() => stageBadgeStyle(props.currentStage, props.curr
            abaixo de Criticidade — sem deslocar a sequência já conhecida. -->
       <div class="detail-field"><span>Origem</span><strong>{{ equipment.origin?.trim() || "—" }}</strong></div>
     </div>
-    <EquipmentWorkflowStepper :current-stage="currentStage" :next-stage-blocked="nextStageBlocked" />
+    <EquipmentWorkflowStepper
+      :current-stage="currentStage"
+      :stage-entered-at="stageEnteredAt"
+      :next-stage-blocked="nextStageBlocked"
+    />
     <p v-if="!isActive && lastOperationalEvent" class="operational-note" data-testid="operational-note">
       <strong>{{ OPERATIONAL_STATUS_LABELS[operationalStatus] }}</strong> desde {{ formatDateTime(lastOperationalEvent.occurredAt) }}
       por {{ lastOperationalEvent.actor?.name ?? "usuário removido" }} — {{ lastOperationalEvent.justification }}

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ArrowLeft } from "lucide-vue-next";
 import type { Equipment, EquipmentDetail } from "~/types/equipment";
+import { currentStageEnteredAt } from "~/utils/workflow";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -44,6 +45,15 @@ const operationalStatus = computed(
 const isActive = computed(() => operationalStatus.value === "ACTIVE");
 const lastOperationalEvent = computed(
   () => workflow.operationalStatus.value?.events[0] ?? null,
+);
+/** Quando a etapa atual começou — histórico do workflow + cadastro/Saneamento. */
+const stageEnteredAt = computed(() =>
+  currentStageEnteredAt({
+    currentStage: currentStage.value,
+    createdAt: detail.value?.equipment.createdAt ?? null,
+    history: detail.value?.history ?? [],
+    operationalEvents: workflow.operationalStatus.value?.events ?? [],
+  }),
 );
 
 async function loadEquipment(): Promise<void> {
@@ -105,6 +115,7 @@ onMounted(load);
         :equipment="detail.equipment"
         :current-stage="currentStage"
         :current-stage-label="currentStageLabel"
+        :stage-entered-at="stageEnteredAt"
         :operational-status="operationalStatus"
         :last-operational-event="lastOperationalEvent"
         :next-stage-blocked="

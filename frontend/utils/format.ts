@@ -48,6 +48,22 @@ export function formatDateOnly(value: unknown): string {
  * sentido converter para o fuso do navegador (é exatamente para isso que
  * serve mostrar hora: "quando isso aconteceu, no meu fuso").
  */
+/**
+ * Data (sem hora) de um TIMESTAMP da API, no fuso do navegador — para textos
+ * curtos como "na etapa desde 12/03/2026".
+ *
+ * Complementa `formatDateOnly`: aquele é para campos DATE-ONLY (`YYYY-MM-DD`) e
+ * de propósito não converte fuso; aqui o valor é um instante real (`occurredAt`,
+ * `createdAt`), então a data mostrada é a do relógio do usuário — um evento às
+ * 22h de 12/03 em Brasília não pode aparecer como 13/03.
+ */
+export function formatTimestampDate(value: unknown): string {
+  if (!value) return "—";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(date);
+}
+
 export function formatDateTime(value: unknown): string {
   if (!value) return "—";
   const date = new Date(String(value));

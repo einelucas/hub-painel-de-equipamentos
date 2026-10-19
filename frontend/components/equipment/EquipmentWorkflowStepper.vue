@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Check, LockKeyhole } from "lucide-vue-next";
+import { formatTimestampDate } from "~/utils/format";
 import { stepStates } from "~/utils/workflow";
 
 const props = defineProps<{
   currentStage: number;
   nextStageBlocked?: boolean;
+  /** Data (timestamp da API) em que a etapa atual começou; `null` quando o
+   * equipamento não tem marco conhecido (ver `currentStageEnteredAt`). */
+  stageEnteredAt?: string | null;
 }>();
+
+const enteredDate = computed(() =>
+  props.stageEnteredAt ? formatTimestampDate(props.stageEnteredAt) : null,
+);
 
 const steps = computed(() =>
   stepStates(props.currentStage, props.nextStageBlocked),
@@ -66,6 +74,14 @@ const currentStep = computed(() =>
             :aria-current="step.state === 'current' ? 'step' : undefined"
             :data-state="step.state"
           >
+            <span
+              v-if="step.state === 'current' && enteredDate"
+              class="step-date"
+              data-testid="step-entered-at"
+            >
+              {{ enteredDate }}
+            </span>
+
             <div class="step-marker">
               <Check
                 v-if="step.state === 'done'"
@@ -195,10 +211,14 @@ const currentStep = computed(() =>
   min-width: 900px;
 }
 
+/* A trilha passa pelo centro dos círculos: 16px reservados para a data da
+   etapa atual (mesma faixa em todas as etapas, para os círculos não saírem
+   do lugar) + metade dos 32px do círculo. */
+
 .track-base,
 .track-progress {
   position: absolute;
-  top: 16px;
+  top: 32px;
 
   height: 3px;
   border-radius: 999px;
@@ -235,13 +255,29 @@ const currentStep = computed(() =>
 }
 
 .step {
+  /* Faixa reservada para a data da etapa atual, em cima do círculo. */
+  position: relative;
+
   display: flex;
   flex-direction: column;
   align-items: center;
 
   min-width: 95px;
+  padding-top: 16px;
 
   text-align: center;
+}
+
+.step-date {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+
+  color: var(--workflow-muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 12px;
 }
 
 .step-marker {

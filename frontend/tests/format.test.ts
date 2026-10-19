@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDateOnly, formatDateTime, formatNumber } from "~/utils/format";
+import { formatDateOnly, formatDateTime, formatNumber, formatTimestampDate } from "~/utils/format";
 
 describe("formatNumber", () => {
   it("formata números no padrão pt-BR", () => {
@@ -49,5 +49,25 @@ describe("formatDateTime (Etapa 6C)", () => {
 
   it("devolve travessão para valores vazios", () => {
     expect(formatDateTime(null)).toBe("—");
+  });
+});
+
+describe("formatTimestampDate (texto curto com a data de um timestamp)", () => {
+  it("mostra só a data, sem hora", () => {
+    expect(formatTimestampDate("2026-09-21T14:30:00.000Z")).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+  });
+
+  it("usa o fuso do navegador — o dia é o do relógio de quem lê", () => {
+    // Meia-noite e meia UTC: o dia local pode ser o anterior (fuso negativo),
+    // nunca o texto cru da API.
+    const result = formatTimestampDate("2026-03-12T00:30:00.000Z");
+    const local = new Date("2026-03-12T00:30:00.000Z");
+    const expected = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(local);
+    expect(result).toBe(expected);
+  });
+
+  it("devolve travessão para valores vazios", () => {
+    expect(formatTimestampDate(null)).toBe("—");
+    expect(formatTimestampDate("")).toBe("—");
   });
 });

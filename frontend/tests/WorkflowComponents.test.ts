@@ -85,6 +85,38 @@ describe("EquipmentWorkflowStepper", () => {
     expect(wrapper.findAll("button")).toHaveLength(0);
     expect(wrapper.findAll("a")).toHaveLength(0);
   });
+
+  it("mostra só a data, acima do círculo da etapa atual", () => {
+    const wrapper = mount(EquipmentWorkflowStepper, {
+      props: { currentStage: 3, stageEnteredAt: "2026-03-05T10:00:00.000Z" },
+    });
+    const entered = wrapper.get("[data-testid='step-entered-at']");
+
+    // Data pura, sem texto de apoio.
+    expect(entered.text()).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+
+    // Fica dentro da etapa atual, antes do círculo — como o rótulo fica depois.
+    const current = wrapper.findAll("[data-state]")[3]!;
+    expect(current.find("[data-testid='step-entered-at']").exists()).toBe(true);
+    // (DOCUMENT_POSITION_FOLLOWING = 4)
+    expect(
+      entered.element.compareDocumentPosition(current.get(".step-marker").element),
+    ).toBe(4);
+  });
+
+  it("não mostra a data em nenhuma outra etapa", () => {
+    const wrapper = mount(EquipmentWorkflowStepper, {
+      props: { currentStage: 3, stageEnteredAt: "2026-03-05T10:00:00.000Z" },
+    });
+    expect(wrapper.findAll("[data-testid='step-entered-at']")).toHaveLength(1);
+  });
+
+  it("não mostra a data quando o marco é desconhecido", () => {
+    const wrapper = mount(EquipmentWorkflowStepper, {
+      props: { currentStage: 5, stageEnteredAt: null },
+    });
+    expect(wrapper.find("[data-testid='step-entered-at']").exists()).toBe(false);
+  });
 });
 
 describe("WorkflowRequirements", () => {

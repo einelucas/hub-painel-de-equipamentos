@@ -1,4 +1,10 @@
-import type { OperationalStatus, RequirementWaiverReasonCode, TransitionOption } from "~/types/equipment";
+import type {
+  OperationalStatus,
+  OperationalStatusEvent,
+  RequirementWaiverReasonCode,
+  TransitionOption,
+  WorkflowTransition,
+} from "~/types/equipment";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 
 /** Etapa 7A: só negociação e jurídico continuam com forma 1:1 editável
@@ -61,6 +67,49 @@ export function stepStates(currentStage: number, nextStageBlocked = false): Work
 export function advanceLabel(option: TransitionOption | null): string {
   if (!option) return "";
   return option.targetStage === 1 ? "Iniciar negociação" : `Avançar para ${option.targetStageLabel}`;
+}
+
+/**
+ * Data em que o equipamento entrou na etapa atual.
+ *
+ * O marco vem da transição mais recente PARA a etapa (histórico do workflow).
+ * A etapa 0 é a exceção: também se chega nela sem transição — cadastro novo ou
+ * retorno de Saneamento (que devolve o equipamento para "Nova demanda" sem
+ * gravar transição), por isso lá vale a data mais recente entre cadastro e
+ * entrada em Saneamento.
+ *
+ * `null` quando não existe marco confiável: equipamento importado do Monday,
+ * que grava `current_stage` direto, sem passar pelo serviço de transição. Nesse
+ * caso a tela não mostra data nenhuma em vez de inventar uma.
+ */
+export function currentStageEnteredAt(input: {
+  currentStage: number;
+  createdAt: string | null;
+  history: WorkflowTransition[];
+  operationalEvents?: OperationalStatusEvent[];
+}): string | null {
+  const transitions = input.history.filter((entry) => entry.toStage === input.currentStage);
+
+  if (transitions.length > 0) {
+    return transitions.reduce(
+      (latest, entry) => (entry.occurredAt > latest ? entry.occurredAt : latest),
+      transitions[0]!.occurredAt,
+    );
+  }
+
+  if (input.currentStage !== 0) return null;
+
+  const sanitationEntries = (input.operationalEvents ?? [])
+    .filter((event) => event.kind === "SANITATION_ENTERED")
+    .map((event) => event.occurredAt)
+    .sort();
+
+  const candidates = [sanitationEntries.at(-1) ?? null, input.createdAt].filter(
+    (value): value is string => Boolean(value),
+  );
+
+  if (candidates.length === 0) return null;
+  return candidates.reduce((latest, value) => (value > latest ? value : latest));
 }
 
 export function blankToNull(value: string): string | null {
