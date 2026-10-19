@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useAnchoredTip } from "~/composables/useAnchoredTip";
 
 const props = withDefaults(
   defineProps<{
@@ -18,13 +19,35 @@ const truncated = computed(() => props.text.length > props.max);
 const display = computed(() =>
   truncated.value ? `${props.text.slice(0, props.max).trimEnd()}…` : props.text,
 );
+
+const { trigger, tip: tipEl, open, above, style: tipStyle, show, hide } = useAnchoredTip();
+
+function showTip(): void {
+  if (truncated.value) show();
+}
 </script>
 
 <template>
-  <span class="truncated-text" :tabindex="truncated ? 0 : undefined">
+  <span
+    ref="trigger"
+    class="truncated-text"
+    :tabindex="truncated ? 0 : undefined"
+    @mouseenter="showTip"
+    @mouseleave="hide"
+    @focus="showTip"
+    @blur="hide"
+  >
     <span class="truncated-text-label">{{ display }}</span>
-    <!-- Mesmo balão do badge de disciplina (DisciplineBadge), aberto acima para não ser recortado pela tabela. -->
-    <span v-if="truncated" class="truncated-text-tip" role="tooltip">{{ text }}</span>
+    <!-- Mesmo balão do badge de disciplina (DisciplineBadge), preso à viewport
+         para não ser recortado pelo overflow da tabela. -->
+    <span
+      v-if="truncated"
+      ref="tipEl"
+      class="truncated-text-tip"
+      :class="{ 'truncated-text-tip--open': open, 'truncated-text-tip--below': !above }"
+      :style="tipStyle"
+      role="tooltip"
+    >{{ text }}</span>
   </span>
 </template>
 
@@ -33,35 +56,37 @@ const display = computed(() =>
 .truncated-text-label { display: inline-block; overflow: hidden; vertical-align: bottom; text-overflow: ellipsis; white-space: nowrap; }
 .truncated-text:focus-visible { border-radius: 4px; outline: 2px solid #304f7e; outline-offset: 2px; }
 .truncated-text-tip {
-  position: absolute;
-  bottom: calc(100% + 9px);
-  left: 0;
-  z-index: 30;
+  position: fixed;
+  z-index: 60;
+  width: max-content;
+  max-width: min(420px, calc(100vw - 16px));
   border-radius: 9px;
   padding: 5px 10px;
   background: #2b3e58;
   color: #fff;
   font-size: 11.5px;
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.45;
+  white-space: pre-wrap;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(3px);
-  transition: opacity .14s ease, transform .14s ease;
+  transition: opacity .14s ease;
 }
+.truncated-text-tip--open { opacity: 1; }
 .truncated-text-tip::before {
   position: absolute;
   top: 100%;
-  left: 12px;
+  left: var(--tip-arrow, 50%);
   border: 5px solid transparent;
   border-top-color: #2b3e58;
   content: "";
   transform: translateX(-50%);
 }
-.truncated-text:hover .truncated-text-tip,
-.truncated-text:focus-visible .truncated-text-tip {
-  opacity: 1;
-  transform: translateY(0);
+.truncated-text-tip--below::before {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: #2b3e58;
 }
 @media (prefers-reduced-motion: reduce) {
   .truncated-text-tip { transition: none; }
