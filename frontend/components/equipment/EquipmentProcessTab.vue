@@ -128,7 +128,7 @@ async function advanceStage(): Promise<void> {
             <p>Os requisitos são validados pelo backend.</p>
           </div>
         </div>
-        <div class="surface-body advance-panel">
+        <div class="surface-body">
           <WorkflowRequirements v-if="advance" :option="advance" />
           <p v-else class="requirements-final">
             Processo concluído — não há próxima etapa.
@@ -207,21 +207,31 @@ async function advanceStage(): Promise<void> {
 .process-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
+  gap: 16px;
+  align-items: stretch;
 }
-.advance-panel {
-  display: grid;
-  gap: 14px;
+/* Os dois cartões da linha têm a mesma altura e a ação de cada um fica no
+   rodapé do corpo — sem isso o cartão mais curto termina antes do outro e os
+   botões ficam em alturas diferentes. */
+.process-layout > .surface {
+  display: flex;
+  flex-direction: column;
+}
+.process-layout > .surface > .surface-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
 }
 .advance-button {
   justify-content: center;
+  margin-top: auto;
   gap: 7px;
 }
 .requirements-final {
   margin: 0;
   color: #477a32;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 @media (max-width: 1100px) {

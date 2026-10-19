@@ -158,7 +158,7 @@ async function confirmRevoke(): Promise<void> {
       <div v-if="canOperate" class="requirement-actions">
         <button
           type="button"
-          class="waive-action"
+          class="btn small"
           :data-testid="`waive-${group.code}`"
           @click="openWaive"
         >
@@ -387,11 +387,11 @@ async function confirmRevoke(): Promise<void> {
 .requirement-card {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
-  gap: 12px;
+  gap: 14px;
   margin: 0 18px 14px;
-  padding: 14px;
+  padding: 14px 16px;
   border: 1px solid #dde4ed;
-  border-radius: 11px;
+  border-radius: 12px;
   background: #fff;
   box-shadow: 0 4px 14px rgb(29 48 76 / 4%);
 }
@@ -427,7 +427,7 @@ async function confirmRevoke(): Promise<void> {
 .requirement-content {
   display: grid;
   min-width: 0;
-  gap: 11px;
+  gap: 12px;
 }
 
 .requirement-heading {
@@ -443,30 +443,31 @@ async function confirmRevoke(): Promise<void> {
 
 .requirement-eyebrow {
   display: block;
-  margin-bottom: 3px;
-  color: #8b96a5;
-  font-size: 9px;
+  margin-bottom: 4px;
+  color: #56657a;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.055em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .requirement-heading h4 {
   margin: 0;
-  color: #263e5c;
-  font-size: 12.5px;
-  font-weight: 760;
-  line-height: 1.35;
+  color: #213758;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.3;
 }
 
 .requirement-status {
   display: inline-flex;
   flex: 0 0 auto;
+  min-height: 24px;
   align-items: center;
   gap: 5px;
-  padding: 4px 8px;
+  padding: 0 9px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 750;
   white-space: nowrap;
 }
@@ -486,41 +487,13 @@ async function confirmRevoke(): Promise<void> {
 .requirement-message {
   margin: 0;
   color: #66758a;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
 .requirement-actions {
   display: flex;
   justify-content: flex-start;
-}
-
-.waive-action {
-  display: inline-flex;
-  min-height: 31px;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 9px;
-  border: 1px solid #d7dee8;
-  border-radius: 7px;
-  background: #fff;
-  color: #53677f;
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    transform 0.15s ease;
-}
-
-.waive-action:hover {
-  border-color: #bfcbd9;
-  background: #f7f9fc;
-  color: #304f7e;
-  transform: translateY(-1px);
 }
 
 .waiver-meta {
@@ -537,7 +510,7 @@ async function confirmRevoke(): Promise<void> {
   align-items: flex-start;
   padding: 8px 9px;
   border: 1px solid #e5eaf0;
-  border-radius: 8px;
+  border-radius: 9px;
   background: #fff;
   color: #708096;
 }
@@ -562,19 +535,19 @@ async function confirmRevoke(): Promise<void> {
 }
 
 .waiver-meta-label {
-  color: #97a1af;
-  font-size: 8.5px;
-  font-weight: 750;
-  letter-spacing: 0.04em;
+  color: #56657a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .waiver-meta-item strong {
   overflow: hidden;
   color: #4d5f76;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 650;
-  line-height: 1.35;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -596,7 +569,7 @@ async function confirmRevoke(): Promise<void> {
   border: 0;
   background: transparent;
   font-family: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -630,22 +603,22 @@ async function confirmRevoke(): Promise<void> {
   gap: 5px;
   padding: 10px 11px;
   border: 1px solid #e3e8ef;
-  border-radius: 8px;
+  border-radius: 9px;
   background: #f7f9fc;
 }
 
 .waiver-justification > span {
-  color: #8d98a8;
-  font-size: 8.5px;
+  color: #56657a;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .waiver-justification p {
   margin: 0;
   color: #4d5e74;
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -688,7 +661,7 @@ async function confirmRevoke(): Promise<void> {
   width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 9px;
   background: #eaf2fb;
   color: #3f6795;
 }
@@ -705,56 +678,15 @@ async function confirmRevoke(): Promise<void> {
 
 .modal-guidance strong {
   color: #344a65;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 750;
 }
 
 .modal-guidance p {
   margin: 0;
   color: #708096;
-  font-size: 10.5px;
-  line-height: 1.5;
-}
-
-.field {
-  display: grid;
-  gap: 5px;
-}
-
-.field > span {
-  color: #748197;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.field select,
-.field textarea {
-  box-sizing: border-box;
-  width: 100%;
-  border: 1px solid #d8dee7;
-  border-radius: 7px;
-  padding: 8px 9px;
-  background: #fff;
-  color: #405168;
-  font-family: inherit;
   font-size: 12px;
-  outline: none;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.field select:focus,
-.field textarea:focus {
-  border-color: #8da1bd;
-  box-shadow: 0 0 0 3px rgb(48 79 126 / 7%);
-}
-
-.field textarea {
-  min-height: 90px;
-  resize: vertical;
+  line-height: 1.5;
 }
 
 .form-actions {

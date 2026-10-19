@@ -70,13 +70,14 @@ function submit(): void {
     <p>Esta etapa é preenchida nas listas abaixo (Contratos, SC/OCI ou Ordens de Compra) — use "+ Adicionar" para criar um registro ou edite um já existente.</p>
   </div>
   <template v-else>
-    <RequirementWaiverBanner
-      v-if="requirementGroup"
-      :equipment-id="equipmentId"
-      :stage="stage"
-      :group="requirementGroup"
-      @changed="emit('changed')"
-    />
+    <div v-if="requirementGroup" class="stage-requirement">
+      <RequirementWaiverBanner
+        :equipment-id="equipmentId"
+        :stage="stage"
+        :group="requirementGroup"
+        @changed="emit('changed')"
+      />
+    </div>
     <form class="stage-form" data-testid="stage-form" @submit.prevent="submit">
     <fieldset :disabled="!editable">
       <div v-if="resource === 'negotiation'" class="form-grid">
@@ -108,15 +109,22 @@ function submit(): void {
 </template>
 
 <style scoped>
-.stage-intro { padding: 4px 0 8px; color: #65748a; font-size: 13px; }
+/* Mesma escala de texto do app: rótulo 11px maiúsculo (global `.field > span`),
+   corpo 13px, controles com 39px de altura e raio 9px (globais). */
+.stage-intro { padding: 2px 0; color: #778398; font-size: 13px; line-height: 1.55; }
 .stage-intro p { margin: 0; }
-.stage-form { display: grid; gap: 16px; }
+.stage-requirement { display: grid; }
+/* O banner nasce com respiro lateral para viver dentro das listas; aqui ele
+   fica dentro do corpo do cartão, então alinha com os campos do formulário. */
+.stage-requirement :deep(.requirement-card) { margin: 0; }
+.stage-form { display: flex; flex: 1; flex-direction: column; gap: 16px; }
 .stage-form fieldset { margin: 0; padding: 0; border: 0; }
 .stage-form fieldset:disabled { opacity: .65; }
-.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.field-check { display: flex; align-items: center; gap: 8px; align-self: end; padding-bottom: 8px; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+/* O check fica na mesma altura da caixa dos campos (39px) da linha. */
+.field-check { display: flex; min-height: 39px; align-items: center; gap: 8px; align-self: end; }
 .field-check input { width: 15px; height: 15px; }
-.field-check span { color: #2b3e58; font-size: 12px; font-weight: 700; }
-.form-actions { display: flex; justify-content: flex-end; }
+/* Empurra a ação para o rodapé do cartão, alinhada com a do cartão vizinho. */
+.form-actions { display: flex; justify-content: flex-end; margin-top: auto; }
 @media (max-width: 620px) { .form-grid { grid-template-columns: 1fr; } }
 </style>
