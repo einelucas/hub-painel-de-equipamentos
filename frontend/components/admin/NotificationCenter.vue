@@ -4,14 +4,26 @@ import { AlertTriangle, CheckCircle2, CircleHelp, Clock3, MailCheck, RefreshCw, 
 
 type Kind = "KICKOFF" | "FUP" | "STARTUP_REMINDER" | "NEGOTIATION_OVERDUE" | "DELIVERY_REMINDER" | "COMPLETED";
 type Tab = "settings" | "rules" | "recipients" | "templates" | "history";
-type Settings = { mode: "log" | "sandbox" | "live"; provider: string; configured: boolean; sender: string | null; testInbox: string | null };
+type ProviderId = "graph" | "resend";
+type ProviderStatus = { id: ProviderId; name: string; configured: boolean; sender: string | null };
+type Settings = {
+  mode: "log" | "sandbox" | "live";
+  provider: string;
+  activeProvider: ProviderId;
+  providers: ProviderStatus[];
+  configured: boolean;
+  sender: string | null;
+  testInbox: string | null;
+};
 type Rule = { kind: Kind; enabled: boolean; includeResponsible: boolean; daysBefore: number; recipientEmails: string[]; subjectTemplate: string; bodyTemplate: string };
-type Delivery = { id: string; kind: string; equipmentId: string | null; status: string; mode: string; recipientSummary: string; subject: string; failureReason: string | null; attempts: number; createdAt: string; processedAt: string | null };
+type Delivery = { id: string; kind: string; equipmentId: string | null; status: string; mode: string; provider: ProviderId; recipientSummary: string; subject: string; failureReason: string | null; attempts: number; createdAt: string; processedAt: string | null };
 
 const api = useApi();
 const tab = ref<Tab>("settings");
 const selectedKind = ref<Kind>("KICKOFF");
 const settings = ref<Settings | null>(null);
+const testProvider = ref<ProviderId>("resend");
+const testProviderStatus = computed(() => settings.value?.providers.find((item) => item.id === testProvider.value));
 const rules = ref<Rule[]>([]);
 const deliveries = ref<Delivery[]>([]);
 const loading = ref(true);
@@ -40,7 +52,7 @@ const tabs: { key: Tab; name: string }[] = [
 const stateLabels: Record<string, string> = {
   PENDING: "Aguardando",
   PROCESSING: "Processando",
-  ACCEPTED: "Aceito pelo Graph",
+  ACCEPTED: "Aceito pelo provedor",
   SIMULATED: "Simulado (sem envio)",
   SKIPPED: "Ignorado",
   FAILED: "Falha",
@@ -61,6 +73,9 @@ async function load(): Promise<void> {
       api.get<{ items: Delivery[] }>("/notifications/deliveries", { limit: "100" }),
     ]);
     settings.value = configuration;
+    // Prioriza Resend para testes com Gmail quando as credenciais estão disponíveis.
+    testProvider.value = configuration.providers.find((p) => p.id === "resend" && p.configured)?.id
+      ?? configuration.activeProvider;
     rules.value = list.items;
     deliveries.value = history.items;
     chooseRule(selectedKind.value);
@@ -103,10 +118,10 @@ async function sendTest(): Promise<void> {
   notice.value = "";
   try {
     const item = await api.post<Delivery>("/notifications/test", {
-      subject: mailSubject.value, body: mailBody.value,
+      provider: testProvider.value, subject: mailSubject.value, body: mailBody.value,
     });
     notice.value = item.status === "ACCEPTED"
-      ? "O Microsoft Graph aceitou o envio. Verifique a caixa de testes para confirmar a entrega."
+      ? "O provedor aceitou o envio. Verifique a caixa de testes para confirmar a entrega."
       : item.status === "SIMULATED"
         ? "Teste simulado: nenhuma mensagem foi enviada."
         : "Teste registrado com estado " + (stateLabels[item.status] ?? item.status) + ".";
@@ -189,17 +204,33 @@ onMounted(load);
           <span :class="{ good: settings?.configured }">{{ settings?.configured ? "Configurado" : "Configuração pendente" }}</span>
         </div>
         <dl class="notify-details">
+          <div><dt>Provedor operacional</dt><dd>{{ settings?.provider }} ({{ settings?.configured ? "configurado" : "pendente" }})</dd></div>
           <div><dt>Modo atual</dt><dd>{{ settings?.mode === "sandbox" ? "Caixa de testes (sandbox)" : settings?.mode === "live" ? "Produção — destinatários reais" : "Simulação local — sem envio" }}</dd></div>
           <div><dt>Remetente</dt><dd>{{ settings?.sender || "Não configurado" }}</dd></div>
           <div><dt>Caixa de testes</dt><dd>{{ settings?.testInbox || "NOTIFICATION_TEST_INBOX não definido" }}</dd></div>
         </dl>
-        <p class="notify-hint"><CircleHelp :size="15" /> Credenciais e modo de envio são definidos exclusivamente nas variáveis de ambiente do backend; nunca são editados ou retornados nesta tela.</p>
+        <p class="notify-hint"><CircleHelp :size="15" /> Credenciais, provedor operacional e modo são definidos exclusivamente no ambiente do backend. O seletor abaixo altera somente o envio de teste, nunca o provedor das notificações operacionais.</p>
+        <div class="notify-providers">
+          <div v-for="provider in settings?.providers" :key="provider.id" class="notify-provider">
+            <strong>{{ provider.name }}</strong>
+            <span :class="{ good: provider.configured }">{{ provider.configured ? "Disponível" : "Pendente" }}</span>
+            <small>{{ provider.sender || "Remetente não configurado" }}</small>
+          </div>
+        </div>
         <div class="notify-test-box stack">
           <strong>Enviar teste para caixa autorizada</strong>
+          <label class="field">
+            <span>Provedor para este teste</span>
+            <select v-model="testProvider">
+              <option v-for="provider in settings?.providers" :key="provider.id" :value="provider.id">
+                {{ provider.name }}{{ provider.configured ? "" : " (não configurado)" }}
+              </option>
+            </select>
+          </label>
           <p>O destino é fixo: {{ settings?.testInbox || "caixa ainda não configurada" }}. No modo sandbox todos os envios, inclusive alertas operacionais, são redirecionados para ela.</p>
           <label class="field"><span>Assunto</span><input v-model="mailSubject" maxlength="200" /></label>
           <label class="field"><span>Mensagem</span><textarea v-model="mailBody" rows="4" maxlength="4000" /></label>
-          <button type="button" class="btn primary small" :disabled="busy || !settings?.testInbox || (settings?.mode !== 'log' && !settings?.configured)" @click="sendTest"><Send :size="14" /> {{ busy ? "Enviando..." : "Enviar teste" }}</button>
+          <button type="button" class="btn primary small" :disabled="busy || !settings?.testInbox || (settings?.mode !== 'log' && !testProviderStatus?.configured)" @click="sendTest"><Send :size="14" /> {{ busy ? "Enviando..." : "Enviar teste" }}</button>
         </div>
       </div>
 
@@ -243,7 +274,7 @@ onMounted(load);
             <strong>{{ item.subject }}</strong>
             <span class="notify-pill" :class="{ good: item.status === 'ACCEPTED', bad: item.status === 'FAILED' }">{{ stateLabels[item.status] ?? item.status }}</span>
           </div>
-          <p>{{ item.recipientSummary || "Sem destinatários" }} · {{ formatDate(item.createdAt) }} · {{ item.mode }}</p>
+          <p>{{ item.recipientSummary || "Sem destinatários" }} · {{ formatDate(item.createdAt) }} · {{ item.mode }} · {{ item.provider === "graph" ? "Graph" : "Resend" }}</p>
           <p v-if="item.failureReason" class="notify-error-text">{{ item.failureReason }}</p>
           <button v-if="item.status === 'FAILED' && item.attempts < 3" class="btn small" :disabled="busy" type="button" @click="retry(item)">Reenviar após conferência</button>
         </div>
@@ -267,6 +298,12 @@ onMounted(load);
 .notify-panel .btn { align-self: flex-start; }
 .notify-status { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .notify-status strong { font-size: 14px; }
+.notify-providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.notify-provider { padding: 12px; border: 1px solid #e2e8f0; border-radius: 9px; display: grid; gap: 6px; }
+.notify-provider strong { font-size: 12px; }
+.notify-provider span { font-size: 11px; color: #a16207; }
+.notify-provider span.good { color: #307241; }
+.notify-provider small { color: #64748b; overflow-wrap: anywhere; }
 .notify-status span, .notify-pill { border-radius: 7px; padding: 4px 9px; background: #fff4df; color: #92620f; font-size: 11px; }
 .notify-status .good, .notify-pill.good { background: #e8f5e8; color: #2b6c3b; }
 .notify-pill.bad { background: #fff0ed; color: #b02f20; }
