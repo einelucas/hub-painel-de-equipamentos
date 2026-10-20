@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     notification_graph_client_secret: str | None = Field(default=None, alias="GRAPH_CLIENT_SECRET")
     notification_graph_sender: str | None = Field(default=None, alias="GRAPH_SENDER")
     notification_test_inbox: str | None = Field(default=None, alias="NOTIFICATION_TEST_INBOX")
+    notification_timezone: str = Field(default="America/Sao_Paulo", alias="NOTIFICATION_TIMEZONE")
 
     # Arquivos de contrato: filesystem local em DEV/teste e S3 (ou serviço
     # compatível) em produção. Credenciais também podem vir da cadeia padrão AWS.

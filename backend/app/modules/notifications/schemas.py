@@ -1,9 +1,17 @@
+"""Contratos HTTP de configurações, testes e outbox (camelCase)."""
+
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Literal
 
+from pydantic import Field, field_validator
+
 from app.shared.schema import CamelModel
+
+_KIND = Literal["KICKOFF", "FUP", "STARTUP_REMINDER"]
+_EMAIL = re.compile(r"^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$")
 
 
 class NotificationEventOut(CamelModel):
@@ -20,3 +28,72 @@ class NotificationEventOut(CamelModel):
 
 class NotificationEventListOut(CamelModel):
     items: list[NotificationEventOut]
+
+
+class MailSettingsOut(CamelModel):
+    mode: Literal["log", "sandbox", "live"]
+    provider: str
+    configured: bool
+    sender: str | None
+    test_inbox: str | None
+
+
+class MailRuleOut(CamelModel):
+    kind: _KIND
+    enabled: bool
+    include_responsible: bool
+    days_before: int
+    recipient_emails: list[str]
+    subject_template: str
+    body_template: str
+
+
+class MailRuleUpdate(CamelModel):
+    enabled: bool
+    include_responsible: bool
+    days_before: int = Field(ge=0, le=365)
+    recipient_emails: list[str] = Field(max_length=50)
+    subject_template: str = Field(min_length=1, max_length=200)
+    body_template: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("recipient_emails")
+    @classmethod
+    def valid_emails(cls, emails: list[str]) -> list[str]:
+        clean = [email.strip().lower() for email in emails]
+        if any(not _EMAIL.fullmatch(email) for email in clean):
+            raise ValueError("Informe endereços de e-mail válidos.")
+        if len(set(clean)) != len(clean):
+            raise ValueError("Há e-mails duplicados.")
+        return clean
+
+
+class MailRuleListOut(CamelModel):
+    items: list[MailRuleOut]
+
+
+class MailDeliveryOut(CamelModel):
+    id: str
+    kind: str
+    equipment_id: str | None
+    status: str
+    mode: str
+    recipient_summary: str
+    subject: str
+    failure_reason: str | None
+    attempts: int
+    created_at: datetime
+    processed_at: datetime | None
+
+
+class MailDeliveryListOut(CamelModel):
+    items: list[MailDeliveryOut]
+
+
+class MailTestIn(CamelModel):
+    subject: str = Field(default="Teste de notificações — Painel de Equipamentos", min_length=1, max_length=200)
+    body: str = Field(default="Mensagem de teste da central de notificações.", min_length=1, max_length=4000)
+
+
+class MailProcessOut(CamelModel):
+    scheduled: int
+    processed: int
