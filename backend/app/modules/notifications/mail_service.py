@@ -77,7 +77,9 @@ def _public(rule: NotificationRule) -> MailRuleOut:
 async def get_rule(session: AsyncSession, kind: str) -> NotificationRule:
     if kind not in RULES:
         raise NotFoundError("Regra de notificação não encontrada.")
-    row = (await session.execute(select(NotificationRule).where(NotificationRule.kind == kind))).scalar_one_or_none()
+    row = (
+        await session.execute(select(NotificationRule).where(NotificationRule.kind == kind))
+    ).scalar_one_or_none()
     if row is None:
         subject, body = RULES[kind]
         row = NotificationRule(kind=kind, enabled=False, include_responsible=True,
@@ -119,7 +121,10 @@ async def update_rule(
 
 async def _context(session: AsyncSession, equipment: Equipment, kind: str) -> dict[str, str]:
     project = await session.get(ProjectContext, equipment.project_context_id)
-    responsible = await session.get(User, equipment.responsible_user_id) if equipment.responsible_user_id else None
+    responsible = (
+        await session.get(User, equipment.responsible_user_id)
+        if equipment.responsible_user_id else None
+    )
     return {
         "equipamento": equipment.name,
         "obra": project.name if project else "Não informada",
@@ -366,6 +371,8 @@ async def mark_stale_processing() -> int:
         )).scalars().all()
         for row in rows:
             row.status = "FAILED"
-            row.failure_reason = "Resultado indeterminado após interrupção. Verifique no Graph antes de reenviar."
+            row.failure_reason = (
+                "Resultado indeterminado após interrupção. Verifique no Graph antes de reenviar."
+            )
         await session.commit()
         return len(rows)

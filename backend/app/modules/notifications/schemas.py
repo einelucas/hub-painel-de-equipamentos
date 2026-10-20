@@ -90,7 +90,9 @@ class MailDeliveryListOut(CamelModel):
 
 
 class MailTestIn(CamelModel):
-    subject: str = Field(default="Teste de notificações — Painel de Equipamentos", min_length=1, max_length=200)
+    subject: str = Field(
+        default="Teste de notificações — Painel de Equipamentos", min_length=1, max_length=200
+    )
     body: str = Field(default="Mensagem de teste da central de notificações.", min_length=1, max_length=4000)
 
 

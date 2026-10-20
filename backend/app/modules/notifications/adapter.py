@@ -80,5 +80,7 @@ async def send_mail(
             if response.status_code != 202:
                 raise DeliveryError(f"Graph: envio recusado (HTTP {response.status_code}).")
     except httpx.HTTPError as exc:
-        raise DeliveryError("Graph: indisponível ou tempo limite excedido; revise antes de reenviar.") from exc
+        raise DeliveryError(
+            "Graph: indisponível ou tempo limite excedido; revise antes de reenviar."
+        ) from exc
     return "ACCEPTED"
