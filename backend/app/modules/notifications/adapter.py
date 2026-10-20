@@ -155,6 +155,10 @@ async def send_mail(
             subject = "[TESTE HUB] " + subject
     if not recipients:
         raise DeliveryError("Nenhum destinatário válido para o envio.")
+    # Dados operacionais corporativos só saem pelo Graph. Resend serve
+    # para testes (sandbox ou botão de teste protegido mesmo em live).
+    if selected == "resend" and config.notification_mode == "live" and not force_sandbox:
+        raise DeliveryError("Resend reservado para testes; use Microsoft Graph em produção.")
     if not provider_ready(config, selected):
         label = "Microsoft Graph" if selected == "graph" else "Resend"
         raise DeliveryError(f"{label} não configurado.")

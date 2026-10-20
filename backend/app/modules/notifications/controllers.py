@@ -77,7 +77,9 @@ async def test_mail(
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_admin),
 ) -> MailDeliveryOut:
-    item = await mail_service.enqueue_test(session, actor, body.subject, body.body)
+    item = await mail_service.enqueue_test(
+        session, actor, body.subject, body.body, provider=body.provider
+    )
     await mail_service.deliver_pending(only_id=item.id)
     await session.refresh(item)
     return mail_service.public_delivery(item)

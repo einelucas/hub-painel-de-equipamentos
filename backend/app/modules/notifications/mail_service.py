@@ -31,7 +31,13 @@ from app.models.common import utcnow
 from app.models.equipment import Equipment, ProjectContext, WorkflowTransition
 from app.models.notification import EmailDelivery, NotificationEvent, NotificationRule
 from app.models.user import User
-from app.modules.notifications.adapter import DeliveryError, graph_ready, send_mail
+from app.modules.notifications.adapter import (
+    DeliveryError,
+    MailProvider,
+    provider_ready,
+    provider_sender,
+    send_mail,
+)
 from app.modules.notifications.schemas import (
     MailDeliveryOut,
     MailRuleOut,
@@ -194,7 +200,8 @@ async def enqueue_equipment(
     status = "PENDING" if recipients or settings.notification_mode == "sandbox" else "SKIPPED"
     row = EmailDelivery(
         dedup_key=key, kind=kind, equipment_id=equipment.id, status=status,
-        mode=settings.notification_mode, recipient_summary="; ".join(recipients),
+        mode=settings.notification_mode, provider=settings.notification_provider,
+        recipient_summary="; ".join(recipients),
         subject=rule.subject_template.format_map(values),
         body=rule.body_template.format_map(values),
         failure_reason=None if status == "PENDING" else "Sem destinatários configurados.",
@@ -312,15 +319,20 @@ async def enqueue_deadline_alerts(session: AsyncSession) -> int:
     return created
 
 
-async def enqueue_test(session: AsyncSession, actor: CurrentUser, subject: str, body: str) -> EmailDelivery:
+async def enqueue_test(
+    session: AsyncSession, actor: CurrentUser, subject: str, body: str,
+    provider: MailProvider | None = None,
+) -> EmailDelivery:
     config = get_settings()
+    selected = provider or config.notification_provider
     if not config.notification_test_inbox:
         raise DomainError("Configure NOTIFICATION_TEST_INBOX antes de enviar um teste.")
     # Em live, o teste continua restrito à caixa de testes. Em sandbox, Graph
     # redireciona para a mesma caixa independentemente dos destinatários.
     record = EmailDelivery(
         dedup_key=f"test:{uuid4()}", kind="TEST", status="PENDING",
-        mode=config.notification_mode, recipient_summary=config.notification_test_inbox,
+        mode=config.notification_mode, provider=selected,
+        recipient_summary=config.notification_test_inbox,
         subject="[TESTE DE CONFIGURAÇÃO] " + subject, body=body,
     )
     session.add(record)
@@ -328,7 +340,7 @@ async def enqueue_test(session: AsyncSession, actor: CurrentUser, subject: str, 
     await record_audit(
         session, user_id=actor.id, action="notification.test.enqueue",
         entity="EmailDelivery", entity_id=record.id,
-        new_data={"recipient": config.notification_test_inbox},
+        new_data={"recipient": config.notification_test_inbox, "provider": selected},
     )
     await session.commit()
     return record
@@ -357,6 +369,7 @@ async def deliver_pending(limit: int = 20, only_id: str | None = None) -> int:
             item.attempts += 1
             item_id = item.id
             mode = item.mode
+            provider: MailProvider = item.provider
             addresses = _addresses(item.recipient_summary.replace(", ", ";").replace("; ", ";"))
             subject, body, dedup_key = item.subject, item.body, item.dedup_key
             await session.commit()
@@ -365,11 +378,14 @@ async def deliver_pending(limit: int = 20, only_id: str | None = None) -> int:
             # Nunca promover um item sandbox para live só porque o ambiente mudou.
             if mode != config.notification_mode:
                 raise DeliveryError("Modo de envio mudou desde a criação do evento; revisão necessária.")
-            if mode == "live" and dedup_key.startswith("test:"):
-                if not config.notification_test_inbox:
-                    raise DeliveryError("Caixa de teste não configurada.")
-                addresses = [config.notification_test_inbox]
-            result = await send_mail(addresses, subject, body, config)
+            is_test = dedup_key.startswith("test:")
+            # Proteção no adaptador: testes não podem chegar aos destinatários
+            # operacionais mesmo se o provedor ativo ou o modo mudar.
+            result = await send_mail(
+                addresses, subject, body, config, provider=provider,
+                force_sandbox=is_test,
+                idempotency_key=f"hub-mail-{item_id}" if provider == "resend" else None,
+            )
             failure = None
         except DeliveryError as exc:
             result, failure = "FAILED", str(exc)
@@ -391,7 +407,7 @@ async def deliver_pending(limit: int = 20, only_id: str | None = None) -> int:
                         )
                     )).scalar_one_or_none()
                     if legacy:
-                        # Evento antigo só diz SENT quando Graph ACEITOU (não entrega).
+                        # Evento legado diz SENT só quando o provedor aceita (não entrega).
                         if result == "ACCEPTED":
                             legacy.status = "SENT"
                             legacy.sent_at = utcnow()
@@ -427,19 +443,32 @@ async def retry_delivery(session: AsyncSession, actor: CurrentUser, delivery_id:
 def public_delivery(row: EmailDelivery) -> MailDeliveryOut:
     return MailDeliveryOut(
         id=row.id, kind=row.kind, equipment_id=row.equipment_id,
-        status=row.status, mode=row.mode, recipient_summary=row.recipient_summary,
+        status=row.status, mode=row.mode, provider=row.provider,
+        recipient_summary=row.recipient_summary,
         subject=row.subject, failure_reason=row.failure_reason,
         attempts=row.attempts, created_at=row.created_at, processed_at=row.processed_at,
     )
 
 
-def settings_summary() -> dict[str, str | bool | None]:
+def settings_summary() -> dict[str, object]:
     config = get_settings()
+    active = config.notification_provider
+    providers: list[dict[str, str | bool | None]] = [
+        {
+            "id": provider,
+            "name": "Microsoft Graph" if provider == "graph" else "Resend",
+            "configured": provider_ready(config, provider),
+            "sender": provider_sender(config, provider),
+        }
+        for provider in ("graph", "resend")
+    ]
     return {
         "mode": config.notification_mode,
-        "provider": "Microsoft Graph" if config.notification_mode != "log" else "Simulação local",
-        "configured": graph_ready(config) if config.notification_mode != "log" else True,
-        "sender": config.notification_graph_sender,
+        "provider": "Microsoft Graph" if active == "graph" else "Resend",
+        "active_provider": active,
+        "providers": providers,
+        "configured": provider_ready(config, active) if config.notification_mode != "log" else True,
+        "sender": provider_sender(config, active),
         "test_inbox": config.notification_test_inbox,
     }
 

@@ -33,9 +33,18 @@ class NotificationEventListOut(CamelModel):
     items: list[NotificationEventOut]
 
 
+class MailProviderStatusOut(CamelModel):
+    id: Literal["graph", "resend"]
+    name: str
+    configured: bool
+    sender: str | None
+
+
 class MailSettingsOut(CamelModel):
     mode: Literal["log", "sandbox", "live"]
     provider: str
+    active_provider: Literal["graph", "resend"]
+    providers: list[MailProviderStatusOut]
     configured: bool
     sender: str | None
     test_inbox: str | None
@@ -80,6 +89,7 @@ class MailDeliveryOut(CamelModel):
     equipment_id: str | None
     status: str
     mode: str
+    provider: Literal["graph", "resend"]
     recipient_summary: str
     subject: str
     failure_reason: str | None
@@ -93,6 +103,7 @@ class MailDeliveryListOut(CamelModel):
 
 
 class MailTestIn(CamelModel):
+    provider: Literal["graph", "resend"] | None = None
     subject: str = Field(
         default="Teste de notificações — Painel de Equipamentos", min_length=1, max_length=200
     )
