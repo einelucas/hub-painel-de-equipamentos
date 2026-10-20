@@ -73,6 +73,7 @@ class EmailDelivery(Base):
     )
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="PENDING")
     mode: Mapped[str] = mapped_column(String(16), nullable=False)
+    provider: Mapped[str] = mapped_column(String(16), nullable=False, default="graph")
     recipient_summary: Mapped[str] = mapped_column(Text, nullable=False)
     subject: Mapped[str] = mapped_column(Text, nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)

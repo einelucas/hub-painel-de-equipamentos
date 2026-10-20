@@ -56,8 +56,13 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
-    # Notificações: log = sem rede; sandbox = Microsoft Graph redirecionado
-    # somente para NOTIFICATION_TEST_INBOX; live = destinatários reais.
+    # Dois provedores independentes; log = simulação, sandbox = destinatário fixo.
+    # A escolha do provedor nunca habilita fallback automático.
+    notification_provider: Literal["graph", "resend"] = Field(
+        default="graph", alias="NOTIFICATION_PROVIDER"
+    )
+    notification_resend_api_key: str | None = Field(default=None, alias="RESEND_API_KEY")
+    notification_resend_from_email: str | None = Field(default=None, alias="RESEND_FROM_EMAIL")
     notification_mode: Literal["log", "sandbox", "live"] = Field(
         default="log", alias="NOTIFICATION_MODE"
     )
