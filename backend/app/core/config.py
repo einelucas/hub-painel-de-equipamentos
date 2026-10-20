@@ -56,6 +56,17 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
+    # Notificações: log = sem rede; sandbox = Microsoft Graph redirecionado
+    # somente para NOTIFICATION_TEST_INBOX; live = destinatários reais.
+    notification_mode: Literal["log", "sandbox", "live"] = Field(
+        default="log", alias="NOTIFICATION_MODE"
+    )
+    notification_graph_tenant_id: str | None = Field(default=None, alias="GRAPH_TENANT_ID")
+    notification_graph_client_id: str | None = Field(default=None, alias="GRAPH_CLIENT_ID")
+    notification_graph_client_secret: str | None = Field(default=None, alias="GRAPH_CLIENT_SECRET")
+    notification_graph_sender: str | None = Field(default=None, alias="GRAPH_SENDER")
+    notification_test_inbox: str | None = Field(default=None, alias="NOTIFICATION_TEST_INBOX")
+
     # Arquivos de contrato: filesystem local em DEV/teste e S3 (ou serviço
     # compatível) em produção. Credenciais também podem vir da cadeia padrão AWS.
     storage_provider: Literal["local", "s3"] = Field(default="local", alias="STORAGE_PROVIDER")
