@@ -14,15 +14,17 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.auth import CurrentUser
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.domain.equipment_calculations import (
-    NegotiationStatus, aggregate_component_deadlines, calculate_negotiation_status,
+    NegotiationStatus,
+    aggregate_component_deadlines,
+    calculate_negotiation_status,
     component_deadline_values,
 )
 from app.models.common import utcnow
