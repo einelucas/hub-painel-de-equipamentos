@@ -1,18 +1,11 @@
-"""Etapa 7F — Kickoff/FUP: um evento por transição real, nunca fabricado.
-
-Desacoplado de qualquer provedor de e-mail real (ainda não definido pelo
-time de Automação/Microsoft): o adapter em uso hoje só registra o evento
-(log/outbox), nunca finge enviar e-mail de verdade. `workflow_transition_id`
-é único por (`kind`) — a mesma transição nunca gera dois eventos do mesmo
-tipo, mesmo que o gatilho seja chamado de novo (idempotência).
-"""
+"""Eventos legados do workflow + configuração e outbox de e-mails."""
 
 from __future__ import annotations
 
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -37,9 +30,6 @@ class NotificationEvent(Base):
     )
     kind: Mapped[str] = mapped_column(String(10), nullable=False)
     status: Mapped[str] = mapped_column(String(10), nullable=False, default="PENDING")
-    # Resumo legível dos destinatários resolvidos no momento do envio
-    # (responsável + superiores, quando um provedor existir) — não é a
-    # fonte de verdade de "quem é responsável", só o retrato do envio.
     recipient_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
@@ -53,12 +43,50 @@ class NotificationEvent(Base):
         CheckConstraint(
             "status IN ('PENDING','SENT','FAILED')", name="notification_event_status_check"
         ),
-        # Idempotência: a mesma transição nunca gera dois eventos do mesmo tipo.
-        Index(
-            "notification_event_transition_kind_key",
-            "workflow_transition_id",
-            "kind",
-            unique=True,
-        ),
+        Index("notification_event_transition_kind_key", "workflow_transition_id", "kind", unique=True),
         Index("notification_event_equipment_id_idx", "equipment_id"),
+    )
+
+
+class NotificationRule(Base):
+    __tablename__ = "notification_rule"
+
+    id: Mapped[str] = uuid_pk()
+    kind: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    include_responsible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    days_before: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    recipient_emails: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    subject_template: Mapped[str] = mapped_column(Text, nullable=False)
+    body_template: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(Timestamp3, default=utcnow, onupdate=utcnow)
+
+
+class EmailDelivery(Base):
+    __tablename__ = "email_delivery"
+
+    id: Mapped[str] = uuid_pk()
+    dedup_key: Mapped[str] = mapped_column(String(250), unique=True, nullable=False)
+    kind: Mapped[str] = mapped_column(String(40), nullable=False)
+    equipment_id: Mapped[str | None] = mapped_column(
+        ForeignKey("equipment.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="PENDING")
+    mode: Mapped[str] = mapped_column(String(16), nullable=False)
+    provider: Mapped[str] = mapped_column(String(16), nullable=False, default="graph")
+    recipient_summary: Mapped[str] = mapped_column(Text, nullable=False)
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)
+    processed_at: Mapped[datetime | None] = mapped_column(Timestamp3, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('PENDING','PROCESSING','ACCEPTED','SIMULATED','FAILED','SKIPPED')",
+            name="email_delivery_status_check",
+        ),
+        Index("email_delivery_status_idx", "status", "created_at"),
+        Index("email_delivery_equipment_idx", "equipment_id"),
     )

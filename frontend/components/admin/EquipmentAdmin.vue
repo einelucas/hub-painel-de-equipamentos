@@ -43,6 +43,7 @@ const sections = computed(() => {
     });
   }
   if (canManageUsers.value) items.push({ key: "access", label: "Acesso às unidades", hint: "Quem enxerga cada unidade" });
+  if (canManageUsers.value) items.push({ key: "notifications", label: "Notificações", hint: "Graph, regras e caixa de testes" });
   return items;
 });
 
@@ -134,6 +135,7 @@ watch(
       </template>
 
       <UnitAccessAdmin v-else-if="active === 'access'" @changed="emit('changed')" />
+      <NotificationCenter v-else-if="active === 'notifications'" />
     </template>
   </AdminPanel>
 </template>

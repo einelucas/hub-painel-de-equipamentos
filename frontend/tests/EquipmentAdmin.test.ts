@@ -61,7 +61,7 @@ describe("EquipmentAdmin", () => {
     await settle(wrapper);
 
     const tabs = wrapper.findAll("[role='tab']").map((tab) => tab.text());
-    expect(tabs).toEqual(["Projetos", "Catálogos", "Acesso às unidades"]);
+    expect(tabs).toEqual(["Projetos", "Catálogos", "Acesso às unidades", "Notificações"]);
     expect(wrapper.get("[data-testid='admin-tab-projects']").attributes("aria-selected")).toBe("true");
     expect(wrapper.find("[data-testid='project-context-admin']").exists()).toBe(true);
   });
@@ -74,6 +74,7 @@ describe("EquipmentAdmin", () => {
     expect(wrapper.find("[data-testid='admin-tab-projects']").exists()).toBe(false);
     expect(wrapper.find("[data-testid='project-context-admin']").exists()).toBe(false);
     expect(wrapper.find("[data-testid='unit-access-admin']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='admin-tab-notifications']").exists()).toBe(true);
   });
 
   it("sem nenhuma permissão administrativa não exibe ações de gerenciamento", async () => {

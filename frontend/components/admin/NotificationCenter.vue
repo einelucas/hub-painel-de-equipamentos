@@ -1,0 +1,327 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { AlertTriangle, CheckCircle2, CircleHelp, Clock3, MailCheck, RefreshCw, Send, Settings2 } from "lucide-vue-next";
+
+type Kind = "KICKOFF" | "FUP" | "STARTUP_REMINDER" | "NEGOTIATION_OVERDUE" | "DELIVERY_REMINDER" | "COMPLETED";
+type Tab = "settings" | "rules" | "recipients" | "templates" | "history";
+type ProviderId = "graph" | "resend";
+type ProviderStatus = { id: ProviderId; name: string; configured: boolean; sender: string | null };
+type Settings = {
+  mode: "log" | "sandbox" | "live";
+  provider: string;
+  activeProvider: ProviderId;
+  providers: ProviderStatus[];
+  configured: boolean;
+  sender: string | null;
+  testInbox: string | null;
+};
+type Rule = { kind: Kind; enabled: boolean; includeResponsible: boolean; daysBefore: number; recipientEmails: string[]; subjectTemplate: string; bodyTemplate: string };
+type Delivery = { id: string; kind: string; equipmentId: string | null; status: string; mode: string; provider: ProviderId; recipientSummary: string; subject: string; failureReason: string | null; attempts: number; createdAt: string; processedAt: string | null };
+
+const api = useApi();
+const tab = ref<Tab>("settings");
+const selectedKind = ref<Kind>("KICKOFF");
+const settings = ref<Settings | null>(null);
+const testProvider = ref<ProviderId>("resend");
+const testProviderStatus = computed(() => settings.value?.providers.find((item) => item.id === testProvider.value));
+const rules = ref<Rule[]>([]);
+const deliveries = ref<Delivery[]>([]);
+const loading = ref(true);
+const busy = ref(false);
+const error = ref("");
+const notice = ref("");
+const mailSubject = ref("Teste de notificações — Painel de Equipamentos");
+const mailBody = ref("Esta é uma mensagem de teste do Hub. Nenhuma notificação operacional foi disparada.");
+const recipientsText = ref("");
+const selected = computed(() => rules.value.find((item) => item.kind === selectedKind.value));
+const names: Record<Kind, string> = {
+  KICKOFF: "Kickoff (conclusão da fase 5)",
+  FUP: "FUP (conclusão da fase 7)",
+  STARTUP_REMINDER: "Lembrete de startup (data programada)",
+  NEGOTIATION_OVERDUE: "Negociação atrasada",
+  DELIVERY_REMINDER: "Entrega próxima (prazo calculado)",
+  COMPLETED: "Equipamento concluído (fase 8)",
+};
+const tabs: { key: Tab; name: string }[] = [
+  { key: "settings", name: "Configuração" },
+  { key: "rules", name: "Regras" },
+  { key: "recipients", name: "Destinatários" },
+  { key: "templates", name: "Modelos" },
+  { key: "history", name: "Histórico" },
+];
+const stateLabels: Record<string, string> = {
+  PENDING: "Aguardando",
+  PROCESSING: "Processando",
+  ACCEPTED: "Aceito pelo provedor",
+  SIMULATED: "Simulado (sem envio)",
+  SKIPPED: "Ignorado",
+  FAILED: "Falha",
+};
+
+function chooseRule(kind: Kind): void {
+  selectedKind.value = kind;
+  recipientsText.value = selected.value?.recipientEmails.join("\n") ?? "";
+}
+
+async function load(): Promise<void> {
+  loading.value = true;
+  error.value = "";
+  try {
+    const [configuration, list, history] = await Promise.all([
+      api.get<Settings>("/notifications/settings"),
+      api.get<{ items: Rule[] }>("/notifications/rules"),
+      api.get<{ items: Delivery[] }>("/notifications/deliveries", { limit: "100" }),
+    ]);
+    settings.value = configuration;
+    // Prioriza Resend para testes com Gmail quando as credenciais estão disponíveis.
+    testProvider.value = configuration.providers.find((p) => p.id === "resend" && p.configured)?.id
+      ?? configuration.activeProvider;
+    rules.value = list.items;
+    deliveries.value = history.items;
+    chooseRule(selectedKind.value);
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível carregar as notificações.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function save(): Promise<void> {
+  const rule = selected.value;
+  if (!rule || busy.value) return;
+  busy.value = true;
+  error.value = "";
+  notice.value = "";
+  try {
+    const recipientEmails = recipientsText.value
+      .split(/[\n;,]+/).map((email) => email.trim()).filter(Boolean);
+    const updated = await api.put<Rule>("/notifications/rules/" + rule.kind, {
+      ...rule,
+      recipientEmails,
+      daysBefore: ["STARTUP_REMINDER", "DELIVERY_REMINDER"].includes(rule.kind) ? rule.daysBefore : 0,
+    });
+    const index = rules.value.findIndex((value) => value.kind === rule.kind);
+    if (index !== -1) rules.value[index] = updated;
+    recipientsText.value = updated.recipientEmails.join("\n");
+    notice.value = "Regra salva. Alterações auditadas pelo sistema.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Falha ao salvar a regra.";
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function sendTest(): Promise<void> {
+  if (busy.value || !settings.value?.testInbox) return;
+  busy.value = true;
+  error.value = "";
+  notice.value = "";
+  try {
+    const item = await api.post<Delivery>("/notifications/test", {
+      provider: testProvider.value, subject: mailSubject.value, body: mailBody.value,
+    });
+    notice.value = item.status === "ACCEPTED"
+      ? "O provedor aceitou o envio. Verifique a caixa de testes para confirmar a entrega."
+      : item.status === "SIMULATED"
+        ? "Teste simulado: nenhuma mensagem foi enviada."
+        : "Teste registrado com estado " + (stateLabels[item.status] ?? item.status) + ".";
+    if (item.failureReason) error.value = item.failureReason;
+    deliveries.value.unshift(item);
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível iniciar o teste.";
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function process(): Promise<void> {
+  if (busy.value || !confirm("Processar agora notificações reais e lembretes pendentes conforme o modo do ambiente?")) return;
+  busy.value = true;
+  error.value = "";
+  notice.value = "";
+  try {
+    const result = await api.post<{ scheduled: number; processed: number }>("/notifications/process");
+    notice.value = "Agendadas: " + result.scheduled + " · Processadas: " + result.processed + ".";
+    deliveries.value = (await api.get<{ items: Delivery[] }>("/notifications/deliveries")).items;
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Falha no processamento.";
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function retry(item: Delivery): Promise<void> {
+  if (busy.value || !confirm("Confirme no Outlook que a mensagem não foi enviada. Repetir pode gerar duplicidade. Continuar?")) return;
+  busy.value = true;
+  error.value = "";
+  try {
+    await api.post("/notifications/deliveries/" + item.id + "/retry");
+    await load();
+    notice.value = "Mensagem recolocada na fila para processamento.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Falha ao solicitar reenvio.";
+  } finally {
+    busy.value = false;
+  }
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
+
+onMounted(load);
+</script>
+
+<template>
+  <section class="notification-center stack">
+    <header class="notify-heading">
+      <div>
+        <h3>Central de notificações</h3>
+        <p>Microsoft Graph, caixa de testes, destinatários e acompanhamento dos envios.</p>
+      </div>
+      <button type="button" class="btn small" :disabled="busy || loading" @click="load">
+        <RefreshCw :size="14" /> Atualizar
+      </button>
+    </header>
+
+    <div v-if="error" class="notify-message notify-error" role="alert"><AlertTriangle :size="16" /> {{ error }}</div>
+    <div v-if="notice" class="notify-message notify-success" role="status"><CheckCircle2 :size="16" /> {{ notice }}</div>
+    <div v-if="loading" role="status" class="notify-empty" aria-busy="true">Carregando configuração de e-mails...</div>
+
+    <template v-else>
+      <div class="notify-tabs" role="tablist" aria-label="Central de notificações">
+        <button v-for="item in tabs" :key="item.key" type="button" role="tab"
+          :aria-selected="tab === item.key" :class="{ active: tab === item.key }" @click="tab = item.key">
+          {{ item.name }}
+        </button>
+      </div>
+
+      <div v-if="tab === 'settings'" class="notify-panel stack">
+        <div class="notify-heading"><h4><Settings2 :size="16" /> Configuração do provedor</h4></div>
+        <div class="notify-status">
+          <strong>{{ settings?.provider }}</strong>
+          <span :class="{ good: settings?.configured }">{{ settings?.configured ? "Configurado" : "Configuração pendente" }}</span>
+        </div>
+        <dl class="notify-details">
+          <div><dt>Provedor operacional</dt><dd>{{ settings?.provider }} ({{ settings?.configured ? "configurado" : "pendente" }})</dd></div>
+          <div><dt>Modo atual</dt><dd>{{ settings?.mode === "sandbox" ? "Caixa de testes (sandbox)" : settings?.mode === "live" ? "Produção — destinatários reais" : "Simulação local — sem envio" }}</dd></div>
+          <div><dt>Remetente</dt><dd>{{ settings?.sender || "Não configurado" }}</dd></div>
+          <div><dt>Caixa de testes</dt><dd>{{ settings?.testInbox || "NOTIFICATION_TEST_INBOX não definido" }}</dd></div>
+        </dl>
+        <p class="notify-hint"><CircleHelp :size="15" /> Credenciais, provedor operacional e modo são definidos exclusivamente no ambiente do backend. O seletor abaixo altera somente o envio de teste, nunca o provedor das notificações operacionais.</p>
+        <div class="notify-providers">
+          <div v-for="provider in settings?.providers" :key="provider.id" class="notify-provider">
+            <strong>{{ provider.name }}</strong>
+            <span :class="{ good: provider.configured }">{{ provider.configured ? "Disponível" : "Pendente" }}</span>
+            <small>{{ provider.sender || "Remetente não configurado" }}</small>
+          </div>
+        </div>
+        <div class="notify-test-box stack">
+          <strong>Enviar teste para caixa autorizada</strong>
+          <label class="field">
+            <span>Provedor para este teste</span>
+            <select v-model="testProvider">
+              <option v-for="provider in settings?.providers" :key="provider.id" :value="provider.id">
+                {{ provider.name }}{{ provider.configured ? "" : " (não configurado)" }}
+              </option>
+            </select>
+          </label>
+          <p>O destino é fixo: {{ settings?.testInbox || "caixa ainda não configurada" }}. No modo sandbox todos os envios, inclusive alertas operacionais, são redirecionados para ela.</p>
+          <label class="field"><span>Assunto</span><input v-model="mailSubject" maxlength="200" /></label>
+          <label class="field"><span>Mensagem</span><textarea v-model="mailBody" rows="4" maxlength="4000" /></label>
+          <button type="button" class="btn primary small" :disabled="busy || !settings?.testInbox || (settings?.mode !== 'log' && !testProviderStatus?.configured)" @click="sendTest"><Send :size="14" /> {{ busy ? "Enviando..." : "Enviar teste" }}</button>
+        </div>
+      </div>
+
+      <div v-else-if="tab === 'rules' || tab === 'recipients' || tab === 'templates'" class="notify-panel stack">
+        <label class="field">
+          <span>Evento</span>
+          <select :value="selectedKind" @change="chooseRule(($event.target as HTMLSelectElement).value as Kind)">
+            <option v-for="(label, kind) in names" :key="kind" :value="kind">{{ label }}</option>
+          </select>
+        </label>
+        <template v-if="selected">
+          <template v-if="tab === 'rules'">
+            <label class="notify-check"><input v-model="selected.enabled" type="checkbox" /> Regra ativa</label>
+            <label class="notify-check"><input v-model="selected.includeResponsible" type="checkbox" /> Incluir automaticamente o responsável cadastrado no equipamento</label>
+            <label v-if="(selected.kind === 'STARTUP_REMINDER' || selected.kind === 'DELIVERY_REMINDER')" class="field"><span>Dias antes do startup (0 a 365)</span><input v-model.number="selected.daysBefore" type="number" min="0" max="365" /></label>
+            <p class="notify-hint">Kickoff: conclusão da fase 5. FUP e conclusão: fase 7→8. Lembretes de startup, negociação vencida e entrega próxima são gerados pelo worker usando as fórmulas já existentes no Hub. Todas as regras começam desativadas.</p>
+          </template>
+          <template v-else-if="tab === 'recipients'">
+            <label class="notify-check"><input v-model="selected.includeResponsible" type="checkbox" /> Incluir responsável do equipamento</label>
+            <label class="field"><span>Destinatários fixos — um endereço por linha</span><textarea v-model="recipientsText" rows="6" placeholder="equipe@empresa.com" /></label>
+            <p class="notify-hint">No modo sandbox os endereços são registrados, mas não recebem e-mails: apenas a caixa de testes recebe. Em produção, os destinatários são deduplicados.</p>
+          </template>
+          <template v-else>
+            <label class="field"><span>Assunto</span><input v-model="selected.subjectTemplate" maxlength="200" /></label>
+            <label class="field"><span>Corpo do e-mail (texto simples)</span><textarea v-model="selected.bodyTemplate" rows="9" maxlength="4000" /></label>
+            <p class="notify-hint">Variáveis permitidas: {equipamento}, {obra}, {responsavel}, {fase}, {evento}, {data}. A prévia final usa os dados do equipamento no momento do evento.</p>
+          </template>
+          <button type="button" class="btn primary small" :disabled="busy" @click="save"><MailCheck :size="14" /> {{ busy ? "Salvando..." : "Salvar configuração" }}</button>
+        </template>
+      </div>
+
+      <div v-else class="notify-panel stack">
+        <div class="notify-heading">
+          <h4><Clock3 :size="16" /> Histórico de tentativas</h4>
+          <button type="button" class="btn small" :disabled="busy" @click="process">Processar fila agora</button>
+        </div>
+        <p class="notify-hint">Aceito pelo Graph significa HTTP 202 (aceito para processamento), não confirmação de entrega na caixa postal. Falhas são registradas para reenvio manual.</p>
+        <div v-if="!deliveries.length" class="notify-empty">Nenhuma tentativa de envio registrada.</div>
+        <div v-for="item in deliveries" :key="item.id" class="notify-delivery">
+          <div class="notify-heading">
+            <strong>{{ item.subject }}</strong>
+            <span class="notify-pill" :class="{ good: item.status === 'ACCEPTED', bad: item.status === 'FAILED' }">{{ stateLabels[item.status] ?? item.status }}</span>
+          </div>
+          <p>{{ item.recipientSummary || "Sem destinatários" }} · {{ formatDate(item.createdAt) }} · {{ item.mode }} · {{ item.provider === "graph" ? "Graph" : "Resend" }}</p>
+          <p v-if="item.failureReason" class="notify-error-text">{{ item.failureReason }}</p>
+          <button v-if="item.status === 'FAILED' && item.attempts < 3" class="btn small" :disabled="busy" type="button" @click="retry(item)">Reenviar após conferência</button>
+        </div>
+      </div>
+    </template>
+  </section>
+</template>
+
+<style scoped>
+.notification-center { width: 100%; min-width: 0; max-width: 100%; color: #24364f; }
+.notify-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.notify-heading h3 { font-size: 17px; font-weight: 800; margin: 0; }
+.notify-heading h4 { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 750; margin: 0; }
+.notify-heading p, .notify-delivery p { margin: 4px 0; font-size: 12px; color: #64748b; }
+.notify-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #dfe6f0; }
+.notify-tabs button { padding: 10px 12px; border-bottom: 2px solid transparent; font-size: 12px; color: #64748b; }
+.notify-tabs button.active { color: #304f7e; font-weight: 800; border-color: #304f7e; }
+.notify-panel { padding: 12px 0; }
+.notify-panel :deep(.field) { max-width: 100%; }
+.notify-panel textarea { resize: vertical; min-height: 90px; width: 100%; }
+.notify-panel .btn { align-self: flex-start; }
+.notify-status { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.notify-status strong { font-size: 14px; }
+.notify-providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.notify-provider { padding: 12px; border: 1px solid #e2e8f0; border-radius: 9px; display: grid; gap: 6px; }
+.notify-provider strong { font-size: 12px; }
+.notify-provider span { font-size: 11px; color: #a16207; }
+.notify-provider span.good { color: #307241; }
+.notify-provider small { color: #64748b; overflow-wrap: anywhere; }
+.notify-status span, .notify-pill { border-radius: 7px; padding: 4px 9px; background: #fff4df; color: #92620f; font-size: 11px; }
+.notify-status .good, .notify-pill.good { background: #e8f5e8; color: #2b6c3b; }
+.notify-pill.bad { background: #fff0ed; color: #b02f20; }
+.notify-details { display: grid; gap: 0; border: 1px solid #e6ebf3; border-radius: 10px; overflow: hidden; }
+.notify-details div { display: grid; grid-template-columns: 140px 1fr; padding: 11px 12px; gap: 12px; border-bottom: 1px solid #edf1f7; font-size: 12px; }
+.notify-details div:last-child { border-bottom: none; }
+.notify-details dt { color: #64748b; }
+.notify-details dd { overflow-wrap: anywhere; font-weight: 650; margin: 0; }
+.notify-hint { display: flex; gap: 8px; align-items: start; color: #64748b; font-size: 12px; line-height: 1.5; margin: 0; }
+.notify-test-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; }
+.notify-test-box p { font-size: 12px; color: #64748b; margin: 0; }
+.notify-check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.notify-check input { accent-color: #304f7e; }
+.notify-delivery { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.notify-delivery strong { font-size: 12px; font-weight: 700; max-width: 75%; overflow-wrap: anywhere; }
+.notify-empty { padding: 28px 12px; color: #64748b; text-align: center; font-size: 12px; }
+.notify-message { display: flex; gap: 8px; align-items: center; border-radius: 8px; padding: 10px; font-size: 12px; }
+.notify-error { background: #fff1f0; color: #a32c24; }
+.notify-success { background: #eff8ed; color: #306c2e; }
+.notify-error-text { color: #b02f20 !important; }
+</style>
