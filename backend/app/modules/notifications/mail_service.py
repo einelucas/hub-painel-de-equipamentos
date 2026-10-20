@@ -239,7 +239,7 @@ async def enqueue_test(session: AsyncSession, actor: CurrentUser, subject: str, 
     return record
 
 
-async def deliver_pending(limit: int = 20) -> int:
+async def deliver_pending(limit: int = 20, only_id: str | None = None) -> int:
     """Processa fila pendente. Claim transacional protege workers concorrentes.
 
     Falha/timeout exige retry manual: sem idempotência no Graph, um retry
@@ -248,14 +248,17 @@ async def deliver_pending(limit: int = 20) -> int:
     processed = 0
     for _ in range(min(limit, 100)):
         async with SessionLocal() as session:
+            query = select(EmailDelivery).where(EmailDelivery.status == "PENDING")
+            if only_id is not None:
+                query = query.where(EmailDelivery.id == only_id)
             item = (await session.execute(
-                select(EmailDelivery).where(EmailDelivery.status == "PENDING")
-                .order_by(EmailDelivery.created_at, EmailDelivery.id)
+                query.order_by(EmailDelivery.created_at, EmailDelivery.id)
                 .limit(1).with_for_update(skip_locked=True)
             )).scalar_one_or_none()
             if item is None:
                 break
             item.status = "PROCESSING"
+            item.processed_at = utcnow()
             item.attempts += 1
             item_id = item.id
             mode = item.mode
@@ -344,3 +347,25 @@ def settings_summary() -> dict[str, str | bool | None]:
         "sender": config.notification_graph_sender,
         "test_inbox": config.notification_test_inbox,
     }
+
+
+async def enqueue_startup_reminders_in_new_session() -> int:
+    async with SessionLocal() as session:
+        return await enqueue_startup_reminders(session)
+
+
+async def mark_stale_processing() -> int:
+    """Crash durante request Graph: resultado indeterminado, NUNCA retry automático."""
+    cutoff = utcnow() - timedelta(minutes=15)
+    async with SessionLocal() as session:
+        rows = (await session.execute(
+            select(EmailDelivery).where(
+                EmailDelivery.status == "PROCESSING",
+                EmailDelivery.processed_at < cutoff,
+            ).with_for_update(skip_locked=True)
+        )).scalars().all()
+        for row in rows:
+            row.status = "FAILED"
+            row.failure_reason = "Resultado indeterminado após interrupção. Verifique no Graph antes de reenviar."
+        await session.commit()
+        return len(rows)
