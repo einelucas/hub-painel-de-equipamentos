@@ -102,11 +102,19 @@ async def get_rule(session: AsyncSession, kind: str) -> NotificationRule:
     ).scalar_one_or_none()
     if row is None:
         subject, body = RULES[kind]
-        row = NotificationRule(kind=kind, enabled=False, include_responsible=True,
-                               days_before=0, recipient_emails="", subject_template=subject,
-                               body_template=body)
-        session.add(row)
-        await session.flush()
+        # Inserção idempotente entre múltiplas instâncias da API e cron.
+        from sqlalchemy.dialects.postgresql import insert
+
+        await session.execute(
+            insert(NotificationRule).values(
+                id=str(uuid4()), kind=kind, enabled=False, include_responsible=True,
+                days_before=0, recipient_emails="", subject_template=subject,
+                body_template=body, updated_at=utcnow(),
+            ).on_conflict_do_nothing(index_elements=[NotificationRule.kind])
+        )
+        row = (
+            await session.execute(select(NotificationRule).where(NotificationRule.kind == kind))
+        ).scalar_one()
     return row
 
 
@@ -172,10 +180,10 @@ async def enqueue_equipment(
     if not rule.enabled:
         return None
     already = (await session.execute(
-        select(EmailDelivery).where(EmailDelivery.dedup_key == key)
+        select(EmailDelivery.id).where(EmailDelivery.dedup_key == key)
     )).scalar_one_or_none()
     if already:
-        return already
+        return None
     values = await _context(session, equipment, kind)
     if event_date is not None:
         values["data"] = event_date.strftime("%d/%m/%Y")
