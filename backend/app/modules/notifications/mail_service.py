@@ -8,18 +8,23 @@ confirma que a mensagem chegou ao destinatário.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from string import Formatter
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.errors import ConflictError, DomainError, NotFoundError
+from app.domain.equipment_calculations import (
+    NegotiationStatus, aggregate_component_deadlines, calculate_negotiation_status,
+    component_deadline_values,
+)
 from app.models.common import utcnow
 from app.models.equipment import Equipment, ProjectContext, WorkflowTransition
 from app.models.notification import EmailDelivery, NotificationEvent, NotificationRule
@@ -47,6 +52,21 @@ RULES: dict[str, tuple[str, str]] = {
     "STARTUP_REMINDER": (
         "Startup previsto: {equipamento}",
         "Equipamento: {equipamento}\nObra: {obra}\nStartup: {data}\n"
+        "Responsável: {responsavel}\nEvento: {evento}",
+    ),
+    "NEGOTIATION_OVERDUE": (
+        "Negociação em atraso: {equipamento}",
+        "Equipamento: {equipamento}\nObra: {obra}\nPrazo: {data}\n"
+        "Responsável: {responsavel}\nEvento: {evento}",
+    ),
+    "DELIVERY_REMINDER": (
+        "Prazo de entrega se aproximando: {equipamento}",
+        "Equipamento: {equipamento}\nObra: {obra}\nData limite: {data}\n"
+        "Responsável: {responsavel}\nEvento: {evento}",
+    ),
+    "COMPLETED": (
+        "Aquisição concluída: {equipamento}",
+        "Equipamento: {equipamento}\nObra: {obra}\nEtapa: {fase}\n"
         "Responsável: {responsavel}\nEvento: {evento}",
     ),
 }
@@ -97,7 +117,7 @@ async def list_rules(session: AsyncSession) -> list[MailRuleOut]:
 async def update_rule(
     session: AsyncSession, actor: CurrentUser, kind: str, data: MailRuleUpdate
 ) -> MailRuleOut:
-    if kind != "STARTUP_REMINDER" and data.days_before:
+    if kind not in ("STARTUP_REMINDER", "DELIVERY_REMINDER") and data.days_before:
         raise DomainError("Antecedência aplica-se apenas ao lembrete de startup.")
     validate_template(data.subject_template)
     validate_template(data.body_template)
@@ -145,7 +165,8 @@ async def _recipients(session: AsyncSession, equipment: Equipment, rule: Notific
 
 
 async def enqueue_equipment(
-    session: AsyncSession, equipment: Equipment, kind: str, key: str
+    session: AsyncSession, equipment: Equipment, kind: str, key: str,
+    event_date: date | None = None,
 ) -> EmailDelivery | None:
     rule = await get_rule(session, kind)
     if not rule.enabled:
@@ -156,6 +177,8 @@ async def enqueue_equipment(
     if already:
         return already
     values = await _context(session, equipment, kind)
+    if event_date is not None:
+        values["data"] = event_date.strftime("%d/%m/%Y")
     recipients = await _recipients(session, equipment, rule)
     settings = get_settings()
     status = "PENDING" if recipients or settings.notification_mode == "sandbox" else "SKIPPED"
@@ -218,6 +241,63 @@ async def enqueue_startup_reminders(session: AsyncSession) -> int:
             continue
         if await enqueue_equipment(session, equipment, "STARTUP_REMINDER", key):
             created += 1
+    await session.commit()
+    return created
+
+
+async def enqueue_deadline_alerts(session: AsyncSession) -> int:
+    """Alertas por dados primários de componentes, usando as fórmulas do Hub.
+
+    Negociação: só quando realmente vencida e não negociada; um evento por prazo.
+    Entrega: no dia exato em que o prazo menos antecedência configurada vence.
+    """
+    overdue_rule = await get_rule(session, "NEGOTIATION_OVERDUE")
+    delivery_rule = await get_rule(session, "DELIVERY_REMINDER")
+    if not overdue_rule.enabled and not delivery_rule.enabled:
+        await session.commit()
+        return 0
+    try:
+        today = datetime.now(ZoneInfo(get_settings().notification_timezone)).date()
+    except ZoneInfoNotFoundError as exc:
+        raise DomainError("NOTIFICATION_TIMEZONE inválido.") from exc
+    equipments = (
+        await session.execute(
+            select(Equipment)
+            .where(Equipment.operational_status == "ACTIVE", Equipment.current_stage < 8)
+            .options(selectinload(Equipment.components), selectinload(Equipment.negotiation))
+            .order_by(Equipment.id).limit(5000)
+        )
+    ).scalars().all()
+    created = 0
+    for equipment in equipments:
+        deadlines = aggregate_component_deadlines(
+            component_deadline_values(
+                startup_at=component.startup_at,
+                pre_start_days=component.pre_start_days,
+                freight_days=component.freight_days,
+                lead_time_days=component.lead_time_days,
+            )
+            for component in equipment.components
+        )
+        negotiation_deadline = deadlines.min_negotiation_deadline
+        if overdue_rule.enabled and equipment.current_stage < 3 and negotiation_deadline:
+            negotiated_at = equipment.negotiation.negotiated_at if equipment.negotiation else None
+            status = calculate_negotiation_status(
+                negotiation_deadline=negotiation_deadline,
+                negotiated_at=negotiated_at,
+                reference_date=today,
+            )
+            if status == NegotiationStatus.OVERDUE:
+                key = f"negotiation:{equipment.id}:{negotiation_deadline.isoformat()}"
+                if await enqueue_equipment(
+                    session, equipment, "NEGOTIATION_OVERDUE", key, negotiation_deadline
+                ):
+                    created += 1
+        delivery = deadlines.min_delivery_deadline
+        if delivery_rule.enabled and delivery == today + timedelta(days=delivery_rule.days_before):
+            key = f"delivery:{equipment.id}:{delivery.isoformat()}:{delivery_rule.days_before}"
+            if await enqueue_equipment(session, equipment, "DELIVERY_REMINDER", key, delivery):
+                created += 1
     await session.commit()
     return created
 
@@ -356,7 +436,9 @@ def settings_summary() -> dict[str, str | bool | None]:
 
 async def enqueue_startup_reminders_in_new_session() -> int:
     async with SessionLocal() as session:
-        return await enqueue_startup_reminders(session)
+        startup = await enqueue_startup_reminders(session)
+        deadlines = await enqueue_deadline_alerts(session)
+        return startup + deadlines
 
 
 async def mark_stale_processing() -> int:

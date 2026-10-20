@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { AlertTriangle, CheckCircle2, CircleHelp, Clock3, MailCheck, RefreshCw, Send, Settings2 } from "lucide-vue-next";
 
-type Kind = "KICKOFF" | "FUP" | "STARTUP_REMINDER";
+type Kind = "KICKOFF" | "FUP" | "STARTUP_REMINDER" | "NEGOTIATION_OVERDUE" | "DELIVERY_REMINDER" | "COMPLETED";
 type Tab = "settings" | "rules" | "recipients" | "templates" | "history";
 type Settings = { mode: "log" | "sandbox" | "live"; provider: string; configured: boolean; sender: string | null; testInbox: string | null };
 type Rule = { kind: Kind; enabled: boolean; includeResponsible: boolean; daysBefore: number; recipientEmails: string[]; subjectTemplate: string; bodyTemplate: string };
@@ -26,6 +26,9 @@ const names: Record<Kind, string> = {
   KICKOFF: "Kickoff (conclusão da fase 5)",
   FUP: "FUP (conclusão da fase 7)",
   STARTUP_REMINDER: "Lembrete de startup (data programada)",
+  NEGOTIATION_OVERDUE: "Negociação atrasada",
+  DELIVERY_REMINDER: "Entrega próxima (prazo calculado)",
+  COMPLETED: "Equipamento concluído (fase 8)",
 };
 const tabs: { key: Tab; name: string }[] = [
   { key: "settings", name: "Configuração" },
@@ -80,7 +83,7 @@ async function save(): Promise<void> {
     const updated = await api.put<Rule>("/notifications/rules/" + rule.kind, {
       ...rule,
       recipientEmails,
-      daysBefore: rule.kind === "STARTUP_REMINDER" ? rule.daysBefore : 0,
+      daysBefore: ["STARTUP_REMINDER", "DELIVERY_REMINDER"].includes(rule.kind) ? rule.daysBefore : 0,
     });
     const index = rules.value.findIndex((value) => value.kind === rule.kind);
     if (index !== -1) rules.value[index] = updated;
@@ -211,8 +214,8 @@ onMounted(load);
           <template v-if="tab === 'rules'">
             <label class="notify-check"><input v-model="selected.enabled" type="checkbox" /> Regra ativa</label>
             <label class="notify-check"><input v-model="selected.includeResponsible" type="checkbox" /> Incluir automaticamente o responsável cadastrado no equipamento</label>
-            <label v-if="selected.kind === 'STARTUP_REMINDER'" class="field"><span>Dias antes do startup (0 a 365)</span><input v-model.number="selected.daysBefore" type="number" min="0" max="365" /></label>
-            <p class="notify-hint">Kickoff: conclusão da fase 5. FUP: conclusão da fase 7. Lembrete de startup: execução programada do worker, usando a data do equipamento. Todas as regras começam desativadas.</p>
+            <label v-if="(selected.kind === 'STARTUP_REMINDER' || selected.kind === 'DELIVERY_REMINDER')" class="field"><span>Dias antes do startup (0 a 365)</span><input v-model.number="selected.daysBefore" type="number" min="0" max="365" /></label>
+            <p class="notify-hint">Kickoff: conclusão da fase 5. FUP e conclusão: fase 7→8. Lembretes de startup, negociação vencida e entrega próxima são gerados pelo worker usando as fórmulas já existentes no Hub. Todas as regras começam desativadas.</p>
           </template>
           <template v-else-if="tab === 'recipients'">
             <label class="notify-check"><input v-model="selected.includeResponsible" type="checkbox" /> Incluir responsável do equipamento</label>

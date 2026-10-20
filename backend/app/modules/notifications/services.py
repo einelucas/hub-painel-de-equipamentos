@@ -33,10 +33,14 @@ async def trigger_for_transition(
     kind = _TRIGGER_KIND_BY_FROM_STAGE.get(transition.from_stage)
     if kind is None:
         return None
-    from app.modules.notifications.mail_service import enqueue_transition
+    from app.modules.notifications.mail_service import enqueue_equipment, enqueue_transition
 
     try:
         event = await enqueue_transition(session, equipment, transition, kind)
+        if transition.from_stage == 7:
+            await enqueue_equipment(
+                session, equipment, "COMPLETED", f"transition:{transition.id}:COMPLETED"
+            )
         await session.commit()
     except Exception:
         await session.rollback()

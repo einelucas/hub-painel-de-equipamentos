@@ -57,6 +57,9 @@ Todas começam **desativadas**. Podem ser configuradas na UI:
 - \`FUP\`: após a transição 7→8;
 - \`STARTUP_REMINDER\`: aviso na data do startup menos \`daysBefore\` dias,
   para equipamentos com status \`ACTIVE\`, executado pelo worker.
+- \`NEGOTIATION_OVERDUE\`: negociação ainda pendente e prazo calculado vencido, uma vez por prazo.
+- \`DELIVERY_REMINDER\`: data-limite de entrega em obra calculada, menos \`daysBefore\` dias.
+- \`COMPLETED\`: avanço 7→8, com regra separada do FUP.
 
 Cada regra permite destinatários fixos, incluir responsável do equipamento,
 assunto e corpo em texto simples. Variáveis permitidas: \`{equipamento}\`,

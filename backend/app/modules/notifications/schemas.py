@@ -10,7 +10,10 @@ from pydantic import Field, field_validator
 
 from app.shared.schema import CamelModel
 
-_KIND = Literal["KICKOFF", "FUP", "STARTUP_REMINDER"]
+_KIND = Literal[
+    "KICKOFF", "FUP", "STARTUP_REMINDER", "NEGOTIATION_OVERDUE",
+    "DELIVERY_REMINDER", "COMPLETED",
+]
 _EMAIL = re.compile(r"^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$")
 
 
