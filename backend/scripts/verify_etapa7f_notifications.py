@@ -131,9 +131,9 @@ async def main() -> None:
         )
         assert len(events) == 1, f"esperava 1 evento KICKOFF, achou {len(events)}"
         assert events[0].kind == "KICKOFF"
-        assert events[0].status == "SENT"
+        assert events[0].status == "PENDING"
         assert events[0].recipient_summary == admin.email
-        print("OK: conclusão da fase 5 gera exatamente 1 evento KICKOFF, enviado, com destinatário resolvido")
+        print("OK: conclusão da fase 5 gera exatamente 1 evento KICKOFF pendente de envio")
 
         # Retry idempotency: calling the trigger again for the same transition must not duplicate.
         from app.modules.notifications.services import trigger_for_transition

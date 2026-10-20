@@ -494,8 +494,9 @@ async def test_kickoff_and_fup_events_are_generated_once_per_transition(
     fup = [item for item in events if item.kind == "FUP"]
     assert len(kickoff) == 1
     assert len(fup) == 1
-    assert kickoff[0].status in ("SENT", "FAILED")
-    assert fup[0].status in ("SENT", "FAILED")
+    # Evento persistido é PENDING até worker/Graph. Log não significa envio.
+    assert kickoff[0].status == "PENDING"
+    assert fup[0].status == "PENDING"
 
 
 async def test_requirement_group_satisfied_when_data_is_complete(client, auth_header) -> None:
