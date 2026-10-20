@@ -1,4 +1,4 @@
-# Central de notificações — Microsoft Graph e caixa de testes
+# Central de notificações — Microsoft Graph + Resend
 
 **Implementação:** módulo administrativo em Equipamentos → Administração → Notificações,
 ou rota direta de ADMIN: \`/administracao/notificacoes\`. A API está sob \`/api/v1/notifications\`.
@@ -12,10 +12,13 @@ Novas tabelas: \`notification_rule\` (um conjunto corporativo de regras) e
 \`email_delivery\` (outbox idempotente, status, tentativas, auditoria).
 \`notification_event\` legado continua preservado para histórico do fluxo.
 
-## 2. Credenciais Microsoft Graph (somente backend)
+## 2. Provedores de e-mail (somente backend)
 
 \`\`\`dotenv
 NOTIFICATION_MODE=log
+NOTIFICATION_PROVIDER=graph
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
 GRAPH_TENANT_ID=
 GRAPH_CLIENT_ID=
 GRAPH_CLIENT_SECRET=
@@ -24,7 +27,16 @@ NOTIFICATION_TEST_INBOX=
 NOTIFICATION_TIMEZONE=America/Sao_Paulo
 \`\`\`
 
-O administrador do Microsoft Entra ID precisa criar um aplicativo com credenciais
+**Resend para testes (inclusive Gmail pessoal)**: crie uma API key em
+<https://resend.com/api-keys>, configure `RESEND_API_KEY` e `RESEND_FROM_EMAIL`
+(o remetente fornecido pelo Resend, como `onboarding@resend.dev`, está sujeito
+a restrições de teste; para outros destinatários, verifique um domínio).
+Use `NOTIFICATION_MODE=sandbox`, `NOTIFICATION_PROVIDER=resend` e
+`NOTIFICATION_TEST_INBOX=seu@gmail.com`. A caixa pessoal deve pertencer à
+mesma conta autorizada para testes e receber **somente dados sintéticos**.
+Não compartilhe informações empresariais com serviços externos sem aprovação.
+
+**Microsoft Graph corporativo**: o administrador do Microsoft Entra ID precisa criar um aplicativo com credenciais
 de aplicação, conceder **Microsoft Graph Mail.Send (Application)** mediante consentimento
 administrativo e limitar o acesso do app às caixas autorizadas no Exchange Online
 (por exemplo, RBAC for Applications). A conta \`GRAPH_SENDER\` deve existir e ter licença
@@ -64,7 +76,7 @@ Todas começam **desativadas**. Podem ser configuradas na UI:
 Cada regra permite destinatários fixos, incluir responsável do equipamento,
 assunto e corpo em texto simples. Variáveis permitidas: \`{equipamento}\`,
 \`{obra}\`, \`{responsavel}\`, \`{fase}\`, \`{evento}\`, \`{data}\`.
-A UI não permite configurar a credencial Graph. Para novas regras de prazo
+A UI não permite configurar credenciais Graph/Resend. Para novas regras de prazo
 de negociação e entrega, confirmar fórmulas/gatilhos com o Planejamento antes
 de codificar ou ativar notificações automáticas.
 
@@ -94,8 +106,8 @@ envio \`PROCESSING\` antigo como indeterminado, para revisão.
 1. \`NOTIFICATION_MODE=log\` nunca produz tráfego de e-mail e grava \`SIMULATED\`.
 2. \`sandbox\` envia *exclusivamente* à caixa autorizada mesmo que a regra tenha
    destinatários reais.
-3. Sem credenciais Graph, a interface indica configuração incompleta, sem
-   expor client secret ou bearer token.
+3. Sem credenciais do provedor, a interface indica configuração incompleta,
+   sem expor client secret, Resend API key ou bearer token.
 4. Permissão administrativa é validada no backend.
 5. Regra desativada não enfileira novo e-mail; transição continua funcionando.
 6. Mesma transição/data nunca gera duplicação na outbox.
@@ -113,3 +125,24 @@ envio \`PROCESSING\` antigo como indeterminado, para revisão.
   no retorno HTTP 202.
 - O histórico legacy \`notification_event\` conserva os status antigos, enquanto
   \`email_delivery\` é a fonte de verdade para os novos envios.
+
+## Configuração de teste Resend + Gmail
+
+```dotenv
+NOTIFICATION_PROVIDER=resend
+NOTIFICATION_MODE=sandbox
+NOTIFICATION_TEST_INBOX=seuemail@gmail.com
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=onboarding@resend.dev
+```
+
+Utilize o mesmo e-mail com que a conta Resend foi criada para os primeiros
+ensaios com `onboarding@resend.dev`, conforme regras de sandbox do provedor.
+Configure o endereço e a chave apenas nas variáveis de ambiente do Railway.
+Os campos Graph podem permanecer vazios até a autorização da TI.
+
+Após liberar Graph, configure suas variáveis sem remover o Resend e altere
+`NOTIFICATION_PROVIDER=graph` e `NOTIFICATION_MODE=live` para o serviço
+operacional. A central permite escolher Resend ou Graph **para o botão de
+ teste**, mesmo com o Graph como provedor operacional; a caixa de testes nunca
+é substituída pelos destinatários reais.

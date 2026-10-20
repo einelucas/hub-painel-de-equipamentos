@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime, timedelta
 from string import Formatter
+from typing import cast
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -369,7 +370,7 @@ async def deliver_pending(limit: int = 20, only_id: str | None = None) -> int:
             item.attempts += 1
             item_id = item.id
             mode = item.mode
-            provider: MailProvider = item.provider
+            provider = cast(MailProvider, item.provider)
             addresses = _addresses(item.recipient_summary.replace(", ", ";").replace("; ", ";"))
             subject, body, dedup_key = item.subject, item.body, item.dedup_key
             await session.commit()
@@ -443,7 +444,7 @@ async def retry_delivery(session: AsyncSession, actor: CurrentUser, delivery_id:
 def public_delivery(row: EmailDelivery) -> MailDeliveryOut:
     return MailDeliveryOut(
         id=row.id, kind=row.kind, equipment_id=row.equipment_id,
-        status=row.status, mode=row.mode, provider=row.provider,
+        status=row.status, mode=row.mode, provider=cast(MailProvider, row.provider),
         recipient_summary=row.recipient_summary,
         subject=row.subject, failure_reason=row.failure_reason,
         attempts=row.attempts, created_at=row.created_at, processed_at=row.processed_at,
@@ -453,6 +454,7 @@ def public_delivery(row: EmailDelivery) -> MailDeliveryOut:
 def settings_summary() -> dict[str, object]:
     config = get_settings()
     active = config.notification_provider
+    provider_ids: tuple[MailProvider, MailProvider] = ("graph", "resend")
     providers: list[dict[str, str | bool | None]] = [
         {
             "id": provider,
@@ -460,7 +462,7 @@ def settings_summary() -> dict[str, object]:
             "configured": provider_ready(config, provider),
             "sender": provider_sender(config, provider),
         }
-        for provider in ("graph", "resend")
+        for provider in provider_ids
     ]
     return {
         "mode": config.notification_mode,
