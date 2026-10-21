@@ -34,6 +34,7 @@ from app.modules.supplier_import.evidence_seed import (
     reconcile_evidence_seed,
 )
 
+
 def _load_rows(path: Path) -> list[EvidenceSeedRow]:
     return load_evidence_seed_json(path) if path.suffix.lower() == ".json" else load_evidence_seed(path)
 
