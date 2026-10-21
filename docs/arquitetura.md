@@ -1,33 +1,78 @@
-# Arquitetura
+# Arquitetura da aplicação
 
-O Painel de Equipamentos utiliza duas aplicações independentes no mesmo repositório.
+O Painel de Equipamentos é um módulo do Hub com frontend Nuxt e API FastAPI. O PostgreSQL é a fonte de verdade para dados de domínio, usuários, eventos e configurações operacionais persistidas. Arquivos corporativos e segredos devem permanecer fora do repositório.
+
+~~~mermaid
+flowchart TD
+    UI["Nuxt 4 / Vue 3 / Pinia"] --> HTTP["useApi → Axios"]
+    HTTP --> API["FastAPI /api/v1"]
+    API --> POLICY["Autenticação, permissão e escopo"]
+    POLICY --> DOM["Services de domínio"]
+    DOM --> DB["SQLAlchemy async → PostgreSQL"]
+    DOM --> OUT["Notificações / outbox"]
+    DOM --> IMPORT["Importação Monday"]
+    IMPORT --> DB
+    OUT --> MAIL["Microsoft Graph ou Resend"]
+~~~
 
 ## Frontend
 
-O frontend é Nuxt 4 + Vue 3 + TypeScript, com Pinia e Tailwind CSS. A identidade do Hub fica concentrada no layout, `AppHeader`, `TabsNav`, tokens visuais e assets em `public/brand`.
+- `frontend/pages/`: rotas de dashboard, equipamentos, engenharia, jurídico, suprimentos, fornecedores, administração, autenticação e Kanban.
+- `frontend/components/`: componentes de interface, formulários, tabelas, cards, gráficos e shells reutilizáveis.
+- `frontend/stores/moduleContext.ts`: filtros de unidade, contexto/projeto e equipamento; garante compatibilidade quando o filtro superior muda.
+- `frontend/stores/auth.ts` e composables de autenticação: sessão e identidade.
+- `frontend/composables/useApi.ts`: fachada pública de requisições.
+- `frontend/services/api/http.ts`: instância **Axios** centralizada, normalização de URLs/erros, token Bearer, downloads e progresso de upload.
+- `frontend/utils/navigation.ts`: itens e permissões da navbar. A auditoria e recursos administrativos também podem ser acessados por rotas/contextos próprios.
 
-O contexto global do módulo (Unidade + Equipamento) fica no store Pinia `moduleContext`, compartilhado por dashboard, listagem e filas; `components/ModuleFilters.vue` é a barra única desses filtros e a query string mantém a visão compartilhável. A navbar (`TabsNav`) resolve o item ativo por prefixo mais específico em `utils/navigation.ts`.
-
-O detalhe também é a tela de operação do processo de aquisição: `useEquipmentWorkflow` coordena os dados dos processos, as transições disponíveis e o histórico, e `utils/workflow.ts` concentra a lógica pura (mapa etapa → formulário, estados do stepper). Nenhuma regra de transição vive no frontend — a habilitação do avanço vem de `available-transitions`.
-
-Os componentes genéricos de UI e os charts permanecem reutilizáveis.
+Não faça novas chamadas Axios diretamente das páginas: preserve a fachada compartilhada e os contratos dos componentes.
 
 ## Backend
 
-O backend é FastAPI com SQLAlchemy assíncrono. A composição das rotas acontece em `app/api/v1/router.py`.
+`backend/app/main.py` cria a aplicação, configura middleware, CORS, erros e monta `app/api/v1/router.py` sob `/api/v1`. Este router agrega autenticação, saúde, usuários, acessos, auditoria, catálogos, comentários, equipamentos, notificações, processos, workflow, filas, fornecedores, dashboard e importação.
 
-A base preserva autenticação, usuários, auditoria e health checks. O domínio foi separado em `catalogs`, `equipments`, `dashboard`, `processes`, `workflow`, `queues`, `access` e `suppliers`, cada um com router, service e schemas explícitos.
+A organização predominante dos módulos em `backend/app/modules/` é:
 
-A autorização por unidade é centralizada em `app/core/scope.py` e aplicada em todos os módulos que leem ou escrevem dados de uma unidade. Conhecer o UUID de um equipamento não dá acesso a ele: fora do escopo a resposta é 404, com mensagem que não revela a existência do recurso.
+~~~text
+modulo/
+  controllers.py    Rotas, dependências e contratos HTTP
+  services.py       Regras transacionais e operações do domínio
+  schemas.py        Entrada/saída Pydantic
+~~~
 
-`dashboard` agrega tudo no banco em uma resposta consolidada e `queues` recorta o workflow por área, reaproveitando os requisitos de transição do módulo `workflow` para nunca divergir do detalhe.
+Alguns domínios possuem serviços especializados, workers, validações e adaptadores. Os modelos SQLAlchemy continuam centralizados em `backend/app/models/`; não foram movidos automaticamente para cada módulo.
 
-`workflow` concentra a máquina de estados: `stages.py` declara as pré-condições de cada transição e `service.py` as executa sob transação, com o equipamento bloqueado e revalidação do estágio antes do commit. É o único componente autorizado a alterar `equipment.current_stage`.
-
-`monday_import` é uma fronteira administrativa sem endpoint. O parser e o dry-run são puros; o service
-grava somente staging e identidades externas. Ele não contorna `workflow` nem cria registros definitivos
-do domínio. A arquitetura detalhada está em `docs/migration/monday-import-architecture.md`.
+Módulos relevantes: `access`, `audit`, `catalogs`, `comments`, `dashboard`, `equipments`, `imports`, `monday_import`, `notifications`, `processes`, `queues`, `suppliers`, `users` e `workflow`; a EAP tem componentes de catálogo e reconciliação especializados.
 
 ## Persistência
 
-O schema compartilhado continua na migration `0001_shared_base`. A migration `0002_equipment_domain` adiciona o domínio normalizado e reversível, `0003_acquisition_process` acrescenta as entidades do processo de aquisição, `0004_access_and_suppliers` adiciona acesso por unidade e fornecedores e `0005_monday_import_foundation` adiciona staging/mapeamento externo. Estado de workflow é mantido apenas em `equipment.current_stage`; transições são históricas e imutáveis.
+- PostgreSQL, SQLAlchemy 2 assíncrono e drivers configurados em `backend/app/core/database.py`.
+- Alembic em `backend/alembic/` versiona as tabelas; uma migration presente no Git não comprova a versão física de um banco.
+- `app/models/equipment.py`, `process.py`, `notification.py`, `monday_import.py` e demais arquivos representam relacionamentos e registros de domínio.
+- Processos de aquisição e mudanças de etapa são controlados por services, não por atualização livre do estado pelo frontend.
+- Informações financeiras, datas contratuais e fornecedores são dados operacionais; políticas de acesso devem ser aplicadas também à leitura e exportação.
+
+Veja [domínio e EAP](dominio-eap.md) para cardinalidades e invariantes.
+
+## Segurança transversal
+
+- `backend/app/core/auth.py` resolve identidade por login local, sessão ou OIDC/Keycloak; uma exceção de desenvolvimento é condicionada ao ambiente.
+- `backend/app/core/permissions.py` e `scope.py` centralizam autorização por permissão e escopo por unidade; conhecer um UUID não concede acesso.
+- Configuração em `backend/app/core/config.py` usa Pydantic Settings; credenciais do Neon, Graph, Resend e storage nunca devem estar embutidas na interface.
+- Logs e trilhas de auditoria devem ser úteis sem expor senha, token ou conteúdo sensível desnecessário.
+
+## Importação de fontes externas
+
+O motor comum em `app/modules/monday_import/` lê planilhas XLSX de boards aprovados, usa `ImportProfile`, gera staging/plan, executa apply controlado e reconcilia. `app/modules/imports/` expõe parte do pipeline à interface administrativa, incluindo jobs de apply assíncronos.
+
+**Monday é origem dos equipamentos reais importados.** A LGE não deve gerar equipamentos automaticamente. A Árvore oficial, disponível somente em fonte autorizada, é a referência para o catálogo EAP; decisões de reconciliação ambíguas não são inferidas por nome.
+
+## Notificações
+
+`app/modules/notifications/` mantém regras de destinatários e eventos, `email_template` e `email_delivery` no banco. Templates HTML passam por sanitização; a outbox usa controle de concorrência e integrações configuráveis com Microsoft Graph ou Resend. A execução do processamento e as permissões são responsabilidades do backend.
+
+## Implantação e evolução
+
+A API e o frontend podem ser implantados separadamente. O runtime exige variáveis de ambiente coerentes, migrations autorizadas, CORS, storage e identidade configurados. Não infira que a implantação em Railway está homologada apenas pela presença de arquivos de deploy.
+
+Mudanças arquiteturais devem ser **incrementais**, preservar endpoints e schema publicados, incluir testes de regressão e atualizar esta documentação. Consulte [ambientes](ambientes-deploy.md) e [testes](testes.md).
