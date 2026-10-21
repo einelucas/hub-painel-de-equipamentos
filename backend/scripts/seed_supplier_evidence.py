@@ -4,7 +4,8 @@ Exemplos (arquivos privados, locais):
   python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx --dry-run --offline
   python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx --dry-run
   python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx --apply --confirm --actor-id UUID
-  python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx --export-json /dados-privados/evidencias.json
+  python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx \\
+    --export-json /dados-privados/evidencias.json
 
 O apply nunca cria Supplier nem EquipmentSupplier. O alvo ainda passa pela
 mesma guarda de escrita das migrações Monday.

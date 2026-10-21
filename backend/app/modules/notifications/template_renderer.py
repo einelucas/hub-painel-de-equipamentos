@@ -341,7 +341,10 @@ def _notice(content: TemplateContent, context: EmailContext, accent: str) -> str
     tint = KIND_TINTS.get(content.kind, "#F0F5FB")
     # Não repetir a manchete dentro do aviso quando ambas possuem o mesmo texto.
     rendered_title = render_string(content.title, context.values).strip().casefold()
-    show_alert_label = bool(context.alert_label.strip()) and context.alert_label.strip().casefold() != rendered_title
+    show_alert_label = (
+        bool(context.alert_label.strip())
+        and context.alert_label.strip().casefold() != rendered_title
+    )
     notice_title = KIND_NOTICE_TITLES.get(content.kind, "ATUALIZAÇÃO DE PROCESSO")
     critical = ""
     if context.criticality:
@@ -356,7 +359,8 @@ def _notice(content: TemplateContent, context: EmailContext, accent: str) -> str
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" '
         f'bgcolor="{tint}" style="background:{tint};border-collapse:separate;margin:0 0 24px;">'
         '<tr>'
-        f'<td width="5" bgcolor="{accent}" style="width:5px;background:{accent};font-size:0;line-height:0;">&nbsp;</td>'
+        f'<td width="5" bgcolor="{accent}" '
+        f'style="width:5px;background:{accent};font-size:0;line-height:0;">&nbsp;</td>'
         '<td style="padding:18px 20px;">'
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">'
         '<tr><td>'
@@ -442,7 +446,8 @@ def _layout(content: TemplateContent, context: EmailContext) -> str:
             '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
             '<tr><td style="vertical-align:top;">'
             f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;'
-            f'font-weight:800;letter-spacing:.4px;color:{NAVY};">INPASA &nbsp;/&nbsp; COMUNICAÇÃO AUTOMÁTICA</div>'
+            f'font-weight:800;letter-spacing:.4px;color:{NAVY};">'
+            'INPASA &nbsp;/&nbsp; COMUNICAÇÃO AUTOMÁTICA</div>'
             f'<p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;'
             f'line-height:18px;color:{MUTED};">{_html_text(content.footer, context.values)}</p>'
             '</td></tr></table></td></tr>'
@@ -482,10 +487,12 @@ def _layout(content: TemplateContent, context: EmailContext) -> str:
         'cellpadding="0" border="0" bgcolor="#FFFFFF" '
         f'style="width:620px;max-width:620px;background:#FFFFFF;border:1px solid {BORDER};'
         'border-collapse:separate;border-radius:11px;overflow:hidden;">'
-        f'<tr><td height="5" bgcolor="{NAVY}" style="height:5px;background:{NAVY};font-size:0;line-height:0;">'
+        f'<tr><td height="5" bgcolor="{NAVY}" '
+        f'style="height:5px;background:{NAVY};font-size:0;line-height:0;">'
         '&nbsp;</td></tr>'
         f'{_brand_header(logo)}'
-        f'<tr><td bgcolor="{BORDER}" height="1" style="height:1px;background:{BORDER};font-size:0;line-height:0;">&nbsp;</td></tr>'
+        f'<tr><td bgcolor="{BORDER}" height="1" '
+        f'style="height:1px;background:{BORDER};font-size:0;line-height:0;">&nbsp;</td></tr>'
         '<tr><td class="email-padding" style="padding:34px 32px 36px;">'
         f'<div style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;'
         f'font-size:10px;line-height:16px;font-weight:800;letter-spacing:1.6px;color:{NAVY};">'
