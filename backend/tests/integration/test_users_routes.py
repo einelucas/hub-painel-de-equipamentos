@@ -41,7 +41,7 @@ async def test_created_user_receives_local_first_access_credential(
 ) -> None:
     created = await client.post(
         "/api/v1/usuarios",
-        json={"name": "Diego Costa", "email": "Diego.Costa@Inpasa.com.br", "role": "ADMIN"},
+        json={"name": "Diego Costa", "email": "Diego.Costa@Example.com", "role": "ADMIN"},
         headers=auth_header("ADMIN"),
     )
     assert created.status_code == 201
@@ -57,7 +57,7 @@ async def test_created_user_receives_local_first_access_credential(
 
     login = await client.post(
         "/api/v1/auth/login",
-        json={"email": "DIEGO.COSTA@INPASA.COM.BR", "password": DEFAULT_PASSWORD},
+        json={"email": "DIEGO.COSTA@EXAMPLE.COM", "password": DEFAULT_PASSWORD},
     )
     assert login.status_code == 200
     assert login.json() == {"passwordChangeRequired": True}

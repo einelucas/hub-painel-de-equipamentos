@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from sqlalchemy import select, update
 
-from app.core.local_auth import upsert_local_user
+from app.core.local_auth import DEFAULT_PASSWORD, upsert_local_user
 from app.models.common import utcnow
 from app.models.user import Account, Role, Session
 
@@ -19,7 +19,7 @@ async def test_login_issues_session_accepted_by_me(client, db_session) -> None:
     await _seed_admin(db_session)
 
     response = await client.post(
-        "/api/v1/auth/login", json={"email": " Admin@Inpasa.com.br ", "password": PASSWORD}
+        "/api/v1/auth/login", json={"email": " ADMIN@EXAMPLE.COM ", "password": PASSWORD}
     )
     assert response.status_code == 200
     token = response.json()["accessToken"]
@@ -80,7 +80,7 @@ async def test_upsert_resets_password(client, db_session) -> None:
     assert new.status_code == 200
 
 
-DEFAULT = "INP@2026"
+DEFAULT = DEFAULT_PASSWORD
 NEW_EMAIL = "novo@example.com"
 
 
