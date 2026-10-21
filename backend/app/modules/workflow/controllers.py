@@ -147,7 +147,7 @@ async def post_end_sanitation(
 
 # --- Etapa 7.1: dispensa de requisitos por grupo (RequirementWaiver) ---
 # Substitui as exceções de workflow rígidas da Etapa 7B (FIXED_SUPPLIER/
-# IMPORTATION) — ver docs/validation/etapa-07-1-requirement-waivers.md.
+# IMPORTATION) — ver docs/dominio-eap.md.
 
 
 @router.get(
