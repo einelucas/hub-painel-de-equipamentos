@@ -2,7 +2,7 @@
 
 Substitui o mecanismo rígido de `workflow_exception` (não removido aqui:
 nenhum registro real existe em DEV, mantido só por compatibilidade de
-schema — ver docs/validation/etapa-07-1-requirement-waivers.md).
+schema — ver docs/dominio-eap.md).
 
 Revision ID: 0009_requirement_waivers
 Revises: 0008_notification_events
