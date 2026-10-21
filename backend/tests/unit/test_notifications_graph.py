@@ -91,6 +91,28 @@ async def test_sandbox_refuses_missing_test_inbox() -> None:
 
 
 @pytest.mark.asyncio
+async def test_graph_sends_html_content_type_when_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    requests: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if "login.microsoftonline.com" in str(request.url):
+            return httpx.Response(200, json={"access_token": "temporary-token"})
+        return httpx.Response(202)
+
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx, "AsyncClient",
+        lambda **kwargs: real_client(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    assert await send_mail(
+        ["real@example.com"], "Subject", "Plain", settings("live"), html="<b>HTML</b>",
+    ) == "ACCEPTED"
+    body = __import__("json").loads(requests[1].content)["message"]["body"]
+    assert body == {"contentType": "HTML", "content": "<b>HTML</b>"}
+
+
+@pytest.mark.asyncio
 async def test_graph_does_not_report_mailbox_delivery(monkeypatch: pytest.MonkeyPatch) -> None:
     def respond(request: httpx.Request) -> httpx.Response:
         if "login.microsoftonline.com" in str(request.url):

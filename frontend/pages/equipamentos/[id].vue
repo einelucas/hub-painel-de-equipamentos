@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { ArrowLeft } from "lucide-vue-next";
+import {
+  Boxes,
+  Building2,
+  History,
+  MessageSquare,
+  Workflow,
+} from "lucide-vue-next";
 import type { Equipment, EquipmentDetail } from "~/types/equipment";
 import { currentStageEnteredAt } from "~/utils/workflow";
 
@@ -94,9 +100,7 @@ onMounted(load);
     :title="detail?.equipment.name ?? 'Detalhe do equipamento'"
     description="Processo de aquisição, dados mestres, componentes e histórico."
   >
-    <NuxtLink class="admin-back" to="/dashboard"
-      ><ArrowLeft :size="15" /> Voltar ao painel</NuxtLink
-    >
+    <BackLink class="page-back" to="/dashboard">Voltar ao painel</BackLink>
     <div v-if="loading && !detail" class="surface detail-state" role="status">
       <span class="spinner" /> Carregando detalhe...
     </div>
@@ -157,43 +161,63 @@ onMounted(load);
 
       <EquipmentDeadlines :calculated="detail.equipment.calculated" />
 
-      <div class="detail-tabs" role="tablist">
+      <div
+        class="detail-tabs"
+        role="tablist"
+        aria-label="Seções do equipamento"
+      >
         <button
+          type="button"
           :class="{ active: tab === 'process' }"
           role="tab"
+          :aria-selected="tab === 'process'"
           @click="tab = 'process'"
         >
-          Processo
+          <Workflow :size="16" aria-hidden="true" />
+          <span>Processo</span>
         </button>
         <button
+          type="button"
           :class="{ active: tab === 'components' }"
           role="tab"
+          :aria-selected="tab === 'components'"
           @click="tab = 'components'"
         >
-          Componentes ({{ detail.components.length }})
+          <Boxes :size="16" aria-hidden="true" />
+          <span>Componentes</span>
+          <span class="detail-tab-count">{{ detail.components.length }}</span>
         </button>
         <button
+          type="button"
           :class="{ active: tab === 'suppliers' }"
           role="tab"
+          :aria-selected="tab === 'suppliers'"
           data-testid="tab-suppliers"
           @click="tab = 'suppliers'"
         >
-          Fornecedor
+          <Building2 :size="16" aria-hidden="true" />
+          <span>Fornecedor</span>
         </button>
         <button
+          type="button"
           :class="{ active: tab === 'comments' }"
           role="tab"
+          :aria-selected="tab === 'comments'"
           data-testid="tab-comments"
           @click="tab = 'comments'"
         >
-          Comentários
+          <MessageSquare :size="16" aria-hidden="true" />
+          <span>Comentários</span>
         </button>
         <button
+          type="button"
           :class="{ active: tab === 'history' }"
           role="tab"
+          :aria-selected="tab === 'history'"
           @click="tab = 'history'"
         >
-          Histórico
+          <History :size="16" aria-hidden="true" />
+          <span>Histórico</span>
         </button>
       </div>
 
@@ -254,10 +278,6 @@ onMounted(load);
 </template>
 
 <style scoped>
-.admin-back {
-  align-items: center;
-  gap: 6px;
-}
 .detail-state {
   display: flex;
   min-height: 280px;
@@ -267,20 +287,81 @@ onMounted(load);
 }
 .detail-tabs {
   display: flex;
+  align-items: center;
   gap: 4px;
-  border-bottom: 1px solid #e4e9f0;
+  overflow-x: auto;
+  border: 1px solid #d9e3ef;
+  border-radius: 12px;
+  background: #fff;
+  padding: 4px;
+  box-shadow: 0 6px 18px rgb(39 69 120 / 7%);
+  scrollbar-width: none;
+}
+.detail-tabs::-webkit-scrollbar {
+  display: none;
 }
 .detail-tabs button {
-  border: 0;
-  border-bottom: 2px solid transparent;
-  padding: 9px 14px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 12px;
   background: transparent;
-  color: #7a879a;
-  font-size: 12px;
-  font-weight: 750;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.detail-tabs button svg {
+  flex: 0 0 auto;
+  color: #8291a6;
+}
+.detail-tabs button:hover {
+  background: #f3f7fc;
+  color: #2b3e58;
+}
+.detail-tabs button:hover svg {
+  color: #52657c;
+}
+.detail-tabs button:focus-visible {
+  outline: 2px solid #304f7e;
+  outline-offset: 2px;
 }
 .detail-tabs button.active {
-  border-bottom-color: #304f7e;
-  color: #2b3e58;
+  border-color: #cfe0f4;
+  background: #e8f1fc;
+  color: #27456f;
+  box-shadow: inset 0 0 0 1px rgb(48 79 126 / 3%);
+}
+.detail-tabs button.active svg {
+  color: #304f7e;
+}
+.detail-tab-count {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  padding: 0 6px;
+  background: #e6edf6;
+  color: #52657c;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+.detail-tabs button.active .detail-tab-count {
+  background: #fff;
+  color: #27456f;
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-tabs button {
+    transition: none;
+  }
 }
 </style>

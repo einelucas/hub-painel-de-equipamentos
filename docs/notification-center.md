@@ -5,10 +5,13 @@ ou rota direta de ADMIN: \`/administracao/notificacoes\`. A API está sob \`/api
 
 ## 1. Preparação do banco e ambientes
 
-Migration: \`0024_notification_delivery\`. **Nunca aplique em DEV/produção sem autorização.**
+Migration: \`0024_notification_delivery\` (regras/outbox), \`0025_email_delivery_provider\`
+(provedor por envio) e \`0026_email_templates\` (modelos HTML e alternativa HTML na
+outbox). **Nunca aplique em DEV/produção sem autorização.**
 Aplicar somente em banco TEST dedicado e homologar antes de promover.
 
-Novas tabelas: \`notification_rule\` (um conjunto corporativo de regras) e
+Novas tabelas: \`notification_rule\` (um conjunto corporativo de regras),
+\`email_template\` (modelo visual por tipo, criado sob demanda) e
 \`email_delivery\` (outbox idempotente, status, tentativas, auditoria).
 \`notification_event\` legado continua preservado para histórico do fluxo.
 
@@ -25,6 +28,7 @@ GRAPH_CLIENT_SECRET=
 GRAPH_SENDER=
 NOTIFICATION_TEST_INBOX=
 NOTIFICATION_TIMEZONE=America/Sao_Paulo
+APP_PUBLIC_URL=http://localhost:3000
 \`\`\`
 
 **Resend para testes (inclusive Gmail pessoal)**: crie uma API key em
@@ -74,8 +78,7 @@ Todas começam **desativadas**. Podem ser configuradas na UI:
 - \`COMPLETED\`: avanço 7→8, com regra separada do FUP.
 
 Cada regra permite destinatários fixos, incluir responsável do equipamento,
-assunto e corpo em texto simples. Variáveis permitidas: \`{equipamento}\`,
-\`{obra}\`, \`{responsavel}\`, \`{fase}\`, \`{evento}\`, \`{data}\`.
+ativação e prazo. O conteúdo do e-mail fica na aba **Modelos** (ver seção 7).
 A UI não permite configurar credenciais Graph/Resend. Para novas regras de prazo
 de negociação e entrega, confirmar fórmulas/gatilhos com o Planejamento antes
 de codificar ou ativar notificações automáticas.
@@ -115,6 +118,41 @@ envio \`PROCESSING\` antigo como indeterminado, para revisão.
 8. Crash/timeout não causa reenvio automático do mesmo evento.
 9. Uma execução do cron gera lembretes de startup apenas na data configurada.
 10. Homologação final em TEST antes de configurar o modo live em produção.
+
+## 7. Editor de modelos HTML
+
+A aba **Modelos** permite configurar, por tipo de notificação, assunto, título,
+texto introdutório, corpo, texto do botão, rodapé e elementos visuais
+(destaque do alerta, dados do equipamento, botão e rodapé). O modelo é salvo em
+\`email_template\`; na primeira leitura, a linha é criada a partir dos textos já
+existentes em \`notification_rule\`, preservando personalizações antigas.
+
+- **Editor visual**: gera o layout padrão do Hub (tabelas, CSS inline, sem
+  JavaScript) com cabeçalho institucional, destaque de criticidade, cartão de
+  dados do equipamento, botão condicional e rodapé.
+- **HTML avançado**: substitui o layout por um HTML completo sanitizado. São
+  removidos scripts, formulários, iframes, handlers \`on*\` e URLs
+  \`javascript:\`/dados; o backend valida novamente no salvamento e na renderização.
+- **Variáveis**: \`{equipamento}\`, \`{tag}\`, \`{unidade}\`, \`{obra}\`,
+  \`{responsavel}\`, \`{fase}\`, \`{evento}\`, \`{data}\`, \`{fornecedor}\`,
+  \`{prazo_entrega}\`, \`{dias_restantes}\`, \`{status}\`, \`{url_equipamento}\` e
+  \`{criticidade}\`. Campos sem valor são omitidos do cartão e recebem fallback
+  neutro no texto; o botão só aparece com URL http(s) válida.
+- **Pré-visualização**: renderiza no servidor com um equipamento real (respeitando
+  o escopo do usuário) ou com dados fictícios, em desktop ou celular. O HTML é
+  exibido em iframe com \`sandbox\` vazio, sem scripts.
+- **Envio de teste**: usa exatamente o HTML da prévia, escolhe Graph ou Resend e
+  envia somente para \`NOTIFICATION_TEST_INBOX\`. Em \`sandbox\`, o envio ignora
+  qualquer equipamento real e usa dados fictícios; em \`log\`, apenas simula.
+- **Provedores**: Graph recebe \`contentType: HTML\` com a versão formatada; Resend
+  recebe \`html\` e mantém \`text\` como alternativa. Fila, deduplicação, auditoria,
+  histórico e status não mudam.
+- O link do botão usa \`APP_PUBLIC_URL\` (ex.: \`https://hub.exemplo\`). Se vazio ou
+  inválido, o botão é omitido em vez de gerar link quebrado.
+
+Endpoints administrativos (exigem \`USERS_MANAGE\`): \`GET/PUT
+/api/v1/notifications/templates/{kind}\`, \`POST .../reset\`, \`POST .../preview\` e
+\`POST .../test\`.
 
 ## Limitações deliberadas
 

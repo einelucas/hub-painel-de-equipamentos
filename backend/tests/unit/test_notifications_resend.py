@@ -60,8 +60,31 @@ async def test_resend_sandbox_uses_only_the_gmail_inbox(
     assert body["from"] == "onboarding@resend.dev"
     assert body["subject"] == "[TESTE HUB] FUP"
     assert body["text"] == "Synthetic test data"
+    assert "html" not in body
     assert request.headers["idempotency-key"] == "hub-mail-123"
     assert request.headers["authorization"] == "Bearer re_fake"
+
+
+@pytest.mark.asyncio
+async def test_resend_sends_html_with_text_alternative(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        assert body["to"] == ["qa@gmail.com"]
+        assert body["html"] == "<p>Olá</p>"
+        assert body["text"] == "Olá"
+        return httpx.Response(200, json={"id": "message-789"})
+
+    client = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx, "AsyncClient",
+        lambda **kwargs: client(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    result = await send_mail(
+        ["real.user@example.com"], "Assunto", "Olá", settings(), html="<p>Olá</p>",
+    )
+    assert result == "ACCEPTED"
 
 
 @pytest.mark.asyncio

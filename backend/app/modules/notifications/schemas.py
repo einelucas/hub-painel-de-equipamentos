@@ -110,6 +110,54 @@ class MailTestIn(CamelModel):
     body: str = Field(default="Mensagem de teste da central de notificações.", min_length=1, max_length=4000)
 
 
+class EmailTemplateContent(CamelModel):
+    """Campos editáveis de um modelo. O HTML avançado é sanitizado no backend."""
+
+    subject: str = Field(min_length=1, max_length=200)
+    title: str = Field(min_length=1, max_length=160)
+    intro: str = Field(default="", max_length=1000)
+    body: str = Field(default="", max_length=6000)
+    button_label: str = Field(default="", max_length=80)
+    footer: str = Field(default="", max_length=1000)
+    custom_html: str | None = Field(default=None, max_length=120_000)
+    use_custom_html: bool = False
+    show_details: bool = True
+    show_alert: bool = True
+    show_button: bool = True
+    show_footer: bool = True
+
+
+class EmailTemplateOut(EmailTemplateContent):
+    kind: _KIND
+    updated_at: datetime
+
+
+class EmailTemplateListOut(CamelModel):
+    items: list[EmailTemplateOut]
+
+
+class EmailTemplatePreviewIn(EmailTemplateContent):
+    equipment_id: str | None = None
+    use_sample: bool = False
+
+
+class EmailTemplatePreviewOut(CamelModel):
+    subject: str
+    html: str
+    text: str
+    sample: bool
+
+
+class EmailTemplateTestIn(EmailTemplatePreviewIn):
+    provider: Literal["graph", "resend"] | None = None
+
+
+class EmailTemplateTestOut(CamelModel):
+    preview: EmailTemplatePreviewOut
+    delivery: MailDeliveryOut
+
+
+
 class MailProcessOut(CamelModel):
     scheduled: int
     processed: int

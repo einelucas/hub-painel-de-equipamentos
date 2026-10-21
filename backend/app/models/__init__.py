@@ -24,7 +24,12 @@ from app.models.monday_import import (
     MondayImportRecord,
     MondayMigrationRun,
 )
-from app.models.notification import EmailDelivery, NotificationEvent, NotificationRule
+from app.models.notification import (
+    EmailDelivery,
+    EmailTemplate,
+    NotificationEvent,
+    NotificationRule,
+)
 from app.models.process import (
     Contract,
     LegalProcess,
@@ -70,6 +75,7 @@ __all__ = [
     "NotificationEvent",
     "NotificationRule",
     "EmailDelivery",
+    "EmailTemplate",
     "OperationalStatusEvent",
     "ProjectContext",
     "ProjectEap",

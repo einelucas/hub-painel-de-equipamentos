@@ -169,30 +169,32 @@ async function advanceStage(): Promise<void> {
       </div>
     </section>
 
-    <EquipmentContractsList
-      :equipment-id="equipmentId"
-      :contracts="processes.contracts"
-      :editable="canWriteProcess"
-      :requirement-group="contractRequirementGroup"
-      :requirement-stage="currentStage"
-      :requirement-waiver="activeWaiverFor('CONTRACT')"
-      @changed="reloadProcess"
-    />
-    <EquipmentPurchaseRequestsList
-      :equipment-id="equipmentId"
-      :items="processes.purchaseRequests"
-      :editable="canWriteProcess"
-      :requirement-group="purchaseRequestRequirementGroup"
-      :requirement-stage="currentStage"
-      :requirement-waiver="activeWaiverFor('PURCHASE_REQUEST')"
-      @changed="reloadProcess"
-    />
-    <EquipmentPurchaseOrdersList
-      :equipment-id="equipmentId"
-      :items="processes.purchaseOrders"
-      :editable="canWriteProcess"
-      @changed="reloadProcess"
-    />
+    <div class="equipment-lists">
+      <EquipmentContractsList
+        :equipment-id="equipmentId"
+        :contracts="processes.contracts"
+        :editable="canWriteProcess"
+        :requirement-group="contractRequirementGroup"
+        :requirement-stage="currentStage"
+        :requirement-waiver="activeWaiverFor('CONTRACT')"
+        @changed="reloadProcess"
+      />
+      <EquipmentPurchaseRequestsList
+        :equipment-id="equipmentId"
+        :items="processes.purchaseRequests"
+        :editable="canWriteProcess"
+        :requirement-group="purchaseRequestRequirementGroup"
+        :requirement-stage="currentStage"
+        :requirement-waiver="activeWaiverFor('PURCHASE_REQUEST')"
+        @changed="reloadProcess"
+      />
+      <EquipmentPurchaseOrdersList
+        :equipment-id="equipmentId"
+        :items="processes.purchaseOrders"
+        :editable="canWriteProcess"
+        @changed="reloadProcess"
+      />
+    </div>
   </template>
 </template>
 
@@ -234,9 +236,27 @@ async function advanceStage(): Promise<void> {
   font-size: 13px;
   font-weight: 700;
 }
+
+/* Contratos e SC/OCI lado a lado; Ordens de compra ocupam a linha inteira.
+   Em telas menores tudo volta para uma coluna. */
+.equipment-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.equipment-lists > :last-child {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 1100px) {
   .process-layout {
     grid-template-columns: 1fr;
+  }
+  .equipment-lists {
+    grid-template-columns: 1fr;
+  }
+  .equipment-lists > :last-child {
+    grid-column: auto;
   }
 }
 </style>

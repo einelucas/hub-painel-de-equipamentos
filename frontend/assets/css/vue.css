@@ -300,17 +300,15 @@ button:disabled {
   line-height: 1.55;
 }
 
-.admin-back {
-  display: inline-flex;
-  margin: 8px 0 16px;
-  color: #304f7e;
-  font-size: 13px;
-  font-weight: 750;
-  text-decoration: none;
+.page-back {
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+  margin: 4px 0 14px;
 }
 
-.admin-back:hover {
-  text-decoration: underline;
+.stack > .page-back {
+  margin: 2px 0 0;
 }
 
 .section-head {

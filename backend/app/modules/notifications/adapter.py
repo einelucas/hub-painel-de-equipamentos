@@ -46,7 +46,8 @@ def provider_sender(settings: Settings, provider: MailProvider) -> str | None:
 
 
 async def _send_graph(
-    recipients: list[str], subject: str, body: str, settings: Settings
+    recipients: list[str], subject: str, body: str, settings: Settings,
+    html: str | None = None,
 ) -> str:
     tenant = quote(settings.notification_graph_tenant_id or "", safe="")
     sender = quote(settings.notification_graph_sender or "", safe="@")
@@ -76,7 +77,10 @@ async def _send_graph(
                 json={
                     "message": {
                         "subject": subject,
-                        "body": {"contentType": "Text", "content": body},
+                        "body": {
+                            "contentType": "HTML" if html else "Text",
+                            "content": html or body,
+                        },
                         "toRecipients": [
                             {"emailAddress": {"address": email}} for email in recipients
                         ],
@@ -95,22 +99,25 @@ async def _send_graph(
 
 async def _send_resend(
     recipients: list[str], subject: str, body: str, settings: Settings,
-    idempotency_key: str | None,
+    idempotency_key: str | None, html: str | None = None,
 ) -> str:
     headers = {"Authorization": f"Bearer {settings.notification_resend_api_key}"}
     if idempotency_key:
         headers["Idempotency-Key"] = idempotency_key
+    payload: dict[str, object] = {
+        "from": settings.notification_resend_from_email,
+        "to": recipients,
+        "subject": subject,
+        "text": body,
+    }
+    if html:
+        payload["html"] = html
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(
                 "https://api.resend.com/emails",
                 headers=headers,
-                json={
-                    "from": settings.notification_resend_from_email,
-                    "to": recipients,
-                    "subject": subject,
-                    "text": body,
-                },
+                json=payload,
             )
     except httpx.HTTPError as exc:
         raise DeliveryError(
@@ -137,6 +144,7 @@ async def send_mail(
     provider: MailProvider | None = None,
     force_sandbox: bool = False,
     idempotency_key: str | None = None,
+    html: str | None = None,
 ) -> str:
     """Retorna SIMULATED ou ACCEPTED; aceite na API não confirma entrega.
 
@@ -163,5 +171,5 @@ async def send_mail(
         label = "Microsoft Graph" if selected == "graph" else "Resend"
         raise DeliveryError(f"{label} não configurado.")
     if selected == "graph":
-        return await _send_graph(recipients, subject, body, config)
-    return await _send_resend(recipients, subject, body, config, idempotency_key)
+        return await _send_graph(recipients, subject, body, config, html)
+    return await _send_resend(recipients, subject, body, config, idempotency_key, html)

@@ -4,7 +4,7 @@ definePageMeta({ middleware: "admin" });
 
 <template>
   <section>
-    <NuxtLink class="admin-back" to="/dashboard">← Voltar ao painel</NuxtLink>
+    <BackLink class="page-back" to="/dashboard">Voltar ao painel</BackLink>
     <ReferenceSectionHeader
       title="Registro de Atividades"
       description="Trilha de eventos administrativos e alterações registradas pelo sistema."

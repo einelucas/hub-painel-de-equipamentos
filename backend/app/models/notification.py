@@ -62,6 +62,34 @@ class NotificationRule(Base):
     updated_at: Mapped[datetime] = mapped_column(Timestamp3, default=utcnow, onupdate=utcnow)
 
 
+class EmailTemplate(Base):
+    """Modelo visual de cada tipo de notificação, independente da regra.
+
+    `notification_rule` continua guardando ativação, destinatários e prazos;
+    aqui ficam apenas os textos e opções visuais usados na renderização.
+    A primeira leitura de um tipo cria a linha a partir dos textos legados da
+    regra, preservando o que já estava configurado antes desta tabela existir.
+    """
+
+    __tablename__ = "email_template"
+
+    id: Mapped[str] = uuid_pk()
+    kind: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
+    subject_template: Mapped[str] = mapped_column(Text, nullable=False)
+    title_template: Mapped[str] = mapped_column(Text, nullable=False)
+    intro_template: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    body_template: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    button_label: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    footer_template: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    custom_html: Mapped[str | None] = mapped_column(Text, nullable=True)
+    use_custom_html: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    show_details: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    show_alert: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    show_button: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    show_footer: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    updated_at: Mapped[datetime] = mapped_column(Timestamp3, default=utcnow, onupdate=utcnow)
+
+
 class EmailDelivery(Base):
     __tablename__ = "email_delivery"
 
@@ -77,6 +105,8 @@ class EmailDelivery(Base):
     recipient_summary: Mapped[str] = mapped_column(Text, nullable=False)
     subject: Mapped[str] = mapped_column(Text, nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
+    # Alternativa HTML. Nula nos envios antigos, que continuam só com texto.
+    html_body: Mapped[str | None] = mapped_column(Text, nullable=True)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)

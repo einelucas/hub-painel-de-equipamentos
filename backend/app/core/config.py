@@ -56,6 +56,10 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
+    # URL pública do Hub usada nos links dos e-mails (ex.: botão do equipamento).
+    # Vazio desabilita o botão de ação em vez de gerar um link inválido.
+    public_app_url: str = Field(default="http://localhost:3000", alias="APP_PUBLIC_URL")
+
     # Dois provedores independentes; log = simulação, sandbox = destinatário fixo.
     # A escolha do provedor nunca habilita fallback automático.
     notification_provider: Literal["graph", "resend"] = Field(

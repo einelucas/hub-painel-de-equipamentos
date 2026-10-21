@@ -4,7 +4,7 @@ definePageMeta({ middleware: "admin" });
 
 <template>
   <section class="stack">
-    <NuxtLink class="admin-back" to="/equipamentos">← Voltar aos equipamentos</NuxtLink>
+    <BackLink class="page-back" to="/equipamentos">Voltar aos equipamentos</BackLink>
     <ReferenceSectionHeader
       title="Configuração de e-mails"
       description="Regras, caixa de testes e histórico de notificações do Painel de Equipamentos."

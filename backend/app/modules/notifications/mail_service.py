@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 from datetime import date, datetime, timedelta
-from string import Formatter
 from typing import cast
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -29,9 +28,10 @@ from app.domain.equipment_calculations import (
     component_deadline_values,
 )
 from app.models.common import utcnow
-from app.models.equipment import Equipment, ProjectContext, WorkflowTransition
+from app.models.equipment import Equipment, WorkflowTransition
 from app.models.notification import EmailDelivery, NotificationEvent, NotificationRule
 from app.models.user import User
+from app.modules.notifications import template_service
 from app.modules.notifications.adapter import (
     DeliveryError,
     MailProvider,
@@ -43,6 +43,11 @@ from app.modules.notifications.schemas import (
     MailDeliveryOut,
     MailRuleOut,
     MailRuleUpdate,
+)
+from app.modules.notifications.template_renderer import (
+    render_email,
+    sample_context,
+    validate_template,
 )
 from app.shared.audit import record_audit
 
@@ -79,18 +84,6 @@ RULES: dict[str, tuple[str, str]] = {
         "Responsável: {responsavel}\nEvento: {evento}",
     ),
 }
-_FIELDS = frozenset({"equipamento", "obra", "fase", "responsavel", "evento", "data"})
-
-
-def validate_template(text: str) -> None:
-    try:
-        for _, field, spec, conversion in Formatter().parse(text):
-            if field is not None and (field not in _FIELDS or spec or conversion):
-                raise DomainError("O modelo contém uma variável não permitida.")
-    except ValueError as exc:
-        raise DomainError("O modelo contém chaves inválidas.") from exc
-
-
 def _addresses(raw: str) -> list[str]:
     return [value for value in raw.split(";") if value]
 
@@ -156,22 +149,6 @@ async def update_rule(
     return _public(row)
 
 
-async def _context(session: AsyncSession, equipment: Equipment, kind: str) -> dict[str, str]:
-    project = await session.get(ProjectContext, equipment.project_context_id)
-    responsible = (
-        await session.get(User, equipment.responsible_user_id)
-        if equipment.responsible_user_id else None
-    )
-    return {
-        "equipamento": equipment.name,
-        "obra": project.name if project else "Não informada",
-        "responsavel": responsible.name if responsible else "Não informado",
-        "fase": str(equipment.current_stage),
-        "evento": kind,
-        "data": equipment.startup_at.strftime("%d/%m/%Y") if equipment.startup_at else "Não informada",
-    }
-
-
 async def _recipients(session: AsyncSession, equipment: Equipment, rule: NotificationRule) -> list[str]:
     addresses = _addresses(rule.recipient_emails)
     if rule.include_responsible and equipment.responsible_user_id:
@@ -193,18 +170,29 @@ async def enqueue_equipment(
     )).scalar_one_or_none()
     if already:
         return None
-    values = await _context(session, equipment, kind)
-    if event_date is not None:
-        values["data"] = event_date.strftime("%d/%m/%Y")
-    recipients = await _recipients(session, equipment, rule)
     settings = get_settings()
+    # Sandbox existe para validar formato, não para expor dados corporativos
+    # em caixas pessoais/externas: todo envio usa o conjunto fictício.
+    context = (
+        sample_context(kind, settings.public_app_url)
+        if template_service.sample_required(False, settings.notification_mode)
+        else await template_service.build_equipment_context(
+            session, equipment, kind, event_date
+        )
+    )
+    rendered = render_email(
+        template_service.content_from_row(await template_service.get_template(session, kind)),
+        context,
+    )
+    recipients = await _recipients(session, equipment, rule)
     status = "PENDING" if recipients or settings.notification_mode == "sandbox" else "SKIPPED"
     row = EmailDelivery(
         dedup_key=key, kind=kind, equipment_id=equipment.id, status=status,
         mode=settings.notification_mode, provider=settings.notification_provider,
         recipient_summary="; ".join(recipients),
-        subject=rule.subject_template.format_map(values),
-        body=rule.body_template.format_map(values),
+        subject=rendered.subject,
+        body=rendered.text,
+        html_body=rendered.html,
         failure_reason=None if status == "PENDING" else "Sem destinatários configurados.",
     )
     session.add(row)
@@ -322,7 +310,7 @@ async def enqueue_deadline_alerts(session: AsyncSession) -> int:
 
 async def enqueue_test(
     session: AsyncSession, actor: CurrentUser, subject: str, body: str,
-    provider: MailProvider | None = None,
+    provider: MailProvider | None = None, *, html: str | None = None,
 ) -> EmailDelivery:
     config = get_settings()
     selected = provider or config.notification_provider
@@ -335,6 +323,7 @@ async def enqueue_test(
         mode=config.notification_mode, provider=selected,
         recipient_summary=config.notification_test_inbox,
         subject="[TESTE DE CONFIGURAÇÃO] " + subject, body=body,
+        html_body=html,
     )
     session.add(record)
     await session.flush()
@@ -373,6 +362,7 @@ async def deliver_pending(limit: int = 20, only_id: str | None = None) -> int:
             provider = cast(MailProvider, item.provider)
             addresses = _addresses(item.recipient_summary.replace(", ", ";").replace("; ", ";"))
             subject, body, dedup_key = item.subject, item.body, item.dedup_key
+            html_body = item.html_body
             await session.commit()
         try:
             config = get_settings()
@@ -386,6 +376,7 @@ async def deliver_pending(limit: int = 20, only_id: str | None = None) -> int:
                 addresses, subject, body, config, provider=provider,
                 force_sandbox=is_test,
                 idempotency_key=f"hub-mail-{item_id}" if provider == "resend" else None,
+                html=html_body,
             )
             failure = None
         except DeliveryError as exc:

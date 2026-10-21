@@ -10,8 +10,15 @@ from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
 from app.models.notification import EmailDelivery
-from app.modules.notifications import mail_service, services
+from app.modules.notifications import mail_service, services, template_service
 from app.modules.notifications.schemas import (
+    EmailTemplateContent,
+    EmailTemplateListOut,
+    EmailTemplateOut,
+    EmailTemplatePreviewIn,
+    EmailTemplatePreviewOut,
+    EmailTemplateTestIn,
+    EmailTemplateTestOut,
     MailDeliveryListOut,
     MailDeliveryOut,
     MailProcessOut,
@@ -57,6 +64,87 @@ async def save_rule(
     actor: CurrentUser = Depends(_admin),
 ) -> MailRuleOut:
     return await mail_service.update_rule(session, actor, kind, body)
+
+
+@router.get("/notifications/templates", response_model=EmailTemplateListOut)
+async def templates(
+    session: AsyncSession = Depends(get_session),
+    _: CurrentUser = Depends(_admin),
+) -> EmailTemplateListOut:
+    return EmailTemplateListOut(items=await template_service.list_templates(session))
+
+
+@router.get("/notifications/templates/{kind}", response_model=EmailTemplateOut)
+async def get_template(
+    kind: str,
+    session: AsyncSession = Depends(get_session),
+    _: CurrentUser = Depends(_admin),
+) -> EmailTemplateOut:
+    return template_service.public_template(
+        await template_service.get_template(session, kind)
+    )
+
+
+@router.put("/notifications/templates/{kind}", response_model=EmailTemplateOut)
+async def save_template(
+    kind: str,
+    body: EmailTemplateContent,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_admin),
+) -> EmailTemplateOut:
+    return await template_service.update_template(session, actor, kind, body)
+
+
+@router.post("/notifications/templates/{kind}/reset", response_model=EmailTemplateOut)
+async def reset_template(
+    kind: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_admin),
+) -> EmailTemplateOut:
+    return await template_service.reset_template(session, actor, kind)
+
+
+@router.post(
+    "/notifications/templates/{kind}/preview", response_model=EmailTemplatePreviewOut
+)
+async def preview_template(
+    kind: str,
+    body: EmailTemplatePreviewIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_admin),
+) -> EmailTemplatePreviewOut:
+    return await template_service.preview(
+        session,
+        actor,
+        kind,
+        body,
+        equipment_id=body.equipment_id,
+        use_sample=body.use_sample,
+    )
+
+
+@router.post(
+    "/notifications/templates/{kind}/test", response_model=EmailTemplateTestOut
+)
+async def test_template(
+    kind: str,
+    body: EmailTemplateTestIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_admin),
+) -> EmailTemplateTestOut:
+    preview_out, delivery = await template_service.test_send(
+        session,
+        actor,
+        kind,
+        body,
+        provider=body.provider,
+        equipment_id=body.equipment_id,
+        use_sample=body.use_sample,
+    )
+    return EmailTemplateTestOut(
+        preview=preview_out, delivery=mail_service.public_delivery(delivery)
+    )
+
 
 
 @router.get("/notifications/deliveries", response_model=MailDeliveryListOut)

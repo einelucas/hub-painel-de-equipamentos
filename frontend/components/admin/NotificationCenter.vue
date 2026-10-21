@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { AlertTriangle, CheckCircle2, CircleHelp, Clock3, MailCheck, RefreshCw, Send, Settings2 } from "lucide-vue-next";
+import EmailTemplateEditor from "~/components/admin/EmailTemplateEditor.vue";
+import EmailTemplatePreview from "~/components/admin/EmailTemplatePreview.vue";
+import EmailTestPanel from "~/components/admin/EmailTestPanel.vue";
+import type {
+  EmailTemplate,
+  EmailTemplateDraft,
+  EmailTemplatePreview as EmailTemplatePreviewData,
+  EmailTemplateTestResult,
+  MailProviderId,
+  NotificationEquipmentOption,
+  NotificationKind,
+} from "~/types/notifications";
 
-type Kind = "KICKOFF" | "FUP" | "STARTUP_REMINDER" | "NEGOTIATION_OVERDUE" | "DELIVERY_REMINDER" | "COMPLETED";
+type Kind = NotificationKind;
 type Tab = "settings" | "rules" | "recipients" | "templates" | "history";
-type ProviderId = "graph" | "resend";
+type ProviderId = MailProviderId;
 type ProviderStatus = { id: ProviderId; name: string; configured: boolean; sender: string | null };
 type Settings = {
   mode: "log" | "sandbox" | "live";
@@ -33,6 +45,16 @@ const notice = ref("");
 const mailSubject = ref("Teste de notificações — Painel de Equipamentos");
 const mailBody = ref("Esta é uma mensagem de teste do Hub. Nenhuma notificação operacional foi disparada.");
 const recipientsText = ref("");
+const templates = ref<EmailTemplate[]>([]);
+const templateDraft = ref<EmailTemplateDraft | null>(null);
+const templatePreview = ref<EmailTemplatePreviewData | null>(null);
+const previewLoading = ref(false);
+const previewError = ref("");
+const equipmentOptions = ref<NotificationEquipmentOption[]>([]);
+const selectedEquipmentId = ref<string | null>(null);
+const useSampleData = ref(true);
+let previewTimer: ReturnType<typeof setTimeout> | undefined;
+let previewVersion = 0;
 const selected = computed(() => rules.value.find((item) => item.kind === selectedKind.value));
 const names: Record<Kind, string> = {
   KICKOFF: "Kickoff (conclusão da fase 5)",
@@ -61,16 +83,41 @@ const stateLabels: Record<string, string> = {
 function chooseRule(kind: Kind): void {
   selectedKind.value = kind;
   recipientsText.value = selected.value?.recipientEmails.join("\n") ?? "";
+  applyTemplate(kind);
+}
+
+function applyTemplate(kind: Kind): void {
+  const template = templates.value.find((item) => item.kind === kind);
+  if (!template) return;
+  templateDraft.value = {
+    subject: template.subject,
+    title: template.title,
+    intro: template.intro,
+    body: template.body,
+    buttonLabel: template.buttonLabel,
+    footer: template.footer,
+    customHtml: template.customHtml,
+    useCustomHtml: template.useCustomHtml,
+    showDetails: template.showDetails,
+    showAlert: template.showAlert,
+    showButton: template.showButton,
+    showFooter: template.showFooter,
+  };
+  schedulePreview();
 }
 
 async function load(): Promise<void> {
   loading.value = true;
   error.value = "";
   try {
-    const [configuration, list, history] = await Promise.all([
+    const [configuration, list, history, templateList, equipments] = await Promise.all([
       api.get<Settings>("/notifications/settings"),
       api.get<{ items: Rule[] }>("/notifications/rules"),
       api.get<{ items: Delivery[] }>("/notifications/deliveries", { limit: "100" }),
+      api.get<{ items: EmailTemplate[] }>("/notifications/templates"),
+      api.get<{ items: NotificationEquipmentOption[] }>("/equipments", {
+        pageSize: "100", sortBy: "name", sortDir: "asc",
+      }),
     ]);
     settings.value = configuration;
     // Prioriza Resend para testes com Gmail quando as credenciais estão disponíveis.
@@ -78,6 +125,8 @@ async function load(): Promise<void> {
       ?? configuration.activeProvider;
     rules.value = list.items;
     deliveries.value = history.items;
+    templates.value = templateList.items;
+    equipmentOptions.value = equipments.items;
     chooseRule(selectedKind.value);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : "Não foi possível carregar as notificações.";
@@ -134,6 +183,113 @@ async function sendTest(): Promise<void> {
   }
 }
 
+function schedulePreview(): void {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => void loadPreview(), 350);
+}
+
+async function loadPreview(): Promise<void> {
+  const draft = templateDraft.value;
+  if (!draft) return;
+  const version = ++previewVersion;
+  previewLoading.value = true;
+  try {
+    const result = await api.post<EmailTemplatePreviewData>(
+      "/notifications/templates/" + selectedKind.value + "/preview",
+      {
+        ...draft,
+        equipmentId: useSampleData.value ? null : selectedEquipmentId.value,
+        useSample: useSampleData.value,
+      },
+    );
+    if (version !== previewVersion) return;
+    templatePreview.value = result;
+    previewError.value = "";
+  } catch (caught) {
+    if (version !== previewVersion) return;
+    previewError.value = caught instanceof Error ? caught.message : "Falha ao renderizar a pré-visualização.";
+  } finally {
+    if (version === previewVersion) previewLoading.value = false;
+  }
+}
+
+async function saveTemplate(): Promise<void> {
+  const draft = templateDraft.value;
+  if (!draft || busy.value) return;
+  busy.value = true;
+  error.value = "";
+  notice.value = "";
+  try {
+    const updated = await api.put<EmailTemplate>(
+      "/notifications/templates/" + selectedKind.value,
+      draft,
+    );
+    templates.value = templates.value.map((item) => (item.kind === updated.kind ? updated : item));
+    applyTemplate(updated.kind);
+    notice.value = "Modelo salvo. O HTML sanitizado é exatamente o que será enviado.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Falha ao salvar o modelo.";
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function resetTemplate(): Promise<void> {
+  if (busy.value || !confirm("Restaurar este modelo para o padrão do Hub? As alterações atuais serão perdidas.")) return;
+  busy.value = true;
+  error.value = "";
+  notice.value = "";
+  try {
+    const updated = await api.post<EmailTemplate>(
+      "/notifications/templates/" + selectedKind.value + "/reset",
+    );
+    templates.value = templates.value.map((item) => (item.kind === updated.kind ? updated : item));
+    applyTemplate(updated.kind);
+    notice.value = "Modelo restaurado para o padrão.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Falha ao restaurar o modelo.";
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function sendTemplateTest(provider: MailProviderId): Promise<void> {
+  const draft = templateDraft.value;
+  if (!draft || busy.value) return;
+  busy.value = true;
+  error.value = "";
+  notice.value = "";
+  try {
+    const result = await api.post<EmailTemplateTestResult>(
+      "/notifications/templates/" + selectedKind.value + "/test",
+      {
+        ...draft,
+        provider,
+        equipmentId: useSampleData.value ? null : selectedEquipmentId.value,
+        useSample: useSampleData.value,
+      },
+    );
+    templatePreview.value = result.preview;
+    const status = result.delivery.status;
+    notice.value = status === "ACCEPTED"
+      ? "O provedor aceitou o envio. Confira a caixa de testes" + (result.preview.sample ? " (dados fictícios)." : ".")
+      : status === "SIMULATED"
+        ? "Teste simulado: nenhuma mensagem foi enviada."
+        : "Teste registrado com estado " + (stateLabels[status] ?? status) + ".";
+    if (result.delivery.failureReason) error.value = result.delivery.failureReason;
+    try {
+      deliveries.value = (await api.get<{ items: Delivery[] }>("/notifications/deliveries", { limit: "100" })).items;
+    } catch {
+      // O teste já foi registrado; falhar ao recarregar o histórico não deve
+      // induzir um reenvio.
+    }
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível enviar o teste.";
+  } finally {
+    busy.value = false;
+  }
+}
+
 async function process(): Promise<void> {
   if (busy.value || !confirm("Processar agora notificações reais e lembretes pendentes conforme o modo do ambiente?")) return;
   busy.value = true;
@@ -170,6 +326,9 @@ function formatDate(value: string | null): string {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
 
+watch(templateDraft, () => schedulePreview(), { deep: true });
+watch([selectedEquipmentId, useSampleData], () => schedulePreview());
+onBeforeUnmount(() => clearTimeout(previewTimer));
 onMounted(load);
 </script>
 
@@ -191,7 +350,8 @@ onMounted(load);
 
     <template v-else>
       <div class="notify-tabs" role="tablist" aria-label="Central de notificações">
-        <button v-for="item in tabs" :key="item.key" type="button" role="tab"
+        <button
+          v-for="item in tabs" :key="item.key" type="button" role="tab"
           :aria-selected="tab === item.key" :class="{ active: tab === item.key }" @click="tab = item.key">
           {{ item.name }}
         </button>
@@ -234,7 +394,7 @@ onMounted(load);
         </div>
       </div>
 
-      <div v-else-if="tab === 'rules' || tab === 'recipients' || tab === 'templates'" class="notify-panel stack">
+      <div v-else-if="tab === 'rules' || tab === 'recipients'" class="notify-panel stack">
         <label class="field">
           <span>Evento</span>
           <select :value="selectedKind" @change="chooseRule(($event.target as HTMLSelectElement).value as Kind)">
@@ -248,18 +408,53 @@ onMounted(load);
             <label v-if="(selected.kind === 'STARTUP_REMINDER' || selected.kind === 'DELIVERY_REMINDER')" class="field"><span>Dias antes do startup (0 a 365)</span><input v-model.number="selected.daysBefore" type="number" min="0" max="365" /></label>
             <p class="notify-hint">Kickoff: conclusão da fase 5. FUP e conclusão: fase 7→8. Lembretes de startup, negociação vencida e entrega próxima são gerados pelo worker usando as fórmulas já existentes no Hub. Todas as regras começam desativadas.</p>
           </template>
-          <template v-else-if="tab === 'recipients'">
+          <template v-else>
             <label class="notify-check"><input v-model="selected.includeResponsible" type="checkbox" /> Incluir responsável do equipamento</label>
             <label class="field"><span>Destinatários fixos — um endereço por linha</span><textarea v-model="recipientsText" rows="6" placeholder="equipe@empresa.com" /></label>
             <p class="notify-hint">No modo sandbox os endereços são registrados, mas não recebem e-mails: apenas a caixa de testes recebe. Em produção, os destinatários são deduplicados.</p>
           </template>
-          <template v-else>
-            <label class="field"><span>Assunto</span><input v-model="selected.subjectTemplate" maxlength="200" /></label>
-            <label class="field"><span>Corpo do e-mail (texto simples)</span><textarea v-model="selected.bodyTemplate" rows="9" maxlength="4000" /></label>
-            <p class="notify-hint">Variáveis permitidas: {equipamento}, {obra}, {responsavel}, {fase}, {evento}, {data}. A prévia final usa os dados do equipamento no momento do evento.</p>
-          </template>
           <button type="button" class="btn primary small" :disabled="busy" @click="save"><MailCheck :size="14" /> {{ busy ? "Salvando..." : "Salvar configuração" }}</button>
         </template>
+      </div>
+
+      <div v-else-if="tab === 'templates'" class="notify-panel stack tpl-workspace">
+        <div class="tpl-workspace-head">
+          <label class="field">
+            <span>Tipo de notificação</span>
+            <select :value="selectedKind" @change="chooseRule(($event.target as HTMLSelectElement).value as Kind)">
+              <option v-for="(label, kind) in names" :key="kind" :value="kind">{{ label }}</option>
+            </select>
+          </label>
+          <p class="notify-hint"><CircleHelp :size="15" /> O modelo salvo vale para todos os envios deste tipo. A pré-visualização e o teste usam exatamente o HTML que será enviado; o teste nunca atinge destinatários operacionais.</p>
+        </div>
+
+        <div v-if="previewError" class="notify-message notify-error" role="alert"><AlertTriangle :size="16" /> {{ previewError }}</div>
+
+        <div class="tpl-workspace-grid">
+          <div class="tpl-workspace-editor">
+            <EmailTemplateEditor
+              v-if="templateDraft"
+              v-model="templateDraft"
+              :busy="busy"
+              @save="saveTemplate"
+              @reset="resetTemplate"
+            />
+            <div v-else class="notify-empty">Modelo indisponível para este tipo.</div>
+          </div>
+          <div class="tpl-workspace-preview">
+            <EmailTemplatePreview :preview="templatePreview" :loading="previewLoading" />
+            <EmailTestPanel
+              :settings="settings"
+              :busy="busy"
+              :equipment-options="equipmentOptions"
+              :equipment-id="selectedEquipmentId"
+              :use-sample="useSampleData"
+              @update:equipment-id="selectedEquipmentId = $event"
+              @update:use-sample="useSampleData = $event"
+              @send="sendTemplateTest"
+            />
+          </div>
+        </div>
       </div>
 
       <div v-else class="notify-panel stack">
@@ -324,4 +519,11 @@ onMounted(load);
 .notify-error { background: #fff1f0; color: #a32c24; }
 .notify-success { background: #eff8ed; color: #306c2e; }
 .notify-error-text { color: #b02f20 !important; }
+.tpl-workspace { gap: 14px; }
+.tpl-workspace-head { display: grid; gap: 6px; }
+.tpl-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.tpl-workspace-editor, .tpl-workspace-preview { display: grid; gap: 14px; min-width: 0; }
+@media (max-width: 1250px) {
+  .tpl-workspace-grid { grid-template-columns: minmax(0, 1fr); }
+}
 </style>

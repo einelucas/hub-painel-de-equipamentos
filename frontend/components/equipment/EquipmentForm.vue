@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { Pencil } from "lucide-vue-next";
+import CurrencyInput from "~/components/ui/CurrencyInput.vue";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import { DEFAULT_ORIGIN, originOptions } from "~/utils/origin";
@@ -66,7 +67,9 @@ const contextOptions = computed(() =>
 );
 // Lista fixa do domínio, acrescida do valor atual quando ele estiver fora do
 // vocabulário (registros antigos do Monday, ex.: "Importado").
-const originSelectOptions = computed(() => originOptions(form.origin));
+const originSelectOptions = computed(() =>
+  originOptions(form.origin).map((option) => ({ id: option, label: option })),
+);
 const eapOptions = computed(() =>
   eapNodes.value.map((item) => ({
     id: item.id,
@@ -268,15 +271,20 @@ onMounted(loadCatalogs);
         />
       </div>
 
-      <label class="field">
+      <div class="field">
         <span>Origem</span>
 
-        <select v-model="form.origin" data-testid="origin-select">
-          <option v-for="option in originSelectOptions" :key="option" :value="option">
-            {{ option }}
-          </option>
-        </select>
-      </label>
+        <SearchableSelect
+          v-model="form.origin"
+          :options="originSelectOptions"
+          :clearable="false"
+          :sorted="false"
+          label="Origem"
+          placeholder="Selecione a origem"
+          empty-label="Selecione"
+          test-id="origin-select"
+        />
+      </div>
 
       <div class="field">
         <div class="field-label-row">
@@ -362,11 +370,10 @@ onMounted(loadCatalogs);
       <label class="field">
         <span>CAPEX estimado</span>
 
-        <input
+        <CurrencyInput
           v-model="form.capexEstimated"
-          type="number"
-          min="0"
-          step="0.01"
+          label="CAPEX estimado"
+          test-id="capex-input"
         />
       </label>
 
@@ -385,11 +392,10 @@ onMounted(loadCatalogs);
       <label class="field">
         <span>Valor total do projeto</span>
 
-        <input
+        <CurrencyInput
           v-model="form.projectTotalValue"
-          type="number"
-          min="0"
-          step="0.01"
+          label="Valor total do projeto"
+          test-id="project-total-input"
         />
       </label>
 
@@ -461,9 +467,19 @@ onMounted(loadCatalogs);
   grid-column: 1 / -1;
 }
 
+.field > span,
+.field-label-row > span {
+  color: #56657a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 20px;
+  text-transform: uppercase;
+}
 .field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: space-between; gap: 8px; }
 .eap-manage-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 1px 2px; background: transparent; color: #718096; font-size: 10.5px; font-weight: 650; cursor: pointer; }
 .eap-manage-button:hover { color: #294b77; text-decoration: underline; }
+.equipment-form :deep(.searchable-select__control) { border-radius: 9px; }
 
 .stage-note {
   margin: 0;
