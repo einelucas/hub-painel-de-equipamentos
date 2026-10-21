@@ -1,122 +1,51 @@
-# Painel de Equipamentos — Backend
+# Backend | Painel de Equipamentos
 
-API FastAPI do módulo Painel de Equipamentos.
+API FastAPI do módulo corporativo de Planejamento/Painel de Equipamentos. Este README contém os comandos de backend; consulte o [índice de documentação](../docs/README.md) para arquitetura, regras de domínio, rotas e segurança.
 
-Além do domínio operacional, o backend possui a fundação administrativa do importador Monday: parser
-XLSX semântico, normalização, dry-run, staging idempotente e reconciliação. O importador não está exposto
-por endpoint e ainda não aplica os dados às entidades definitivas.
+## Stack e organização
 
-## Stack
+- Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2 assíncrono, PostgreSQL e Alembic.
+- `app/api/v1/router.py` agrega os controllers de domínio sob `/api/v1`.
+- `app/modules/` organiza `controllers.py`, `services.py`, `schemas.py` e módulos especializados.
+- `app/models/` concentra as entidades SQLAlchemy; `alembic/versions/` contém o histórico de schema.
+- `app/core/` contém configuração, autenticação, escopo, banco, logging e armazenamento.
 
-- Python 3.12+
-- FastAPI + Pydantic v2
-- SQLAlchemy 2 assíncrono com `asyncpg`
-- PostgreSQL
-- Alembic
-- pytest / pytest-asyncio
-- Ruff e mypy
+## Instalação local
 
-## Instalação
-
-```bash
+~~~bash
+cd backend
 python -m venv .venv
-```
-
-Windows:
-
-```powershell
-.venv\Scripts\python.exe -m pip install -e ".[dev]"
-Copy-Item .env.example .env
-```
-
-Linux/macOS:
-
-```bash
-.venv/bin/python -m pip install -e ".[dev]"
-cp .env.example .env
-```
-
-Ajuste `DATABASE_URL` e `MIGRATION_DATABASE_URL` antes de aplicar as migrations.
-
-## Comandos
-
-```bash
+python -m pip install -e ".[dev]"
+# Copie .env.example para .env e configure um banco de desenvolvimento autorizado.
 python -m alembic upgrade head
 python -m uvicorn app.main:app --reload
+~~~
+
+No Windows, ative o virtualenv ou utilize diretamente `.venv\Scripts\python.exe`. Ajuste `DATABASE_URL` e `MIGRATION_DATABASE_URL` antes de qualquer migration. **Não use bancos remotos de produção como alvo de experimentação.**
+
+## Validação
+
+~~~bash
 python -m ruff check app tests scripts
 python -m mypy app
-python scripts/export_openapi.py
-python scripts/check_schema_drift.py
-python -m app.modules.monday_import ../references/monday_exports
-```
+python -m pytest
+~~~
 
-Para testes de integração, copie `.env.test.example` para `.env.test`, use um banco cujo nome termine em `_test`, aplique `alembic upgrade head` e execute `python -m pytest`.
+Os testes de integração potencialmente destrutivos só são permitidos com `APP_ENV=test`, `ALLOW_DESTRUCTIVE_TESTS=true` e PostgreSQL em host **local** com nome terminado em `_test`. A proteção está em `tests/db_safety.py`; não a contorne.
 
-## Login local (e-mail e senha)
+## Autenticação e API
 
-Usuários com login local ficam em `User` + `Account` (`providerId = credential`, senha com hash scrypt).
-`POST /api/v1/auth/login` abre uma sessão na tabela `Session` (só o SHA-256 do token é gravado), válida por
-`LOCAL_AUTH_SESSION_HOURS`. O mesmo comando cria o usuário ou redefine a senha de um existente:
+- Login local: `POST /api/v1/auth/login` e `POST /api/v1/auth/set-password` (fluxo de primeiro acesso presente no código).
+- Alternativa de identidade: OIDC/Keycloak mediante configuração.
+- Perfis: `VIEWER`, `ANALYST` e `ADMIN`, com políticas de permissão e escopo por unidade.
+- Swagger/OpenAPI: consulte a instância FastAPI no ambiente autorizado e [docs/api.md](../docs/api.md).
 
-```bash
-python -m app.modules.local_auth create-user --email admin@inpasa.com.br --name Administrador --role ADMIN
-```
+**Atenção:** o legado de senha inicial compartilhada e seeds com identidades reais precisa ser corrigido em uma tarefa específica de segurança. Não exponha ou reutilize tais credenciais a partir desta documentação.
 
-A senha é pedida no terminal (ou lida de `LOCAL_AUTH_PASSWORD`), nunca passada como argumento. Os tokens
-`dev-*` de `DEV_AUTH_ENABLED` continuam funcionando fora de produção.
+## Importação e notificações
 
-Para completar as credenciais iniciais de Lucas e Diego já cadastrados em `User`, execute uma única vez,
-no container do backend conectado ao banco correto:
+A importação Monday **já dispõe de endpoints de administração** sob `/api/v1/imports/monday`: perfis, upload/staging, plan e apply acompanhado por job. O núcleo em `app/modules/monday_import/` também oferece CLI `python -m app.modules.monday_import` para dry-run, stage, plan, apply e reconcile. A escrita no domínio requer confirmação/controles de segurança; não é um simples upload imediato.
 
-```bash
-python scripts/seed_default_password_users.py
-```
+As notificações usam regras e modelos no PostgreSQL, com editor e prévia HTML; há integrações configuráveis Microsoft Graph e Resend, outbox e processamento. O envio real depende de ambiente e credenciais protegidas.
 
-Se o acesso disponível for somente o SQL Editor do Neon, execute
-`scripts/repair_default_password_users_neon.sql`. As duas opções são idempotentes e não sobrescrevem uma
-senha que já tenha sido alterada.
-
-## Catálogo global de fornecedores
-
-A planilha aprovada é convertida em um artefato JSON versionado e validável sem banco. A carga consulta
-o banco em `--dry-run`; a escrita só é liberada em DEV/TESTE com confirmação e nome exato do banco.
-
-```bash
-python -m app.modules.supplier_catalog extract fornecedores_hub_oficiais.xlsx
-python -m app.modules.supplier_catalog validate
-python -m app.modules.supplier_catalog seed --dry-run --env-file .env.test
-python -m app.modules.supplier_catalog seed --apply --sync --confirm \
-  --expect-database neondb_test --env-file .env.test
-```
-
-A carga altera somente `Supplier`, aliases oficiais em `SupplierAlias` e `AuditLog`; ela não cria vínculos
-com equipamentos. Use `--sync` somente após revisar o dry-run, para atualizar campos oficiais divergentes.
-
-## Rotas iniciais
-
-- `GET /api/v1/health/live`
-- `GET /api/v1/health/ready`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/logout`
-- `GET /api/v1/auth/me`
-- `GET /api/v1/usuarios`
-- `POST /api/v1/usuarios`
-- `PATCH /api/v1/usuarios/{user_id}`
-- `GET /api/v1/auditoria`
-
-As rotas administrativas exigem perfil `ADMIN`.
-
-## Estrutura dos módulos
-
-Novas funcionalidades podem ser adicionadas em pacotes próprios, por exemplo:
-
-```text
-app/modules/equipments/
-├── controllers.py
-├── schemas.py
-├── services.py
-└── repository.py
-```
-
-Consulte `../docs/migration/monday-import-architecture.md` antes de evoluir o apply definitivo da
-migração. As regras pendentes não devem ser inferidas dos XLSX.
+Documentação: [importação](../docs/importacao-monday.md), [notificações](../docs/notificacoes.md), [ambientes](../docs/ambientes-deploy.md).
