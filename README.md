@@ -1,151 +1,100 @@
-# Painel de Equipamentos
+# Painel de Equipamentos | Hub de Automação
 
-Módulo **Painel de Equipamentos**, pertencente à área de **Planejamento** do Hub.
+Módulo corporativo de **Planejamento → Painel de Equipamentos** para cadastro, acompanhamento técnico e controle das etapas de aquisição de equipamentos por unidade e contexto de projeto.
 
-O repositório contém o domínio operacional: catálogos, equipamentos, componentes, processo de aquisição, máquina de estados 0–8, fornecedores, autorização por unidade, auditoria, dashboard consolidado, filas por área e detalhe do equipamento integrados.
+O Hub centraliza equipamentos, componentes, responsáveis, fornecedores, prazos, processos de negociação e jurídico, contratos, solicitações de compra (SC/OCI), ordens de compra (OC), histórico e indicadores. Os dados originados no Monday.com são incorporados por um processo controlado de importação, sem reproduzir um aplicativo por board.
 
-## Stack
+> **Situação:** aplicação em consolidação/homologação. O código contém funcionalidades operacionais e administrativas, mas a prontidão de produção depende da validação do ambiente, das permissões, das integrações e da CI. A presença de uma migration no Git não comprova sua aplicação no banco implantado.
 
-- Frontend: Nuxt 4, Vue 3, TypeScript, Pinia e Tailwind CSS
-- Backend: FastAPI, Pydantic v2 e SQLAlchemy assíncrono
-- Persistência: PostgreSQL + Alembic
-- Autenticação: OIDC/Keycloak, com bypass controlado para desenvolvimento
-- Auditoria: trilha genérica para ações administrativas
+## Tecnologias
 
-## Estrutura
+| Camada | Tecnologias |
+| --- | --- |
+| Interface | Nuxt 4, Vue 3, TypeScript, Pinia, Tailwind CSS |
+| HTTP | Axios centralizado em `frontend/services/api/http.ts` e `frontend/composables/useApi.ts` |
+| API | Python 3.12+, FastAPI, Pydantic v2 |
+| Persistência | PostgreSQL, SQLAlchemy assíncrono, Alembic |
+| Segurança | Login local e integração OIDC/Keycloak; perfis e escopo por unidade |
+| Qualidade | Vitest, pytest, Ruff, mypy, ESLint e GitHub Actions |
 
-```text
-painel-de-equipamentos/
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/
-│   │   ├── core/
-│   │   ├── models/
-│   │   ├── modules/
-│   │   │   ├── audit/
-│   │   │   ├── catalogs/
-│   │   │   ├── dashboard/
-│   │   │   ├── equipments/
-│   │   │   ├── monday_import/
-│   │   │   ├── access/
-│   │   │   ├── processes/
-│   │   │   ├── queues/
-│   │   │   ├── suppliers/
-│   │   │   ├── users/
-│   │   │   └── workflow/
-│   │   └── shared/
-│   ├── alembic/
-│   ├── scripts/
-│   └── tests/
-├── frontend/
-│   ├── components/
-│   │   ├── charts/
-│   │   ├── layout/
-│   │   └── ui/
-│   ├── composables/
-│   ├── layouts/
-│   ├── middleware/
-│   ├── pages/
-│   ├── public/brand/
-│   ├── services/
-│   ├── stores/
-│   └── utils/
-└── docs/
-```
+## Principais capacidades
 
-Os componentes `BarChart.vue`, `DonutChart.vue`, `LineChart.vue` e `UnitProgressBars.vue` permanecem disponíveis em `frontend/components/charts/` para uso futuro.
+- Dashboard com indicadores, status e alertas de prazo.
+- Equipamentos e componentes com filtros por unidade, projeto e equipamento.
+- Filas operacionais de Engenharia, Jurídico e Suprimentos, além do Kanban.
+- Workflow de aquisição nas fases 0–8; estados operacionais independentes; dispensa auditada de requisitos e fluxo controlado de reabertura.
+- Fornecedores, work packages, EAP, negociação, contratos, SC/OCI e OC.
+- Administração de usuários, permissões, regras de notificação e modelos HTML de e-mail.
+- Importação Monday via perfis de origem, staging, planejamento, aplicação controlada e reconciliação.
+- Auditoria e histórico das operações.
 
-## Etapa funcional atual
+## Organização
 
-A navbar do módulo dá acesso a seis telas: **Dashboard**, **Equipamentos**, **Engenharia**, **Jurídico**, **Suprimentos** e **Auditoria** (esta só com permissão). Unidade e Equipamento são filtros globais compartilhados por todas elas e sincronizados com a URL.
+~~~text
+backend/
+  app/api/v1/         Agregação de rotas FastAPI
+  app/core/           Configuração, autenticação, segurança e infraestrutura
+  app/models/         Entidades SQLAlchemy
+  app/modules/        Módulos por domínio (controllers/services/schemas)
+  alembic/            Evolução do esquema
+  tests/              Testes unitários e de integração
+frontend/
+  components/         Componentes reutilizáveis
+  composables/        Composição e fachada HTTP
+  pages/              Rotas da interface
+  services/api/       Cliente Axios, cache e contratos HTTP
+  stores/             Sessão e filtros globais
+docs/                 Documentação técnica consolidada
+~~~
 
-O **Dashboard Geral** em `/dashboard` reúne totais, valor emitido em OC, CAPEX, distribuição pelas etapas 0–8, situação geral, negociação e próxima startup. Indicadores sem fórmula oficial — como a situação de prazos — aparecem explicitamente como não calculados, nunca estimados.
+## Execução local
 
-As filas `/engenharia`, `/juridico` e `/suprimentos` recortam o workflow por área (etapas 0–2, 3–5 e 6–7) e mostram, em cada linha, o que falta para a próxima etapa.
+**Backend** (use PostgreSQL local e variáveis de desenvolvimento apropriadas):
 
-O detalhe em `/equipamentos/{id}` é a tela de operação do processo de aquisição: stepper das etapas 0–8, formulário da etapa atual (negociação, jurídico, contrato, SC/OCI e OC), painel com os requisitos da próxima etapa, avanço por ação explícita, reabertura administrativa justificada, componentes e histórico consolidado.
-
-A etapa só muda pelo serviço de workflow no backend, que valida as pré-condições, registra a transição e gera auditoria de forma atômica. Salvar dados nunca avança o processo.
-
-O acesso é escopado por unidade: o perfil define o que o usuário pode fazer e o vínculo usuário–unidade define onde. ADMIN enxerga todas as unidades; VIEWER e ANALYST, apenas as atribuídas. Conhecer o UUID de um equipamento de outra unidade não dá acesso a ele.
-
-Cada equipamento pode ter fornecedores vinculados, com um principal que aparece na fila de Suprimentos. A exportação da listagem de equipamentos respeita todos os filtros aplicados.
-
-A administração é contextual, dentro da aba em que o dado é usado e só para quem tem permissão: catálogos e acesso por unidade na aba **Equipamentos**, cadastro mestre de fornecedores na aba **Suprimentos** (também acessível em `/fornecedores`). O header pertence ao Hub corporativo e não recebe funções do módulo.
-
-Consulte [docs/etapa-01-primeiro-fluxo.md](docs/etapa-01-primeiro-fluxo.md), [docs/etapa-02-workflow-aquisicao.md](docs/etapa-02-workflow-aquisicao.md) [docs/etapa-03-dashboard-navegacao-filas.md](docs/etapa-03-dashboard-navegacao-filas.md) [docs/etapa-04-consolidacao-operacional.md](docs/etapa-04-consolidacao-operacional.md) e [docs/etapa-04-1-administracao-contextual.md](docs/etapa-04-1-administracao-contextual.md) para contratos, decisões e limitações.
-
-As otimizações e medições de carregamento estão registradas em
-[docs/etapa-02-desempenho.md](docs/etapa-02-desempenho.md).
-
-Os limites de registros, retomada de importação e armazenamento de contratos estão registrados em
-[docs/etapa-03-confiabilidade-operacional.md](docs/etapa-03-confiabilidade-operacional.md).
-
-A fundação de migração do Monday está documentada em
-[docs/migration/monday-import-architecture.md](docs/migration/monday-import-architecture.md), com o
-mapeamento completo em [docs/migration/monday-c2-mapping.md](docs/migration/monday-c2-mapping.md).
-
-## Executar o backend
-
-Requisitos: Python 3.12+ e PostgreSQL.
-
-```bash
+~~~bash
 cd backend
 python -m venv .venv
-```
+python -m pip install -e ".[dev]"
+# Configure .env a partir de .env.example, sem versioná-lo.
+python -m alembic upgrade head
+python -m uvicorn app.main:app --reload
+~~~
 
-Windows PowerShell:
+**Frontend** (em outro terminal):
 
-```powershell
-.venv\Scripts\python.exe -m pip install -e ".[dev]"
-Copy-Item .env.example .env
-.venv\Scripts\python.exe -m alembic upgrade head
-.venv\Scripts\python.exe -m uvicorn app.main:app --reload
-```
-
-Linux/macOS:
-
-```bash
-.venv/bin/python -m pip install -e ".[dev]"
-cp .env.example .env
-.venv/bin/python -m alembic upgrade head
-.venv/bin/python -m uvicorn app.main:app --reload
-```
-
-A API fica em `http://localhost:8000` e o Swagger em `http://localhost:8000/docs`.
-
-## Executar o frontend
-
-Requisitos: Node.js 20+ e pnpm.
-
-```bash
+~~~bash
 cd frontend
-pnpm install
-cp .env.example .env
+pnpm install --frozen-lockfile
 pnpm dev
-```
+~~~
 
-No Windows PowerShell, use `Copy-Item .env.example .env` no lugar de `cp`.
+Endereços locais padrão: frontend em `http://localhost:3000` e backend em `http://localhost:8000`. A API usa o prefixo `/api/v1`. Configure o frontend com `NUXT_PUBLIC_API_BASE_URL` quando necessário.
 
-O frontend fica em `http://localhost:3000`.
+**Nunca execute migrations ou testes destrutivos apontando para Neon remoto, DEV corporativo ou produção.** Consulte a documentação de ambientes e testes antes de prosseguir.
 
-## Validação
+## Verificações
 
-Frontend:
-
-```bash
+~~~bash
+# frontend/
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-```
 
-Backend:
-
-```bash
+# backend/
 python -m ruff check app tests scripts
 python -m mypy app
 python -m pytest
-```
+~~~
 
-Os testes de integração do backend exigem um PostgreSQL de testes configurado em `.env.test`.
+A suíte de integração com operações destrutivas exige um PostgreSQL **local**, banco com sufixo `_test` e autorização explícita por `ALLOW_DESTRUCTIVE_TESTS=true`.
+
+## Documentação
+
+Comece pelo [índice técnico](docs/README.md). Ele reúne arquitetura, funcionalidades, domínio e EAP, API, autenticação, importação Monday, notificações, ambientes e testes.
+
+Para procedimentos de backend consulte também [backend/README.md](backend/README.md). Não utilize relatórios antigos de etapas ou escopos como especificação vigente: as decisões técnicas atuais devem ser verificadas contra o código, migrations e documentação consolidada.
+
+## Segurança e operação
+
+Este repositório não deve conter exports corporativos do Monday, LGE, Árvore de Localização, dados reais de usuários, dumps ou segredos de ambiente. Valores sensíveis pertencem à configuração protegida da infraestrutura; dados operacionais pertencem ao banco e aos armazenamentos autorizados. Qualquer incidente ou credencial antiga exige tratamento próprio, inclusive revisão do histórico Git.

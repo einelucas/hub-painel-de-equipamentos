@@ -1,109 +1,132 @@
-# API
+# Referência da API
 
-Prefixo: `/api/v1`.
+**Base:** `/api/v1`. As rotas abaixo são relativas a esse prefixo e foram conferidas nos decorators dos controllers atuais. Os contratos de campos, códigos de erro e documentação interativa são definidos pelos schemas Pydantic e pelo OpenAPI gerado pelo FastAPI no ambiente executado.
 
-Todos os caminhos listados neste documento são **relativos a esse prefixo**. Para chamar a API local, some
-`http://localhost:8000` ao caminho completo — por exemplo, `GET /health/live` corresponde a
-`GET http://localhost:8000/api/v1/health/live`. Nenhuma rota é publicada na raiz do servidor.
+A maioria dos recursos exige `Authorization: Bearer <token>`, além de permissão e escopo por unidade. O frontend usa `useApi` e o cliente Axios centralizado. Não crie integrações baseadas em endpoints de documentos antigos.
 
-## Autorização por unidade
+## Identidade, usuários e acesso
 
-Toda rota que toca dados de uma unidade respeita o escopo do usuário. ADMIN enxerga todas as unidades ativas; VIEWER e ANALYST, apenas as atribuídas em `user_unit_access`.
+| Método | Caminho | Finalidade |
+| --- | --- | --- |
+| POST | `/auth/login` | Login com e-mail e senha |
+| POST | `/auth/set-password` | Definição de senha no fluxo de primeiro acesso existente |
+| POST | `/auth/logout` | Encerrar sessão |
+| GET | `/auth/me` | Identidade, papel e permissões do usuário |
+| GET | `/usuarios` | Listar usuários (permissão administrativa) |
+| POST | `/usuarios` | Criar usuário |
+| PATCH | `/usuarios/{user_id}` | Atualizar usuário |
+| GET | `/usuarios/{user_id}/units` | Consultar acessos por unidade |
+| PUT | `/usuarios/{user_id}/units` | Substituir vínculos por unidade |
+| GET | `/responsibles` | Responsáveis acessíveis |
+| GET | `/module-context/defaults` | Preferências/defaults de contexto do usuário |
+| GET | `/auditoria` | Consulta de trilha de auditoria |
 
-Recurso fora do escopo responde **404** com mensagem única, sem revelar se ele existe em outra unidade. Usuário sem unidade atribuída recebe listas vazias.
+Também existem endpoints `/health/live` e `/health/ready` no router de saúde.
 
-## Saúde
+## Catálogos
 
-- `GET /health/live` → `/api/v1/health/live`: indica que o processo está ativo; responde `{"status": "ok"}`.
-- `GET /health/ready` → `/api/v1/health/ready`: verifica a conectividade com o banco; responde `{"status": "ok"}`
-  ou `503` com `{"status": "unavailable"}`.
+| Método | Caminho / família | Finalidade |
+| --- | --- | --- |
+| GET, POST, PATCH | `/units`, `/units/{id}` | Unidades |
+| GET, POST, PATCH | `/units/{unit_id}/project-contexts`, `/project-contexts/{id}` | Contextos/projetos |
+| GET, POST, PATCH | `/eap-nodes`, `/eap-nodes/{id}` | Nós da EAP |
+| GET | `/project-contexts/{project_context_id}/eap-nodes` | Nós associados a um contexto |
+| GET, POST, PATCH | `/areas`, `/areas/{id}` | Áreas |
+| GET, POST, PATCH | `/disciplines`, `/disciplines/{id}` | Disciplinas |
+| GET, POST, PATCH | `/criticality-labels`, `/criticality-labels/{id}` | Rótulos de criticidade |
+| GET, POST, PATCH | `/work-packages`, `/work-packages/{id}` | Work packages |
 
-Ambas são públicas (sem autenticação) e servem para probes de orquestradores. Não existe rota de saúde na
-raiz: `GET /health` responde **404**, assim como qualquer caminho fora de `/api/v1`.
+Os métodos específicos são definidos em `backend/app/modules/catalogs/controllers.py`; nem toda coleção aceita PATCH no caminho sem ID. Não presuma hard delete: o cadastro usa manutenção de ativação/edição.
 
-## Autenticação
+## Equipamentos, componentes e comentários
 
-- `GET /auth/me`: retorna o usuário autenticado e suas permissões.
+| Método | Caminho | Finalidade |
+| --- | --- | --- |
+| GET, POST | `/equipments` | Listar/criar equipamentos |
+| GET, PATCH | `/equipments/{equipment_id}` | Detalhar/editar equipamento |
+| GET, POST | `/equipments/{equipment_id}/components` | Consultar/criar componentes |
+| PATCH | `/components/{component_id}` | Editar componente |
+| GET, POST | `/equipments/{equipment_id}/comments` | Listar/criar comentários |
+| PATCH, DELETE | `/equipments/{equipment_id}/comments/{comment_id}` | Editar/excluir comentário |
 
-## Usuários
+Os parâmetros de consulta de listagem e filtro são declarados nos schemas/controllers; use os nomes reais, como `unit_id` e `project_context_id`, conforme a operação. Atualizações comuns não substituem o serviço de transições de workflow.
 
-Rotas administrativas:
+## Processos de aquisição
 
-- `GET /usuarios`
-- `POST /usuarios`
-- `PATCH /usuarios/{user_id}`
+Os caminhos abaixo utilizam o prefixo `/equipments/{equipment_id}`.
 
-## Auditoria
+| Métodos | Sufixo | Operação |
+| --- | --- | --- |
+| GET | `/processes` | Resumo do processo |
+| GET, PATCH | `/negotiation` | Negociação |
+| GET, PATCH | `/legal` | Processo jurídico |
+| GET, POST | `/contracts` | Contratos 1:N |
+| PATCH, DELETE | `/contracts/{contract_id}` | Manutenção de contrato |
+| PUT, GET | `/contracts/{contract_id}/file` | Upload/download de arquivo |
+| GET, POST | `/purchase-requests` | SC/OCI 1:N |
+| PATCH, DELETE | `/purchase-requests/{request_id}` | Manutenção de SC/OCI |
+| GET, POST | `/purchase-orders` | OCs 1:N |
+| PATCH, DELETE | `/purchase-orders/{order_id}` | Manutenção de OC |
 
-- `GET /auditoria`: lista eventos registrados, com paginação e filtros opcionais por entidade e ação.
+## Workflow
 
-A documentação interativa completa é gerada pelo FastAPI em `/docs`.
+Prefixo `/equipments/{equipment_id}`:
 
-## Catálogos de equipamentos
+- `GET /available-transitions` e `POST /transitions`: consultar/executar transição permitida.
+- `GET /history`: histórico de transições.
+- `GET /operational-status`, `POST /standby`, `POST /standby/lift`, `POST /cancel`, `POST /sanitation` e `POST /sanitation/end`: estados operacionais independentes.
+- `GET /requirement-waivers`, `POST /requirement-waivers`, `POST /requirement-waivers/{waiver_id}/revoke`: dispensas por grupo com auditoria.
+- `GET /reopen-requests`, `POST /reopen-requests`, `POST /reopen-requests/{request_id}/approve` e `POST /reopen-requests/{request_id}/reject`: reabertura com aprovação.
 
-- `GET /units`
-- `GET /units/{unit_id}/project-contexts`
-- `GET /areas?unit_id=`
-- `GET /disciplines`
-- `GET /work-packages?project_context_id=`
+Requisitos de conclusão e políticas de autorização residem no backend. Consulte [domínio e EAP](dominio-eap.md).
 
-ADMIN também pode criar esses catálogos pelos respectivos endpoints `POST`.
+## Painel, filas e fornecedores
 
-## Equipamentos e componentes
+| Método | Caminho | Operação |
+| --- | --- | --- |
+| GET | `/dashboard/summary` | Resumo e indicadores |
+| GET | `/queues/engineering` | Fila de Engenharia |
+| GET | `/queues/legal` | Fila de Jurídico |
+| GET | `/queues/procurement` | Fila de Suprimentos |
+| GET, POST | `/suppliers` | Consulta/cadastro de fornecedor |
+| POST | `/suppliers/import` | Importação de fornecedores |
+| GET, PATCH | `/suppliers/{supplier_id}` | Detalhe e manutenção de fornecedor |
+| GET, POST, PUT | `/equipments/{equipment_id}/suppliers` | Consulta e vínculo/substituição |
+| PATCH, DELETE | `/equipments/{equipment_id}/suppliers/{...}` | Manutenção do vínculo (ver OpenAPI para parâmetro exato) |
 
-- `GET /equipments`: filtros `unit_id`, `project_context_id`, `equipment_id`, `search`, `stage`, `discipline_id`, `responsible_user_id`, paginação e ordenação segura.
-- `PATCH /units/{id}`, `/project-contexts/{id}`, `/areas/{id}`, `/disciplines/{id}`, `/work-packages/{id}` (`catalogs:manage`): edita nome/código e ativa/desativa. Não há exclusão física. `eapPrefix` é legado e não faz parte da API (P1.3.1): o Hub usa só `EapNode.code`; ver `docs/eap-catalogo.md`.
-- `POST /equipments`
-- `GET /equipments/{equipment_id}`
-- `PATCH /equipments/{equipment_id}`
-- `GET /equipments/{equipment_id}/components`
-- `POST /equipments/{equipment_id}/components`
-- `PATCH /components/{component_id}`
+O limite de um fornecedor por equipamento é uma regra de negócio, mesmo havendo associação no modelo.
 
-O `PATCH` de equipamento **não** aceita `currentStage`: a etapa só muda pelo endpoint de transições e a tentativa retorna 422 com a orientação correta.
+## Importação Monday
 
-## Processo de aquisição
+Prefixo `/imports/monday`:
 
-Leitura com `equipments:read`, escrita com `process:write`. Um processo ainda não iniciado é devolvido com `id: null` e valores padrão, sem gravar nada.
+| Método | Caminho | Operação |
+| --- | --- | --- |
+| GET | `/profiles` | Lista perfis de importação disponíveis |
+| POST | `/batches` | Upload XLSX e criação de staging |
+| GET | `/batches/{batch_id}` | Análise de lote e issues |
+| POST | `/plan` | Plano e validação de mapeamentos |
+| POST | `/apply` | Solicita aplicação; retorna `202 Accepted` + job |
+| GET | `/apply/{job_id}` | Acompanha progresso/resultado |
 
-- `GET /equipments/{equipment_id}/processes`: os cinco processos em uma chamada
-- `GET | PATCH /equipments/{equipment_id}/negotiation`
-- `GET | PATCH /equipments/{equipment_id}/legal`
-- `GET | PATCH /equipments/{equipment_id}/contract`
-- `GET | PATCH /equipments/{equipment_id}/purchase-request`
-- `GET | PATCH /equipments/{equipment_id}/purchase-order`
+Os uploads não alteram o domínio até o apply controlado; ver [importação Monday](importacao-monday.md).
 
-## Workflow 0–8
+## Notificações e templates
 
-- `GET /equipments/{equipment_id}/available-transitions` (`workflow:read`): etapa atual e, para cada transição possível, `canExecute` e os requisitos com `code`, `field`, `message` e `satisfied`.
-- `POST /equipments/{equipment_id}/transitions` (`workflow:transition`): corpo `{ "targetStage": <int>, "reason": <string|null> }`. O backend valida as pré-condições — 422 para requisito pendente ou pulo de etapa, 409 quando a etapa já foi alterada por outro usuário. A reabertura (`targetStage: 1` a partir da etapa 2 ou superior) exige `reason` e `workflow:reopen`.
-- `GET /equipments/{equipment_id}/history` (`workflow:read`): transições e alterações de dados do processo em uma lista única, da mais recente para a mais antiga.
+- `GET /equipments/{equipment_id}/notifications`: eventos do equipamento.
+- `GET /notifications/settings`: condição/configuração do módulo (sem revelar segredos).
+- `GET /notifications/rules` e `PUT /notifications/rules/{kind}`: regras e destinatários.
+- `GET /notifications/templates`, `GET/PUT /notifications/templates/{kind}` e `POST /notifications/templates/{kind}/reset`: modelos.
+- `POST /notifications/templates/{kind}/preview` e `POST /notifications/templates/{kind}/test`: prévia e envio de teste.
+- `GET /notifications/deliveries`: outbox/histórico de envio.
+- `POST /notifications/test`, `POST /notifications/process` e `POST /notifications/deliveries/{delivery_id}/retry`: operações de teste, processamento e retry, sujeitas a permissões.
 
-## Resumo do painel
+## Erros, paginação e contratos
 
-- `GET /dashboard/summary?unit_id=&equipment_id=`: resposta consolidada com `context`, `totals` (equipamentos, componentes, em andamento, concluídos, OCs e valor emitido, CAPEX), `workflow` (distribuição pelas etapas 0–8), `negotiation`, `deadlines` e `startup`.
+- Validação dos dados de entrada é feita com Pydantic; recursos são protegidos pelas dependências de autenticação e autorização.
+- Recursos de outra unidade não devem permitir enumeração por identificador; verifique respostas com escopo.
+- Listagens usam filtros/paginação quando oferecidos pelo controller, não necessariamente os mesmos parâmetros para todos os endpoints.
+- Em migrações e operações demoradas, trate status assíncrono e mensagens de conflito (por exemplo plano desatualizado e apply já em execução).
+- Para gerar o contrato real: instancie a API no ambiente seguro e consulte `/openapi.json` ou o comando de exportação definido no backend; não copie snapshots de documentos históricos.
 
-`deadlines.available` é sempre `false` enquanto as regras oficiais de prazo não forem formalizadas — o campo `reason` explica o motivo e nenhum prazo é estimado.
-
-## Responsáveis e acessos
-
-- `GET /responsibles?unit_id=` (`equipments:read`): usuários ativos com acesso à unidade, mais os ADMIN. É a origem do seletor de responsável.
-- `GET /usuarios/{user_id}/units` (`users:manage`)
-- `PUT /usuarios/{user_id}/units` (`users:manage`): substitui os vínculos do usuário e gera auditoria. ADMIN é global por perfil e recusa vínculo individual.
-
-## Fornecedores
-
-- `GET /suppliers?search=&includeInactive=` e `POST /suppliers`
-- `GET | PATCH /suppliers/{id}`
-- `GET | POST /equipments/{id}/suppliers`
-- `PATCH | DELETE /equipments/{id}/suppliers/{supplier_id}`
-
-Leitura com `suppliers:read`, escrita com `suppliers:write`. `tax_id` só bloqueia duplicidade quando informado; há no máximo um fornecedor principal por equipamento; o `DELETE` remove apenas o vínculo — o fornecedor mestre é desativado, nunca apagado.
-
-## Filas operacionais
-
-Recortes do workflow por área, com `equipments:read`. Todas aceitam `unit_id`, `equipment_id`, `stage`, `search`, `responsible_user_id`, `page` e `pageSize`, e devolvem `pending` com o que falta para a próxima etapa.
-
-- `GET /queues/engineering`: etapas 0 a 2
-- `GET /queues/legal`: etapas 3 a 5
-- `GET /queues/procurement`: etapas 6 e 7, incluindo o fornecedor principal do equipamento
+**Fonte de verificação:** `backend/app/api/v1/router.py`, `backend/app/modules/*/controllers.py`, `backend/app/api/v1/auth.py` e schemas correspondentes.

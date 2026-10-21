@@ -133,7 +133,7 @@ class EquipmentOperationalStatusOut(CamelModel):
 # `RequirementWaiver` (dispensa por grupo, ver acima) — os schemas
 # `WorkflowException*` foram removidos daqui; o modelo/tabela seguem
 # existindo só por compatibilidade (nenhum registro real em produção, ver
-# docs/validation/etapa-07-1-requirement-waivers.md).
+# docs/dominio-eap.md).
 
 
 # --- Etapa 7C: reabertura com aprovação ---
