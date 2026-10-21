@@ -65,7 +65,7 @@ _WORK_NEED_FIELD_BY_STATUS = {
 # — sub-estados do NegotiationStatus oficial (GAP-014) mais finos do que o
 # widget — caem juntos em "urgent": nos 41 equipamentos reais do C2,
 # CRITICAL e DUE_TODAY nunca ocorreram isoladamente (ver
-# docs/validation/etapa-06c1-negotiation-deadline-status.md); essa fusão
+# docs/funcionalidades.md); essa fusão
 # ainda depende de confirmação formal se o Monday algum dia distinguir os
 # três na prática. NOT_APPLICABLE não tem bucket próprio no widget — cai em
 # not_calculable, como `deliveryDeadline` ausente no card de prazos.
