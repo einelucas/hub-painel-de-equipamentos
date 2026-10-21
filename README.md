@@ -94,7 +94,3 @@ A suíte de integração com operações destrutivas exige um PostgreSQL **local
 Comece pelo [índice técnico](docs/README.md). Ele reúne arquitetura, funcionalidades, domínio e EAP, API, autenticação, importação Monday, notificações, ambientes e testes.
 
 Para procedimentos de backend consulte também [backend/README.md](backend/README.md). Não utilize relatórios antigos de etapas ou escopos como especificação vigente: as decisões técnicas atuais devem ser verificadas contra o código, migrations e documentação consolidada.
-
-## Segurança e operação
-
-Este repositório não deve conter exports corporativos do Monday, LGE, Árvore de Localização, dados reais de usuários, dumps ou segredos de ambiente. Valores sensíveis pertencem à configuração protegida da infraestrutura; dados operacionais pertencem ao banco e aos armazenamentos autorizados. Qualquer incidente ou credencial antiga exige tratamento próprio, inclusive revisão do histórico Git.
