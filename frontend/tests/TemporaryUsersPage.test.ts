@@ -9,7 +9,7 @@ const users: AdminUser[] = [
   {
     id: "user-1",
     name: "Lucas Pinheiro",
-    email: "lucas.pinheiro@inpasa.com.br",
+    email: "lucas.pinheiro@example.com",
     role: "ADMIN",
     active: true,
     authProvider: "LOCAL",
@@ -19,7 +19,7 @@ const users: AdminUser[] = [
   {
     id: "user-2",
     name: "Diego Costa",
-    email: "diego.costa@inpasa.com.br",
+    email: "diego.costa@example.com",
     role: "ANALYST",
     active: true,
     authProvider: "LOCAL",
@@ -43,7 +43,7 @@ afterEach(() => {
 function mountPage() {
   const get = vi.fn().mockResolvedValue({ items: structuredClone(users) });
   const post = vi.fn().mockResolvedValue({
-    user: { id: "user-3", name: "Ana Souza", email: "ana@inpasa.com.br", role: "VIEWER", active: true },
+    user: { id: "user-3", name: "Ana Souza", email: "ana@example.com", role: "VIEWER", active: true },
   });
   const patch = vi.fn().mockImplementation((_path: string, changes: Partial<AdminUser>) =>
     Promise.resolve({ user: { ...users[1], ...changes } }),
@@ -79,8 +79,8 @@ describe("página temporária de usuários", () => {
 
     expect(get).toHaveBeenCalledWith("/usuarios");
     expect(wrapper.text()).toContain("Página temporária e não listada no menu");
-    expect(wrapper.text()).toContain("lucas.pinheiro@inpasa.com.br");
-    expect(wrapper.text()).toContain("diego.costa@inpasa.com.br");
+    expect(wrapper.text()).toContain("lucas.pinheiro@example.com");
+    expect(wrapper.text()).toContain("diego.costa@example.com");
   });
 
   it("cria usuário com nome, e-mail e perfil", async () => {
@@ -91,14 +91,14 @@ describe("página temporária de usuários", () => {
     const form = wrapper.get("#create-user-form");
     const inputs = form.findAll("input");
     await inputs[0]!.setValue("Ana Souza");
-    await inputs[1]!.setValue("ana@inpasa.com.br");
+    await inputs[1]!.setValue("ana@example.com");
     await form.get("select").setValue("VIEWER");
     await form.trigger("submit");
     await flushPromises();
 
     expect(post).toHaveBeenCalledWith("/usuarios", {
       name: "Ana Souza",
-      email: "ana@inpasa.com.br",
+      email: "ana@example.com",
       role: "VIEWER",
     });
     expect(get).toHaveBeenCalledTimes(2);

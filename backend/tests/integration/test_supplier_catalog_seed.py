@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from argparse import Namespace
 
 import pytest
@@ -7,7 +8,7 @@ from sqlalchemy import func, select
 
 from app.models.audit import AuditLog
 from app.models.supplier import EquipmentSupplier, Supplier, SupplierAlias
-from app.modules.supplier_catalog.catalog import CatalogSupplier, SupplierCatalog
+from app.modules.supplier_catalog.catalog import CATALOG_FORMAT_VERSION, CatalogSupplier, SupplierCatalog
 from app.modules.supplier_catalog.cli import _seed
 from app.modules.supplier_catalog.seed import (
     ALIAS_CONTEXT,
@@ -168,17 +169,19 @@ async def test_extra_supplier_is_reported_and_never_deleted(db_session) -> None:
     assert await db_session.get(Supplier, extra.id) is not None
 
 
-async def test_wrong_database_name_aborts_before_seed(db_session) -> None:
+async def test_wrong_database_name_aborts_before_seed(db_session, tmp_path) -> None:
+    catalog_path = tmp_path / "catalogo_sintetico.json"
+    catalog_path.write_text(
+        json.dumps({"format_version": CATALOG_FORMAT_VERSION, "source": {}, "suppliers": []}),
+        encoding="utf-8",
+    )
     args = Namespace(
-        catalog=None,
+        catalog=catalog_path,
         apply=True,
         sync=False,
         actor_id=None,
         expect_database="banco_que_nao_existe",
     )
-    from app.modules.supplier_catalog.catalog import CATALOG_PATH
-
-    args.catalog = CATALOG_PATH
     with pytest.raises(SystemExit, match="difere de --expect-database"):
         await _seed(args)
     assert await _count(db_session, Supplier) == 0

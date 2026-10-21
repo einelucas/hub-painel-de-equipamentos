@@ -71,3 +71,10 @@ openapi.json
 # Instruções locais do Claude Code (não versionar)
 CLAUDE.md
 .claude/
+
+# Dados corporativos reais e dumps gerados devem ficar somente fora do Git.
+/backend/app/data/supplier_catalog.json
+/backend/app/data/supplier_evidence_seed.json
+/backend/scripts/*_neon.sql
+/backend/scripts/seed_default_password_users.py
+/backend/scripts/seed_import_test_users.py

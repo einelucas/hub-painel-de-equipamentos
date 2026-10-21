@@ -46,7 +46,7 @@ async def test_created_user_receives_local_first_access_credential(
     )
     assert created.status_code == 201
     user_id = created.json()["user"]["id"]
-    assert created.json()["user"]["email"] == "diego.costa@inpasa.com.br"
+    assert created.json()["user"]["email"] == "diego.costa@example.com"
 
     credential = (
         await db_session.execute(select(Account).where(Account.userId == user_id))

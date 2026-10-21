@@ -1,7 +1,7 @@
 """CLI para cadastrar (ou redefinir) usuários com login local por e-mail e senha.
 
 Uso:
-    python -m app.modules.local_auth create-user --email admin@inpasa.com.br \
+    python -m app.modules.local_auth create-user --email admin@example.com \
         --name Administrador --role ADMIN
 
 A senha é lida de LOCAL_AUTH_PASSWORD ou pedida no terminal — nunca por

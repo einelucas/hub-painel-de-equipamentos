@@ -40,7 +40,7 @@ Os testes de integração potencialmente destrutivos só são permitidos com `AP
 - Perfis: `VIEWER`, `ANALYST` e `ADMIN`, com políticas de permissão e escopo por unidade.
 - Swagger/OpenAPI: consulte a instância FastAPI no ambiente autorizado e [docs/api.md](../docs/api.md).
 
-**Atenção:** o legado de senha inicial compartilhada e seeds com identidades reais precisa ser corrigido em uma tarefa específica de segurança. Não exponha ou reutilize tais credenciais a partir desta documentação.
+**Atenção:** os scripts com identidades reais e dumps operacionais foram removidos do estado atual do Git. O legado de senha inicial compartilhada ainda precisa de correção e rotação de credenciais; apagar arquivos não apaga o histórico de commits.
 
 ## Importação e notificações
 
