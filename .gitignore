@@ -34,7 +34,7 @@ scripts.zip
 *.xlsm
 *.docx
 /docs/auditoria-lge-v1.md
-# EAP corporativa real (caminhos padrão; ver docs/eap-catalogo.md).
+# EAP corporativa real (caminhos padrão; ver docs/dominio-eap.md).
 /backend/app/data/eap_catalog.json
 /backend/app/data/eap_catalog_resolutions.json
 /backend/app/data/eap_aliases.json
