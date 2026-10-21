@@ -2,7 +2,7 @@
 
 Cada fila é um recorte explícito do mesmo workflow 0–8 — não há filtro oculto
 nem regra herdada de board. O critério de cada área está em `QUEUE_STAGES` e
-documentado em `docs/etapa-03-dashboard-navegacao-filas.md`.
+documentado em `docs/funcionalidades.md`.
 
 A pendência exibida em cada linha vem da mesma fonte usada pelo endpoint de
 transições, para que fila e detalhe nunca divirjam.
