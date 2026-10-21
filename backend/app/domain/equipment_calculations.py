@@ -1,5 +1,5 @@
 """Fórmulas de prazo confirmadas empiricamente nas 164 linhas do C2 (ver
-`docs/migration/monday-c2-mapping.md` e `docs/validation/etapa-06b-formulas-layout.md`).
+`docs/importacao-monday.md` e `docs/dominio-eap.md`).
 
 Implementação única: tanto o importador Monday (`app/modules/monday_import`,
 que usa isto só para validar a migração/reconciliação) quanto a aplicação
@@ -174,7 +174,7 @@ def calculate_negotiation_status(
     O Hub ainda não modela um campo equivalente ao A.Status do Monday
     (current_stage é uma state machine 0-8, não um status de negociação) —
     `operational_status` é opcional e, para os equipamentos reais do C2
-    hoje, sempre `None`. Ver `docs/validation/etapa-06c-dates-negotiation-status.md`
+    hoje, sempre `None`. Ver `docs/dominio-eap.md`
     para a pendência de modelagem registrada.
     """
     if operational_status is not None:
