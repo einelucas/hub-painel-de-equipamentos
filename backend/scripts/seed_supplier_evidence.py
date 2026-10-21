@@ -1,11 +1,10 @@
 """Seed controlada da base auxiliar de sugestões de fornecedores.
 
-Exemplos:
-  python scripts/seed_supplier_evidence.py --dry-run --offline
-  python scripts/seed_supplier_evidence.py --dry-run
-  python scripts/seed_supplier_evidence.py --apply --confirm --actor-id UUID
-  python scripts/seed_supplier_evidence.py relacao_fornecedores_hub.xlsx \
-    --export-json app/data/supplier_evidence_seed.json
+Exemplos (arquivos privados, locais):
+  python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx --dry-run --offline
+  python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx --dry-run
+  python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx --apply --confirm --actor-id UUID
+  python scripts/seed_supplier_evidence.py /dados-privados/evidencias.xlsx --export-json /dados-privados/evidencias.json
 
 O apply nunca cria Supplier nem EquipmentSupplier. O alvo ainda passa pela
 mesma guarda de escrita das migrações Monday.
@@ -33,9 +32,6 @@ from app.modules.supplier_import.evidence_seed import (
     load_evidence_seed_json,
     reconcile_evidence_seed,
 )
-
-DEFAULT_SEED = Path(__file__).resolve().parents[1] / "app" / "data" / "supplier_evidence_seed.json"
-
 
 def _load_rows(path: Path) -> list[EvidenceSeedRow]:
     return load_evidence_seed_json(path) if path.suffix.lower() == ".json" else load_evidence_seed(path)
@@ -68,7 +64,7 @@ def _report(path: Path, rows: int, actions: list[EvidenceSeedAction] | None) -> 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Seed das evidências de sugestão de fornecedores")
-    parser.add_argument("source", type=Path, nargs="?", default=DEFAULT_SEED)
+    parser.add_argument("source", type=Path, help="Planilha/JSON privado, não versionado")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")

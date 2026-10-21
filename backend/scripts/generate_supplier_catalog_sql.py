@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from app.modules.supplier_catalog.catalog import CATALOG_PATH, load_catalog, validate_catalog
+from app.modules.supplier_catalog.catalog import load_catalog, validate_catalog
 
 DEFAULT_OUTPUT = Path(__file__).resolve().parent / "supplier_catalog_neon.sql"
 EXPECTED_REVISION = "0014_supplier_history"
@@ -22,7 +22,7 @@ def _literal(value: str | None) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
-def build_sql(catalog_path: Path = CATALOG_PATH) -> str:
+def build_sql(catalog_path: Path) -> str:
     catalog = load_catalog(catalog_path)
     errors = validate_catalog(catalog)
     if errors:
@@ -348,7 +348,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM _supplier_catalog_stage c WHERE c.corporate_code = s.corporate_code
 );
 
--- Verificação final dentro da mesma transação: deve retornar 122, 120, 2 e 56.
+-- Verificação final: conferir totais conforme o catálogo fornecido localmente.
 SELECT
     count(*) AS catalog_suppliers,
     count(*) FILTER (WHERE s.active) AS active,
@@ -372,7 +372,7 @@ COMMIT;
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--catalog", type=Path, default=CATALOG_PATH)
+    parser.add_argument("--catalog", type=Path, required=True, help="Catálogo privado fora do Git")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
     sql = build_sql(args.catalog)

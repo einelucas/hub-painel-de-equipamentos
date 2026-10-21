@@ -1,4 +1,4 @@
-"""Seed da planilha corporativa: evidência idempotente, nunca vínculo."""
+"""Seed de evidências sintéticas: idempotência e ausência de vínculos."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from app.models.user import Role as UserRole
 from app.models.user import User
 from app.modules.supplier_import.evidence_seed import (
     apply_evidence_seed,
+    export_evidence_seed,
     load_evidence_seed,
     load_evidence_seed_json,
 )
@@ -77,18 +78,13 @@ def _workbook() -> bytes:
     )
 
 
-def test_committed_seed_was_generated_from_the_supplied_workbook() -> None:
-    seed_path = Path(__file__).resolve().parents[2] / "app" / "data" / "supplier_evidence_seed.json"
-    rows = load_evidence_seed_json(seed_path)
-    assert len(rows) == 548
-    assert {row.source for row in rows} == {
-        "MAPA_TIPOS",
-        "RECOMENDACOES_OC",
-        "LGE",
-        "MONDAY_CODES",
-        "PENDENCIAS",
-    }
-    assert any(row.review_required for row in rows)
+def test_synthetic_evidence_export_and_reload(tmp_path: Path) -> None:
+    rows = load_evidence_seed(_workbook())
+    path = tmp_path / "synthetic_supplier_evidence.json"
+    export_evidence_seed(rows, path)
+    restored = load_evidence_seed_json(path)
+    assert len(restored) == len(rows)
+    assert [item.values() for item in restored] == [item.values() for item in rows]
 
 
 async def test_seed_is_idempotent_and_never_creates_supplier_or_link(db_session) -> None:
