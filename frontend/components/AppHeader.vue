@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { Bell, CloudDownload, History, Search } from "lucide-vue-next";
-import BackLink from "~/components/ui/BackLink.vue";
+import { ArrowLeft, Bell, CloudDownload, History, Search } from "lucide-vue-next";
 
 const router = useRouter();
 const { store } = useAuth();
@@ -13,7 +12,14 @@ const { store } = useAuth();
         <img src="/brand/hub-logo.png" alt="Hub" class="h-9 w-auto" />
       </NuxtLink>
 
-      <BackLink compact @click="router.back()">Voltar</BackLink>
+      <button
+        type="button"
+        class="flex h-[34px] items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-[13.6px] font-medium text-[#374151] transition-colors hover:bg-muted"
+        @click="router.back()"
+      >
+        <ArrowLeft class="size-[18px]" />
+        Voltar
+      </button>
 
       <div class="hidden sm:block">
         <p class="text-[9.92px] font-extrabold uppercase leading-none tracking-[0.08em] text-[#8a97ab]">
