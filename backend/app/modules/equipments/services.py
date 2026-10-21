@@ -175,7 +175,7 @@ def _equipment_calculated_out(equipment: Equipment, *, reference_date: date) -> 
     negotiated_at = equipment.negotiation.negotiated_at if equipment.negotiation else None
     # `operational_status` fica de fora por enquanto: o Hub ainda não
     # modela um campo equivalente ao A.Status do Monday (ver GAP-014 em
-    # docs/validation/etapa-06c-dates-negotiation-status.md) — nenhum
+    # docs/dominio-eap.md) — nenhum
     # equipamento real do C2 hoje passa por essa prioridade da fórmula.
     negotiation_status = calculate_negotiation_status(
         negotiation_deadline=aggregates.min_negotiation_deadline,
