@@ -24,6 +24,7 @@ const canManageUsers = computed(() => auth.can("users:manage"));
 
 const CATALOGS = [
   { key: "units", label: "Unidades" },
+  { key: "masterEquipments", label: "Catálogo Mestre" },
   { key: "areas", label: "Árvore EAP" },
   { key: "disciplines", label: "Disciplinas" },
   { key: "criticalities", label: "Criticidades" },
@@ -103,6 +104,12 @@ watch(
           :has-code="false"
           @changed="onChanged"
         />
+        <div v-else-if="catalog === 'masterEquipments'" class="stack">
+          <p>Modelos reutilizáveis de equipamentos e componentes para novas obras.</p>
+          <NuxtLink class="btn primary" to="/administracao/catalogo-mestre" @click="emit('close')">
+            Gerenciar Catálogo Mestre
+          </NuxtLink>
+        </div>
         <EapTreeAdmin
           v-else-if="catalog === 'areas'"
           @changed="onChanged"
