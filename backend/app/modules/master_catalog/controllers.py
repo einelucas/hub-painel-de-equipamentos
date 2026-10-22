@@ -97,7 +97,7 @@ async def post_option(
     )
 
 
-@router.put("/equipments/{equipment_id}/areas", status_code=204)
+@router.put("/equipments/{equipment_id}/areas", status_code=204, response_model=None)
 async def put_areas(
     equipment_id: str,
     body: MasterAreaAssignmentIn,
@@ -109,7 +109,7 @@ async def put_areas(
     )
 
 
-@router.patch("/areas/{item_id}", status_code=204)
+@router.patch("/areas/{item_id}", status_code=204, response_model=None)
 async def patch_area(
     item_id: str,
     body: MasterUpdateIn,
@@ -120,7 +120,7 @@ async def patch_area(
                                name=body.name, active=body.active, actor=actor)
 
 
-@router.patch("/equipments/{item_id}", status_code=204)
+@router.patch("/equipments/{item_id}", status_code=204, response_model=None)
 async def patch_master_equipment(
     item_id: str,
     body: MasterUpdateIn,
@@ -131,7 +131,7 @@ async def patch_master_equipment(
                                name=body.name, active=body.active, actor=actor)
 
 
-@router.patch("/components/{item_id}", status_code=204)
+@router.patch("/components/{item_id}", status_code=204, response_model=None)
 async def patch_master_component(
     item_id: str,
     body: MasterUpdateIn,
