@@ -1,15 +1,20 @@
 """Invariantes do catálogo mestre sem acessar banco real."""
+
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
+from app.core.errors import DomainError
 from app.models.master_catalog import (
-    MasterArea, MasterComponentOption, MasterEquipment, MasterEquipmentArea, MasterProjectCreation,
+    MasterArea,
+    MasterComponentOption,
+    MasterEquipment,
+    MasterEquipmentArea,
+    MasterProjectCreation,
 )
 from app.modules.master_catalog.schemas import MasterCatalogSeedIn, MasterProjectCreateIn
 from app.modules.master_catalog.services import _check_seed, key_for
-from app.core.errors import DomainError
 
 
 def _seed() -> MasterCatalogSeedIn:
