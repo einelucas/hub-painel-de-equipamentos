@@ -1,4 +1,5 @@
 """API global do Catálogo Mestre e criação transacional de obra."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, status
@@ -10,10 +11,18 @@ from app.core.permissions import Permission, assert_can
 from app.models.master_catalog import MasterArea, MasterComponentOption, MasterEquipment
 from app.modules.master_catalog import services
 from app.modules.master_catalog.schemas import (
-    MasterAreaAssignmentIn, MasterAreaCreateIn, MasterAreaOut,
-    MasterCatalogOut, MasterCatalogSeedIn, MasterCatalogSeedOut,
-    MasterComponentCreateIn, MasterComponentOut, MasterEquipmentCreateIn,
-    MasterProjectCreateIn, MasterProjectCreatedOut, MasterUpdateIn,
+    MasterAreaAssignmentIn,
+    MasterAreaCreateIn,
+    MasterAreaOut,
+    MasterCatalogOut,
+    MasterCatalogSeedIn,
+    MasterCatalogSeedOut,
+    MasterComponentCreateIn,
+    MasterComponentOut,
+    MasterEquipmentCreateIn,
+    MasterProjectCreateIn,
+    MasterProjectCreatedOut,
+    MasterUpdateIn,
 )
 
 router = APIRouter(prefix="/master-catalog", tags=["catálogo mestre"])
