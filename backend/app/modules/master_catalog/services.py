@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import unicodedata
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -39,7 +39,7 @@ def key_for(value: str) -> str:
     return " ".join("".join(c for c in raw if not unicodedata.combining(c)).casefold().split())
 
 
-def _equipment_query():
+def _equipment_query() -> Select[tuple[MasterEquipment]]:
     return select(MasterEquipment).options(
         selectinload(MasterEquipment.links),
         selectinload(MasterEquipment.components),
@@ -95,7 +95,7 @@ def _check_seed(seed: MasterCatalogSeedIn) -> None:
             raise DomainError("Seed mestre contém vínculo operacional proibido")
     for item in seed.component_options:
         parent = item.get("equipment_id")
-        if parent not in eq_set:
+        if not isinstance(parent, str) or parent not in eq_set:
             raise DomainError("Componente referencia equipamento inexistente")
         if any(k in item for k in ("tag", "source", "source_project", "project_context_id")):
             raise DomainError("Componente mestre contém vínculo operacional proibido")
@@ -351,7 +351,14 @@ async def update_item(
     session: AsyncSession, *, model: type, item_id: str, name: str | None,
     active: bool | None, actor: CurrentUser,
 ) -> None:
-    item = await session.get(model, item_id)
+    if model is MasterArea:
+        item = await session.get(MasterArea, item_id)
+    elif model is MasterEquipment:
+        item = await session.get(MasterEquipment, item_id)
+    elif model is MasterComponentOption:
+        item = await session.get(MasterComponentOption, item_id)
+    else:
+        raise DomainError("Tipo de catálogo desconhecido")
     if item is None:
         raise NotFoundError("Registro do Catálogo Mestre não encontrado")
     before = {"name": item.name, "active": item.active}
