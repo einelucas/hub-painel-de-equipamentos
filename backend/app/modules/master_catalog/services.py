@@ -1,8 +1,10 @@
 """Serviços do Catálogo Mestre — somente modelos, sem metadados operacionais."""
+
 from __future__ import annotations
 
 import json
 import unicodedata
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -12,11 +14,21 @@ from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.scope import assert_unit_allowed
 from app.models.equipment import Equipment, EquipmentComponent, ProjectContext, Unit
 from app.models.master_catalog import (
-    MasterArea, MasterComponentOption, MasterEquipment, MasterEquipmentArea, MasterProjectCreation,
+    MasterArea,
+    MasterComponentOption,
+    MasterEquipment,
+    MasterEquipmentArea,
+    MasterProjectCreation,
 )
 from app.modules.master_catalog.schemas import (
-    MasterAreaOut, MasterCatalogOut, MasterCatalogSeedIn, MasterCatalogSeedOut,
-    MasterComponentOut, MasterEquipmentOut, MasterProjectCreateIn, MasterProjectCreatedOut,
+    MasterAreaOut,
+    MasterCatalogOut,
+    MasterCatalogSeedIn,
+    MasterCatalogSeedOut,
+    MasterComponentOut,
+    MasterEquipmentOut,
+    MasterProjectCreateIn,
+    MasterProjectCreatedOut,
 )
 from app.shared.audit import record_audit
 
@@ -107,13 +119,17 @@ async def seed_catalog(
     areas_new = sum(x["id"] not in area_by_id for x in seed.areas)
     eq_new = sum(x["id"] not in eq_by_id for x in seed.equipments)
     components_new = sum(x["id"] not in comp_by_id for x in seed.component_options)
-    existing = (len(seed.areas) - areas_new) + (len(seed.equipments) - eq_new) + (len(seed.component_options) - components_new)
+    existing = (
+        len(seed.areas) - areas_new
+        + len(seed.equipments) - eq_new
+        + len(seed.component_options) - components_new
+    )
     result = MasterCatalogSeedOut(
         areas_new=areas_new, equipments_new=eq_new, components_new=components_new,
         existing=existing, dry_run=dry_run,
     )
     # Evita sobrescrever alterações administrativas após primeira carga.
-    for source, known, model in (
+    for source, known, _model in (
         (seed.areas, area_by_id, MasterArea),
         (seed.equipments, eq_by_id, MasterEquipment),
         (seed.component_options, comp_by_id, MasterComponentOption),
@@ -187,7 +203,10 @@ async def create_project_from_master(
     ):
         raise ConflictError("Já existe obra com esse código na unidade")
     ids = [item.equipment_id for item in body.selections]
-    masters = list((await session.scalars(_equipment_query().where(MasterEquipment.id.in_(ids)))).all()) if ids else []
+    masters = (
+        list((await session.scalars(_equipment_query().where(MasterEquipment.id.in_(ids)))).all())
+        if ids else []
+    )
     master_by_id = {item.id: item for item in masters}
     if len(masters) != len(ids):
         raise NotFoundError("Equipamento do catálogo não encontrado")
@@ -273,7 +292,10 @@ async def assign_areas(
         raise NotFoundError("Equipamento mestre não encontrado")
     if len(area_ids) != len(set(area_ids)):
         raise DomainError("Áreas repetidas")
-    areas = list((await session.scalars(select(MasterArea).where(MasterArea.id.in_(area_ids)))).all()) if area_ids else []
+    areas = (
+        list((await session.scalars(select(MasterArea).where(MasterArea.id.in_(area_ids)))).all())
+        if area_ids else []
+    )
     if len(areas) != len(area_ids) or any(not area.active for area in areas):
         raise DomainError("Área inexistente ou inativa")
     if len(area_ids) > 1 and any(area.is_unassigned for area in areas):
