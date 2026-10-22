@@ -73,10 +73,10 @@ const withoutArea = computed(() => catalog.value.equipments.filter(
   (item) => item.active && !item.areaIds.length && item.name.toLocaleLowerCase("pt-BR").includes(search.value.toLocaleLowerCase("pt-BR").trim()),
 ));
 const canContinue = computed(() => (step.value === 0 ? Boolean(unitId.value && name.value.trim()) : true));
-function selectedEquipment(id: string): boolean { return Object.hasOwn(selected.value, id); }
+function selectedEquipment(id: string): boolean { return Object.prototype.hasOwnProperty.call(selected.value, id); }
 function toggleEquipment(id: string): void {
   const next = { ...selected.value };
-  if (Object.hasOwn(next, id)) delete next[id];
+  if (Object.prototype.hasOwnProperty.call(next, id)) delete next[id];
   else next[id] = [];
   selected.value = next;
 }
