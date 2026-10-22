@@ -365,7 +365,7 @@ async def update_item(
     if item is None:
         raise NotFoundError("Registro do Catálogo Mestre não encontrado")
     before = {"name": item.name, "active": item.active}
-    if model is MasterArea and item.is_unassigned and (name is not None or active is False):
+    if isinstance(item, MasterArea) and item.is_unassigned and (name is not None or active is False):
         raise DomainError("A categoria virtual Sem área definida não pode ser renomeada ou desativada")
     if name is not None:
         normalized = key_for(name)
