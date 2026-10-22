@@ -1,6 +1,9 @@
 """Contratos da lista mestre e do assistente de criação de obras."""
+
 from __future__ import annotations
+
 from pydantic import Field, model_validator
+
 from app.shared.schema import CamelModel
 
 
