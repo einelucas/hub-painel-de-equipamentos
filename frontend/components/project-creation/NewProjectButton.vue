@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { FolderPlus } from "lucide-vue-next";
+import NewProjectModal from "~/components/project-creation/NewProjectModal.vue";
 
 const auth = useAuthStore();
 const context = useModuleContextStore();
