@@ -76,8 +76,11 @@ const canContinue = computed(() => (step.value === 0 ? Boolean(unitId.value && n
 function selectedEquipment(id: string): boolean { return Object.prototype.hasOwnProperty.call(selected.value, id); }
 function toggleEquipment(id: string): void {
   const next = { ...selected.value };
-  if (Object.prototype.hasOwnProperty.call(next, id)) delete next[id];
-  else next[id] = [];
+  if (Object.prototype.hasOwnProperty.call(next, id)) {
+    selected.value = Object.fromEntries(Object.entries(next).filter(([key]) => key !== id));
+    return;
+  }
+  next[id] = [];
   selected.value = next;
 }
 function componentSelected(equipmentId: string, componentId: string): boolean {
