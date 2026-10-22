@@ -37,7 +37,9 @@ class MasterEquipment(Base):
     links: Mapped[list[MasterEquipmentArea]] = relationship(
         back_populates="equipment", cascade="all, delete-orphan"
     )
-    components: Mapped[list[MasterComponentOption]] = relationship(back_populates="equipment", cascade="all, delete-orphan")
+    components: Mapped[list[MasterComponentOption]] = relationship(
+        back_populates="equipment", cascade="all, delete-orphan"
+    )
 
 
 class MasterEquipmentArea(Base):
