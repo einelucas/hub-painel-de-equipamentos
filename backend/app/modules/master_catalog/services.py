@@ -1,5 +1,5 @@
 """Serviços do Catálogo Mestre — somente modelos, sem metadados operacionais."""
-# ruff: noqa: I001  # Imports de classes de domínio agrupados
+# ruff: noqa: I001
 
 from __future__ import annotations
 
