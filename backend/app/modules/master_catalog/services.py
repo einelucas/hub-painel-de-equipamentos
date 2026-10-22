@@ -348,9 +348,12 @@ async def create_option(
 
 
 async def update_item(
-    session: AsyncSession, *, model: type, item_id: str, name: str | None,
+    session: AsyncSession, *,
+    model: type[MasterArea] | type[MasterEquipment] | type[MasterComponentOption],
+    item_id: str, name: str | None,
     active: bool | None, actor: CurrentUser,
 ) -> None:
+    item: MasterArea | MasterEquipment | MasterComponentOption | None
     if model is MasterArea:
         item = await session.get(MasterArea, item_id)
     elif model is MasterEquipment:
@@ -369,8 +372,8 @@ async def update_item(
         if not normalized:
             raise DomainError("Nome obrigatório")
         stmt = select(model.id).where(model.normalized_name == normalized, model.id != item_id)
-        if model is MasterComponentOption:
-            stmt = stmt.where(model.equipment_id == item.equipment_id)
+        if isinstance(item, MasterComponentOption):
+            stmt = stmt.where(MasterComponentOption.equipment_id == item.equipment_id)
         if await session.scalar(stmt):
             raise ConflictError("Nome já utilizado")
         item.name, item.normalized_name = name.strip(), normalized
