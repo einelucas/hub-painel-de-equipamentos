@@ -27,7 +27,7 @@ const draftAreas = ref<string[]>([]);
 
 const areas = computed(() => catalog.value.areas.filter((a) => a.active));
 const models = computed(() => catalog.value.equipments.filter((item) =>
-  (filterArea === undefined || !filterArea.value || (filterArea.value === "unassigned"
+  (!filterArea.value || (filterArea.value === "unassigned"
     ? !item.areaIds.length || item.areaIds.some((id) => catalog.value.areas.find(a => a.id === id)?.isUnassigned)
     : item.areaIds.includes(filterArea.value)))
   && item.name.toLocaleLowerCase("pt-BR").includes(search.value.trim().toLocaleLowerCase("pt-BR")),
