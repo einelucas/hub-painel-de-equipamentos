@@ -41,6 +41,7 @@ const active = computed(() => activeNavPath(items.value, route.path));
       <!-- Ações (não são rotas): separadas visualmente da navegação. -->
       <span class="module-nav-divider" aria-hidden="true" />
       <ImportEquipmentButton />
+      <EmailSettingsButton />
     </nav>
   </div>
 </template>
@@ -112,5 +113,13 @@ const active = computed(() => activeNavPath(items.value, route.path));
 }
 @media (prefers-reduced-motion: reduce) {
   .module-nav-tip { transition: none; }
+}
+/* Em janelas estreitas, a barra com todas as ações precisa caber sem cortar
+   o último atalho; a redução mantém a mesma altura visual. */
+@media (max-width: 560px) {
+  .module-nav { gap: 2px; padding: 12px 10px; }
+  .module-nav .module-nav-item,
+  .module-nav :deep(.module-action) { width: 36px; height: 36px; }
+  .module-nav .module-nav-divider { margin: 0 3px; }
 }
 </style>
