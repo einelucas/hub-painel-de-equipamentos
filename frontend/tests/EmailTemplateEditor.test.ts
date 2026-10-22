@@ -96,10 +96,12 @@ describe("EmailTemplatePreview", () => {
 
     expect(frame.attributes("sandbox")).toBe("");
     expect(frame.attributes("srcdoc")).toBe("<p>Olá</p>");
+    expect(frame.attributes("style")).toContain("width: 760px");
     expect(wrapper.text()).toContain("Dados fictícios");
 
     await wrapper.findAll(".tpl-device-toggle button").at(1)!.trigger("click");
     expect(wrapper.get(".tpl-preview-stage").classes()).toContain("mobile");
+    expect(wrapper.get("iframe").attributes("style")).toContain("width: 390px");
   });
 });
 

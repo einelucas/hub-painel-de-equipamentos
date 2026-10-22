@@ -263,21 +263,43 @@ def _validated_color(value: str | None, fallback: str) -> str:
 
 
 def _detail_rows(context: EmailContext) -> str:
+    """Duas colunas no desktop; os itens empilham no celular via media query."""
     fields = [(field, label) for field, label in _DETAIL_FIELDS if context.has(field)]
+    if not fields:
+        return ""
     rows: list[str] = []
-    for index, (field_name, label) in enumerate(fields):
-        divider = f"border-bottom:1px solid {BORDER};" if index < len(fields) - 1 else ""
-        rows.append(
-            '<tr>'
-            f'<td class="detail-label" width="37%" style="padding:12px 0;{divider}'
-            'font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;'
-            f'color:{MUTED};vertical-align:top;">{escape(label)}</td>'
-            f'<td class="detail-value" style="padding:12px 0;{divider}'
-            'font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;'
-            f'color:{INK};font-weight:600;vertical-align:top;word-break:break-word;">'
-            f'{escape(context.values[field_name])}</td>'
-            '</tr>'
-        )
+    for index in range(0, len(fields), 2):
+        cells: list[str] = []
+        for column in range(2):
+            position = index + column
+            if position >= len(fields):
+                cells.append(
+                    '<td class="detail-item detail-item-empty" width="50%" '
+                    'style="width:50%;padding:0;font-size:0;line-height:0;">&nbsp;</td>'
+                )
+                continue
+            field_name, label = fields[position]
+            divider = (
+                f"border-bottom:1px solid {BORDER};" if index + 2 < len(fields) else ""
+            )
+            gutter = (
+                "padding:14px 24px 14px 0;"
+                if column == 0
+                else "padding:14px 0 14px 24px;"
+            )
+            cells.append(
+                f'<td class="detail-item" width="50%" valign="top" '
+                f'style="width:50%;{gutter}{divider}">'
+                '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+                '<tr><td class="detail-label" style="padding:0 0 5px;'
+                'font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;'
+                f'font-weight:700;letter-spacing:.35px;color:{MUTED};">{escape(label)}</td></tr>'
+                '<tr><td class="detail-value" style="font-family:Arial,Helvetica,sans-serif;'
+                'font-size:15px;line-height:22px;font-weight:700;word-break:break-word;'
+                f'color:{INK};">{escape(context.values[field_name])}</td></tr>'
+                '</table></td>'
+            )
+        rows.append(f'<tr>{"".join(cells)}</tr>')
     return "".join(rows)
 
 
@@ -285,14 +307,14 @@ def _button(url: str, label: str) -> str:
     # Tabela + link: boa compatibilidade com Gmail, Outlook e Microsoft 365.
     return (
         '<table role="presentation" class="button-table" cellpadding="0" cellspacing="0" border="0" '
-        'style="margin:23px 0 0;border-collapse:separate;">'
-        f'<tr><td align="center" bgcolor="{NAVY}" style="background:{NAVY};border-radius:7px;">'
+        'style="margin:28px 0 0;border-collapse:separate;">'
+        f'<tr><td align="center" bgcolor="{NAVY}" style="background:{NAVY};border-radius:8px;">'
         f'<a href="{escape(url, quote=True)}" target="_blank" rel="noopener noreferrer" '
-        'style="display:inline-block;box-sizing:border-box;padding:15px 23px;'
-        'font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;'
+        'style="display:inline-block;box-sizing:border-box;padding:16px 28px;'
+        'font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;'
         'font-weight:700;letter-spacing:.1px;color:#FFFFFF;text-decoration:none;'
-        f'border-radius:7px;">{escape(label)}&nbsp;&nbsp;&nbsp;<span aria-hidden="true" '
-        'style="color:#F2B544;font-size:16px;">&#8594;</span></a></td></tr></table>'
+        f'border-radius:8px;">{escape(label)}&nbsp;&nbsp;&nbsp;<span aria-hidden="true" '
+        'style="color:#F2B544;font-size:17px;">&#8594;</span></a></td></tr></table>'
     )
 
 
@@ -304,28 +326,28 @@ def _brand_header(logo_url: str | None) -> str:
     if image_src:
         wordmark = (
             f'<img src="{escape(image_src, quote=True)}" alt="INPASA - Mais que Energia" '
-            'width="205" style="display:block;width:205px;max-width:100%;height:auto;border:0;" />'
+            'width="230" style="display:block;width:230px;max-width:100%;height:auto;border:0;" />'
         )
     else:
         # Fallback legível se a logo ainda não tiver sido hospedada.
         wordmark = (
-            f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:29px;line-height:30px;'
-            f'font-weight:900;letter-spacing:-1.5px;font-style:italic;color:{NAVY};">INPASA</div>'
-            f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:14px;'
-            f'font-weight:800;letter-spacing:.7px;color:{GOLD};">MAIS QUE ENERGIA</div>'
+            f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:32px;line-height:33px;'
+            f'font-weight:900;letter-spacing:-1.6px;font-style:italic;color:{NAVY};">INPASA</div>'
+            f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:15px;'
+            f'font-weight:800;letter-spacing:.8px;color:{GOLD};">MAIS QUE ENERGIA</div>'
         )
     return (
-        '<tr><td class="email-padding" style="padding:25px 32px 22px;background:#FFFFFF;">'
+        '<tr><td class="email-padding" style="padding:28px 44px 24px;background:#FFFFFF;">'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
         '<tr><td class="brand-cell" valign="middle" style="width:48%;vertical-align:middle;">'
         f'{wordmark}</td>'
         '<td class="header-info" align="right" valign="middle" '
-        f'style="width:52%;padding-left:20px;vertical-align:middle;border-left:1px solid {BORDER};">'
-        f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:17px;'
-        f'font-weight:800;letter-spacing:.3px;color:{NAVY_DARK};">HUB DE AUTOMAÇÃO</div>'
-        f'<div style="padding-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;'
-        f'line-height:17px;color:{MUTED};">Planejamento <span style="color:{GOLD};">/</span> '
-        'Painel de Equipamentos</div>'
+        f'style="width:52%;padding-left:24px;vertical-align:middle;border-left:1px solid {BORDER};">'
+        f'<div class="header-title" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;'
+        f'line-height:18px;font-weight:800;letter-spacing:.3px;color:{NAVY_DARK};">HUB DE AUTOMAÇÃO</div>'
+        f'<div class="header-subtitle" style="padding-top:5px;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:12px;line-height:18px;color:{MUTED};">Planejamento '
+        f'<span style="color:{GOLD};">/</span> Painel de Equipamentos</div>'
         '</td></tr></table></td></tr>'
     )
 
@@ -335,8 +357,8 @@ def _notice(content: TemplateContent, context: EmailContext, accent: str) -> str
     body = _html_text(content.body, context.values) if content.body.strip() else ""
     if not content.show_alert:
         return (
-            f'<p style="margin:0 0 22px;font-family:Arial,Helvetica,sans-serif;font-size:14px;'
-            f'line-height:23px;color:{TEXT};">{body}</p>' if body else ""
+            f'<p class="email-body" style="margin:0 0 26px;font-family:Arial,Helvetica,sans-serif;'
+            f'font-size:15px;line-height:25px;color:{TEXT};">{body}</p>' if body else ""
         )
     tint = KIND_TINTS.get(content.kind, "#F0F5FB")
     # Não repetir a manchete dentro do aviso quando ambas possuem o mesmo texto.
@@ -350,29 +372,29 @@ def _notice(content: TemplateContent, context: EmailContext, accent: str) -> str
     if context.criticality:
         severity_color = _validated_color(context.criticality_color, accent)
         critical = (
-            '<tr><td style="padding:10px 0 0;">'
+            '<tr><td style="padding:11px 0 0;">'
             '<span style="font-family:Arial,Helvetica,sans-serif;font-size:11px;'
-            f'line-height:17px;color:{severity_color};font-weight:700;">'
+            f'line-height:18px;color:{severity_color};font-weight:700;">'
             f'CRITICIDADE: {escape(context.criticality.upper())}</span></td></tr>'
         )
     return (
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" '
-        f'bgcolor="{tint}" style="background:{tint};border-collapse:separate;margin:0 0 24px;">'
+        f'bgcolor="{tint}" style="background:{tint};border-collapse:separate;margin:0 0 26px;">'
         '<tr>'
         f'<td width="5" bgcolor="{accent}" '
         f'style="width:5px;background:{accent};font-size:0;line-height:0;">&nbsp;</td>'
-        '<td style="padding:18px 20px;">'
+        '<td class="notice-cell" style="padding:22px 24px;">'
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">'
         '<tr><td>'
-        f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:16px;'
-        f'font-weight:800;letter-spacing:1.1px;color:{accent};">{escape(notice_title)}</div>'
-        + (f'<div style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;'
-           f'line-height:21px;font-weight:700;color:{NAVY_DARK};">{escape(context.alert_label)}</div>'
+        f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;'
+        f'font-weight:800;letter-spacing:1.15px;color:{accent};">{escape(notice_title)}</div>'
+        + (f'<div style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;'
+           f'line-height:23px;font-weight:700;color:{NAVY_DARK};">{escape(context.alert_label)}</div>'
            if show_alert_label else '')
         + '</td></tr>'
         + (
-            '<tr><td style="padding:11px 0 0;font-family:Arial,Helvetica,sans-serif;'
-            f'font-size:13px;line-height:21px;color:{TEXT};">{body}</td></tr>' if body else ""
+            '<tr><td style="padding:12px 0 0;font-family:Arial,Helvetica,sans-serif;'
+            f'font-size:14px;line-height:23px;color:{TEXT};">{body}</td></tr>' if body else ""
         ) + critical +
         '</table></td></tr></table>'
     )
@@ -391,15 +413,16 @@ def _deadline_metric(content: TemplateContent, context: EmailContext) -> str:
     text_days = "HOJE" if days == 0 else f"{days} {'DIA RESTANTE' if days == 1 else 'DIAS RESTANTES'}"
     return (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="margin:0 0 26px;border-bottom:1px solid {BORDER};">'
-        '<tr><td style="padding:0 0 17px;">'
+        f'style="margin:0 0 28px;border-bottom:1px solid {BORDER};">'
+        '<tr><td class="deadline-main" style="padding:0 0 20px;">'
         f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;'
         f'font-weight:700;letter-spacing:.7px;color:{MUTED};">CONTAGEM DE PRAZO</div>'
-        f'<div style="padding-top:5px;font-family:Arial,Helvetica,sans-serif;font-size:22px;'
-        f'line-height:28px;font-weight:800;color:{NAVY_DARK};">{escape(text_days)}</div>'
+        f'<div class="deadline-value" style="padding-top:6px;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:28px;line-height:34px;font-weight:800;color:{NAVY_DARK};">{escape(text_days)}</div>'
         '</td>'
-        '<td align="right" style="padding:0 0 17px;font-family:Arial,Helvetica,sans-serif;'
-        f'font-size:12px;line-height:18px;color:{MUTED};vertical-align:bottom;">'
+        '<td class="deadline-date" align="right" '
+        'style="padding:0 0 20px;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:12px;line-height:19px;color:{MUTED};vertical-align:bottom;">'
         + (f'Entrega: {escape(context.values["prazo_entrega"])}' if context.has("prazo_entrega") else "") +
         '</td></tr></table>'
     )
@@ -411,12 +434,12 @@ def _details(context: EmailContext) -> str:
         return ""
     return (
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" '
-        f'style="border:1px solid {BORDER};border-collapse:separate;border-radius:8px;">'
-        '<tr><td style="padding:18px 21px 8px;">'
-        f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:16px;'
-        f'letter-spacing:1.25px;font-weight:800;color:{NAVY};">DADOS DO EQUIPAMENTO</div>'
+        f'style="border:1px solid {BORDER};border-collapse:separate;border-radius:9px;">'
+        '<tr><td style="padding:20px 24px 6px;">'
+        f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;'
+        f'letter-spacing:1.3px;font-weight:800;color:{NAVY};">DADOS DO EQUIPAMENTO</div>'
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" '
-        f'style="margin:9px 0 0;">{rows}</table>'
+        f'style="margin:10px 0 0;">{rows}</table>'
         '</td></tr></table>'
     )
 
@@ -427,8 +450,8 @@ def _layout(content: TemplateContent, context: EmailContext) -> str:
     logo = os.getenv("INPASA_EMAIL_LOGO_URL", "").strip()
     title = _html_text(content.title, context.values)
     intro = (
-        f'<p style="margin:0 0 22px;font-family:Arial,Helvetica,sans-serif;font-size:14px;'
-        f'line-height:23px;color:{MUTED};">{_html_text(content.intro, context.values)}</p>'
+        f'<p class="email-intro" style="margin:0 0 26px;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:16px;line-height:26px;color:{MUTED};">{_html_text(content.intro, context.values)}</p>'
         if content.intro.strip() else ""
     )
     alert = _notice(content, context, accent)
@@ -441,15 +464,15 @@ def _layout(content: TemplateContent, context: EmailContext) -> str:
     footer = ""
     if content.show_footer and content.footer.strip():
         footer = (
-            f'<tr><td class="email-padding" bgcolor="#F9FAFC" style="padding:21px 32px;'
+            f'<tr><td class="email-padding email-footer" bgcolor="#F9FAFC" style="padding:24px 44px;'
             f'background:#F9FAFC;border-top:1px solid {BORDER};">'
             '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
             '<tr><td style="vertical-align:top;">'
-            f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;'
-            f'font-weight:800;letter-spacing:.4px;color:{NAVY};">'
-            'INPASA &nbsp;/&nbsp; COMUNICAÇÃO AUTOMÁTICA</div>'
-            f'<p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;'
-            f'line-height:18px;color:{MUTED};">{_html_text(content.footer, context.values)}</p>'
+            f'<div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;'
+            f'font-weight:800;letter-spacing:.4px;color:{NAVY};">INPASA &nbsp;/&nbsp; '
+            'COMUNICAÇÃO AUTOMÁTICA</div>'
+            f'<p style="margin:7px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;'
+            f'line-height:19px;color:{MUTED};">{_html_text(content.footer, context.values)}</p>'
             '</td></tr></table></td></tr>'
         )
 
@@ -459,21 +482,37 @@ def _layout(content: TemplateContent, context: EmailContext) -> str:
         '<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR">'
         '<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'
         '<meta name="viewport" content="width=device-width, initial-scale=1.0" />'
+        '<meta name="x-apple-disable-message-reformatting" />'
+        '<meta name="color-scheme" content="light only" />'
+        '<meta name="supported-color-schemes" content="light only" />'
         f'<title>{escape(render_string(content.title, context.values))}</title>'
         '<style type="text/css">'
         'body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}'
         'table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;}'
         'img{-ms-interpolation-mode:bicubic;}'
-        '@media only screen and (max-width:620px){'
+        '@media only screen and (max-width:728px){'
         '.email-container{width:100%!important;max-width:100%!important;border-radius:0!important;}'
         '.email-padding{padding-left:20px!important;padding-right:20px!important;}'
-        '.email-title{font-size:25px!important;line-height:32px!important;}'
-        '.brand-cell{width:43%!important;}'
-        '.header-info{width:57%!important;padding-left:11px!important;}'
-        '.detail-label{width:37%!important;}'
-        '.detail-value{width:63%!important;}'
+        '.email-title{font-size:27px!important;line-height:34px!important;}'
+        '.email-intro{font-size:15px!important;line-height:24px!important;}'
+        '.email-body{font-size:14px!important;line-height:23px!important;}'
+        '.notice-cell{padding:18px 18px!important;}'
+        '.brand-cell{display:block!important;width:100%!important;padding-bottom:12px!important;}'
+        '.header-info{display:block!important;width:100%!important;text-align:left!important;'
+        'border-left:0!important;border-top:1px solid #E4E9F0!important;padding:12px 0 0!important;}'
+        '.header-title{font-size:11px!important;line-height:16px!important;}'
+        '.header-subtitle{font-size:10px!important;line-height:16px!important;}'
+        '.detail-item{display:block!important;width:100%!important;padding:13px 0!important;}'
+        '.detail-item-empty{display:none!important;}'
+        '.detail-label{font-size:10px!important;line-height:16px!important;}'
+        '.detail-value{font-size:14px!important;line-height:21px!important;}'
+        '.deadline-main{display:block!important;width:100%!important;padding:0 0 6px!important;}'
+        '.deadline-date{display:block!important;width:100%!important;'
+        'text-align:left!important;padding:0 0 20px!important;}'
+        '.deadline-value{font-size:24px!important;line-height:30px!important;}'
         '.button-table{width:100%!important;}'
         '.button-table a{display:block!important;text-align:center!important;}'
+        '.email-footer{padding-top:20px!important;padding-bottom:20px!important;}'
         '}'
         '</style></head>'
         f'<body style="margin:0;padding:0;background:{BACKGROUND};">'
@@ -482,30 +521,30 @@ def _layout(content: TemplateContent, context: EmailContext) -> str:
         f'{escape(render_string(content.intro or content.title, context.values))}</div>'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
         f'bgcolor="{BACKGROUND}" style="background:{BACKGROUND};border-collapse:collapse;">'
-        '<tr><td align="center" style="padding:30px 12px 44px;">'
-        '<table role="presentation" class="email-container" width="620" cellspacing="0" '
+        '<tr><td align="center" style="padding:34px 12px 48px;">'
+        '<table role="presentation" class="email-container" width="700" cellspacing="0" '
         'cellpadding="0" border="0" bgcolor="#FFFFFF" '
-        f'style="width:620px;max-width:620px;background:#FFFFFF;border:1px solid {BORDER};'
-        'border-collapse:separate;border-radius:11px;overflow:hidden;">'
+        f'style="width:700px;max-width:700px;background:#FFFFFF;border:1px solid {BORDER};'
+        'border-collapse:separate;border-radius:12px;overflow:hidden;">'
         f'<tr><td height="5" bgcolor="{NAVY}" '
         f'style="height:5px;background:{NAVY};font-size:0;line-height:0;">'
         '&nbsp;</td></tr>'
         f'{_brand_header(logo)}'
         f'<tr><td bgcolor="{BORDER}" height="1" '
         f'style="height:1px;background:{BORDER};font-size:0;line-height:0;">&nbsp;</td></tr>'
-        '<tr><td class="email-padding" style="padding:34px 32px 36px;">'
-        f'<div style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;'
-        f'font-size:10px;line-height:16px;font-weight:800;letter-spacing:1.6px;color:{NAVY};">'
+        '<tr><td class="email-padding" style="padding:40px 44px 44px;">'
+        f'<div style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:11px;line-height:17px;font-weight:800;letter-spacing:1.8px;color:{NAVY};">'
         'PAINEL DE EQUIPAMENTOS &nbsp; <span style="color:#D3A04F;">/</span> &nbsp; NOTIFICAÇÃO</div>'
-        f'<h1 class="email-title" style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;'
-        f'font-size:29px;line-height:36px;font-weight:800;letter-spacing:-.6px;color:{NAVY_DARK};">{title}</h1>'
+        f'<h1 class="email-title" style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:34px;line-height:42px;font-weight:800;letter-spacing:-.7px;color:{NAVY_DARK};">{title}</h1>'
         f'{intro}{alert}{deadline}{details}{button}'
         '</td></tr>'
         f'{footer}'
         '</table>'
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0 0;">'
-        '<tr><td align="center" style="font-family:Arial,Helvetica,sans-serif;font-size:10px;'
-        f'line-height:16px;color:#98A2B3;">INPASA &nbsp;&middot;&nbsp; MAIS QUE ENERGIA</td></tr></table>'
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 0;">'
+        '<tr><td align="center" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;'
+        f'line-height:17px;color:#98A2B3;">INPASA &nbsp;&middot;&nbsp; MAIS QUE ENERGIA</td></tr></table>'
         '</td></tr></table></body></html>'
     )
 

@@ -44,7 +44,9 @@ def test_default_template_has_hub_identity_and_action_button() -> None:
     assert "Painel de Equipamentos" in rendered.html
     assert "TAG-EXEMPLO-001" in rendered.html
     assert 'href="https://hub.example.test/equipamentos"' in rendered.html
-    assert "@media only screen and (max-width:620px)" in rendered.html
+    assert "@media only screen and (max-width:728px)" in rendered.html
+    assert 'class="email-container" width="700"' in rendered.html
+    assert 'class="detail-item"' in rendered.html
     assert "<script" not in rendered.html.lower()
     assert "Abrir equipamento no Hub" in rendered.html
 

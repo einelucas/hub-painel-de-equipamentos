@@ -1,11 +1,52 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Monitor, Smartphone } from "lucide-vue-next";
 import type { EmailTemplatePreview } from "~/types/notifications";
 
 defineProps<{ preview: EmailTemplatePreview | null; loading?: boolean }>();
+
+const DESKTOP_WIDTH = 760;
+const MOBILE_WIDTH = 390;
+const VISIBLE_HEIGHT = 620;
+const STAGE_HORIZONTAL_SPACE = 28;
+
 const device = ref<"desktop" | "mobile">("desktop");
+const stageEl = ref<HTMLElement | null>(null);
+const stageWidth = ref(0);
 const frameClass = computed(() => ({ mobile: device.value === "mobile" }));
+const designWidth = computed(() => (device.value === "desktop" ? DESKTOP_WIDTH : MOBILE_WIDTH));
+const scale = computed(() => {
+  const available = stageWidth.value - STAGE_HORIZONTAL_SPACE;
+  if (available <= 0) return 1;
+  return Math.min(1, available / designWidth.value);
+});
+const frameStyle = computed(() => ({
+  width: `${designWidth.value}px`,
+  height: `${Math.round(VISIBLE_HEIGHT / scale.value)}px`,
+  transform: `scale(${scale.value})`,
+}));
+const canvasStyle = computed(() => ({
+  width: `${Math.round(designWidth.value * scale.value)}px`,
+  height: `${VISIBLE_HEIGHT}px`,
+}));
+
+let observer: ResizeObserver | null = null;
+function measure() {
+  stageWidth.value = stageEl.value?.clientWidth ?? 0;
+}
+
+onMounted(() => {
+  measure();
+  if (typeof ResizeObserver !== "undefined" && stageEl.value) {
+    observer = new ResizeObserver(measure);
+    observer.observe(stageEl.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  observer?.disconnect();
+  observer = null;
+});
 </script>
 
 <template>
@@ -36,16 +77,18 @@ const frameClass = computed(() => ({ mobile: device.value === "mobile" }));
       </div>
     </header>
 
-    <div class="tpl-preview-stage" :class="frameClass" :aria-busy="loading">
+    <div ref="stageEl" class="tpl-preview-stage" :class="frameClass" :aria-busy="loading">
       <!-- sandbox vazio: sem scripts, sem mesma origem e sem formulários. -->
-      <iframe
-        v-if="preview"
-        class="tpl-preview-frame"
-        title="Pré-visualização do e-mail"
-        :srcdoc="preview.html"
-        sandbox=""
-        referrerpolicy="no-referrer"
-      />
+      <div v-if="preview" class="tpl-preview-canvas" :style="canvasStyle">
+        <iframe
+          class="tpl-preview-frame"
+          title="Pré-visualização do e-mail"
+          :srcdoc="preview.html"
+          :style="frameStyle"
+          sandbox=""
+          referrerpolicy="no-referrer"
+        />
+      </div>
       <div v-else class="tpl-preview-empty">
         {{ loading ? "Renderizando pré-visualização..." : "Preencha o modelo para visualizar o e-mail." }}
       </div>
@@ -69,9 +112,9 @@ const frameClass = computed(() => ({ mobile: device.value === "mobile" }));
 .tpl-device-toggle { display: inline-flex; border: 1px solid #dbe3ee; border-radius: 8px; overflow: hidden; background: #fff; }
 .tpl-device-toggle button { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; font-size: 11px; color: #64748b; }
 .tpl-device-toggle button.active { background: #eef3fb; color: #304f7e; font-weight: 700; }
-.tpl-preview-stage { position: relative; display: flex; justify-content: center; background: #eef2f8; border: 1px solid #dde5ef; border-radius: 12px; padding: 14px; min-height: 560px; overflow: auto; }
-.tpl-preview-frame { width: 100%; max-width: 100%; height: 620px; border: 0; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgba(30, 47, 71, 0.12); transition: max-width 0.2s ease; }
-.tpl-preview-stage.mobile .tpl-preview-frame { max-width: 390px; }
+.tpl-preview-stage { position: relative; display: flex; justify-content: center; align-items: flex-start; background: #eef2f8; border: 1px solid #dde5ef; border-radius: 12px; padding: 14px; min-height: 648px; overflow: hidden; }
+.tpl-preview-canvas { position: relative; flex: 0 0 auto; }
+.tpl-preview-frame { position: absolute; top: 0; left: 0; transform-origin: top left; border: 0; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgba(30, 47, 71, 0.12); }
 .tpl-preview-empty { align-self: center; color: #64748b; font-size: 12px; }
 .tpl-preview-loading { position: absolute; top: 10px; right: 14px; background: rgba(36, 54, 79, 0.9); color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 10px; }
 .tpl-preview-text summary { cursor: pointer; font-size: 11px; color: #304f7e; }
