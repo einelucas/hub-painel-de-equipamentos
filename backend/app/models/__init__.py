@@ -17,7 +17,11 @@ from app.models.equipment import (
     WorkPackage,
 )
 from app.models.master_catalog import (
-    MasterArea, MasterComponentOption, MasterEquipment, MasterEquipmentArea, MasterProjectCreation,
+    MasterArea,
+    MasterComponentOption,
+    MasterEquipment,
+    MasterEquipmentArea,
+    MasterProjectCreation,
 )
 from app.models.monday_import import (
     ExternalMapping,
