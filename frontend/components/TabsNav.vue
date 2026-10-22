@@ -41,6 +41,7 @@ const active = computed(() => activeNavPath(items.value, route.path));
       <!-- Ações (não são rotas): separadas visualmente da navegação. -->
       <span class="module-nav-divider" aria-hidden="true" />
       <ImportEquipmentButton />
+      <NewProjectButton />
       <EmailSettingsButton />
     </nav>
   </div>
