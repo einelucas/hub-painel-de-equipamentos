@@ -1,5 +1,5 @@
 """API global do Catálogo Mestre e criação transacional de obra."""
-# ruff: noqa: I001  # Rotas agrupadas por finalidade
+# ruff: noqa: I001
 
 from __future__ import annotations
 
