@@ -304,9 +304,13 @@ async def assign_areas(
     existing = list((await session.scalars(
         select(MasterEquipmentArea).where(MasterEquipmentArea.equipment_id == equipment_id)
     )).all())
+    previous_ids = {link.area_id for link in existing}
+    desired_ids = set(area_ids)
     for link in existing:
-        await session.delete(link)
-    for area_id in area_ids:
+        if link.area_id not in desired_ids:
+            await session.delete(link)
+    await session.flush()
+    for area_id in desired_ids - previous_ids:
         session.add(MasterEquipmentArea(equipment_id=equipment_id, area_id=area_id))
     await record_audit(
         session, user_id=actor.id, action="master_catalog.areas.assign",
@@ -351,6 +355,8 @@ async def update_item(
     if item is None:
         raise NotFoundError("Registro do Catálogo Mestre não encontrado")
     before = {"name": item.name, "active": item.active}
+    if model is MasterArea and item.is_unassigned and (name is not None or active is False):
+        raise DomainError("A categoria virtual Sem área definida não pode ser renomeada ou desativada")
     if name is not None:
         normalized = key_for(name)
         if not normalized:
