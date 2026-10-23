@@ -12,6 +12,7 @@ from app.modules.comments.controllers import router as comments_router
 from app.modules.dashboard.controllers import router as dashboard_router
 from app.modules.equipments.controllers import router as equipments_router
 from app.modules.imports.controllers import router as imports_router
+from app.modules.master_catalog.controllers import router as master_catalog_router
 from app.modules.notifications.controllers import router as notifications_router
 from app.modules.processes.controllers import router as processes_router
 from app.modules.queues.controllers import router as queues_router
@@ -35,3 +36,4 @@ api_router.include_router(queues_router)
 api_router.include_router(suppliers_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(imports_router)
+api_router.include_router(master_catalog_router)

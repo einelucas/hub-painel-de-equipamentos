@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import NewProjectButton from "~/components/project-creation/NewProjectButton.vue";
 import { Boxes, Handshake, Kanban, LayoutDashboard, Scale, ShoppingCart, Wrench } from "lucide-vue-next";
 import type { NavIcon } from "~/utils/navigation";
 import { NAV_ITEMS, activeNavPath, visibleNavItems } from "~/utils/navigation";
@@ -41,6 +42,7 @@ const active = computed(() => activeNavPath(items.value, route.path));
       <!-- Ações (não são rotas): separadas visualmente da navegação. -->
       <span class="module-nav-divider" aria-hidden="true" />
       <ImportEquipmentButton />
+      <NewProjectButton />
       <EmailSettingsButton />
     </nav>
   </div>

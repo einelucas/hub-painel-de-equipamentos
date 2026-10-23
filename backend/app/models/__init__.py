@@ -16,6 +16,13 @@ from app.models.equipment import (
     WorkflowTransition,
     WorkPackage,
 )
+from app.models.master_catalog import (
+    MasterArea,
+    MasterComponentOption,
+    MasterEquipment,
+    MasterEquipmentArea,
+    MasterProjectCreation,
+)
 from app.models.monday_import import (
     ExternalMapping,
     MondayApplyJob,
@@ -53,6 +60,8 @@ from app.models.workflow_extras import (
 )
 
 __all__ = [
+    "MasterArea", "MasterComponentOption", "MasterEquipment", "MasterEquipmentArea",
+    "MasterProjectCreation",
     "AuditLog",
     "Area",
     "Comment",
