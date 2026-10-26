@@ -1,0 +1,22 @@
+:root {
+  --el-color-primary: #304f7e;
+  --el-color-primary-light-1: #45618b;
+  --el-color-primary-light-2: #597298;
+  --el-color-primary-light-3: #6e84a5;
+  --el-color-primary-light-4: #8395b2;
+  --el-color-primary-light-5: #98a7bf;
+  --el-color-primary-light-6: #acb9cb;
+  --el-color-primary-light-7: #c1cad8;
+  --el-color-primary-light-8: #d6dce5;
+  --el-color-primary-light-9: #eaedf2;
+  --el-color-primary-dark-2: #263f65;
+  --el-color-success: #609346;
+  --el-color-warning: #eaa239;
+  --el-color-danger: #c0392b;
+  --el-color-error: #c0392b;
+  --el-color-info: #007cc5;
+  --el-font-family: "Manrope", system-ui, sans-serif;
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 8px;
+  --el-border-radius-round: 20px;
+}

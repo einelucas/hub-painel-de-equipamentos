@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import CatalogAdmin from "~/components/admin/CatalogAdmin.vue";
+import { useConfirm } from "~/composables/useConfirm";
 import type { CatalogItem } from "~/types/equipment";
 
 function items(): CatalogItem[] {
@@ -14,18 +15,24 @@ function mountAdmin(overrides: Record<string, unknown> = {}) {
   const get = vi.fn().mockResolvedValue({ items: items() });
   const patch = vi.fn().mockResolvedValue({});
   const post = vi.fn().mockResolvedValue({});
-  vi.stubGlobal("useApi", () => ({ get, patch, post }));
+  const del = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("useApi", () => ({ get, patch, post, delete: del }));
 
   const wrapper = mount(CatalogAdmin, {
     props: { path: "/disciplines", label: "Disciplinas", hasCode: true, ...overrides },
   });
-  return { wrapper, get, patch, post };
+  return { wrapper, get, patch, post, del };
 }
 
 async function settle(wrapper: ReturnType<typeof mount>) {
   await new Promise((resolve) => setTimeout(resolve));
   await wrapper.vm.$nextTick();
 }
+
+afterEach(() => {
+  useConfirm().cancel();
+  vi.unstubAllGlobals();
+});
 
 describe("CatalogAdmin", () => {
   it("lista o catálogo com a situação de cada registro", async () => {
@@ -48,18 +55,20 @@ describe("CatalogAdmin", () => {
       .find((button) => button.text().includes("Editar"));
     await edit!.trigger("click");
 
+    expect(wrapper.get(".modal-card h2").text()).toBe("Editar registro");
+    expect(wrapper.get(".modal-card").find("form").exists()).toBe(true);
     await wrapper.get("form input[maxlength='200']").setValue("Elétrica industrial");
     await wrapper.get("form").trigger("submit");
     await settle(wrapper);
 
+    expect(wrapper.find(".modal-card").exists()).toBe(false);
     expect(patch).toHaveBeenCalledWith("/disciplines/c-1", {
       code: "EL",
       name: "Elétrica industrial",
     });
   });
 
-  it("desativa em vez de excluir, confirmando antes", async () => {
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+  it("desativa com confirmação no diálogo do Hub", async () => {
     const { wrapper, patch } = mountAdmin();
     await settle(wrapper);
 
@@ -68,16 +77,54 @@ describe("CatalogAdmin", () => {
       .findAll("button")
       .find((button) => button.text().includes("Desativar"));
     await toggle!.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(useConfirm().state.open).toBe(true);
+    expect(useConfirm().state.message).toContain("Elétrica");
+    useConfirm().accept();
     await settle(wrapper);
 
     expect(patch).toHaveBeenCalledWith("/disciplines/c-1", { active: false });
-    // Nada de exclusão física: nenhum DELETE é oferecido.
-    expect(wrapper.html()).not.toContain("Excluir");
+  });
+
+  it("exclui um registro após confirmação, usando o endpoint do catálogo", async () => {
+    const { wrapper, del, get } = mountAdmin();
+    await settle(wrapper);
+    expect(get).toHaveBeenCalledTimes(1);
+
+    const removeButton = wrapper
+      .get("[data-testid='catalog-item-c-1']")
+      .findAll("button")
+      .find((button) => button.text().includes("Excluir"));
+    await removeButton!.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(useConfirm().state.open).toBe(true);
+    expect(useConfirm().state.title).toBe("Zona de risco");
+    useConfirm().accept();
+    await settle(wrapper);
+
+    expect(del).toHaveBeenCalledWith("/disciplines/c-1");
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it("mantém o registro quando a exclusão é cancelada", async () => {
+    const { wrapper, del } = mountAdmin();
+    await settle(wrapper);
+
+    const removeButton = wrapper
+      .get("[data-testid='catalog-item-c-1']")
+      .findAll("button")
+      .find((button) => button.text().includes("Excluir"));
+    await removeButton!.trigger("click");
+    await wrapper.vm.$nextTick();
+    useConfirm().cancel();
+    await settle(wrapper);
+
+    expect(del).not.toHaveBeenCalled();
   });
 
   it("reativa registro inativo sem pedir confirmação", async () => {
-    const confirmSpy = vi.fn().mockReturnValue(true);
-    vi.stubGlobal("confirm", confirmSpy);
     const { wrapper, patch } = mountAdmin();
     await settle(wrapper);
 
@@ -88,7 +135,7 @@ describe("CatalogAdmin", () => {
     await toggle!.trigger("click");
     await settle(wrapper);
 
-    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(useConfirm().state.open).toBe(false);
     expect(patch).toHaveBeenCalledWith("/disciplines/c-2", { active: true });
   });
 
@@ -135,6 +182,7 @@ describe("CatalogAdmin", () => {
     });
     await settle(wrapper);
     await wrapper.get(".catalog-header button").trigger("click");
+    expect(wrapper.get(".modal-card h2").text()).toBe("Novo registro em Criticidades");
     await wrapper.get("form input[maxlength='200']").setValue("Urgente");
     await wrapper.get("form input[type='color']").setValue("#cc3344");
     await wrapper.get("form").trigger("submit");
@@ -159,7 +207,8 @@ describe("CatalogAdmin · contextos de projeto", () => {
     const get = vi.fn().mockResolvedValue({ items: contexts() });
     const patch = vi.fn().mockResolvedValue({});
     const post = vi.fn().mockResolvedValue({});
-    vi.stubGlobal("useApi", () => ({ get, patch, post }));
+    const del = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("useApi", () => ({ get, patch, post, delete: del }));
     const wrapper = mount(CatalogAdmin, {
       props: {
         path: "/units/u-1/project-contexts",
@@ -168,7 +217,7 @@ describe("CatalogAdmin · contextos de projeto", () => {
         hasCode: true,
       },
     });
-    return { wrapper, get, patch, post };
+    return { wrapper, get, patch, post, del };
   }
 
   async function editItem(wrapper: ReturnType<typeof mount>, id: string) {
@@ -191,7 +240,6 @@ describe("CatalogAdmin · contextos de projeto", () => {
   });
 
   it("desativar contexto também usa a rota de edição do contexto", async () => {
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const { wrapper, patch } = mountContexts();
     await settle(wrapper);
 
@@ -200,9 +248,27 @@ describe("CatalogAdmin · contextos de projeto", () => {
       .findAll("button")
       .find((button) => button.text().includes("Desativar"));
     await toggle!.trigger("click");
+    await wrapper.vm.$nextTick();
+    useConfirm().accept();
     await settle(wrapper);
 
     expect(patch).toHaveBeenCalledWith("/project-contexts/pc-1", { active: false });
+  });
+
+  it("exclui contexto pela rota própria, não pela rota da unidade", async () => {
+    const { wrapper, del } = mountContexts();
+    await settle(wrapper);
+
+    const removeButton = wrapper
+      .get("[data-testid='catalog-item-pc-1']")
+      .findAll("button")
+      .find((button) => button.text().includes("Excluir"));
+    await removeButton!.trigger("click");
+    await wrapper.vm.$nextTick();
+    useConfirm().accept();
+    await settle(wrapper);
+
+    expect(del).toHaveBeenCalledWith("/project-contexts/pc-1");
   });
 
   it("outros catálogos não exibem nem enviam prefixo EAP", async () => {

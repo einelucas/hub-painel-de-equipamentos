@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,11 +20,14 @@ from app.models.equipment import (
     CriticalityLabel,
     Discipline,
     EapNode,
+    Equipment,
+    EquipmentWorkPackage,
     ProjectContext,
     ProjectEap,
     Unit,
     WorkPackage,
 )
+from app.models.master_catalog import MasterProjectCreation
 from app.shared.audit import record_audit
 
 
@@ -237,7 +241,7 @@ async def update_catalog(
     changes: dict[str, object],
     actor: CurrentUser,
 ) -> Any:
-    """Edição e ativação/desativação. Nunca apaga: registros são referenciados."""
+    """Edição e ativação/desativação. Exclusão física fica em delete_catalog."""
     item = await session.get(model, item_id)
     if item is None:
         raise NotFoundError("Registro de catálogo não encontrado")
@@ -281,3 +285,138 @@ async def update_catalog(
     await session.commit()
     await session.refresh(item)
     return item
+
+
+async def _count(session: AsyncSession, stmt: Any) -> int:
+    return int((await session.execute(stmt)).scalar_one())
+
+
+async def delete_catalog(
+    session: AsyncSession,
+    model: type[Any],
+    *,
+    item_id: str,
+    actor: CurrentUser,
+) -> None:
+    """Exclusão física de um registro de catálogo ainda sem vínculos.
+
+    Registros em uso são preservados: a mensagem orienta a desativar em vez de
+    apagar, evitando perder classificação/histórico dos equipamentos. Vínculos
+    que só existem por causa do próprio registro (EAP da obra e idempotência da
+    criação via Catálogo Mestre) são removidos junto com a obra.
+    """
+    item = await session.get(model, item_id)
+    if item is None:
+        raise NotFoundError("Registro de catálogo não encontrado")
+
+    reasons: list[str] = []
+    if model is Unit:
+        contexts = await _count(
+            session, select(func.count()).select_from(ProjectContext).where(ProjectContext.unit_id == item_id)
+        )
+        areas = await _count(session, select(func.count()).select_from(Area).where(Area.unit_id == item_id))
+        if contexts:
+            reasons.append(f"{contexts} obra(s) vinculada(s)")
+        if areas:
+            reasons.append(f"{areas} área(s) vinculada(s)")
+    elif model is ProjectContext:
+        equipments = await _count(
+            session,
+            select(func.count()).select_from(Equipment).where(Equipment.project_context_id == item_id),
+        )
+        if equipments:
+            reasons.append(f"{equipments} equipamento(s) vinculado(s)")
+    elif model is Area:
+        equipments = await _count(
+            session, select(func.count()).select_from(Equipment).where(Equipment.area_id == item_id)
+        )
+        if equipments:
+            reasons.append(f"{equipments} equipamento(s) usando esta área")
+    elif model is Discipline:
+        equipments = await _count(
+            session, select(func.count()).select_from(Equipment).where(Equipment.discipline_id == item_id)
+        )
+        if equipments:
+            reasons.append(f"{equipments} equipamento(s) usando esta disciplina")
+    elif model is CriticalityLabel:
+        equipments = await _count(
+            session,
+            select(func.count()).select_from(Equipment).where(Equipment.criticality_label_id == item_id),
+        )
+        if equipments:
+            reasons.append(f"{equipments} equipamento(s) usando esta criticidade")
+    elif model is WorkPackage:
+        equipments = await _count(
+            session, select(func.count()).select_from(Equipment).where(Equipment.work_package_id == item_id)
+        )
+        links = await _count(
+            session,
+            select(func.count())
+            .select_from(EquipmentWorkPackage)
+            .where(EquipmentWorkPackage.work_package_id == item_id),
+        )
+        if equipments:
+            reasons.append(f"{equipments} equipamento(s) usando esta WP")
+        if links:
+            reasons.append(f"{links} vínculo(s) de equipamento")
+    elif model is EapNode:
+        children = await _count(
+            session, select(func.count()).select_from(EapNode).where(EapNode.parent_id == item_id)
+        )
+        project_links = await _count(
+            session, select(func.count()).select_from(ProjectEap).where(ProjectEap.eap_node_id == item_id)
+        )
+        equipments = await _count(
+            session, select(func.count()).select_from(Equipment).where(Equipment.eap_node_id == item_id)
+        )
+        if children:
+            reasons.append(f"{children} nó(s) filho(s) na árvore")
+        if project_links:
+            reasons.append(f"{project_links} vínculo(s) com obras")
+        if equipments:
+            reasons.append(f"{equipments} equipamento(s) usando este nó")
+    else:
+        raise DomainError("Tipo de catálogo desconhecido")
+
+    name = item.name
+    if reasons:
+        raise ConflictError(
+            f'Não é possível excluir "{name}": '
+            + ", ".join(reasons)
+            + ". Desative o registro em vez de excluí-lo."
+        )
+
+    previous: dict[str, object] = {"name": name, "active": item.active}
+    if hasattr(item, "code"):
+        previous["code"] = item.code
+    await record_audit(
+        session,
+        user_id=actor.id,
+        action="catalog.delete",
+        entity=model.__name__,
+        entity_id=item.id,
+        previous_data=previous,
+    )
+
+    if model is ProjectContext:
+        # Vínculos que existem apenas por causa desta obra; se houver histórico
+        # de importação (monday_import_*) o FK RESTRICT aborta e preserva tudo.
+        await session.execute(delete(ProjectEap).where(ProjectEap.project_context_id == item_id))
+        await session.execute(
+            delete(MasterProjectCreation).where(MasterProjectCreation.project_context_id == item_id)
+        )
+        await session.execute(
+            update(WorkPackage)
+            .where(WorkPackage.project_context_id == item_id)
+            .values(project_context_id=None)
+        )
+
+    await session.delete(item)
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise ConflictError(
+            f'Não é possível excluir "{name}": existem registros vinculados. '
+            "Desative o registro em vez de excluí-lo."
+        ) from exc

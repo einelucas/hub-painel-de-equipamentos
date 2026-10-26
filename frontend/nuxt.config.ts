@@ -1,9 +1,77 @@
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
-  modules: ["@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxt/eslint"],
+  modules: [
+    "@pinia/nuxt",
+    "@nuxtjs/tailwindcss",
+    "@nuxt/eslint",
+    "vuetify-nuxt-module",
+    "@element-plus/nuxt",
+  ],
   components: [{ path: "~/components", pathPrefix: false }],
-  css: ["~/assets/css/vue.css"],
+  css: [
+    "~/assets/css/vue.css",
+    "element-plus/dist/index.css",
+    "~/assets/css/element-plus.css",
+  ],
+  vuetify: {
+    moduleOptions: {
+      styles: true,
+      // Evita sobrescrever o useLayout nativo do Nuxt.
+      prefixComposables: ["useLayout"],
+    },
+    vuetifyOptions: {
+      theme: {
+        defaultTheme: "light",
+        themes: {
+          light: {
+            dark: false,
+            colors: {
+              background: "#f4f5f7",
+              surface: "#ffffff",
+              primary: "#304f7e",
+              "primary-darken-1": "#213758",
+              secondary: "#6b7280",
+              "secondary-darken-1": "#4b5563",
+              accent: "#eaa239",
+              error: "#c0392b",
+              info: "#007cc5",
+              success: "#609346",
+              warning: "#eaa239",
+            },
+          },
+        },
+      },
+      icons: {
+        defaultSet: "mdi-svg",
+      },
+      locale: {
+        locale: "pt",
+        fallback: "en",
+      },
+      localeMessages: ["en", "pt"],
+      defaults: {
+        VBtn: { rounded: "lg", elevation: 0 },
+        VCard: { rounded: "lg", elevation: 0 },
+        VTextField: {
+          variant: "outlined",
+          density: "comfortable",
+          hideDetails: "auto",
+        },
+        VSelect: {
+          variant: "outlined",
+          density: "comfortable",
+          hideDetails: "auto",
+        },
+      },
+    },
+  },
+  // O CSS completo é importado manualmente para garantir a ordem dos overrides.
+  elementPlus: {
+    importStyle: false,
+    defaultLocale: "pt-br",
+    installMethods: ["ElLoading", "ElMessage", "ElMessageBox", "ElNotification"],
+  },
   runtimeConfig: {
     public: {
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1",

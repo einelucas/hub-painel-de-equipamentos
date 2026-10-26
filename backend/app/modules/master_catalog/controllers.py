@@ -140,3 +140,30 @@ async def patch_master_component(
 ) -> None:
     await services.update_item(session, model=MasterComponentOption, item_id=item_id,
                                name=body.name, active=body.active, actor=actor)
+
+
+@router.delete("/areas/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_master_area(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
+) -> None:
+    await services.delete_item(session, model=MasterArea, item_id=item_id, actor=actor)
+
+
+@router.delete("/equipments/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_master_equipment(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
+) -> None:
+    await services.delete_item(session, model=MasterEquipment, item_id=item_id, actor=actor)
+
+
+@router.delete("/components/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_master_component(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.CATALOGS_MANAGE)),
+) -> None:
+    await services.delete_item(session, model=MasterComponentOption, item_id=item_id, actor=actor)

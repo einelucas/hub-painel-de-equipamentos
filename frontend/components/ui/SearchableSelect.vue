@@ -212,7 +212,7 @@ function isActive(option: SearchableOption | null): boolean {
 .searchable-select__control button { display: grid; border: 0; padding: 5px; background: transparent; color: #52657c; cursor: pointer; place-items: center; }
 .searchable-select--disabled .searchable-select__control { background: #f6f7f9; color: #9ca5b4; }
 .searchable-select__control button:disabled { cursor: not-allowed; }
-.searchable-select__menu { position: fixed; z-index: 200; overflow-y: auto; border: 1px solid #d8e1ec; border-radius: 9px; padding: 5px; background: #fff; box-shadow: 0 12px 28px rgb(30 50 78 / 16%); }
+.searchable-select__menu { position: fixed; z-index: 1100; overflow-y: auto; border: 1px solid #d8e1ec; border-radius: 9px; padding: 5px; background: #fff; box-shadow: 0 12px 28px rgb(30 50 78 / 16%); }
 .searchable-select__menu button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; border: 0; border-radius: 7px; padding: 8px 9px; background: transparent; color: #263d5d; text-align: left; cursor: pointer; }
 .searchable-select__menu button:hover, .searchable-select__menu button.is-active, .searchable-select__menu button[aria-selected="true"] { background: #eef4fb; }
 .searchable-select__menu button.is-active { outline: 1px solid #b9cbe3; }

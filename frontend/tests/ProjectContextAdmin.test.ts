@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ProjectContextAdmin from "~/components/admin/ProjectContextAdmin.vue";
+import { useConfirm } from "~/composables/useConfirm";
 import type { CatalogItem, Unit } from "~/types/equipment";
 import { chooseOption, optionLabels } from "./support/searchableSelect";
 
@@ -42,8 +43,9 @@ function apiMock(routes: Routes = {}) {
   });
   const post = vi.fn().mockResolvedValue({ id: "pc-new", code: "PN", name: "Projeto Novo", active: true });
   const patch = vi.fn().mockResolvedValue({});
-  vi.stubGlobal("useApi", () => ({ get, post, patch }));
-  return { get, post, patch };
+  const del = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("useApi", () => ({ get, post, patch, delete: del }));
+  return { get, post, patch, del };
 }
 
 function stubAuth(permissions: string[] = ["catalogs:manage", "users:manage"]) {
@@ -69,6 +71,7 @@ function itemButton(wrapper: ReturnType<typeof mount>, id: string, label: string
 }
 
 afterEach(() => {
+  useConfirm().cancel();
   vi.unstubAllGlobals();
 });
 
@@ -139,11 +142,13 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     await wrapper.get("[data-testid='project-new']").trigger("click");
+    expect(wrapper.get(".modal-card h2").text()).toBe("Novo contexto de projeto");
     expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
     await wrapper.get("[data-testid='project-name']").setValue("Projeto Novo");
     await wrapper.get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
 
+    expect(wrapper.find(".modal-card").exists()).toBe(false);
     expect(post).toHaveBeenCalledWith("/units/u-tst/project-contexts", { name: "Projeto Novo" });
     expect(wrapper.emitted("changed")).toBeTruthy();
   });
@@ -155,6 +160,7 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     await itemButton(wrapper, "pc-b", "Editar")!.trigger("click");
+    expect(wrapper.get(".modal-card h2").text()).toBe("Editar contexto de projeto");
     expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
     await wrapper.get("[data-testid='project-active']").setValue(true);
     await wrapper.get("[data-testid='project-form']").trigger("submit");
@@ -168,26 +174,47 @@ describe("ProjectContextAdmin", () => {
   });
 
   it("desativa com confirmação e reativa sem confirmação", async () => {
-    const confirmSpy = vi.fn().mockReturnValue(true);
-    vi.stubGlobal("confirm", confirmSpy);
     const { patch } = apiMock();
     stubAuth();
     const wrapper = mountAdmin();
     await settle(wrapper);
 
     await itemButton(wrapper, "pc-a", "Desativar")!.trigger("click");
+    await wrapper.vm.$nextTick();
+    expect(useConfirm().state.open).toBe(true);
+    expect(useConfirm().state.message).toContain("Projeto Sintético A");
+    useConfirm().accept();
     await settle(wrapper);
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(patch).toHaveBeenCalledWith("/project-contexts/pc-a", { active: false });
 
     await itemButton(wrapper, "pc-b", "Reativar")!.trigger("click");
     await settle(wrapper);
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(useConfirm().state.open).toBe(false);
     expect(patch).toHaveBeenCalledWith("/project-contexts/pc-b", { active: true });
   });
 
+  it("exclui obra após confirmação e bloqueia exclusão sem permissão", async () => {
+    const { del } = apiMock();
+    stubAuth();
+    const wrapper = mountAdmin();
+    await settle(wrapper);
+
+    await itemButton(wrapper, "pc-a", "Excluir")!.trigger("click");
+    await wrapper.vm.$nextTick();
+    expect(useConfirm().state.title).toBe("Zona de risco");
+    useConfirm().accept();
+    await settle(wrapper);
+    expect(del).toHaveBeenCalledWith("/project-contexts/pc-a");
+
+    vi.unstubAllGlobals();
+    apiMock();
+    stubAuth([]);
+    const readOnly = mountAdmin();
+    await settle(readOnly);
+    expect(readOnly.text()).not.toContain("Excluir");
+  });
+
   it("ciclo completo: criar → desativar → continua visível como Inativo → reativar → Ativo", async () => {
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     // API com estado: a visão administrativa (include_inactive) devolve ativos e inativos.
     let store: CatalogItem[] = [];
     const get = vi.fn(async (path: string, query?: Record<string, string>) => {
@@ -220,6 +247,8 @@ describe("ProjectContextAdmin", () => {
     expect(wrapper.get("[data-testid='project-item-pc-new']").text()).toContain("Ativo");
 
     await itemButton(wrapper, "pc-new", "Desativar")!.trigger("click");
+    await wrapper.vm.$nextTick();
+    useConfirm().accept();
     await settle(wrapper);
     const inactive = wrapper.get("[data-testid='project-item-pc-new']");
     expect(inactive.text()).toContain("Inativo");

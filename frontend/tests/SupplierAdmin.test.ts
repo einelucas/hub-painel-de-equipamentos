@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SupplierAdmin from "~/components/admin/SupplierAdmin.vue";
 import AdminPanel from "~/components/admin/AdminPanel.vue";
+import { useConfirm } from "~/composables/useConfirm";
 import type { Supplier } from "~/types/equipment";
 
 function supplier(overrides: Partial<Supplier>): Supplier {
@@ -45,7 +46,10 @@ async function settle(wrapper: ReturnType<typeof mount>) {
   }
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  useConfirm().cancel();
+  vi.unstubAllGlobals();
+});
 
 describe("SupplierAdmin", () => {
   it("exibe o CNPJ abaixo do nome no padrão 00.000.000/0000-00", async () => {
@@ -76,7 +80,27 @@ describe("SupplierAdmin", () => {
 
     await wrapper.get("form").trigger("submit");
     await settle(wrapper);
+    expect(wrapper.find("form").exists()).toBe(false);
     expect(patch).toHaveBeenCalledWith("/suppliers/s-1", expect.objectContaining({ taxId: "98765432000110" }));
+  });
+
+  it("desativa com confirmação no diálogo do Hub", async () => {
+    const { wrapper, patch } = mountAdmin();
+    await settle(wrapper);
+
+    const toggle = wrapper
+      .get("[data-testid='supplier-row-s-1']")
+      .findAll("button")
+      .find((button) => button.text().includes("Desativar"));
+    await toggle!.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(useConfirm().state.open).toBe(true);
+    expect(useConfirm().state.message).toContain("Fornecedor Sintético SA");
+    useConfirm().accept();
+    await settle(wrapper);
+
+    expect(patch).toHaveBeenCalledWith("/suppliers/s-1", { active: false });
   });
 
   it("renderiza apenas o primeiro lote e mostra o total", async () => {

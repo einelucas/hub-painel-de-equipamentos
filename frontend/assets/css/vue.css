@@ -1,5 +1,6 @@
 :root {
   --font-manrope: "Manrope";
+  --v-font-body: "Manrope", system-ui, sans-serif;
   color-scheme: light;
   --azul: #304f7e;
   --azul-escuro: #213758;
@@ -494,70 +495,6 @@ button:disabled {
     animation: none;
     opacity: 0.55;
   }
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(17, 31, 50, 0.55);
-}
-
-.modal-card {
-  width: min(680px, 100%);
-  max-height: calc(100vh - 40px);
-  overflow: auto;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
-}
-
-.modal-card--wide {
-  width: min(1040px, 100%);
-}
-
-.modal-card--contained {
-  display: flex;
-  height: min(820px, calc(100vh - 40px));
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-card--contained .modal-body {
-  min-height: 0;
-  flex: 1;
-  overflow: hidden;
-  padding-bottom: 0;
-}
-
-.modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 20px;
-  border-bottom: 1px solid #e9edf2;
-}
-
-.modal-header h2 {
-  margin: 0;
-  color: #213758;
-  font-size: 18px;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 9px;
-  padding: 15px 20px;
-  border-top: 1px solid #e9edf2;
 }
 
 .admin-hub-grid {

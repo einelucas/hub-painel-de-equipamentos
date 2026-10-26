@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EapTreeAdmin from "~/components/admin/EapTreeAdmin.vue";
+import { useConfirm } from "~/composables/useConfirm";
 
 const nodes = [
   { id: "i1", code: "D", name: "Ilha Sintética", level: "ISLAND", parentId: null, active: true },
@@ -12,8 +13,9 @@ function setup() {
   const get = vi.fn().mockResolvedValue({ items: nodes });
   const post = vi.fn().mockResolvedValue({});
   const patch = vi.fn().mockResolvedValue({});
-  vi.stubGlobal("useApi", () => ({ get, post, patch }));
-  return { wrapper: mount(EapTreeAdmin), get, post, patch };
+  const del = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("useApi", () => ({ get, post, patch, delete: del }));
+  return { wrapper: mount(EapTreeAdmin), get, post, patch, del };
 }
 
 async function settle(wrapper: ReturnType<typeof mount>) {
@@ -23,7 +25,10 @@ async function settle(wrapper: ReturnType<typeof mount>) {
   }
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  useConfirm().cancel();
+  vi.unstubAllGlobals();
+});
 
 describe("EapTreeAdmin", () => {
   it("carrega e exibe a hierarquia global Ilha → Processo → Área", async () => {
@@ -67,6 +72,7 @@ describe("EapTreeAdmin", () => {
     await settle(wrapper);
 
     await wrapper.get("[data-testid='eap-new']").trigger("click");
+    expect(wrapper.get(".modal-card h2").text()).toBe("Novo nó da Árvore EAP");
     await wrapper.get("[data-testid='eap-level']").setValue("AREA");
     await wrapper.get("[data-testid='eap-code']").setValue("01.b");
     await wrapper.get("[data-testid='eap-name']").setValue("Área Sintética B");
@@ -74,6 +80,7 @@ describe("EapTreeAdmin", () => {
     await wrapper.get("[data-testid='eap-form']").trigger("submit");
     await settle(wrapper);
 
+    expect(wrapper.find(".modal-card").exists()).toBe(false);
     expect(post).toHaveBeenCalledWith("/eap-nodes", {
       code: "01.B",
       name: "Área Sintética B",
@@ -87,15 +94,31 @@ describe("EapTreeAdmin", () => {
     await settle(wrapper);
 
     await wrapper.get("[data-testid='eap-edit-a1']").trigger("click");
+    expect(wrapper.get(".modal-card h2").text()).toBe("Editar nó da Árvore EAP");
     expect((wrapper.get("[data-testid='eap-code']").element as HTMLInputElement).disabled).toBe(true);
     await wrapper.get("[data-testid='eap-name']").setValue("Área revisada");
     await wrapper.get("[data-testid='eap-active']").setValue(false);
     await wrapper.get("[data-testid='eap-form']").trigger("submit");
     await settle(wrapper);
 
+    expect(wrapper.find(".modal-card").exists()).toBe(false);
     expect(patch).toHaveBeenCalledWith("/eap-nodes/a1", {
       name: "Área revisada",
       active: false,
     });
+  });
+
+  it("exclui um nó após confirmação no diálogo", async () => {
+    const { wrapper, del } = setup();
+    await settle(wrapper);
+
+    await wrapper.get("[data-testid='eap-delete-a1']").trigger("click");
+    await wrapper.vm.$nextTick();
+    expect(useConfirm().state.open).toBe(true);
+    expect(useConfirm().state.message).toContain("01.A");
+    useConfirm().accept();
+    await settle(wrapper);
+
+    expect(del).toHaveBeenCalledWith("/eap-nodes/a1");
   });
 });

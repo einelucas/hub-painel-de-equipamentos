@@ -7,6 +7,7 @@ import json
 import unicodedata
 
 from sqlalchemy import Select, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -383,3 +384,42 @@ async def update_item(
                        entity=model.__name__, entity_id=item.id, previous_data=before,
                        new_data={"name": item.name, "active": item.active})
     await session.commit()
+
+
+async def delete_item(
+    session: AsyncSession, *,
+    model: type[MasterArea] | type[MasterEquipment] | type[MasterComponentOption],
+    item_id: str, actor: CurrentUser,
+) -> None:
+    """Exclui fisicamente um item do Catálogo Mestre.
+
+    Componentes e vínculos com áreas pertencem ao próprio item e são removidos
+    junto. A categoria virtual "Sem área definida" é estrutural e não pode ser
+    excluída. Nenhum equipamento operacional referencia estas tabelas (o
+    catálogo só copia nome/componentes na criação da obra), então a exclusão
+    não altera obras existentes.
+    """
+    item: MasterArea | MasterEquipment | MasterComponentOption | None
+    if model is MasterArea:
+        item = await session.get(MasterArea, item_id)
+    elif model is MasterEquipment:
+        item = await session.get(MasterEquipment, item_id)
+    elif model is MasterComponentOption:
+        item = await session.get(MasterComponentOption, item_id)
+    else:
+        raise DomainError("Tipo de catálogo desconhecido")
+    if item is None:
+        raise NotFoundError("Registro do Catálogo Mestre não encontrado")
+    if isinstance(item, MasterArea) and item.is_unassigned:
+        raise DomainError("A categoria virtual Sem área definida não pode ser excluída")
+    before = {"name": item.name, "active": item.active}
+    await record_audit(session, user_id=actor.id, action="master_catalog.delete",
+                       entity=model.__name__, entity_id=item.id, previous_data=before)
+    await session.delete(item)
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise ConflictError(
+            "Não foi possível excluir o registro do Catálogo Mestre: existem vínculos."
+        ) from exc

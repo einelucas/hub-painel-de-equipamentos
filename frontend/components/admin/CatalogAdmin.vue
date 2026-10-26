@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
-import { Check, Pencil, Plus, Search, X } from "lucide-vue-next";
+import { computed, reactive, ref, useId, watch } from "vue";
+import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-vue-next";
 import type { CatalogItem, CatalogList } from "~/types/equipment";
 import { catalogColor } from "~/utils/catalogColors";
+import { useConfirm } from "~/composables/useConfirm";
+import AppModal from "~/components/ui/AppModal.vue";
 
 /**
- * CRUD de um catálogo (sem exclusão física — desativar é o caminho).
- * As cinco entidades usam este mesmo componente; só mudam rota e campos.
+ * CRUD de um catálogo. Registros sem vínculos podem ser excluídos; os que já
+ * são usados por equipamentos/obras só podem ser desativados (a API bloqueia).
  */
 const props = defineProps<{
   /** Rota base do catálogo, ex.: "/areas" ou "/units". */
@@ -32,10 +34,12 @@ const props = defineProps<{
 const emit = defineEmits<{ changed: [] }>();
 
 const api = useApi();
+const { confirm } = useConfirm();
 const items = ref<CatalogItem[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const togglingId = ref<string | null>(null);
+const deletingId = ref<string | null>(null);
 let loadVersion = 0;
 const error = ref("");
 const formError = ref("");
@@ -57,6 +61,11 @@ const visibleItems = computed(() => {
 });
 
 const blocked = computed(() => Boolean(props.requiresParent));
+const formId = `catalog-form-${useId()}`;
+const formOpen = computed(() => creating.value || Boolean(editingId.value));
+const formTitle = computed(() =>
+  editingId.value ? "Editar registro" : `Novo registro em ${props.label}`,
+);
 
 async function load(): Promise<void> {
   const version = ++loadVersion;
@@ -102,10 +111,15 @@ function startEdit(item: CatalogItem): void {
   form.color = item.color ?? "#777ae5";
 }
 
-function cancel(): void {
+function resetForm(): void {
   creating.value = false;
   editingId.value = null;
   formError.value = "";
+}
+
+function cancel(): void {
+  if (saving.value) return;
+  resetForm();
 }
 
 async function submit(): Promise<void> {
@@ -123,7 +137,7 @@ async function submit(): Promise<void> {
   try {
     if (editingId.value) await api.patch(`${props.itemPath ?? props.path}/${editingId.value}`, payload);
     else await api.post(props.path, { ...payload, ...(props.parent ?? {}) });
-    cancel();
+    resetForm();
     await load();
     emit("changed");
   } catch (caught) {
@@ -136,8 +150,14 @@ async function submit(): Promise<void> {
 /** Desativar some com o item das listas operacionais, por isso confirmamos. */
 async function toggleActive(item: CatalogItem): Promise<void> {
   if (saving.value) return;
-  if (item.active && !confirm(`Desativar "${item.name}"? Ele deixa de aparecer nos formulários.`)) {
-    return;
+  if (item.active) {
+    const confirmed = await confirm({
+      message: `Deseja desativar "${item.name}"?`,
+      detail: "Ele deixa de aparecer nos formulários, mas continua aqui para ser reativado.",
+      confirmLabel: "Desativar",
+      tone: "primary",
+    });
+    if (!confirmed) return;
   }
   saving.value = true;
   togglingId.value = item.id;
@@ -151,6 +171,30 @@ async function toggleActive(item: CatalogItem): Promise<void> {
   } finally {
     saving.value = false;
     togglingId.value = null;
+  }
+}
+
+/** Exclusão física: a API recusa quando o registro já tem vínculos. */
+async function remove(item: CatalogItem): Promise<void> {
+  if (saving.value) return;
+  const confirmed = await confirm({
+    message: `Deseja excluir "${item.name}"?`,
+    detail:
+      "Esta ação não pode ser desfeita. Registros em uso por equipamentos ou obras não podem ser excluídos — nesse caso, desative-os.",
+  });
+  if (!confirmed) return;
+  saving.value = true;
+  deletingId.value = item.id;
+  error.value = "";
+  try {
+    await api.delete(`${props.itemPath ?? props.path}/${item.id}`);
+    await load();
+    emit("changed");
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível excluir o registro.";
+  } finally {
+    saving.value = false;
+    deletingId.value = null;
   }
 }
 
@@ -180,32 +224,6 @@ watch(
 
     <p v-if="blocked" class="catalog-hint" data-testid="catalog-blocked">{{ props.requiresParent }}</p>
     <template v-else>
-      <form v-if="creating || editingId" class="catalog-form" @submit.prevent="submit">
-        <p class="catalog-form-title">{{ editingId ? "Editar registro" : `Novo registro em ${props.label}` }}</p>
-        <label v-if="props.hasCode" class="field"><span>Código *</span><input v-model="form.code" maxlength="60" required></label>
-        <label class="field" :class="{ 'full': !props.hasCode }"><span>Nome *</span><input v-model="form.name" maxlength="200" required></label>
-        <label v-if="props.hasColor" class="field color-field">
-          <span>Cor *</span>
-          <span class="color-control"><input v-model="form.color" type="color" required><code>{{ form.color }}</code></span>
-        </label>
-        <label v-if="props.hasDescription" class="field description-field">
-          <span>Descrição</span>
-          <textarea
-            v-model="form.description"
-            maxlength="500"
-            rows="3"
-            placeholder="Significado da WP; deixe vazio enquanto não estiver documentado."
-          />
-        </label>
-        <p v-if="formError" class="catalog-error" role="alert">{{ formError }}</p>
-        <div class="catalog-form-actions">
-          <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
-          <button type="submit" class="btn small primary" :disabled="saving" :aria-busy="saving">
-            <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
-          </button>
-        </div>
-      </form>
-
       <label v-if="items.length" class="catalog-search">
         <Search :size="14" aria-hidden="true" />
         <input v-model="search" type="search" :placeholder="`Buscar em ${props.label}`" :aria-label="`Buscar em ${props.label}`">
@@ -243,15 +261,62 @@ watch(
               <span v-if="togglingId === item.id" class="spinner-small" aria-hidden="true" />
               {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
             </button>
+            <button type="button" class="text-button text-button--danger" :disabled="saving" :aria-busy="deletingId === item.id" @click="remove(item)">
+              <span v-if="deletingId === item.id" class="spinner-small" aria-hidden="true" />
+              <Trash2 v-else :size="12" />
+              {{ deletingId === item.id ? "Excluindo..." : "Excluir" }}
+            </button>
           </span>
         </li>
       </ul>
     </template>
   </section>
+
+  <AppModal
+    :open="formOpen"
+    :title="formTitle"
+    :busy="saving"
+    @close="cancel"
+  >
+    <form :id="formId" class="catalog-form" @submit.prevent="submit">
+      <label v-if="props.hasCode" class="field"><span>Código *</span><input v-model="form.code" maxlength="60" required></label>
+      <label class="field" :class="{ 'full': !props.hasCode }"><span>Nome *</span><input v-model="form.name" maxlength="200" required></label>
+      <label v-if="props.hasColor" class="field color-field">
+        <span>Cor *</span>
+        <span class="color-control"><input v-model="form.color" type="color" required><code>{{ form.color }}</code></span>
+      </label>
+      <label v-if="props.hasDescription" class="field description-field">
+        <span>Descrição</span>
+        <textarea
+          v-model="form.description"
+          maxlength="500"
+          rows="3"
+          placeholder="Significado da WP; deixe vazio enquanto não estiver documentado."
+        />
+      </label>
+      <p v-if="formError" class="catalog-error" role="alert">{{ formError }}</p>
+    </form>
+
+    <template #actions>
+      <button type="button" class="btn small" :disabled="saving" @click="cancel">
+        <X :size="13" /> Cancelar
+      </button>
+      <button
+        type="submit"
+        class="btn small primary"
+        :form="formId"
+        :disabled="saving"
+        :aria-busy="saving"
+      >
+        <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" />
+        {{ saving ? "Salvando..." : "Salvar" }}
+      </button>
+    </template>
+  </AppModal>
 </template>
 
 <style scoped>
-/* Cabeçalho, formulário e busca ficam parados; só a lista rola (dentro do painel). */
+/* Cabeçalho e busca ficam parados; só a lista rola (dentro do painel). */
 .catalog { display: flex; flex-direction: column; gap: 12px; }
 .catalog > * { flex: 0 0 auto; }
 .catalog-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule, #dde5ef); }
@@ -261,16 +326,14 @@ watch(
 .catalog-empty { margin: 0; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 22px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
 .catalog-error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
 
-.catalog-form { display: grid; grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr); gap: 10px 12px; border: 1px solid #c9d8ec; border-radius: 12px; padding: 14px; background: var(--wash, #f3f6fb); }
-.catalog-form-title { grid-column: 1 / -1; margin: 0; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 800; }
+.catalog-form { display: grid; grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr); gap: 14px 16px; }
 .catalog-form .full { grid-column: 1 / -1; }
 .description-field, .color-field { grid-column: 1 / -1; }
 .color-control { display: flex; align-items: center; gap: 10px; }
 .color-control input { width: 44px; height: 34px; border: 1px solid var(--rule, #dde5ef); border-radius: 8px; padding: 3px; background: #fff; cursor: pointer; }
 .color-control code { color: var(--muted, #6b7a8f); font-size: 12px; text-transform: uppercase; }
-.description-field textarea { min-height: 72px; resize: vertical; }
+.description-field textarea { min-height: 88px; resize: vertical; }
 .catalog-form .catalog-error { grid-column: 1 / -1; }
-.catalog-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
 
 .catalog-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule, #dde5ef); border-radius: 9px; padding: 0 10px; background: #fff; color: var(--muted, #6b7a8f); }
 .catalog-search:focus-within { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 2px rgb(48 79 126 / 12%); }
@@ -308,6 +371,8 @@ watch(
 .catalog-actions { display: flex; align-items: center; gap: 12px; }
 .text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: var(--steel, #304f7e); font-size: 11.5px; font-weight: 750; cursor: pointer; }
 .text-button--quiet { color: var(--muted, #6b7a8f); }
+.text-button--danger { color: var(--stop, #a4453a); }
+.text-button--danger:hover:not(:disabled) { color: #8d2f26; }
 .text-button:hover:not(:disabled) { text-decoration: underline; }
 @media (max-width: 640px) {
   .catalog-form { grid-template-columns: 1fr; }

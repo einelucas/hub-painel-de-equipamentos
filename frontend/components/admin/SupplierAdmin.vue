@@ -3,7 +3,9 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Pencil, Plus, Search, Upload } from "lucide-vue-next";
 import SupplierImportModal from "~/components/supplier/SupplierImportModal.vue";
 import SupplierForm, { type SupplierFormValues } from "~/components/supplier/SupplierForm.vue";
+import AppModal from "~/components/ui/AppModal.vue";
 import type { CatalogList, Supplier } from "~/types/equipment";
+import { useConfirm } from "~/composables/useConfirm";
 import { useIncrementalList } from "~/composables/useIncrementalList";
 import { formatCnpj } from "~/utils/suppliers";
 
@@ -15,6 +17,7 @@ const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: []; changed: [] }>();
 
 const api = useApi();
+const { confirm } = useConfirm();
 const section = ref("suppliers");
 const suppliers = ref<Supplier[]>([]);
 const search = ref("");
@@ -39,6 +42,8 @@ const numberFormat = new Intl.NumberFormat("pt-BR");
 
 const activeCount = computed(() => suppliers.value.filter((item) => item.active).length);
 const inactiveCount = computed(() => suppliers.value.length - activeCount.value);
+const formOpen = computed(() => creating.value || Boolean(editing.value));
+const formTitle = computed(() => (editing.value ? "Editar fornecedor" : "Novo fornecedor"));
 
 async function load(): Promise<void> {
   const version = ++loadVersion;
@@ -80,10 +85,15 @@ function startEdit(supplier: Supplier): void {
   formError.value = "";
 }
 
-function cancel(): void {
+function resetForm(): void {
   creating.value = false;
   editing.value = null;
   formError.value = "";
+}
+
+function cancel(): void {
+  if (saving.value) return;
+  resetForm();
 }
 
 async function submit(values: SupplierFormValues): Promise<void> {
@@ -93,7 +103,7 @@ async function submit(values: SupplierFormValues): Promise<void> {
   try {
     if (editing.value) await api.patch(`/suppliers/${editing.value.id}`, values);
     else await api.post("/suppliers", values);
-    cancel();
+    resetForm();
     await load();
     emit("changed");
   } catch (caught) {
@@ -107,8 +117,14 @@ async function submit(values: SupplierFormValues): Promise<void> {
 /** Sem exclusão física: o fornecedor pode estar vinculado a equipamentos. */
 async function toggleActive(supplier: Supplier): Promise<void> {
   if (saving.value) return;
-  if (supplier.active && !confirm(`Desativar "${supplier.legalName}"? Ele não poderá ser vinculado.`)) {
-    return;
+  if (supplier.active) {
+    const confirmed = await confirm({
+      message: `Deseja desativar "${supplier.legalName}"?`,
+      detail: "Ele não poderá ser vinculado a novos equipamentos, mas o histórico é preservado.",
+      confirmLabel: "Desativar",
+      tone: "primary",
+    });
+    if (!confirmed) return;
   }
   saving.value = true;
   togglingId.value = supplier.id;
@@ -125,7 +141,14 @@ async function toggleActive(supplier: Supplier): Promise<void> {
   }
 }
 
-watch(() => props.open, (open) => { if (open) void load(); }, { immediate: true });
+watch(
+  () => props.open,
+  (open) => {
+    if (open) void load();
+    else resetForm();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -177,16 +200,6 @@ watch(() => props.open, (open) => { if (open) void load(); }, { immediate: true 
           <span>Mostrar inativos</span>
         </label>
       </div>
-
-      <SupplierForm
-        v-if="creating || editing"
-        :supplier="editing"
-        :saving="saving"
-        :error="formError"
-        compact
-        @submit="submit"
-        @cancel="cancel"
-      />
 
       <p v-if="loading && !suppliers.length" class="supplier-hint"><span class="spinner spinner-small" /> Carregando...</p>
       <p v-else-if="error" class="supplier-error" role="alert">{{ error }}</p>
@@ -244,10 +257,25 @@ watch(() => props.open, (open) => { if (open) void load(); }, { immediate: true 
       </p>
     </section>
   </AdminPanel>
+
+  <AppModal
+    :open="props.open && formOpen"
+    :title="formTitle"
+    :busy="saving"
+    @close="cancel"
+  >
+    <SupplierForm
+      :supplier="editing"
+      :saving="saving"
+      :error="formError"
+      @submit="submit"
+      @cancel="cancel"
+    />
+  </AppModal>
 </template>
 
 <style scoped>
-/* Cabeçalho, busca e formulário ficam parados; só a lista rola (dentro do painel). */
+/* Cabeçalho e busca ficam parados; só a lista rola (dentro do painel). */
 .supplier-admin { display: flex; flex-direction: column; gap: 12px; }
 .supplier-admin > * { flex: 0 0 auto; }
 .supplier-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule, #dde5ef); }

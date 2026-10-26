@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
-import { Check, Pencil, Plus, Search, X } from "lucide-vue-next";
+import { computed, reactive, ref, useId, watch } from "vue";
+import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-vue-next";
 import type { CatalogList, EapLevel, EapNodeItem } from "~/types/equipment";
 import { codeNameLabel, toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import AppModal from "~/components/ui/AppModal.vue";
+import { useConfirm } from "~/composables/useConfirm";
 
 const emit = defineEmits<{ changed: [] }>();
 const api = useApi();
+const { confirm } = useConfirm();
 
 const nodes = ref<EapNodeItem[]>([]);
 const loading = ref(false);
@@ -16,6 +19,7 @@ const error = ref("");
 const formError = ref("");
 const creating = ref(false);
 const editingId = ref("");
+const deletingId = ref("");
 const form = reactive<{ code: string; name: string; level: EapLevel; parentId: string; active: boolean }>({
   code: "",
   name: "",
@@ -23,6 +27,11 @@ const form = reactive<{ code: string; name: string; level: EapLevel; parentId: s
   parentId: "",
   active: true,
 });
+const formId = `eap-form-${useId()}`;
+const formOpen = computed(() => creating.value);
+const formTitle = computed(() =>
+  editingId.value ? "Editar nó da Árvore EAP" : "Novo nó da Árvore EAP",
+);
 
 const levelLabels: Record<EapLevel, string> = {
   ISLAND: "Ilha",
@@ -137,10 +146,15 @@ function startEdit(node: EapNodeItem): void {
   });
 }
 
-function cancel(): void {
+function resetForm(): void {
   creating.value = false;
   editingId.value = "";
   formError.value = "";
+}
+
+function cancel(): void {
+  if (saving.value) return;
+  resetForm();
 }
 
 async function submit(): Promise<void> {
@@ -169,13 +183,38 @@ async function submit(): Promise<void> {
         parentId: form.parentId || null,
       });
     }
-    cancel();
+    resetForm();
     await load();
     emit("changed");
   } catch (caught) {
     formError.value = caught instanceof Error ? caught.message : "Não foi possível criar o nó EAP.";
   } finally {
     saving.value = false;
+  }
+}
+
+/** Exclui um nó ainda sem filhos, equipamentos ou vínculos com obras. */
+async function remove(node: EapNodeItem): Promise<void> {
+  if (saving.value) return;
+  const confirmed = await confirm({
+    message: `Deseja excluir o nó "${node.code} · ${node.name}"?`,
+    detail:
+      "Esta ação não pode ser desfeita. Nós com filhos, equipamentos ou vínculos com obras não podem ser excluídos — nesse caso, desative-os.",
+  });
+  if (!confirmed) return;
+  saving.value = true;
+  deletingId.value = node.id;
+  error.value = "";
+  try {
+    await api.delete(`/eap-nodes/${node.id}`);
+    if (editingId.value === node.id) resetForm();
+    await load();
+    emit("changed");
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível excluir o nó EAP.";
+  } finally {
+    saving.value = false;
+    deletingId.value = "";
   }
 }
 
@@ -209,7 +248,64 @@ void load();
       </button>
     </header>
 
-    <form v-if="creating" class="eap-form" data-testid="eap-form" @submit.prevent="submit">
+    <label v-if="nodes.length" class="eap-search">
+      <Search :size="14" aria-hidden="true" />
+      <input v-model="search" type="search" placeholder="Buscar por código ou nome" aria-label="Buscar na Árvore EAP">
+    </label>
+
+    <p v-if="loading" class="eap-hint"><span class="spinner spinner-small" /> Carregando árvore...</p>
+    <p v-else-if="error" class="eap-error" role="alert">{{ error }}</p>
+    <p v-else-if="treeRows.length === 0" class="eap-empty" data-testid="eap-empty">
+      Nenhum nó EAP cadastrado. Comece por uma Ilha ou Processo.
+    </p>
+    <p v-else-if="visibleRows.length === 0" class="eap-hint">Nenhum nó corresponde à busca.</p>
+    <ul v-else class="eap-tree" role="tree" aria-label="Árvore EAP">
+      <li
+        v-for="row in visibleRows"
+        :key="row.node.id"
+        role="treeitem"
+        :aria-level="row.depth + 1"
+        :class="[`level-${row.node.level.toLowerCase()}`, { inactive: !row.node.active, editing: row.node.id === editingId }]"
+        :style="{ '--tree-depth': row.depth }"
+        :data-testid="`eap-node-${row.node.id}`"
+      >
+        <span class="tree-line" aria-hidden="true" />
+        <span class="eap-code">{{ row.node.code }}</span>
+        <span class="eap-name">{{ row.node.name }}</span>
+        <span class="eap-level" :class="`eap-level--${row.node.level.toLowerCase()}`">{{ levelLabels[row.node.level] }}</span>
+        <span v-if="!row.node.active" class="eap-inactive">Inativo</span>
+        <button
+          type="button"
+          class="eap-edit"
+          :aria-label="`Editar ${row.node.code}`"
+          :data-testid="`eap-edit-${row.node.id}`"
+          @click="startEdit(row.node)"
+        >
+          <Pencil :size="13" />
+        </button>
+        <button
+          type="button"
+          class="eap-delete"
+          :aria-label="`Excluir ${row.node.code}`"
+          :disabled="saving"
+          :aria-busy="deletingId === row.node.id"
+          :data-testid="`eap-delete-${row.node.id}`"
+          @click="remove(row.node)"
+        >
+          <span v-if="deletingId === row.node.id" class="spinner-small" aria-hidden="true" />
+          <Trash2 v-else :size="13" />
+        </button>
+      </li>
+    </ul>
+  </section>
+
+  <AppModal
+    :open="formOpen"
+    :title="formTitle"
+    :busy="saving"
+    @close="cancel"
+  >
+    <form :id="formId" class="eap-form" data-testid="eap-form" @submit.prevent="submit">
       <div class="field">
         <span>Nível *</span>
         <SearchableSelect
@@ -255,56 +351,29 @@ void load();
         Não informe prefixo da unidade ou da obra.
       </p>
       <p v-if="formError" class="eap-error" role="alert">{{ formError }}</p>
-      <div class="eap-form-actions">
-        <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
-        <button type="submit" class="btn small primary" :disabled="saving" data-testid="eap-save" :aria-busy="saving">
-          <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
-        </button>
-      </div>
     </form>
 
-    <label v-if="nodes.length" class="eap-search">
-      <Search :size="14" aria-hidden="true" />
-      <input v-model="search" type="search" placeholder="Buscar por código ou nome" aria-label="Buscar na Árvore EAP">
-    </label>
-
-    <p v-if="loading" class="eap-hint"><span class="spinner spinner-small" /> Carregando árvore...</p>
-    <p v-else-if="error" class="eap-error" role="alert">{{ error }}</p>
-    <p v-else-if="treeRows.length === 0" class="eap-empty" data-testid="eap-empty">
-      Nenhum nó EAP cadastrado. Comece por uma Ilha ou Processo.
-    </p>
-    <p v-else-if="visibleRows.length === 0" class="eap-hint">Nenhum nó corresponde à busca.</p>
-    <ul v-else class="eap-tree" role="tree" aria-label="Árvore EAP">
-      <li
-        v-for="row in visibleRows"
-        :key="row.node.id"
-        role="treeitem"
-        :aria-level="row.depth + 1"
-        :class="[`level-${row.node.level.toLowerCase()}`, { inactive: !row.node.active, editing: row.node.id === editingId }]"
-        :style="{ '--tree-depth': row.depth }"
-        :data-testid="`eap-node-${row.node.id}`"
+    <template #actions>
+      <button type="button" class="btn small" :disabled="saving" @click="cancel">
+        <X :size="13" /> Cancelar
+      </button>
+      <button
+        type="submit"
+        class="btn small primary"
+        :form="formId"
+        :disabled="saving"
+        data-testid="eap-save"
+        :aria-busy="saving"
       >
-        <span class="tree-line" aria-hidden="true" />
-        <span class="eap-code">{{ row.node.code }}</span>
-        <span class="eap-name">{{ row.node.name }}</span>
-        <span class="eap-level" :class="`eap-level--${row.node.level.toLowerCase()}`">{{ levelLabels[row.node.level] }}</span>
-        <span v-if="!row.node.active" class="eap-inactive">Inativo</span>
-        <button
-          type="button"
-          class="eap-edit"
-          :aria-label="`Editar ${row.node.code}`"
-          :data-testid="`eap-edit-${row.node.id}`"
-          @click="startEdit(row.node)"
-        >
-          <Pencil :size="13" />
-        </button>
-      </li>
-    </ul>
-  </section>
+        <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" />
+        {{ saving ? "Salvando..." : "Salvar" }}
+      </button>
+    </template>
+  </AppModal>
 </template>
 
 <style scoped>
-/* Cabeçalho, formulário e busca ficam parados; só a árvore rola (dentro do painel). */
+/* Cabeçalho e busca ficam parados; só a árvore rola (dentro do painel). */
 .eap-admin { display: flex; flex-direction: column; gap: 12px; }
 .eap-admin > * { flex: 0 0 auto; }
 .eap-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule, #dde5ef); border-radius: 9px; padding: 0 10px; background: #fff; color: var(--muted, #6b7a8f); }
@@ -315,11 +384,10 @@ void load();
 .eap-header p { margin: 3px 0 0; color: var(--muted, #6b7a8f); font-size: 12px; }
 .eap-count { margin-top: 4px !important; font-family: var(--mono, monospace); font-size: 11px !important; }
 
-.eap-form { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(130px, .8fr) minmax(180px, 1.5fr); gap: 10px 12px; border: 1px solid #c9d8ec; border-radius: 12px; padding: 14px; background: var(--wash, #f3f6fb); }
+.eap-form { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(130px, .8fr) minmax(180px, 1.5fr); gap: 14px 16px; }
 .eap-parent-field { grid-column: 1 / span 2; }
 .eap-help { grid-column: 1 / -1; margin: 0; color: var(--muted, #6b7a8f); font-size: 11.5px; }
 .eap-error { grid-column: 1 / -1; margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
-.eap-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
 .eap-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
 .eap-empty { margin: 0; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 22px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
 
@@ -329,7 +397,7 @@ void load();
 .eap-tree li {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
   align-items: center;
   gap: 10px;
   min-height: 36px;
@@ -364,6 +432,10 @@ void load();
 .eap-edit { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #8592a6; cursor: pointer; }
 .eap-edit:hover { background: #edf3fa; color: var(--steel, #304f7e); }
 .eap-edit:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 1px; }
+.eap-delete { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #b08a87; cursor: pointer; }
+.eap-delete:hover:not(:disabled) { background: var(--stop-wash, #fbeeed); color: var(--stop, #a4453a); }
+.eap-delete:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 1px; }
+.eap-delete:disabled { opacity: .5; cursor: not-allowed; }
 @media (max-width: 700px) {
   .eap-form { grid-template-columns: 1fr; }
   .eap-parent-field { grid-column: auto; }

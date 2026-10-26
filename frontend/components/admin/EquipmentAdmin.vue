@@ -84,7 +84,7 @@ watch(
     v-model:item="catalog"
     :open="props.open"
     title="Administração · Equipamentos"
-    description="Configuração das obras e cadastros de apoio aos equipamentos. Registros não são excluídos: use desativar."
+    description="Configuração das obras e cadastros de apoio aos equipamentos. Registros sem vínculos podem ser excluídos; os que estão em uso devem ser desativados."
     :sections="sections"
     @close="emit('close')"
   >

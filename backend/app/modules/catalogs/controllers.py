@@ -263,7 +263,8 @@ async def post_work_package(
     )
 
 
-# Manutenção administrativa: edição e ativação/desativação, sem hard delete.
+# Manutenção administrativa: edição, ativação/desativação e exclusão física
+# (esta última apenas quando o registro ainda não tem vínculos).
 _manage = require_permission(Permission.CATALOGS_MANAGE)
 
 
@@ -361,3 +362,66 @@ async def patch_work_package(
         actor=actor,
     )
     return WorkPackageOut.model_validate(item)
+
+
+@router.delete("/units/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_unit(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> None:
+    await services.delete_catalog(session, Unit, item_id=item_id, actor=actor)
+
+
+@router.delete("/project-contexts/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_project_context(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> None:
+    await services.delete_catalog(session, ProjectContext, item_id=item_id, actor=actor)
+
+
+@router.delete("/areas/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_area(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> None:
+    await services.delete_catalog(session, Area, item_id=item_id, actor=actor)
+
+
+@router.delete("/disciplines/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_discipline(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> None:
+    await services.delete_catalog(session, Discipline, item_id=item_id, actor=actor)
+
+
+@router.delete("/criticality-labels/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_criticality_label(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> None:
+    await services.delete_catalog(session, CriticalityLabel, item_id=item_id, actor=actor)
+
+
+@router.delete("/work-packages/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_work_package(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> None:
+    await services.delete_catalog(session, WorkPackage, item_id=item_id, actor=actor)
+
+
+@router.delete("/eap-nodes/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_eap_node(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> None:
+    await services.delete_catalog(session, EapNode, item_id=item_id, actor=actor)

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
-import { Check, Pencil, Plus, X } from "lucide-vue-next";
+import { computed, onMounted, reactive, ref, useId, watch } from "vue";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 import type {
   CatalogItem,
   CatalogList,
@@ -10,6 +10,8 @@ import type {
 } from "~/types/equipment";
 import { toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import AppModal from "~/components/ui/AppModal.vue";
+import { useConfirm } from "~/composables/useConfirm";
 
 /**
  * Configuração da obra: ProjectContexts de uma Unidade + resumo de preparação.
@@ -26,6 +28,7 @@ const emit = defineEmits<{
 
 const api = useApi();
 const auth = useAuthStore();
+const { confirm } = useConfirm();
 const canManage = computed(() => auth.can("catalogs:manage"));
 const canManageAccess = computed(() => auth.can("users:manage"));
 
@@ -36,12 +39,18 @@ const loadingUnits = ref(true);
 const loading = ref(false);
 const saving = ref(false);
 const togglingId = ref<string | null>(null);
+const deletingId = ref<string | null>(null);
 let contextsVersion = 0;
 let summaryVersion = 0;
 const error = ref("");
 const formError = ref("");
 const mode = ref<"idle" | "create" | "edit">("idle");
 const form = reactive({ code: "", name: "", active: true });
+const formId = `project-form-${useId()}`;
+const formOpen = computed(() => mode.value !== "idle");
+const formTitle = computed(() =>
+  mode.value === "create" ? "Novo contexto de projeto" : "Editar contexto de projeto",
+);
 
 const summary = reactive({ loading: false, error: "", eapNodes: 0, disciplines: 0, workPackages: 0 });
 
@@ -144,6 +153,7 @@ function startEdit(item: CatalogItem): void {
 }
 
 function cancel(): void {
+  if (saving.value) return;
   mode.value = "idle";
   formError.value = "";
 }
@@ -184,9 +194,16 @@ async function submit(): Promise<void> {
  * O contexto inativo continua nesta lista (visão administrativa) para ser reativado.
  */
 async function toggleActive(item: CatalogItem): Promise<void> {
-  const message = `Desativar "${item.name}"? Ele deixa de aparecer nos formulários, mas continua aqui para reativação.`;
   if (saving.value) return;
-  if (item.active && !confirm(message)) return;
+  if (item.active) {
+    const confirmed = await confirm({
+      message: `Deseja desativar "${item.name}"?`,
+      detail: "Ele deixa de aparecer nos formulários, mas continua aqui para reativação.",
+      confirmLabel: "Desativar",
+      tone: "primary",
+    });
+    if (!confirmed) return;
+  }
   saving.value = true;
   togglingId.value = item.id;
   error.value = "";
@@ -199,6 +216,30 @@ async function toggleActive(item: CatalogItem): Promise<void> {
   } finally {
     saving.value = false;
     togglingId.value = null;
+  }
+}
+
+/** Exclui a obra fisicamente; a API bloqueia se houver equipamentos/importações. */
+async function remove(item: CatalogItem): Promise<void> {
+  if (saving.value) return;
+  const confirmed = await confirm({
+    message: `Deseja excluir a obra "${item.name}"?`,
+    detail:
+      "Esta ação não pode ser desfeita. Obras com equipamentos ou histórico de importação não podem ser excluídas — nesse caso, desative-as.",
+  });
+  if (!confirmed) return;
+  saving.value = true;
+  deletingId.value = item.id;
+  error.value = "";
+  try {
+    await api.delete(`/project-contexts/${item.id}`);
+    await loadContexts();
+    emit("changed");
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível excluir a obra.";
+  } finally {
+    saving.value = false;
+    deletingId.value = null;
   }
 }
 
@@ -258,35 +299,6 @@ watch(selectedId, loadSummary);
     </div>
 
     <template v-else>
-      <form
-        v-if="mode !== 'idle'"
-        class="project-form"
-        data-testid="project-form"
-        @submit.prevent="submit"
-      >
-        <h4>{{ mode === "create" ? "Novo contexto de projeto" : "Editar contexto de projeto" }}</h4>
-        <label class="field">
-          <span>Código (opcional)</span>
-          <input v-model="form.code" maxlength="60" data-testid="project-code">
-        </label>
-        <label class="field">
-          <span>Nome *</span>
-          <input v-model="form.name" maxlength="160" required data-testid="project-name">
-        </label>
-        <label v-if="mode === 'edit'" class="project-active">
-          <input v-model="form.active" type="checkbox" data-testid="project-active">
-          <span>Ativo</span>
-        </label>
-        <p v-else class="field-help project-create-note">O contexto é criado ativo.</p>
-        <p v-if="formError" class="projects-error" role="alert">{{ formError }}</p>
-        <div class="project-form-actions">
-          <button type="button" class="btn small" @click="cancel"><X :size="13" /> Cancelar</button>
-          <button type="submit" class="btn small primary" :disabled="saving" data-testid="project-save" :aria-busy="saving">
-            <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" /> {{ saving ? "Salvando..." : "Salvar" }}
-          </button>
-        </div>
-      </form>
-
       <p v-if="loading" class="projects-hint"><span class="spinner spinner-small" /> Carregando contextos...</p>
       <p v-else-if="error" class="projects-error" role="alert">{{ error }}</p>
       <div v-else-if="contexts.length === 0" class="projects-empty" data-testid="project-empty">
@@ -318,6 +330,11 @@ watch(selectedId, loadSummary);
               <button type="button" class="text-button" :disabled="saving" :aria-busy="togglingId === item.id" @click="toggleActive(item)">
                 <span v-if="togglingId === item.id" class="spinner-small" aria-hidden="true" />
                 {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
+              </button>
+              <button type="button" class="text-button text-button--danger" :disabled="saving" :aria-busy="deletingId === item.id" @click="remove(item)">
+                <span v-if="deletingId === item.id" class="spinner-small" aria-hidden="true" />
+                <Trash2 v-else :size="12" />
+                {{ deletingId === item.id ? "Excluindo..." : "Excluir" }}
               </button>
             </span>
           </li>
@@ -387,6 +404,53 @@ watch(selectedId, loadSummary);
       </div>
     </template>
   </section>
+
+  <AppModal
+    v-if="props.unitId"
+    :open="formOpen"
+    :title="formTitle"
+    :busy="saving"
+    @close="cancel"
+  >
+    <form
+      :id="formId"
+      class="project-form"
+      data-testid="project-form"
+      @submit.prevent="submit"
+    >
+      <label class="field">
+        <span>Código (opcional)</span>
+        <input v-model="form.code" maxlength="60" data-testid="project-code">
+      </label>
+      <label class="field">
+        <span>Nome *</span>
+        <input v-model="form.name" maxlength="160" required data-testid="project-name">
+      </label>
+      <label v-if="mode === 'edit'" class="project-active">
+        <input v-model="form.active" type="checkbox" data-testid="project-active">
+        <span>Ativo</span>
+      </label>
+      <p v-else class="field-help project-create-note">O contexto é criado ativo.</p>
+      <p v-if="formError" class="projects-error" role="alert">{{ formError }}</p>
+    </form>
+
+    <template #actions>
+      <button type="button" class="btn small" :disabled="saving" @click="cancel">
+        <X :size="13" /> Cancelar
+      </button>
+      <button
+        type="submit"
+        class="btn small primary"
+        :form="formId"
+        :disabled="saving"
+        data-testid="project-save"
+        :aria-busy="saving"
+      >
+        <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" />
+        {{ saving ? "Salvando..." : "Salvar" }}
+      </button>
+    </template>
+  </AppModal>
 </template>
 
 <style scoped>
@@ -401,13 +465,11 @@ watch(selectedId, loadSummary);
 .projects-empty { display: grid; justify-items: center; gap: 6px; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 24px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
 .projects-empty p { margin: 0; }
 
-.project-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; border: 1px solid #c9d8ec; border-radius: 12px; padding: 14px; background: var(--wash, #f3f6fb); }
-.project-form h4 { grid-column: 1 / -1; margin: 0; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 800; }
+.project-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 16px; }
 .project-form > .field:nth-of-type(2) { grid-column: span 2; }
 .project-active { display: flex; align-items: center; gap: 8px; color: var(--ink, #1f3352); font-size: 12.5px; }
 .project-create-note { align-self: center; margin: 0; }
 .project-form .projects-error { grid-column: 1 / -1; }
-.project-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
 .field-help { color: var(--muted, #6b7a8f); font-size: 11px; line-height: 1.4; }
 
 .projects-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(250px, 1fr); align-items: start; gap: 16px; }
@@ -438,6 +500,7 @@ watch(selectedId, loadSummary);
 .status--off { color: #9aa6b5; }
 .text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: var(--steel, #304f7e); font-size: 11.5px; font-weight: 750; cursor: pointer; }
 .text-button:hover:not(:disabled) { text-decoration: underline; }
+.text-button--danger { color: var(--stop, #a4453a); }
 
 /* Preparação: checklist da obra selecionada */
 .readiness { position: sticky; top: 0; display: grid; gap: 10px; border-radius: 12px; padding: 14px 16px; background: var(--wash, #f3f6fb); }
