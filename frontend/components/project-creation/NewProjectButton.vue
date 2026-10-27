@@ -11,7 +11,8 @@ const open = ref(false);
 
 <template>
   <template v-if="canCreate">
-    <button type="button" class="module-action" aria-label="Nova obra"
+    <button
+type="button" class="module-action" aria-label="Nova obra"
       data-testid="nav-new-project" @click="open = true">
       <FolderPlus :size="18" aria-hidden="true" />
       <span class="module-action-tip" aria-hidden="true">Nova obra</span>

@@ -10,7 +10,13 @@ import ImportSourceStep from "~/components/imports/ImportSourceStep.vue";
 import { isXlsx, mergeSourceValues } from "~/composables/useEquipmentImport";
 import { ApiError } from "~/services/api/error";
 import type { ImportApplyJob, ImportApplyResult, ImportBatch, ImportPlan } from "~/types/imports";
-import { chooseOption, isDisabled, shownValue } from "./support/searchableSelect";
+import {
+  chooseOption,
+  isDisabled,
+  menuOptions,
+  openMenu,
+  shownValue,
+} from "./support/searchableSelect";
 
 // Dados 100% sintéticos.
 const UNITS = [{ id: "u-tst", code: "TST", name: "Unidade Teste", active: true }];
@@ -296,6 +302,13 @@ describe("Importar equipamentos", () => {
     await wrapper.get("[data-testid='import-analyze']").trigger("click");
     await wrapper.vm.$nextTick();
     expect(wrapper.get("[data-testid='import-analyze']").text()).toContain("Analisando");
+    // Sem total conhecido (o mock não reporta progresso): barra indeterminada.
+    expect(
+      wrapper.get("[data-testid='import-upload-progress-status']").text(),
+    ).toContain("Enviando planilha");
+    expect(
+      wrapper.get("[role='progressbar']").attributes("aria-valuenow"),
+    ).toBeUndefined();
     release(batch());
     await settle(wrapper);
     expect(wrapper.find("[data-testid='import-step-analysis']").exists()).toBe(true);
@@ -336,28 +349,27 @@ describe("Importar equipamentos", () => {
     expect(wrapper.find("[data-testid='mapping-disciplines']").exists()).toBe(false); // sem valores na origem
     expect(get).toHaveBeenCalledWith("/eap-nodes", { active: true });
     expect(get).not.toHaveBeenCalledWith("/areas", expect.anything()); // Area não é destino da localização
-    const responsibleSelect = wrapper.get("[data-testid='mapping-select-responsibles']");
-    await responsibleSelect.trigger("focus");
-    const responsibleOption = wrapper
-      .findAll("[role='option']")
-      .find((option) => option.text().includes("Usuário Sintético A"));
+    await openMenu(wrapper, "mapping-select-responsibles");
+    const responsibleOption = menuOptions(wrapper, "mapping-select-responsibles").find(
+      (option) => option.text().includes("Usuário Sintético A"),
+    );
     expect(responsibleOption).toBeDefined();
-    await responsibleOption!.trigger("mousedown");
+    await responsibleOption!.trigger("click");
 
     // EAP: valor com código único resolve sozinho; sem código fica pendente até escolha explícita
     const eapSection = wrapper.get("[data-testid='mapping-eapNodes']");
-    expect(
-      eapSection.get("[data-testid='eap-row-RESOLVED'] [role='combobox']").attributes("placeholder"),
-    ).toBe("Automático: 03 · Sistema Sintético");
-    const pendingEap = eapSection.get("[data-testid='eap-row-NONE'] [role='combobox']");
-    expect(pendingEap.attributes("placeholder")).toBe("Sem EAP (pendente)");
-    await pendingEap.trigger("focus");
+    const resolvedRow = eapSection.get("[data-testid='eap-row-RESOLVED'] .searchable-select");
+    expect(resolvedRow.attributes("data-placeholder")).toBe("Automático: 03 · Sistema Sintético");
+    const pendingRow = eapSection.get("[data-testid='eap-row-NONE']");
+    const pendingSelect = pendingRow.get(".searchable-select");
+    expect(pendingSelect.attributes("data-placeholder")).toBe("Sem EAP (pendente)");
+    await openMenu(pendingRow, "mapping-select-eapNodes");
     expect(eapSection.text()).not.toContain("Ilha Sintética"); // ilha não é elegível para equipamento
-    const eapOption = eapSection
-      .findAll("[role='option']")
-      .find((option) => option.text().includes("19 · Outro Sistema Sintético"));
+    const eapOption = menuOptions(pendingRow, "mapping-select-eapNodes").find(
+      (option) => option.text().includes("19 · Outro Sistema Sintético"),
+    );
     expect(eapOption).toBeDefined();
-    await eapOption!.trigger("mousedown");
+    await eapOption!.trigger("click");
     await wrapper.get("[data-testid='import-build-plan']").trigger("click");
     await settle(wrapper);
 
@@ -423,12 +435,12 @@ describe("Importar equipamentos", () => {
     const review = wrapper.get("[data-testid='supplier-review']");
     expect(review.text()).toContain("Origem: 9001");
     expect(review.text()).toContain("Confiança HIGH");
-    await review.get("[role='combobox']").trigger("focus");
-    const supplierOption = review
-      .findAll("[role='option']")
-      .find((option) => option.text().includes("Fornecedor Sintético SA"));
+    await review.get("[role='combobox']").trigger("click");
+    const supplierOption = menuOptions(review, "supplier-review-combobox").find(
+      (option) => option.text().includes("Fornecedor Sintético SA"),
+    );
     expect(supplierOption).toBeDefined();
-    await supplierOption!.trigger("mousedown");
+    await supplierOption!.trigger("click");
     expect((wrapper.get("[data-testid='import-confirm']").element as HTMLButtonElement).disabled).toBe(true);
     const updatePlan = review.findAll("button").find((button) => button.text().includes("Atualizar plano"));
     expect(updatePlan).toBeDefined();
@@ -481,8 +493,7 @@ describe("Importar equipamentos", () => {
       mapping: expect.objectContaining({ supplierSelections: {} }),
       autoSelectSuppliers: true,
     });
-    expect(wrapper.get("[role='combobox']").element).toHaveProperty(
-      "value",
+    expect(shownValue(wrapper, "supplier-review-combobox")).toBe(
       "9001 · Fornecedor Sintético SA",
     );
   });

@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from "vue";
 import { X } from "lucide-vue-next";
+import { ElDialog } from "element-plus";
+import AppTeleport from "~/components/ui/AppTeleport.vue";
 import { lockBodyScroll, unlockBodyScroll } from "~/utils/bodyScrollLock";
 
 /**
- * Modal no padrão visual do Dialog do PrimeVue, recriado localmente.
+ * Modal construído sobre o `ElDialog` do Element Plus.
+ *
+ * O EP entrega overlay, `role="dialog"`, travamento de foco (Tab) e o clique no
+ * fundo; o Hub mantém o visual (classes `.modal-*`), o foco no primeiro campo,
+ * a restauração do foco anterior, o bloqueio de rolagem e as regras `busy`,
+ * `dismissableMask` e `closeOnEscape`.
  *
  * `wide`: fluxos com tabelas e mapeamentos lado a lado (ex.: importação).
  * `contained`: altura fixa e o próprio conteúdo decide o que rola (ex.: painel
@@ -33,60 +40,67 @@ const props = withDefaults(
 const emit = defineEmits<{ close: [] }>();
 
 const titleId = `app-modal-title-${useId()}`;
-const card = ref<HTMLElement | null>(null);
+const bodyEl = ref<HTMLElement | null>(null);
 const previousFocus = ref<HTMLElement | null>(null);
 let scrollLocked = false;
+let overlayCleanup: (() => void) | null = null;
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), ' +
   'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-function focusableElements(): HTMLElement[] {
-  if (!card.value) return [];
-  return Array.from(card.value.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-    (element) => element.tabIndex >= 0 && !element.hidden,
-  );
-}
 
 function requestClose(): void {
   if (!props.busy) emit("close");
 }
 
 /** Escape fecha primeiro um dropdown aberto dentro do modal; depois o modal. */
-function hasOpenNestedMenu(event: KeyboardEvent): boolean {
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key !== "Escape" || !props.closeOnEscape) return;
   const target = event.target as HTMLElement | null;
-  return Boolean(target?.closest('[aria-expanded="true"]'));
+  if (target?.closest('[aria-expanded="true"]')) return;
+  requestClose();
 }
 
-function onKeydown(event: KeyboardEvent): void {
-  if (event.key === "Escape") {
-    if (!props.closeOnEscape || hasOpenNestedMenu(event)) return;
-    event.preventDefault();
-    requestClose();
-    return;
-  }
-  if (event.key !== "Tab" || !card.value) return;
+/**
+ * Fundo do modal. O fechamento por clique fora do cartão é tratado aqui
+ * (mousedown no próprio overlay), como no modal anterior: os eventos de
+ * fechamento do ElDialog dependem da transição de saída e não disparam no
+ * ambiente de testes; com `close-on-click-modal=false` existe um caminho só.
+ */
+function bindOverlayMousedown(): void {
+  if (overlayCleanup) return;
+  const overlay = bodyEl.value?.closest<HTMLElement>(".el-overlay");
+  if (!overlay) return;
+  const onBackdropMousedown = (event: MouseEvent): void => {
+    if (event.target === overlay && props.dismissableMask) requestClose();
+  };
+  overlay.addEventListener("mousedown", onBackdropMousedown);
+  overlayCleanup = () => overlay.removeEventListener("mousedown", onBackdropMousedown);
+}
 
-  const focusable = focusableElements();
-  if (focusable.length === 0) {
-    event.preventDefault();
-    card.value.focus();
-    return;
-  }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (!first || !last) return;
+function unbindOverlayMousedown(): void {
+  overlayCleanup?.();
+  overlayCleanup = null;
+}
 
-  if (!card.value.contains(document.activeElement)) {
-    event.preventDefault();
-    first.focus();
-  } else if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
+function findFirstField(): HTMLElement | null {
+  return (
+    bodyEl.value
+      ? Array.from(bodyEl.value.querySelectorAll<HTMLElement>(FOCUSABLE)).find(
+          (element) => element.tabIndex >= 0 && !element.hidden,
+        )
+      : null
+  ) ?? null;
+}
+
+/**
+ * O EP devolve o foco ao próprio cartão depois do autofocus interno; quando
+ * o foco parar no cartão (abertura ou clique na moldura), devolvemos ao
+ * primeiro campo do conteúdo — mesmo comportamento do modal anterior.
+ */
+function onCardFocusin(event: FocusEvent): void {
+  const target = event.target as HTMLElement | null;
+  if (target?.classList.contains("modal-card")) findFirstField()?.focus();
 }
 
 async function activate(): Promise<void> {
@@ -96,18 +110,14 @@ async function activate(): Promise<void> {
     lockBodyScroll();
   }
   await nextTick();
+  await nextTick();
   if (!props.open) return;
-  // Prioriza o primeiro campo do conteúdo; sem campos, o próprio cartão.
-  const body = card.value?.querySelector<HTMLElement>(".modal-body");
-  const first = body
-    ? Array.from(body.querySelectorAll<HTMLElement>(FOCUSABLE)).find(
-        (element) => element.tabIndex >= 0 && !element.hidden,
-      )
-    : null;
-  (first ?? card.value)?.focus();
+  bindOverlayMousedown();
+  findFirstField()?.focus();
 }
 
 function deactivate(): void {
+  unbindOverlayMousedown();
   if (scrollLocked) {
     scrollLocked = false;
     unlockBodyScroll();
@@ -120,8 +130,7 @@ function deactivate(): void {
 watch(
   () => props.open,
   (open) => {
-    if (open) void activate();
-    else deactivate();
+    void (open ? activate() : deactivate());
   },
   { flush: "post" },
 );
@@ -131,6 +140,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  unbindOverlayMousedown();
   if (scrollLocked) {
     scrollLocked = false;
     unlockBodyScroll();
@@ -139,84 +149,57 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="app-modal">
-      <div
-        v-if="open"
-        class="modal-backdrop"
-        @mousedown.self="dismissableMask && requestClose()"
-      >
-        <section
-          ref="card"
-          class="modal-card"
-          :class="{
-            'modal-card--wide': size === 'wide',
-            'modal-card--contained': contained,
-          }"
-          role="dialog"
-          aria-modal="true"
-          :aria-labelledby="titleId"
-          tabindex="-1"
-          @keydown="onKeydown"
-        >
-          <header class="modal-header">
-            <h2 :id="titleId">{{ title }}</h2>
-            <button
-              type="button"
-              class="modal-close"
-              aria-label="Fechar"
-              :disabled="busy"
-              @click="requestClose"
-            >
-              <X :size="20" aria-hidden="true" />
-            </button>
-          </header>
-          <div class="modal-body"><slot /></div>
-          <footer v-if="$slots.actions" class="modal-actions"><slot name="actions" /></footer>
-        </section>
-      </div>
-    </Transition>
-  </Teleport>
+  <AppTeleport>
+    <!-- `v-if` mantém o contrato "modal fechado = nada no DOM" e o EP recebe
+         `model-value` fixo: todo fechamento passa por `requestClose`. -->
+    <ElDialog
+      v-if="open"
+      :model-value="true"
+      :title="title"
+      class="modal-card"
+      :class="{
+        'modal-card--wide': size === 'wide',
+        'modal-card--contained': contained,
+      }"
+      :append-to-body="false"
+      :lock-scroll="false"
+      :show-close="false"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      footer-class="modal-actions"
+      modal-class="app-modal-overlay"
+      @keydown="onKeydown"
+      @focusin="onCardFocusin"
+    >
+      <template #header>
+        <header class="modal-header">
+          <h2 :id="titleId">{{ title }}</h2>
+          <button
+            type="button"
+            class="modal-close"
+            aria-label="Fechar"
+            :disabled="busy"
+            @click="requestClose"
+          >
+            <X :size="20" aria-hidden="true" />
+          </button>
+        </header>
+      </template>
+      <div ref="bodyEl" class="modal-body"><slot /></div>
+      <template v-if="$slots.actions" #footer>
+        <slot name="actions" />
+      </template>
+    </ElDialog>
+  </AppTeleport>
 </template>
 
 <style scoped>
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgb(16 24 40 / 45%);
-}
-
-.modal-card {
-  display: grid;
-  width: min(680px, 100%);
-  max-height: calc(100vh - 40px);
-  max-height: calc(100dvh - 40px);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
-  border: 1px solid #e1e8f1;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 24px 70px rgb(15 30 55 / 30%);
-  color: #1f3352;
-}
-
-.modal-card:focus { outline: none; }
-.modal-card--wide { width: min(1040px, 100%); }
-
-.modal-card--contained {
-  height: min(820px, calc(100vh - 40px));
-  height: min(820px, calc(100dvh - 40px));
-}
-
-.modal-card--contained .modal-body {
-  overflow: hidden;
-  padding-bottom: 0;
-}
-
+/* ===== Conteúdo do Hub (elementos deste componente) =====
+   O re-skin dos elementos internos do ElDialog (overlay, cartão, header,
+   body e footer do EP) vive em `assets/css/element-plus.css`, ancorado no
+   `modal-class="app-modal-overlay"`: a cadeia Teleport/Transition do
+   ElDialog não leva o atributo de escopo, então regras `:deep` não alcançam
+   esses elementos. */
 .modal-header {
   display: flex;
   align-items: flex-start;
@@ -254,47 +237,20 @@ onBeforeUnmount(() => {
 .modal-close:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .modal-body {
+  height: 100%;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 20px;
 }
 
-.modal-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 9px;
-  border-top: 1px solid #e9edf2;
-  padding: 14px 20px 16px;
-  background: #fbfcfe;
+.modal-card--contained .modal-body {
+  overflow: hidden;
+  padding-bottom: 0;
 }
-
-.app-modal-enter-active,
-.app-modal-leave-active { transition: opacity 0.16s ease; }
-
-.app-modal-enter-active .modal-card,
-.app-modal-leave-active .modal-card { transition: transform 0.16s ease, opacity 0.16s ease; }
-
-.app-modal-enter-from,
-.app-modal-leave-to { opacity: 0; }
-
-.app-modal-enter-from .modal-card,
-.app-modal-leave-to .modal-card { opacity: 0; transform: translateY(6px) scale(0.985); }
 
 @media (max-width: 640px) {
-  .modal-backdrop { padding: 12px; }
-  .modal-card { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
-  .modal-card--contained { height: calc(100vh - 24px); height: calc(100dvh - 24px); }
   .modal-header { padding: 15px 17px 13px; }
   .modal-body { padding: 16px 20px 20px; }
-  .modal-actions { padding: 13px 17px 15px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app-modal-enter-active,
-  .app-modal-leave-active,
-  .app-modal-enter-active .modal-card,
-  .app-modal-leave-active .modal-card { transition: none; }
 }
 </style>

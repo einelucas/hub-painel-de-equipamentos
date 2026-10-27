@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
+
 definePageMeta({ publicLayout: true });
 
 const { store, login } = useAuth();
@@ -102,19 +104,18 @@ async function submit() {
           <span>Senha</span>
           <input v-model="password" type="password" autocomplete="current-password" required />
         </label>
-        <button type="submit" class="btn primary login-submit mt-1" :disabled="loading || checking" :aria-busy="loading">
-          <span v-if="loading" class="spinner-small" aria-hidden="true" />
+        <Button type="submit" variant="default" class="login-submit mt-1" :disabled="checking" :loading="loading">
           {{ loading ? "Entrando..." : "Entrar" }}
-        </button>
+        </Button>
       </form>
 
       <template v-if="oidcConfigured">
         <div class="my-4 flex items-center gap-3 text-xs text-slate-400">
           <span class="h-px flex-1 bg-slate-200" />ou<span class="h-px flex-1 bg-slate-200" />
         </div>
-        <button type="button" class="btn login-submit" :disabled="loading || checking" @click="oidc">
+        <Button variant="outline" class="login-submit" :disabled="loading || checking" @click="oidc">
           Entrar com conta corporativa
-        </button>
+        </Button>
       </template>
 
       <p v-if="error" class="login-error" role="alert">{{ error }}</p>
@@ -135,10 +136,10 @@ async function submit() {
         <p v-if="changeError" class="login-error" role="alert">{{ changeError }}</p>
       </form>
       <template #actions>
-        <button type="button" class="btn" :disabled="loading" @click="closeChange">Cancelar</button>
-        <button type="submit" form="first-access-form" class="btn primary" :disabled="loading" :aria-busy="loading">
+        <Button variant="outline" :disabled="loading" @click="closeChange">Cancelar</Button>
+        <Button type="submit" variant="default" form="first-access-form" :loading="loading">
           {{ loading ? "Salvando..." : "Salvar nova senha" }}
-        </button>
+        </Button>
       </template>
     </AppModal>
   </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { Pencil } from "lucide-vue-next";
+import Button from "~/components/ui/Button.vue";
 import CurrencyInput from "~/components/ui/CurrencyInput.vue";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -417,14 +418,13 @@ onMounted(loadCatalogs);
     </div>
 
     <div class="form-actions">
-      <button type="button" class="btn" @click="emit('cancel')">
+      <Button variant="outline" @click="emit('cancel')">
         Cancelar
-      </button>
+      </Button>
 
-      <button type="submit" class="btn primary" :disabled="saving" :aria-busy="saving">
-        <span v-if="saving" class="spinner-small" aria-hidden="true" />
+      <Button type="submit" variant="default" :loading="saving">
         {{ saving ? "Salvando..." : "Salvar equipamento" }}
-      </button>
+      </Button>
     </div>
   </form>
 

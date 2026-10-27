@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, CircleHelp, Clock3, MailCheck, RefreshCw, 
 import EmailTemplateEditor from "~/components/admin/EmailTemplateEditor.vue";
 import EmailTemplatePreview from "~/components/admin/EmailTemplatePreview.vue";
 import EmailTestPanel from "~/components/admin/EmailTestPanel.vue";
+import Button from "~/components/ui/Button.vue";
 import type {
   EmailTemplate,
   EmailTemplateDraft,
@@ -339,9 +340,9 @@ onMounted(load);
         <h3>Central de notificações</h3>
         <p>Microsoft Graph, caixa de testes, destinatários e acompanhamento dos envios.</p>
       </div>
-      <button type="button" class="btn small" :disabled="busy || loading" @click="load">
+      <Button size="sm" variant="outline" :disabled="busy || loading" @click="load">
         <RefreshCw :size="14" /> Atualizar
-      </button>
+      </Button>
     </header>
 
     <div v-if="error" class="notify-message notify-error" role="alert"><AlertTriangle :size="16" /> {{ error }}</div>
@@ -390,7 +391,7 @@ onMounted(load);
           <p>O destino é fixo: {{ settings?.testInbox || "caixa ainda não configurada" }}. No modo sandbox todos os envios, inclusive alertas operacionais, são redirecionados para ela.</p>
           <label class="field"><span>Assunto</span><input v-model="mailSubject" maxlength="200" /></label>
           <label class="field"><span>Mensagem</span><textarea v-model="mailBody" rows="4" maxlength="4000" /></label>
-          <button type="button" class="btn primary small" :disabled="busy || !settings?.testInbox || (settings?.mode !== 'log' && !testProviderStatus?.configured)" @click="sendTest"><Send :size="14" /> {{ busy ? "Enviando..." : "Enviar teste" }}</button>
+          <Button size="sm" variant="default" :disabled="busy || !settings?.testInbox || (settings?.mode !== 'log' && !testProviderStatus?.configured)" @click="sendTest"><Send :size="14" /> {{ busy ? "Enviando..." : "Enviar teste" }}</Button>
         </div>
       </div>
 
@@ -413,7 +414,7 @@ onMounted(load);
             <label class="field"><span>Destinatários fixos — um endereço por linha</span><textarea v-model="recipientsText" rows="6" placeholder="equipe@empresa.com" /></label>
             <p class="notify-hint">No modo sandbox os endereços são registrados, mas não recebem e-mails: apenas a caixa de testes recebe. Em produção, os destinatários são deduplicados.</p>
           </template>
-          <button type="button" class="btn primary small" :disabled="busy" @click="save"><MailCheck :size="14" /> {{ busy ? "Salvando..." : "Salvar configuração" }}</button>
+          <Button size="sm" variant="default" :disabled="busy" @click="save"><MailCheck :size="14" /> {{ busy ? "Salvando..." : "Salvar configuração" }}</Button>
         </template>
       </div>
 
@@ -460,7 +461,7 @@ onMounted(load);
       <div v-else class="notify-panel stack">
         <div class="notify-heading">
           <h4><Clock3 :size="16" /> Histórico de tentativas</h4>
-          <button type="button" class="btn small" :disabled="busy" @click="process">Processar fila agora</button>
+          <Button size="sm" variant="outline" :disabled="busy" @click="process">Processar fila agora</Button>
         </div>
         <p class="notify-hint">Aceito pelo Graph significa HTTP 202 (aceito para processamento), não confirmação de entrega na caixa postal. Falhas são registradas para reenvio manual.</p>
         <div v-if="!deliveries.length" class="notify-empty">Nenhuma tentativa de envio registrada.</div>
@@ -471,7 +472,7 @@ onMounted(load);
           </div>
           <p>{{ item.recipientSummary || "Sem destinatários" }} · {{ formatDate(item.createdAt) }} · {{ item.mode }} · {{ item.provider === "graph" ? "Graph" : "Resend" }}</p>
           <p v-if="item.failureReason" class="notify-error-text">{{ item.failureReason }}</p>
-          <button v-if="item.status === 'FAILED' && item.attempts < 3" class="btn small" :disabled="busy" type="button" @click="retry(item)">Reenviar após conferência</button>
+          <Button v-if="item.status === 'FAILED' && item.attempts < 3" size="sm" variant="outline" :disabled="busy" @click="retry(item)">Reenviar após conferência</Button>
         </div>
       </div>
     </template>

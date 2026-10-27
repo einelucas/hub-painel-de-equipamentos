@@ -3,13 +3,15 @@ import { computed, ref } from "vue";
 import { FileSpreadsheet, FileUp, UploadCloud } from "lucide-vue-next";
 import { useImportState } from "~/composables/useImportState";
 import { codeNameLabel, toOptions } from "~/utils/selectOptions";
+import Button from "~/components/ui/Button.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import UploadProgress from "~/components/ui/UploadProgress.vue";
 
 /**
  * Passo 1: obra (Unidade → ProjectContext ativo), formato da planilha e um ou
  * mais .xlsx (o Monday exporta um arquivo por grupo/fase ocupada).
  */
-const { units, contexts, profiles, selection, files, busy, loadingContexts, analysisProgress, loadContexts, selectFiles, analyze } = useImportState();
+const { units, contexts, profiles, selection, files, busy, loadingContexts, analysisProgress, uploadProgress, loadContexts, selectFiles, analyze } = useImportState();
 
 const unitOptions = computed(() => toOptions(units.value));
 const contextOptions = computed(() => toOptions(contexts.value, codeNameLabel));
@@ -138,11 +140,26 @@ function size(bytes: number): string {
     </div>
 
     <div class="import-actions">
-      <button type="button" class="btn primary" :disabled="!canAnalyze" :aria-busy="busy" data-testid="import-analyze" @click="analyze">
-        <span v-if="busy" class="spinner-small" aria-hidden="true" />
-        <FileUp v-else :size="15" />
+      <Button
+        variant="default"
+        :disabled="!canAnalyze"
+        :loading="busy"
+        data-testid="import-analyze"
+        @click="analyze"
+      >
+        <FileUp v-if="!busy" :size="15" />
         {{ busy ? (analysisProgress ? `Analisando arquivo ${analysisProgress.current} de ${analysisProgress.total}...` : "Analisando...") : files.length > 1 ? `Analisar ${files.length} planilhas` : "Analisar planilha" }}
-      </button>
+      </Button>
+      <UploadProgress
+        v-if="busy && uploadProgress"
+        :uploading="!uploadProgress.processing"
+        :percent="uploadProgress.percent"
+        upload-label="Enviando planilha"
+        processing-label="Analisando planilha no servidor"
+        :detail="uploadProgress.fileName"
+        test-id="import-upload-progress"
+        class="import-upload"
+      />
     </div>
   </div>
 </template>
@@ -150,6 +167,7 @@ function size(bytes: number): string {
 <style scoped>
 .source-layout { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
 .destination { gap: 12px; }
+.import-upload { max-width: 420px; }
 .profile-single { display: flex; align-items: center; gap: 6px; margin: 0; border-radius: 8px; background: var(--wash); padding: 8px 10px; color: var(--ink); font-size: 12px; font-weight: 700; }
 .files { display: grid; gap: 10px; }
 

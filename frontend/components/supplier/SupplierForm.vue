@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, useId, watch } from "vue";
 import { AlertTriangle, Check, CheckCircle2, X } from "lucide-vue-next";
+import Button from "~/components/ui/Button.vue";
 import type { Supplier } from "~/types/equipment";
 import { cnpjStatus, formatCnpj, maskCnpjInput, normalizeCnpj, supplierLabel } from "~/utils/suppliers";
 
@@ -145,14 +146,18 @@ function submit(): void {
     <p v-if="localError.message || props.error" class="form-error" role="alert">{{ localError.message || props.error }}</p>
 
     <div class="form-actions">
-      <button type="button" class="btn" :class="{ small: props.compact }" @click="emit('cancel')">
+      <Button variant="outline" :size="props.compact ? 'sm' : 'default'" @click="emit('cancel')">
         <X v-if="props.compact" :size="13" /> Cancelar
-      </button>
-      <button type="submit" class="btn primary" :class="{ small: props.compact }" :disabled="props.saving" :aria-busy="props.saving">
-        <span v-if="props.saving" class="spinner-small" aria-hidden="true" />
-        <Check v-else-if="props.compact" :size="13" />
+      </Button>
+      <Button
+        type="submit"
+        variant="default"
+        :size="props.compact ? 'sm' : 'default'"
+        :loading="props.saving"
+      >
+        <Check v-if="props.compact && !props.saving" :size="13" />
         {{ props.saving ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar fornecedor" }}
-      </button>
+      </Button>
     </div>
   </form>
 </template>

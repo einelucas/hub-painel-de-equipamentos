@@ -4,7 +4,7 @@ import DashboardFilters from "~/components/dashboard/DashboardFilters.vue";
 import { useDashboardFilters } from "~/composables/useDashboardFilters";
 import type { CatalogItem } from "~/types/equipment";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
-import { chooseOption, isDisabled, optionLabels, shownValue } from "./support/searchableSelect";
+import { chooseOption, isDisabled, menuOptions, openMenu, optionLabels, shownValue } from "./support/searchableSelect";
 
 const areas: CatalogItem[] = [
   { id: "a-1", name: "Caldeira", active: true },
@@ -88,9 +88,11 @@ describe("DashboardFilters", () => {
   it("Área é pesquisável e escolher a opção já selecionada não emite change", async () => {
     const wrapper = mountFilters({ areaId: "a-1" });
     const input = wrapper.get("[data-testid='dashboard-filter-area']");
-    await input.trigger("focus");
+    await openMenu(wrapper, "dashboard-filter-area");
     await input.setValue("dren");
-    expect(wrapper.findAll("[role='option']").map((item) => item.text())).toEqual(["Todas as áreas", "Drenagem"]);
+    expect(
+      menuOptions(wrapper, "dashboard-filter-area").map((item) => item.find("strong").text()),
+    ).toEqual(["Todas as áreas", "Drenagem"]);
 
     await chooseOption(wrapper, "dashboard-filter-area", "Drenagem");
     await chooseOption(wrapper, "dashboard-filter-area", "Drenagem");

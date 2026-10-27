@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import Button from "~/components/ui/Button.vue";
 import ImportCatalogSummary from "~/components/imports/ImportCatalogSummary.vue";
 import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
 import { useImportState } from "~/composables/useImportState";
@@ -155,6 +156,7 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
               :model-value="selectionValue(item)"
               :suppliers="suppliers"
               :label="`Decisão de fornecedor para ${item.equipmentName}`"
+              test-id="supplier-review-combobox"
               @update:model-value="setSupplierSelection(item.sourceKey, $event)"
             />
           </div>
@@ -191,18 +193,16 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
     </template>
 
     <div class="import-actions">
-      <button type="button" class="btn" :disabled="busy" @click="step = 'mapping'">Voltar ao mapeamento</button>
-      <button
-        type="button"
-        class="btn primary"
-        :disabled="!plan?.canApply || mappingDirty || busy"
+      <Button variant="outline" :disabled="busy" @click="step = 'mapping'">Voltar ao mapeamento</Button>
+      <Button
+        variant="default"
+        :disabled="!plan?.canApply || mappingDirty"
+        :loading="busy"
         data-testid="import-confirm"
-        :aria-busy="busy"
         @click="apply"
       >
-        <span v-if="busy" class="spinner-small" aria-hidden="true" />
         {{ busy ? "Importando..." : "Confirmar importação" }}
-      </button>
+      </Button>
     </div>
   </div>
 </template>

@@ -17,6 +17,7 @@ import { formatDateOnly } from "~/utils/format";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import Button from "~/components/ui/Button.vue";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
@@ -104,6 +105,12 @@ async function syncQuery(): Promise<void> {
   if (context.selectedEquipment) query.equipment = context.selectedEquipment;
   else delete query.equipment;
   await router.replace({ query });
+}
+
+/** Troca de página pela paginação do Element Plus. */
+function onPageChange(next: number): void {
+  page.value = next;
+  void load();
 }
 
 async function load(): Promise<void> {
@@ -292,35 +299,33 @@ onMounted(async () => {
           <span>Busca</span>
           <div class="search-control">
             <input v-model="search" placeholder="Nome do equipamento" />
-            <button class="btn" type="submit" :disabled="refreshing" :aria-busy="refreshing">
-              <span v-if="refreshing" class="spinner-small" aria-hidden="true" />
-              <Search v-else :size="16" /> Buscar
-            </button>
+            <Button variant="outline" type="submit" :loading="refreshing">
+              <Search v-if="!refreshing" :size="16" /> Buscar
+            </Button>
           </div>
         </form>
         <template #actions>
-          <button
+          <Button
             v-if="canAdminister"
-            class="btn"
+            variant="outline"
             data-testid="admin-button"
             @click="showAdmin = true"
           >
             <SlidersHorizontal :size="16" /> Administração
-          </button>
-          <button
-            class="btn"
-            :disabled="exporting || loading"
-            :aria-busy="exporting"
+          </Button>
+          <Button
+            variant="outline"
+            :disabled="loading"
+            :loading="exporting"
             data-testid="export-button"
             @click="exportAll"
           >
-            <span v-if="exporting" class="spinner-small" aria-hidden="true" />
-            <CloudDownload v-else :size="16" />
+            <CloudDownload v-if="!exporting" :size="16" />
             {{ exporting ? (exportProgress || "Exportando...") : "Exportar" }}
-          </button>
-          <button
+          </Button>
+          <Button
             v-if="auth.can('equipments:write')"
-            class="btn primary"
+            variant="default"
             :disabled="!canCreate"
             :title="
               !context.selectedUnit
@@ -330,7 +335,7 @@ onMounted(async () => {
             @click="showForm = true"
           >
             <Plus :size="16" /> Novo equipamento
-          </button>
+          </Button>
         </template>
       </ModuleFilters>
 
@@ -426,37 +431,19 @@ onMounted(async () => {
         <div v-else-if="error" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2>
           <p>{{ error }}</p>
-          <button class="btn" @click="load">Tentar novamente</button>
+          <Button variant="outline" @click="load">Tentar novamente</Button>
         </div>
         <template v-else>
           <div v-if="refreshing" class="progress-indeterminate" role="progressbar" aria-label="Atualizando equipamentos" />
           <EquipmentTable :equipments="equipments" :aria-busy="refreshing" />
-          <div
+          <AppPagination
             v-if="pagination && pagination.totalPages > 1"
             class="pagination"
-          >
-            <button
-              class="btn small"
-              :disabled="refreshing || page <= 1"
-              @click="
-                page -= 1;
-                load();
-              "
-            >
-              Anterior
-            </button>
-            <span>Página {{ page }} de {{ pagination.totalPages }}</span>
-            <button
-              class="btn small"
-              :disabled="refreshing || page >= pagination.totalPages"
-              @click="
-                page += 1;
-                load();
-              "
-            >
-              Próxima
-            </button>
-          </div>
+            :page="page"
+            :total-pages="pagination.totalPages"
+            :disabled="refreshing"
+            @change="onPageChange"
+          />
         </template>
       </section>
     </div>

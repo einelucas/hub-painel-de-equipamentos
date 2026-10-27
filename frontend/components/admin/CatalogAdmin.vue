@@ -5,6 +5,7 @@ import type { CatalogItem, CatalogList } from "~/types/equipment";
 import { catalogColor } from "~/utils/catalogColors";
 import { useConfirm } from "~/composables/useConfirm";
 import AppModal from "~/components/ui/AppModal.vue";
+import Button from "~/components/ui/Button.vue";
 
 /**
  * CRUD de um catálogo. Registros sem vínculos podem ser excluídos; os que já
@@ -217,9 +218,9 @@ watch(
           {{ activeCount }} ativo{{ activeCount === 1 ? "" : "s" }}<template v-if="inactiveCount"> · {{ inactiveCount }} inativo{{ inactiveCount === 1 ? "" : "s" }}</template>
         </p>
       </div>
-      <button v-if="!blocked" type="button" class="btn small primary" :disabled="saving" @click="startCreate">
+      <Button v-if="!blocked" size="sm" variant="default" :disabled="saving" @click="startCreate">
         <Plus :size="14" /> Novo
-      </button>
+      </Button>
     </header>
 
     <p v-if="blocked" class="catalog-hint" data-testid="catalog-blocked">{{ props.requiresParent }}</p>
@@ -298,19 +299,19 @@ watch(
     </form>
 
     <template #actions>
-      <button type="button" class="btn small" :disabled="saving" @click="cancel">
+      <Button size="sm" variant="outline" :disabled="saving" @click="cancel">
         <X :size="13" /> Cancelar
-      </button>
-      <button
+      </Button>
+      <Button
         type="submit"
-        class="btn small primary"
+        size="sm"
+        variant="default"
         :form="formId"
-        :disabled="saving"
-        :aria-busy="saving"
+        :loading="saving"
       >
-        <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" />
+        <Check v-if="!saving" :size="13" />
         {{ saving ? "Salvando..." : "Salvar" }}
-      </button>
+      </Button>
     </template>
   </AppModal>
 </template>

@@ -1,3 +1,28 @@
+import { createRequire } from "node:module";
+
+// O dayjs publicado e CJS (UMD em dayjs.min.js). Com rolldown-vite o otimizador
+// nao faz o pre-bundle dele e o browser/SSR recebem o arquivo cru, quebrando com
+// "does not provide an export named 'default'". Aliases para o build ESM oficial
+// do proprio dayjs resolvem isso. Caminhos absolutos: rolldown-vite nao expande
+// capturas ($1) em alias, entao os plugins sao mapeados um a um.
+const require = createRequire(import.meta.url);
+const dayjsRoot = require
+  .resolve("dayjs/package.json")
+  .replace(/[\\/]package\.json$/, "")
+  .replace(/\\/g, "/");
+const dayjsEsm = `${dayjsRoot}/esm`;
+const dayjsPlugins = [
+  "advancedFormat",
+  "customParseFormat",
+  "dayOfYear",
+  "isSameOrAfter",
+  "isSameOrBefore",
+  "localeData",
+  "quarterOfYear",
+  "weekOfYear",
+  "weekYear",
+];
+
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
@@ -71,6 +96,20 @@ export default defineNuxtConfig({
     importStyle: false,
     defaultLocale: "pt-br",
     installMethods: ["ElLoading", "ElMessage", "ElMessageBox", "ElNotification"],
+  },
+  vite: {
+    resolve: {
+      alias: [
+        { find: /^dayjs$/, replacement: `${dayjsEsm}/index.js` },
+        ...dayjsPlugins.map((plugin) => ({
+          find: `dayjs/plugin/${plugin}.js`,
+          replacement: `${dayjsEsm}/plugin/${plugin}/index.js`,
+        })),
+        // Imports sem sufixo .js caem no diretorio do plugin (resolver pega o index.js).
+        { find: /^dayjs\/plugin\//, replacement: `${dayjsEsm}/plugin/` },
+        { find: /^dayjs\/locale\//, replacement: `${dayjsEsm}/locale/` },
+      ],
+    },
   },
   runtimeConfig: {
     public: {

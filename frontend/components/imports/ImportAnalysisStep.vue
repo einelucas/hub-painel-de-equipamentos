@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import Button from "~/components/ui/Button.vue";
 import { useImportState } from "~/composables/useImportState";
 
 /** Passo 2: staging de cada arquivo (fase, contagens, problemas). Erro em qualquer arquivo impede avançar. */
@@ -77,18 +78,16 @@ const standby = computed(() =>
       Há arquivo com erro. Corrija no Monday e envie o conjunto novamente; nada é importado parcialmente.
     </p>
     <div class="import-actions">
-      <button type="button" class="btn" @click="reset">Enviar outros arquivos</button>
-      <button
-        type="button"
-        class="btn primary"
-        :disabled="!canProceed || busy"
+      <Button variant="outline" @click="reset">Enviar outros arquivos</Button>
+      <Button
+        variant="default"
+        :disabled="!canProceed"
+        :loading="busy"
         data-testid="import-to-mapping"
-        :aria-busy="busy"
         @click="loadMappingOptions"
       >
-        <span v-if="busy" class="spinner-small" aria-hidden="true" />
         {{ busy ? "Carregando cadastros..." : "Continuar para o mapeamento" }}
-      </button>
+      </Button>
     </div>
   </div>
 </template>

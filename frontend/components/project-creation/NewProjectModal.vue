@@ -208,7 +208,8 @@ async function submit(): Promise<void> {
             <p v-if="!equipment.components.length" class="hint">Sem componentes cadastrados no catálogo.</p>
             <div class="equipment-list">
               <label v-for="component in equipment.components.filter(c => c.active)" :key="component.id" class="check-row">
-                <input type="checkbox" :checked="componentSelected(equipment.id, component.id)"
+                <input
+type="checkbox" :checked="componentSelected(equipment.id, component.id)"
                   @change="toggleComponent(equipment.id, component.id)" />
                 <span>{{ component.name }}</span>
                 <small v-if="component.requiresQuantityReview || component.requiresNameReview">Revisar</small>

@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { Plus } from "lucide-vue-next";
 import type { EquipmentComponent } from "~/types/equipment";
+import Button from "~/components/ui/Button.vue";
 import { formatDateOnly } from "~/utils/format";
 
 /**
@@ -56,9 +57,9 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
         <h2>Componentes</h2>
         <p>{{ components.length }} subitem(ns) cadastrado(s).</p>
       </div>
-      <button v-if="canEdit" class="btn primary" @click="openCreate">
+      <Button v-if="canEdit" variant="default" @click="openCreate">
         <Plus :size="15" /> Adicionar componente
-      </button>
+      </Button>
     </div>
     <div v-if="components.length === 0" class="empty-state table-empty">
       <h2>Nenhum componente cadastrado</h2>

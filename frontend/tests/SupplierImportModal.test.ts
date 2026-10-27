@@ -14,6 +14,13 @@ function mountModal(upload: ReturnType<typeof vi.fn>) {
   return mount(SupplierImportModal, { props: { open: true } });
 }
 
+async function mountSettledModal(upload: ReturnType<typeof vi.fn>) {
+  const wrapper = mountModal(upload);
+  // O ElDialog renderiza o conteúdo um tick depois de abrir (padrão EP).
+  await settle(wrapper);
+  return wrapper;
+}
+
 async function pickFile(wrapper: ReturnType<typeof mount>) {
   const file = new File(["x"], "fornecedores.xlsx");
   const input = wrapper.get("[data-testid='supplier-import-file']");
@@ -28,7 +35,7 @@ describe("SupplierImportModal", () => {
   it("mantém o envio desabilitado sem arquivo e envia a planilha via POST", async () => {
     const result = { total: 3, created: 1, updated: 1, unchanged: 0, errors: [{ row: 4, message: "Documento inválido" }] };
     const upload = vi.fn().mockResolvedValue(result);
-    const wrapper = mountModal(upload);
+    const wrapper = await mountSettledModal(upload);
 
     expect(wrapper.get("[data-testid='supplier-import-submit']").attributes("disabled")).toBeDefined();
     const file = await pickFile(wrapper);
@@ -53,7 +60,7 @@ describe("SupplierImportModal", () => {
 
   it("mostra a mensagem do servidor quando a importação falha", async () => {
     const upload = vi.fn().mockRejectedValue(new Error("Colunas obrigatórias ausentes."));
-    const wrapper = mountModal(upload);
+    const wrapper = await mountSettledModal(upload);
     await pickFile(wrapper);
     await wrapper.get("form").trigger("submit");
     await settle(wrapper);
@@ -72,6 +79,9 @@ describe("SupplierImportModal", () => {
         return new Promise((resolve) => { finish = resolve; });
       });
       const wrapper = mountModal(upload as unknown as ReturnType<typeof vi.fn>);
+      // Fake timers: settle() usa setTimeout e travaria; nextTick é microtask.
+      await wrapper.vm.$nextTick();
+      await wrapper.vm.$nextTick();
       await pickFile(wrapper);
       expect(wrapper.get("[data-testid='supplier-import-file-info']").text()).toContain("fornecedores.xlsx");
       await wrapper.get("form").trigger("submit");
@@ -79,7 +89,7 @@ describe("SupplierImportModal", () => {
       onProgress(50, 100);
       await wrapper.vm.$nextTick();
       expect(wrapper.get("[role='progressbar']").attributes("aria-valuenow")).toBe("50");
-      expect(wrapper.get("[data-testid='supplier-import-status']").text()).toContain("50%");
+      expect(wrapper.get("[data-testid='supplier-import-progress-status']").text()).toContain("50%");
       expect(wrapper.get("form").attributes("aria-busy")).toBe("true");
       expect(wrapper.get("[data-testid='supplier-import-submit']").attributes("disabled")).toBeDefined();
 
@@ -88,12 +98,12 @@ describe("SupplierImportModal", () => {
 
       onProgress(100, 100);
       await wrapper.vm.$nextTick();
-      expect(wrapper.get("[data-testid='supplier-import-status']").text()).toContain("Processando planilha no servidor");
+      expect(wrapper.get("[data-testid='supplier-import-progress-status']").text()).toContain("Processando planilha no servidor");
       expect(wrapper.get("[role='progressbar']").attributes("aria-valuenow")).toBeUndefined();
 
       vi.advanceTimersByTime(12000);
       await wrapper.vm.$nextTick();
-      expect(wrapper.get("[data-testid='supplier-import-elapsed']").text()).toBe("12s");
+      expect(wrapper.get("[data-testid='supplier-import-progress-elapsed']").text()).toBe("12s");
 
       finish({ total: 0, created: 0, updated: 0, unchanged: 0, errors: [] });
       await vi.runAllTimersAsync();

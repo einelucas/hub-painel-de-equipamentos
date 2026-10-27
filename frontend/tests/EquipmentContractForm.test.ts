@@ -121,8 +121,8 @@ describe("EquipmentContractsList (container)", () => {
     expect(upload).toHaveBeenCalledTimes(1);
     const [url, body, method] = upload.mock.calls[0]!;
     expect(url).toBe("/equipments/eq-1/contracts/ct-new/file");
-    // Sem método explícito: `upload` usa PUT por padrão, o mesmo de antes.
-    expect(method).toBeUndefined();
+    // O anexo segue subindo por PUT, agora explícito para plugar o progresso.
+    expect(method).toBe("PUT");
     expect(((body as FormData).get("file") as File).name).toBe("novo.pdf");
     expect(wrapper.emitted("changed")).toHaveLength(1);
     expect(wrapper.find(".modal").exists()).toBe(false);

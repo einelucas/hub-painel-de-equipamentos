@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import EquipmentSuppliers from "~/components/equipment/EquipmentSuppliers.vue";
 import type { EquipmentSupplier } from "~/types/equipment";
+import { menuOptions, openMenu } from "./support/searchableSelect";
 
 function supplier(id: string, legalName: string, isPrimary: boolean): EquipmentSupplier {
   return {
@@ -87,12 +88,12 @@ describe("EquipmentSuppliers", () => {
     await wrapper.get("[data-testid='replace-supplier']").trigger("click");
     await new Promise((resolve) => setTimeout(resolve));
     await wrapper.vm.$nextTick();
-    await wrapper.get("[role='combobox']").trigger("focus");
-    const replacement = wrapper
-      .findAll("[role='option']")
-      .find((option) => option.text().includes("Secundária SA"));
+    await openMenu(wrapper, "supplier-link-combobox");
+    const replacement = menuOptions(wrapper, "supplier-link-combobox").find((option) =>
+      option.text().includes("Secundária SA"),
+    );
     expect(replacement).toBeDefined();
-    await replacement!.trigger("mousedown");
+    await replacement!.trigger("click");
     await wrapper.get("form").trigger("submit");
 
     expect(put).toHaveBeenCalledWith("/equipments/eq-1/suppliers", {

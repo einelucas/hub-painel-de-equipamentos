@@ -46,7 +46,8 @@ describe("AppModal", () => {
     await flushPromises();
 
     await modal.get(".modal-close").trigger("click");
-    await modal.get(".modal-backdrop").trigger("mousedown");
+    // O fundo fecha por mousedown no overlay (tratamento próprio do Hub).
+    await modal.get(".el-overlay").trigger("mousedown");
     await modal.get(".modal-card").trigger("keydown", { key: "Escape" });
 
     expect(modal.emitted("close")).toHaveLength(3);
@@ -79,7 +80,7 @@ describe("AppModal", () => {
     await flushPromises();
 
     await modal.get(".modal-close").trigger("click");
-    await modal.get(".modal-backdrop").trigger("mousedown");
+    await modal.get(".el-overlay").trigger("mousedown");
     await modal.get(".modal-card").trigger("keydown", { key: "Escape" });
 
     expect(modal.emitted("close")).toBeUndefined();

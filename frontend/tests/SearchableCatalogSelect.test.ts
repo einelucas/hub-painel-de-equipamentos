@@ -2,6 +2,11 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import {
+  menuOptions,
+  openMenu,
+  optionLabels,
+} from "./support/searchableSelect";
 
 const options = [
   { id: "b", label: "B · Beta", description: "Área" },
@@ -11,29 +16,51 @@ const options = [
 describe("seletores pesquisáveis de catálogo", () => {
   it("ordena, busca e seleciona uma opção mantendo o menu", async () => {
     const wrapper = mount(SearchableSelect, {
-      props: { options, modelValue: "", label: "EAP", emptyLabel: "Não informada" },
+      props: {
+        options,
+        modelValue: "",
+        label: "EAP",
+        emptyLabel: "Não informada",
+        testId: "catalog-select",
+      },
     });
 
-    expect(wrapper.get("input").attributes("placeholder")).toBe("Não informada");
-    await wrapper.get("input").trigger("focus");
-    expect(wrapper.findAll("[role='option']").map((item) => item.text())).toEqual([
+    expect(wrapper.get(".el-select__placeholder").text()).toBe("Não informada");
+    const input = wrapper.get(".el-select__input");
+    await input.trigger("click");
+    expect(await optionLabels(wrapper, "catalog-select")).toEqual([
       "Não informada",
-      "A · AlfaProcesso",
-      "B · BetaÁrea",
+      "A · Alfa",
+      "B · Beta",
     ]);
-    await wrapper.get("input").setValue("beta");
-    await wrapper.get("[role='option'][aria-selected='false']").trigger("mousedown");
+    await input.setValue("beta");
+    const visible = menuOptions(wrapper, "catalog-select");
+    expect(visible.map((item) => item.find("strong").text())).toEqual([
+      "Não informada",
+      "B · Beta",
+    ]);
+    await visible
+      .find((item) => item.find("strong").text() === "B · Beta")!
+      .trigger("click");
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual(["b"]);
   });
 
   it("sorted=false mantém a ordem recebida e clearable=false esconde a opção vazia", async () => {
     const wrapper = mount(SearchableSelect, {
-      props: { options, modelValue: "", label: "EAP", sorted: false, clearable: false, required: true },
+      props: {
+        options,
+        modelValue: "",
+        label: "EAP",
+        sorted: false,
+        clearable: false,
+        required: true,
+        testId: "catalog-select",
+      },
     });
 
-    expect(wrapper.get("input").attributes("required")).toBeDefined();
-    await wrapper.get("input").trigger("focus");
-    expect(wrapper.findAll("[role='option']").map((item) => item.find("strong").text())).toEqual([
+    expect(wrapper.get(".searchable-select__required").attributes("required")).toBeDefined();
+    await openMenu(wrapper, "catalog-select");
+    expect(await optionLabels(wrapper, "catalog-select")).toEqual([
       "B · Beta",
       "A · Alfa",
     ]);
@@ -45,50 +72,64 @@ describe("seletores pesquisáveis de catálogo", () => {
         options,
         modelValue: "a",
         label: "EAP",
+        testId: "catalog-select",
         "onUpdate:modelValue": (value: string) => wrapper.setProps({ modelValue: value }),
       },
     });
+    const input = wrapper.get(".el-select__input");
 
-    await wrapper.get("input").trigger("focus");
-    await wrapper.get("input").setValue("bet");
+    await input.trigger("click");
+    await input.setValue("bet");
     expect(wrapper.emitted("update:modelValue")).toBeUndefined();
 
-    const pick = async (label: string) => {
-      await wrapper.get("input").trigger("focus");
-      await wrapper.findAll("[role='option']").find((item) => item.find("strong").text() === label)!.trigger("mousedown");
-    };
-    await pick("A · Alfa");
+    // Esc limpa o texto do filtro e, num segundo Esc, fecha o menu; ao reabrir,
+    // o ElSelect reaplica o filtro com texto vazio e todas as opções voltam.
+    await input.trigger("keydown", { key: "Escape" });
+    await input.trigger("keydown", { key: "Escape" });
+    await openMenu(wrapper, "catalog-select");
+    await menuOptions(wrapper, "catalog-select")
+      .find((item) => item.find("strong").text() === "A · Alfa")!
+      .trigger("click");
     expect(wrapper.emitted("change")).toBeUndefined();
-    await pick("B · Beta");
+
+    await openMenu(wrapper, "catalog-select");
+    await menuOptions(wrapper, "catalog-select")
+      .find((item) => item.find("strong").text() === "B · Beta")!
+      .trigger("click");
     expect(wrapper.emitted("change")).toEqual([["b"]]);
   });
 
   it("navega pelas opções com as setas e escolhe com Enter", async () => {
     const wrapper = mount(SearchableSelect, {
-      props: { options, modelValue: "", label: "EAP", emptyLabel: "Todas" },
+      props: { options, modelValue: "", label: "EAP", emptyLabel: "Todas", testId: "catalog-select" },
     });
-    const input = wrapper.get("input");
+    const input = wrapper.get(".el-select__input");
 
-    await input.trigger("focus");
+    await input.trigger("click");
     await input.trigger("keydown", { key: "ArrowDown" });
-    await input.trigger("keydown", { key: "ArrowDown" });
-    expect(wrapper.get(".is-active strong").text()).toBe("A · Alfa");
+    const hovering = menuOptions(wrapper, "catalog-select").find((item) =>
+      item.classes().includes("is-hovering"),
+    );
+    expect(hovering?.find("strong").text()).toBe("A · Alfa");
     await input.trigger("keydown", { key: "Enter" });
 
     expect(wrapper.emitted("change")).toEqual([["a"]]);
-    expect(wrapper.find("[role='listbox']").exists()).toBe(false);
+    // O menu fecha semanticamente; a transição de saída pode manter o nó no DOM.
+    expect(input.attributes("aria-expanded")).toBe("false");
   });
 
   it("mantém múltiplos valores em chips e permite adicionar/remover", async () => {
     const wrapper = mount(SearchableMultiSelect, {
-      props: { options, modelValue: ["a"], label: "Work Packages" },
+      props: { options, modelValue: ["a"], label: "Work Packages", testId: "catalog-multi" },
     });
 
     expect(wrapper.text()).toContain("A · Alfa");
-    await wrapper.get("input").trigger("focus");
-    const beta = wrapper.findAll("[role='option']").find((item) => item.text().includes("B · Beta"));
+    await openMenu(wrapper, "catalog-multi");
+    const beta = menuOptions(wrapper, "catalog-multi").find((item) =>
+      item.text().includes("B · Beta"),
+    );
     expect(beta).toBeDefined();
-    await beta!.trigger("mousedown");
+    await beta!.trigger("click");
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([["a", "b"]]);
 
     await wrapper.get("[aria-label='Remover A · Alfa']").trigger("click");

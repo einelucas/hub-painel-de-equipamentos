@@ -2,6 +2,7 @@
 import { RefreshCw, ShieldAlert, UserPlus } from "lucide-vue-next";
 import { onMounted, reactive, ref } from "vue";
 import type { AdminUser, Role, UserSummary } from "~/types/api";
+import Button from "~/components/ui/Button.vue";
 
 definePageMeta({ middleware: "admin" });
 
@@ -130,12 +131,12 @@ onMounted(load);
             <p>{{ users.length }} usuário(s). O login local utiliza o e-mail completo.</p>
           </div>
           <div class="header-actions">
-            <button class="btn" type="button" :disabled="loading" @click="load">
+            <Button variant="outline" :disabled="loading" @click="load">
               <RefreshCw :size="15" /> Atualizar
-            </button>
-            <button class="btn primary" type="button" @click="openCreate">
+            </Button>
+            <Button variant="default" data-testid="new-user" @click="openCreate">
               <UserPlus :size="16" /> Novo usuário
-            </button>
+            </Button>
           </div>
         </header>
 
@@ -220,10 +221,10 @@ onMounted(load);
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
       </form>
       <template #actions>
-        <button class="btn" type="button" :disabled="saving" @click="showCreate = false">Cancelar</button>
-        <button class="btn primary" type="submit" form="create-user-form" :disabled="saving">
+        <Button variant="outline" :disabled="saving" @click="showCreate = false">Cancelar</Button>
+        <Button type="submit" variant="default" form="create-user-form" :loading="saving">
           {{ saving ? "Criando..." : "Criar usuário" }}
-        </button>
+        </Button>
       </template>
     </AppModal>
   </ModuleWorkspace>

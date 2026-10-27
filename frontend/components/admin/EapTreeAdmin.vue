@@ -5,6 +5,7 @@ import type { CatalogList, EapLevel, EapNodeItem } from "~/types/equipment";
 import { codeNameLabel, toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import AppModal from "~/components/ui/AppModal.vue";
+import Button from "~/components/ui/Button.vue";
 import { useConfirm } from "~/composables/useConfirm";
 
 const emit = defineEmits<{ changed: [] }>();
@@ -243,9 +244,9 @@ void load();
           {{ levelCounts.AREA }} área{{ levelCounts.AREA === 1 ? "" : "s" }}
         </p>
       </div>
-      <button type="button" class="btn small primary" :disabled="saving" data-testid="eap-new" @click="startCreate">
+      <Button size="sm" variant="default" :disabled="saving" data-testid="eap-new" @click="startCreate">
         <Plus :size="14" /> Novo nó
-      </button>
+      </Button>
     </header>
 
     <label v-if="nodes.length" class="eap-search">
@@ -354,20 +355,20 @@ void load();
     </form>
 
     <template #actions>
-      <button type="button" class="btn small" :disabled="saving" @click="cancel">
+      <Button size="sm" variant="outline" :disabled="saving" @click="cancel">
         <X :size="13" /> Cancelar
-      </button>
-      <button
+      </Button>
+      <Button
         type="submit"
-        class="btn small primary"
+        size="sm"
+        variant="default"
         :form="formId"
-        :disabled="saving"
+        :loading="saving"
         data-testid="eap-save"
-        :aria-busy="saving"
       >
-        <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" />
+        <Check v-if="!saving" :size="13" />
         {{ saving ? "Salvando..." : "Salvar" }}
-      </button>
+      </Button>
     </template>
   </AppModal>
 </template>

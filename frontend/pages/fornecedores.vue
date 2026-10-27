@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Pencil, Plus, Search, Upload } from "lucide-vue-next";
 import type { CatalogList, Supplier } from "~/types/equipment";
+import Button from "~/components/ui/Button.vue";
 import SupplierImportModal from "~/components/supplier/SupplierImportModal.vue";
 import SupplierForm, { type SupplierFormValues } from "~/components/supplier/SupplierForm.vue";
 import { useIncrementalList } from "~/composables/useIncrementalList";
@@ -105,9 +106,9 @@ onMounted(() => {
             <span>Busca</span>
             <div class="search-control">
               <input v-model="search" placeholder="Código, razão social, nome fantasia ou CNPJ">
-              <button class="btn" type="submit" :disabled="loading" :aria-busy="loading">
-                <span v-if="loading" class="spinner-small" aria-hidden="true" /><Search v-else :size="16" /> {{ loading ? "Buscando..." : "Buscar" }}
-              </button>
+              <Button variant="outline" type="submit" :loading="loading">
+                <Search v-if="!loading" :size="16" /> {{ loading ? "Buscando..." : "Buscar" }}
+              </Button>
             </div>
           </form>
           <label class="field field-check">
@@ -115,12 +116,12 @@ onMounted(() => {
             <span>Mostrar inativos</span>
           </label>
           <div class="filter-actions">
-            <button v-if="canWrite" class="btn primary" @click="openCreate">
+            <Button v-if="canWrite" variant="default" @click="openCreate">
               <Plus :size="16" /> Novo fornecedor
-            </button>
-            <button v-if="canWrite" class="btn" type="button" @click="showImport = true">
+            </Button>
+            <Button v-if="canWrite" variant="outline" @click="showImport = true">
               <Upload :size="16" /> Importar planilha
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -138,7 +139,7 @@ onMounted(() => {
         <div v-if="loading && !suppliers.length" class="list-state" role="status"><span class="spinner" /> Carregando fornecedores...</div>
         <div v-else-if="error" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2><p>{{ error }}</p>
-          <button class="btn" @click="load">Tentar novamente</button>
+          <Button variant="outline" @click="load">Tentar novamente</Button>
         </div>
         <div v-else-if="suppliers.length === 0" class="empty-state table-empty">
           <h2>Nenhum fornecedor cadastrado</h2>

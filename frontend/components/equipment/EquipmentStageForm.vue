@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
+import Button from "~/components/ui/Button.vue";
 import type { EquipmentProcesses, RequirementGroup } from "~/types/equipment";
 import { type ProcessResource, blankToNull, resourceForStage } from "~/utils/workflow";
 
@@ -99,10 +100,9 @@ function submit(): void {
       </div>
     </fieldset>
     <div v-if="editable" class="form-actions">
-      <button type="submit" class="btn" :disabled="saving" :aria-busy="saving" data-testid="save-process">
-        <span v-if="saving" class="spinner-small" aria-hidden="true" />
+      <Button type="submit" variant="outline" :loading="saving" data-testid="save-process">
         {{ saving ? "Salvando..." : "Salvar alterações" }}
-      </button>
+      </Button>
     </div>
     </form>
   </template>

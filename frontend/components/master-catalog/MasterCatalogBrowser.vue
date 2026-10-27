@@ -93,7 +93,6 @@ function clearFilters(): void {
           type="search"
           placeholder="Buscar equipamento"
           aria-label="Buscar equipamento mestre"
-          class="pl-9 pr-10"
           @update:model-value="updateSearch"
         />
         <Button
@@ -210,6 +209,12 @@ function clearFilters(): void {
   position: relative;
   display: flex;
   align-items: center;
+}
+
+/* O Input virou ElInput: o padding para os ícones vai no input nativo interno. */
+.search-box :deep(.el-input__inner) {
+  padding-right: 40px;
+  padding-left: 32px;
 }
 
 .search-box > svg {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { AlertTriangle, Info, Trash2, X } from "lucide-vue-next";
+import AppTeleport from "~/components/ui/AppTeleport.vue";
 import { useConfirm } from "~/composables/useConfirm";
 import { lockBodyScroll, unlockBodyScroll } from "~/utils/bodyScrollLock";
 
@@ -77,7 +78,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Teleport to="body">
+  <AppTeleport>
     <Transition name="confirm-fade">
       <div v-if="state.open" class="confirm-backdrop" @mousedown.self="cancel">
         <section
@@ -127,7 +128,7 @@ onBeforeUnmount(() => {
         </section>
       </div>
     </Transition>
-  </Teleport>
+  </AppTeleport>
 </template>
 
 <style scoped>

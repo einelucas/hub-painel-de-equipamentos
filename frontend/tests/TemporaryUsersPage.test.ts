@@ -86,7 +86,7 @@ describe("página temporária de usuários", () => {
   it("cria usuário com nome, e-mail e perfil", async () => {
     const { wrapper, post, get } = mountPage();
     await flushPromises();
-    await wrapper.get("button.btn.primary").trigger("click");
+    await wrapper.get("[data-testid='new-user']").trigger("click");
 
     const form = wrapper.get("#create-user-form");
     const inputs = form.findAll("input");

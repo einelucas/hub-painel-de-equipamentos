@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { RefreshCw, Trash2 } from "lucide-vue-next";
+import Button from "~/components/ui/Button.vue";
 import SupplierLinkModal, { type SupplierLinkValues } from "~/components/equipment/SupplierLinkModal.vue";
 import type { CatalogList, EquipmentSupplier, Supplier } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
@@ -106,14 +107,12 @@ onMounted(load);
         <h2>Fornecedor atual</h2>
         <p>Um equipamento pode trocar de fornecedor, mantendo no máximo um vínculo ativo por vez.</p>
       </div>
-      <button v-if="canWrite && !current" class="btn primary" :disabled="busy || opening" :aria-busy="opening" @click="openLink">
-        <span v-if="opening" class="spinner-small" aria-hidden="true" />
+      <Button v-if="canWrite && !current" variant="default" :loading="opening" @click="openLink">
         Vincular fornecedor
-      </button>
-      <button v-else-if="canWrite" class="btn" :disabled="busy || opening" data-testid="replace-supplier" :aria-busy="opening" @click="openLink">
-        <span v-if="opening" class="spinner-small" aria-hidden="true" />
-        <RefreshCw v-else :size="15" /> Substituir fornecedor
-      </button>
+      </Button>
+      <Button v-else-if="canWrite" variant="outline" :disabled="busy || opening" data-testid="replace-supplier" @click="openLink">
+        <RefreshCw v-if="!opening" :size="15" /> Substituir fornecedor
+      </Button>
     </div>
 
     <div v-if="loading" class="supplier-state" data-testid="suppliers-loading" role="status">
@@ -121,7 +120,7 @@ onMounted(load);
     </div>
     <div v-else-if="error" class="empty-state table-empty" role="alert" data-testid="suppliers-error">
       <h2>Não foi possível carregar</h2><p>{{ error }}</p>
-      <button class="btn" @click="load">Tentar novamente</button>
+      <Button variant="outline" @click="load">Tentar novamente</Button>
     </div>
     <template v-else>
       <p v-if="actionError" class="notice error supplier-notice" role="alert">{{ actionError }}</p>

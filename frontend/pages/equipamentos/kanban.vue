@@ -12,6 +12,7 @@ import {
 import type { Equipment, EquipmentList } from "~/types/equipment";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { formatDateOnly } from "~/utils/format";
+import Button from "~/components/ui/Button.vue";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
 import { collectAllPages } from "~/utils/pagination";
@@ -254,7 +255,7 @@ onMounted(async () => {
         <h2>Não foi possível carregar</h2>
         <p>{{ error }}</p>
 
-        <button class="btn" @click="load">Tentar novamente</button>
+        <Button variant="outline" @click="load">Tentar novamente</Button>
       </div>
 
       <template v-else>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
-import { Upload } from "lucide-vue-next";
+import { computed, reactive, ref } from "vue";
+import Button from "~/components/ui/Button.vue";
+import FilePicker from "~/components/ui/FilePicker.vue";
+import UploadProgress from "~/components/ui/UploadProgress.vue";
 import type { Contract } from "~/types/equipment";
 
 export interface EquipmentContractFormValues {
@@ -14,6 +16,10 @@ export interface EquipmentContractFormValues {
 const props = defineProps<{
   contract: Contract | null;
   busy: boolean;
+  /** Fase do container: salvando o contrato ou enviando o anexo. */
+  phase?: "saving" | "uploading" | null;
+  /** Progresso do envio do anexo (null = total desconhecido). */
+  uploadPercent?: number | null;
   error: string;
 }>();
 const emit = defineEmits<{
@@ -25,17 +31,15 @@ const form = reactive({
   contractNumber: props.contract?.contractNumber ?? "",
   executedAt: props.contract?.executedAt ?? "",
 });
-const fileInput = ref<HTMLInputElement | null>(null);
 const pendingFile = ref<File | null>(null);
 
-function pickFile(): void {
-  fileInput.value?.click();
-}
-
-function onFileChosen(event: Event): void {
-  const target = event.target as HTMLInputElement;
-  pendingFile.value = target.files?.[0] ?? null;
-}
+/** O anexo sobe depois que o contrato é salvo; enquanto isso o modal mostra
+ * a fase separada com o progresso do envio. */
+const uploading = computed(() => props.phase === "uploading");
+const uploadKnownPercent = computed(() =>
+  typeof props.uploadPercent === "number" ? props.uploadPercent : null,
+);
+const busyLabel = computed(() => (uploading.value ? "Enviando arquivo..." : "Salvando..."));
 
 function submit(): void {
   emit("submit", {
@@ -50,38 +54,43 @@ function submit(): void {
   <form class="item-form" @submit.prevent="submit">
     <label class="field"
       ><span>Número do contrato</span
-      ><input v-model="form.contractNumber" maxlength="80"
+      ><input v-model="form.contractNumber" maxlength="80" :disabled="props.busy"
     /></label>
     <label class="field"
       ><span>Data de escrituração</span
-      ><input v-model="form.executedAt" type="date"
+      ><input v-model="form.executedAt" type="date" :disabled="props.busy"
     /></label>
     <label class="field">
       <span>Arquivo do contrato</span>
-      <button type="button" class="btn file-picker" @click="pickFile">
-        <Upload :size="14" />
-        {{
-          pendingFile
-            ? pendingFile.name
-            : (contract?.file?.fileName ?? "Selecionar arquivo")
-        }}
-      </button>
-      <input
-        ref="fileInput"
-        type="file"
-        class="hidden-input"
-        @change="onFileChosen"
+      <FilePicker
+        v-model="pendingFile"
+        :current-label="props.contract?.file?.fileName ?? ''"
+        label="Selecionar arquivo"
+        :disabled="props.busy"
       />
     </label>
+
+    <UploadProgress
+      v-if="uploading"
+      :uploading="uploadKnownPercent === null || uploadKnownPercent < 100"
+      :percent="uploadKnownPercent"
+      upload-label="Enviando arquivo do contrato"
+      processing-label="Registrando o arquivo no servidor"
+      test-id="contract-upload-progress"
+    />
+
     <p v-if="error" class="notice error" role="alert">
       {{ error }}
     </p>
     <div class="form-actions">
-      <button type="button" class="btn" @click="emit('cancel')">Cancelar</button>
-      <button type="submit" class="btn primary" :disabled="busy" :aria-busy="busy">
-        <span v-if="busy" class="spinner-small" aria-hidden="true" />
-        {{ busy ? "Salvando..." : "Salvar" }}
-      </button>
+      <Button variant="outline" :disabled="props.busy" @click="emit('cancel')">Cancelar</Button>
+      <Button
+        type="submit"
+        variant="default"
+        :loading="props.busy"
+      >
+        {{ props.busy ? busyLabel : "Salvar" }}
+      </Button>
     </div>
   </form>
 </template>
@@ -108,13 +117,6 @@ function submit(): void {
   border-radius: 6px;
   padding: 7px 9px;
   font-size: 13px;
-}
-.file-picker {
-  justify-content: flex-start;
-  gap: 7px;
-}
-.hidden-input {
-  display: none;
 }
 .form-actions {
   display: flex;

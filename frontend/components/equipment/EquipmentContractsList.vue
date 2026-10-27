@@ -7,6 +7,7 @@ import type {
   RequirementWaiver,
 } from "~/types/equipment";
 import { blankToNull } from "~/utils/workflow";
+import Button from "~/components/ui/Button.vue";
 import EquipmentContractsTable from "~/components/equipment/contracts/EquipmentContractsTable.vue";
 import EquipmentContractForm, {
   type EquipmentContractFormValues,
@@ -33,6 +34,9 @@ const downloadingId = ref<string | null>(null);
 const actionError = ref("");
 const showForm = ref(false);
 const editing = ref<Contract | null>(null);
+/** Fase do formulário: salvando o contrato e, depois, enviando o anexo. */
+const savePhase = ref<"idle" | "saving" | "uploading">("idle");
+const uploadPercent = ref<number | null>(null);
 
 const sorted = computed(() =>
   [...props.contracts].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -50,23 +54,30 @@ function openEdit(item: Contract): void {
   showForm.value = true;
 }
 
+/** Não fecha enquanto salva ou envia o anexo. */
 function closeForm(): void {
+  if (savePhase.value !== "idle") return;
   showForm.value = false;
   editing.value = null;
 }
 
 async function uploadFile(contractId: string, file: File): Promise<void> {
+  uploadPercent.value = null;
   const body = new FormData();
   body.append("file", file);
   await api.upload(
     `/equipments/${props.equipmentId}/contracts/${contractId}/file`,
     body,
+    "PUT",
+    (loaded, total) => {
+      uploadPercent.value = total > 0 ? Math.min(100, Math.floor((loaded / total) * 100)) : null;
+    },
   );
 }
 
 async function submit(values: EquipmentContractFormValues): Promise<void> {
-  if (busy.value) return;
-  busy.value = true;
+  if (savePhase.value !== "idle") return;
+  savePhase.value = "saving";
   actionError.value = "";
   const payload = {
     contractNumber: blankToNull(values.contractNumber),
@@ -78,13 +89,19 @@ async function submit(values: EquipmentContractFormValues): Promise<void> {
         `/equipments/${props.equipmentId}/contracts/${editing.value.id}`,
         payload,
       );
-      if (values.file) await uploadFile(editing.value.id, values.file);
+      if (values.file) {
+        savePhase.value = "uploading";
+        await uploadFile(editing.value.id, values.file);
+      }
     } else {
       const created = await api.post<Contract>(
         `/equipments/${props.equipmentId}/contracts`,
         payload,
       );
-      if (values.file) await uploadFile(created.id, values.file);
+      if (values.file) {
+        savePhase.value = "uploading";
+        await uploadFile(created.id, values.file);
+      }
     }
     showForm.value = false;
     emit("changed");
@@ -94,7 +111,8 @@ async function submit(values: EquipmentContractFormValues): Promise<void> {
         ? caught.message
         : "Não foi possível salvar o contrato.";
   } finally {
-    busy.value = false;
+    savePhase.value = "idle";
+    uploadPercent.value = null;
   }
 }
 
@@ -154,15 +172,15 @@ async function downloadFile(item: Contract): Promise<void> {
           arquivo.
         </p>
       </div>
-      <button
+      <Button
         v-if="editable"
-        class="btn primary"
+        variant="default"
         :disabled="busy"
         data-testid="add-contract"
         @click="openCreate"
       >
         <Plus :size="15" /> Adicionar
-      </button>
+      </Button>
     </div>
 
     <p v-if="actionError" class="notice error list-notice" role="alert">
@@ -199,7 +217,9 @@ async function downloadFile(item: Contract): Promise<void> {
     >
       <EquipmentContractForm
         :contract="editing"
-        :busy="busy"
+        :busy="savePhase !== 'idle'"
+        :phase="savePhase === 'idle' ? null : savePhase"
+        :upload-percent="uploadPercent"
         :error="actionError"
         @submit="submit"
         @cancel="closeForm"

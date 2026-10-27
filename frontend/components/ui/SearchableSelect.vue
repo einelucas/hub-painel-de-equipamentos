@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { Check, ChevronDown, Search } from "lucide-vue-next";
-import { computed, ref, watch } from "vue";
-import { useFloatingMenu } from "~/composables/useFloatingMenu";
+import { ElOption, ElSelect } from "element-plus";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import type { SearchableOption } from "~/types/ui";
 
+/**
+ * Select pesquisável do Hub. O `ElSelect` cuida de foco, teclado, dropdown
+ * teleportado e acessibilidade; a busca continua cobrindo rótulo, descrição e
+ * `searchText`, sem apagar a seleção enquanto o usuário digita.
+ */
 const props = withDefaults(
   defineProps<{
     options: SearchableOption[];
@@ -38,186 +42,224 @@ const emit = defineEmits<{
   change: [value: string];
 }>();
 
-const open = ref(false);
+const root = ref<HTMLElement | null>(null);
 const query = ref("");
-const activeIndex = ref(-1);
-const control = ref<HTMLElement | null>(null);
-const { style: menuStyle } = useFloatingMenu(control, open);
-const selected = computed(() => props.options.find((item) => item.id === props.modelValue) ?? null);
+const selected = computed(
+  () => props.options.find((item) => item.id === props.modelValue) ?? null,
+);
 const ordered = computed(() =>
   props.sorted
     ? [...props.options].sort((left, right) =>
-        left.label.localeCompare(right.label, "pt-BR", { numeric: true, sensitivity: "base" }),
+        left.label.localeCompare(right.label, "pt-BR", {
+          numeric: true,
+          sensitivity: "base",
+        }),
       )
     : props.options,
 );
-const filtered = computed(() => {
+const filteredOptions = computed(() => {
   const term = query.value.trim().toLocaleLowerCase("pt-BR");
   if (!term) return ordered.value;
   return ordered.value.filter((option) =>
     [option.label, option.description, option.searchText]
       .filter(Boolean)
-      .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(term)),
+      .some((value) =>
+        String(value).toLocaleLowerCase("pt-BR").includes(term),
+      ),
   );
 });
-/** Itens navegáveis pelo teclado: a opção vazia (quando existe) e as filtradas. */
-const navigable = computed<(SearchableOption | null)[]>(() =>
-  props.clearable ? [null, ...filtered.value] : filtered.value,
-);
+const selectedLabel = computed(() => selected.value?.label ?? "");
+const isEmpty = computed(() => props.modelValue === props.emptyValue);
+const wrapperAttrs = computed(() => ({
+  "data-selected-label": selectedLabel.value,
+  "data-disabled": props.disabled ? "true" : "false",
+  "data-required": props.required ? "true" : "false",
+  "data-placeholder": isEmpty.value ? props.emptyLabel : props.placeholder,
+}));
 
-watch(
-  selected,
-  (option) => {
-    if (!open.value) query.value = option?.label ?? "";
-  },
-  { immediate: true },
-);
-
-function commit(value: string): void {
-  const changed = value !== props.modelValue;
-  emit("update:modelValue", value);
-  if (changed) emit("change", value);
+function normalize(value: unknown): string {
+  if (value === undefined || value === null) return props.emptyValue;
+  return String(value);
 }
 
-/** Digitar só busca: a seleção atual permanece até outra opção ser escolhida. */
-function handleInput(event: Event): void {
-  query.value = (event.target as HTMLInputElement).value;
-  open.value = true;
-  activeIndex.value = -1;
+function onUpdate(value: unknown): void {
+  emit("update:modelValue", normalize(value));
 }
 
-function choose(option: SearchableOption): void {
-  commit(option.id);
-  query.value = option.label;
-  open.value = false;
+function onChange(value: unknown): void {
+  const next = normalize(value);
+  clearInvalidState();
+  // O ElSelect emite `change` também ao reescolher o mesmo valor; o contrato
+  // anterior só avisava quando o valor realmente mudava.
+  if (next === props.modelValue) return;
+  emit("change", next);
 }
 
-function chooseEmpty(): void {
-  commit(props.emptyValue);
-  query.value = "";
-  open.value = false;
+/** O ElSelect não expõe `required`; sincronizamos o estado no input interno. */
+function selectInput(): HTMLInputElement | null {
+  return root.value?.querySelector<HTMLInputElement>(".el-select__input") ?? null;
 }
 
-function openMenu(): void {
-  open.value = true;
-  activeIndex.value = -1;
-  if (selected.value) query.value = "";
+function syncAria(): void {
+  const input = selectInput();
+  if (!input) return;
+  if (props.required) input.setAttribute("aria-required", "true");
+  else input.removeAttribute("aria-required");
+  // Mantém o `data-testid` no input, como no componente anterior.
+  if (props.testId) input.setAttribute("data-testid", props.testId);
+  else input.removeAttribute("data-testid");
 }
 
-function toggle(): void {
-  if (props.disabled) return;
-  if (open.value) close();
-  else openMenu();
+function clearInvalidState(): void {
+  selectInput()?.removeAttribute("aria-invalid");
 }
 
-function close(): void {
-  open.value = false;
-  query.value = selected.value?.label ?? "";
-}
-
-function closeOnBlur(event: FocusEvent): void {
-  const next = event.relatedTarget as Node | null;
-  if (!(event.currentTarget as HTMLElement).contains(next)) close();
-}
-
-function move(step: number): void {
-  if (!open.value) openMenu();
-  const total = navigable.value.length;
-  if (total === 0) return;
-  activeIndex.value = (activeIndex.value + step + total) % total;
-}
-
-/** Enter só é consumido com uma opção destacada; senão segue o envio do formulário. */
-function chooseActive(event: KeyboardEvent): void {
-  if (!open.value || activeIndex.value < 0) return;
+function onInvalid(event: Event): void {
   event.preventDefault();
-  const option = navigable.value[activeIndex.value];
-  if (option === undefined) return;
-  if (option === null) chooseEmpty();
-  else choose(option);
+  const input = selectInput();
+  input?.setAttribute("aria-invalid", "true");
+  input?.focus();
 }
 
-function isActive(option: SearchableOption | null): boolean {
-  return activeIndex.value >= 0 && navigable.value[activeIndex.value] === option;
+function onFilter(value: string): void {
+  query.value = value;
 }
+
+function onVisibleChange(open: boolean): void {
+  // Ao fechar, a próxima abertura volta a mostrar todas as opções.
+  if (!open) query.value = "";
+}
+
+onMounted(syncAria);
+watch(
+  () => [props.required, props.disabled, props.testId] as const,
+  () => {
+    void nextTick(syncAria);
+  },
+);
 </script>
 
 <template>
-  <div class="searchable-select" :class="{ 'searchable-select--disabled': disabled }" @focusout="closeOnBlur">
-    <div ref="control" class="searchable-select__control">
-      <Search :size="15" aria-hidden="true" />
-      <input
-        :value="query"
-        :aria-label="label"
-        :data-testid="testId"
-        :disabled="disabled"
-        :required="required"
-        role="combobox"
-        aria-autocomplete="list"
-        :aria-expanded="open"
-        :placeholder="modelValue === emptyValue ? emptyLabel : placeholder"
-        @focus="openMenu"
-        @input="handleInput"
-        @keydown.esc="close"
-        @keydown.down.prevent="move(1)"
-        @keydown.up.prevent="move(-1)"
-        @keydown.enter="chooseActive"
+  <div ref="root" class="searchable-select" v-bind="wrapperAttrs">
+    <!-- Campo nativo oculto: participa da validação do formulário e mantém o
+         bloqueio de envio obrigatório mesmo com o select do Element Plus. -->
+    <input
+      v-if="props.required"
+      class="searchable-select__required"
+      type="text"
+      tabindex="-1"
+      aria-hidden="true"
+      :required="true"
+      :value="isEmpty ? '' : props.modelValue"
+      @invalid="onInvalid"
+    >
+    <ElSelect
+      :model-value="props.modelValue"
+      :disabled="props.disabled"
+      :placeholder="isEmpty ? props.emptyLabel : props.placeholder"
+      :clearable="props.clearable"
+      :aria-label="props.label"
+      filterable
+      automatic-dropdown
+      :persistent="false"
+      :fit-input-width="true"
+      popper-class="hub-select-popper"
+      :filter-method="onFilter"
+      :no-data-text="'Nenhuma opção encontrada.'"
+      class="searchable-select__control"
+      @update:model-value="onUpdate"
+      @change="onChange"
+      @visible-change="onVisibleChange"
+    >
+      <ElOption
+        v-if="props.clearable"
+        :value="props.emptyValue"
+        :label="props.emptyLabel"
+        class="searchable-select__empty-option"
       >
-      <button type="button" tabindex="-1" :disabled="disabled" :aria-label="`Abrir ${label}`" @click="toggle">
-        <ChevronDown :size="16" />
-      </button>
-    </div>
-    <!-- No body: o menu nunca é recortado nem cria rolagem no container (modais, cards). -->
-    <Teleport to="body">
-    <div v-if="open" class="searchable-select__menu" role="listbox" :style="menuStyle" @mousedown.prevent>
-      <button
-        v-if="clearable"
-        type="button"
-        role="option"
-        tabindex="-1"
-        :class="{ 'is-active': isActive(null) }"
-        :aria-selected="modelValue === emptyValue"
-        @mousedown.prevent="chooseEmpty"
-      >
-        <span><strong>{{ emptyLabel }}</strong></span>
-        <Check v-if="modelValue === emptyValue" :size="15" />
-      </button>
-      <button
-        v-for="option in filtered"
+        <span><strong>{{ props.emptyLabel }}</strong></span>
+      </ElOption>
+      <ElOption
+        v-for="option in filteredOptions"
         :key="option.id"
-        type="button"
-        role="option"
-        tabindex="-1"
-        :class="{ 'is-active': isActive(option) }"
-        :aria-selected="modelValue === option.id"
-        @mousedown.prevent="choose(option)"
+        :value="option.id"
+        :label="option.label"
       >
-        <span>
+        <span class="searchable-select__option">
           <strong>{{ option.label }}</strong>
           <small v-if="option.description">{{ option.description }}</small>
         </span>
-        <Check v-if="modelValue === option.id" :size="15" />
-      </button>
-      <p v-if="filtered.length === 0">Nenhuma opção encontrada.</p>
-    </div>
-    </Teleport>
+      </ElOption>
+    </ElSelect>
   </div>
 </template>
 
 <style scoped>
-.searchable-select { position: relative; min-width: 0; }
-.searchable-select__control { display: flex; min-height: 39px; align-items: center; gap: 7px; border: 1px solid #d8e1ec; border-radius: 8px; padding: 0 8px; background: #fff; color: #718096; }
-.searchable-select__control:focus-within { border-color: #5277aa; box-shadow: 0 0 0 2px rgb(82 119 170 / 12%); }
-.searchable-select__control input { min-width: 0; flex: 1; border: 0; outline: 0; padding: 9px 0; background: transparent; color: #263d5d; font-size: 12px; }
-.searchable-select__control button { display: grid; border: 0; padding: 5px; background: transparent; color: #52657c; cursor: pointer; place-items: center; }
-.searchable-select--disabled .searchable-select__control { background: #f6f7f9; color: #9ca5b4; }
-.searchable-select__control button:disabled { cursor: not-allowed; }
-.searchable-select__menu { position: fixed; z-index: 1100; overflow-y: auto; border: 1px solid #d8e1ec; border-radius: 9px; padding: 5px; background: #fff; box-shadow: 0 12px 28px rgb(30 50 78 / 16%); }
-.searchable-select__menu button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; border: 0; border-radius: 7px; padding: 8px 9px; background: transparent; color: #263d5d; text-align: left; cursor: pointer; }
-.searchable-select__menu button:hover, .searchable-select__menu button.is-active, .searchable-select__menu button[aria-selected="true"] { background: #eef4fb; }
-.searchable-select__menu button.is-active { outline: 1px solid #b9cbe3; }
-.searchable-select__menu span { display: grid; min-width: 0; gap: 1px; }
-.searchable-select__menu strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.searchable-select__menu small, .searchable-select__menu p { margin: 0; color: #718096; font-size: 10.5px; }
-.searchable-select__menu p { padding: 10px; text-align: center; }
+.searchable-select {
+  position: relative;
+  min-width: 0;
+}
+
+.searchable-select__required {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.searchable-select :deep(.el-select__wrapper) {
+  min-height: 39px;
+  border-radius: 9px;
+  padding: 0 9px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #d8e1ec inset;
+  font-size: 12px;
+}
+
+.searchable-select :deep(.el-select__wrapper.is-focused) {
+  box-shadow:
+    0 0 0 1px #5277aa inset,
+    0 0 0 2px rgb(82 119 170 / 12%);
+}
+
+.searchable-select :deep(.el-select__wrapper.is-disabled) {
+  background: #f6f7f9;
+  box-shadow: 0 0 0 1px #dfe5ed inset;
+}
+
+.searchable-select :deep(.el-select__selected-item),
+.searchable-select :deep(.el-select__placeholder) {
+  color: #263d5d;
+}
+
+.searchable-select :deep(.el-select__placeholder.is-transparent) {
+  color: #718096;
+}
+
+.searchable-select__option {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.searchable-select__option strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchable-select__option small {
+  overflow: hidden;
+  color: #718096;
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

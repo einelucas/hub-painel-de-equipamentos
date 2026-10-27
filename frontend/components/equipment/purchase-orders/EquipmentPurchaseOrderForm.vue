@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import type { PurchaseOrder } from "~/types/equipment";
+import Button from "~/components/ui/Button.vue";
 
 export interface EquipmentPurchaseOrderFormValues {
   orderNumber: string;
@@ -35,8 +36,8 @@ const form = reactive<EquipmentPurchaseOrderFormValues>({
     <label class="field"><span>Valor</span><input v-model="form.amount" type="number" min="0" step="0.01"></label>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <div class="form-actions">
-      <button type="button" class="btn" @click="emit('cancel')">Cancelar</button>
-      <button type="submit" class="btn primary" :disabled="busy" :aria-busy="busy"><span v-if="busy" class="spinner-small" aria-hidden="true" />{{ busy ? "Salvando..." : "Salvar" }}</button>
+      <Button variant="outline" @click="emit('cancel')">Cancelar</Button>
+      <Button type="submit" variant="default" :loading="busy">{{ busy ? "Salvando..." : "Salvar" }}</Button>
     </div>
   </form>
 </template>

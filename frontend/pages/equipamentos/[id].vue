@@ -7,6 +7,7 @@ import {
   Workflow,
 } from "lucide-vue-next";
 import type { Equipment, EquipmentDetail } from "~/types/equipment";
+import Button from "~/components/ui/Button.vue";
 import { currentStageEnteredAt } from "~/utils/workflow";
 
 definePageMeta({ middleware: "auth" });
@@ -111,7 +112,7 @@ onMounted(load);
     >
       <h2>Equipamento indisponível</h2>
       <p>{{ error }}</p>
-      <button class="btn" @click="load">Tentar novamente</button>
+      <Button variant="outline" @click="load">Tentar novamente</Button>
     </div>
     <div v-else-if="detail" class="stack" :aria-busy="loading">
       <div v-if="loading" class="progress-indeterminate" role="progressbar" aria-label="Atualizando" />

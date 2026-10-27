@@ -4,6 +4,7 @@ import { Pencil, Plus, Search, Upload } from "lucide-vue-next";
 import SupplierImportModal from "~/components/supplier/SupplierImportModal.vue";
 import SupplierForm, { type SupplierFormValues } from "~/components/supplier/SupplierForm.vue";
 import AppModal from "~/components/ui/AppModal.vue";
+import Button from "~/components/ui/Button.vue";
 import type { CatalogList, Supplier } from "~/types/equipment";
 import { useConfirm } from "~/composables/useConfirm";
 import { useIncrementalList } from "~/composables/useIncrementalList";
@@ -174,12 +175,12 @@ watch(
           </p>
         </div>
         <div class="supplier-header-actions">
-          <button type="button" class="btn small" :disabled="saving" data-testid="supplier-import-open" @click="showImport = true">
+          <Button size="sm" variant="outline" :disabled="saving" data-testid="supplier-import-open" @click="showImport = true">
             <Upload :size="14" /> Importar planilha
-          </button>
-          <button type="button" class="btn small primary" :disabled="saving" @click="startCreate">
+          </Button>
+          <Button size="sm" variant="default" :disabled="saving" @click="startCreate">
             <Plus :size="14" /> Novo
-          </button>
+          </Button>
         </div>
       </header>
 

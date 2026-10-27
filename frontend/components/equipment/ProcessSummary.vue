@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from "vue";
 import type { EquipmentProcesses } from "~/types/equipment";
+import Button from "~/components/ui/Button.vue";
 import { formatDateOnly } from "~/utils/format";
 import { type ProcessResource, blankToNull } from "~/utils/workflow";
 
@@ -140,11 +141,15 @@ const groups = computed(() => [
         </div>
 
         <div class="edit-actions">
-          <button type="button" class="btn" :disabled="saving" @click="cancelEdit(group.resource)">Cancelar</button>
-          <button type="submit" class="btn primary" :disabled="saving" :aria-busy="saving" :data-testid="`save-${group.resource}`">
-            <span v-if="saving" class="spinner-small" aria-hidden="true" />
+          <Button variant="outline" :disabled="saving" @click="cancelEdit(group.resource)">Cancelar</Button>
+          <Button
+            type="submit"
+            variant="default"
+            :loading="saving"
+            :data-testid="`save-${group.resource}`"
+          >
             {{ saving ? "Salvando..." : "Salvar" }}
-          </button>
+          </Button>
         </div>
       </form>
     </section>

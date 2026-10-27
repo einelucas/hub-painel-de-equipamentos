@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
+import Button from "~/components/ui/Button.vue";
 import type { EquipmentComponent } from "~/types/equipment";
 
 const props = defineProps<{ equipmentId: string; component?: EquipmentComponent | null }>();
@@ -68,7 +69,7 @@ async function submit(): Promise<void> {
       <label class="field"><span>Entrega contratual</span><input v-model="form.contractDeliveryAt" type="date"></label>
       <label class="field"><span>Frete (dias)</span><input v-model="form.freightDays" type="number" min="0"></label>
     </div>
-    <div class="form-actions"><button type="button" class="btn" @click="emit('cancel')">Cancelar</button><button class="btn primary" type="submit" :disabled="saving" :aria-busy="saving"><span v-if="saving" class="spinner-small" aria-hidden="true" />{{ saving ? "Salvando..." : "Salvar componente" }}</button></div>
+    <div class="form-actions"><Button variant="outline" @click="emit('cancel')">Cancelar</Button><Button type="submit" variant="default" :loading="saving">{{ saving ? "Salvando..." : "Salvar componente" }}</Button></div>
   </form>
 </template>
 

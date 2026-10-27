@@ -58,11 +58,14 @@ const term = ref("");
         </div>
         <template v-else>
           <div class="table-wrap"><slot /></div>
-          <div v-if="props.pagination && props.pagination.totalPages > 1" class="pagination">
-            <button class="btn small" :disabled="props.refreshing || props.page <= 1" @click="emit('page', props.page - 1)">Anterior</button>
-            <span>Página {{ props.page }} de {{ props.pagination.totalPages }}</span>
-            <button class="btn small" :disabled="props.refreshing || props.page >= props.pagination.totalPages" @click="emit('page', props.page + 1)">Próxima</button>
-          </div>
+          <AppPagination
+            v-if="props.pagination && props.pagination.totalPages > 1"
+            class="pagination"
+            :page="props.page"
+            :total-pages="props.pagination.totalPages"
+            :disabled="props.refreshing"
+            @change="emit('page', $event)"
+          />
         </template>
       </section>
     </template>

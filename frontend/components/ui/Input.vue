@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { cn } from "~/utils/cn";
+import { ElInput } from "element-plus";
 
-const props = defineProps<{ type?: string; class?: string }>();
+/**
+ * Campo de texto construído sobre o `ElInput` do Element Plus.
+ * Atributos livres (`id`, `aria-*`, `maxlength`, `placeholder`, `disabled`)
+ * caem no input nativo via o encaminhamento do próprio EP — o contrato
+ * `for=` dos labels continua funcionando. `type="date"`/`"search"` seguem
+ * nativos, apenas com o visual do EP.
+ */
+const props = defineProps<{ type?: string }>();
 const model = defineModel<string | number>();
 </script>
 
 <template>
-  <input
-    v-model="model"
+  <ElInput
     :type="props.type ?? 'text'"
-    data-slot="input"
-    :class="
-      cn(
-        'flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
-        props.class,
-      )
-    "
+    :model-value="model ?? ''"
+    :validate-event="false"
+    @update:model-value="model = $event"
   />
 </template>

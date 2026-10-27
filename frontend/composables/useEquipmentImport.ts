@@ -114,6 +114,13 @@ export function useEquipmentImport() {
   const phase = ref<"setup" | "contexts" | "analyze" | "mapping" | "plan" | "apply" | null>(null);
   const applyProgress = ref<{ stage: ImportApplyJob["stage"]; progress: number } | null>(null);
   const analysisProgress = ref<{ current: number; total: number; fileName: string } | null>(null);
+  /** Envio do arquivo em análise: percentual só quando o total é conhecido;
+   * sem total, a barra fica indeterminada (e `processing` segue falso). */
+  const uploadProgress = ref<{
+    fileName: string;
+    percent: number | null;
+    processing: boolean;
+  } | null>(null);
   const error = ref("");
   const stale = ref(false);
   const loadingContexts = ref(false);
@@ -222,12 +229,28 @@ export function useEquipmentImport() {
       // Sequencial: cada arquivo é um staging próprio (hash, batch, issues).
       for (const [index, candidate] of files.value.entries()) {
         analysisProgress.value = { current: index + 1, total, fileName: candidate.name };
+        uploadProgress.value = { fileName: candidate.name, percent: null, processing: false };
         const form = new FormData();
         form.append("projectContextId", selection.contextId);
         form.append("profileId", selection.profileId);
         form.append("file", candidate, candidate.name);
         try {
-          const staged = await api.upload<ImportBatch>(`${BASE}/batches`, form, "POST");
+          const staged = await api.upload<ImportBatch>(
+            `${BASE}/batches`,
+            form,
+            "POST",
+            (loaded, fileSizeTotal) => {
+              uploadProgress.value = {
+                fileName: candidate.name,
+                percent:
+                  fileSizeTotal > 0
+                    ? Math.min(100, Math.floor((loaded / fileSizeTotal) * 100))
+                    : null,
+                // Total conhecido e bytes completos: o servidor está processando.
+                processing: fileSizeTotal > 0 && loaded >= fileSizeTotal,
+              };
+            },
+          );
           if (!batches.value.some((batch) => batch.batchId === staged.batchId)) batches.value.push(staged);
         } catch (caught) {
           failures.value.push({ fileName: candidate.name, message: message(caught, "Falha ao analisar.") });
@@ -240,6 +263,7 @@ export function useEquipmentImport() {
       busy.value = false;
       phase.value = null;
       analysisProgress.value = null;
+      uploadProgress.value = null;
     }
   }
 
@@ -443,6 +467,7 @@ export function useEquipmentImport() {
     busy,
     phase,
     analysisProgress,
+    uploadProgress,
     statusMessage,
     locked,
     loadingContexts,

@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { Save } from "lucide-vue-next";
 import type { UserSummary } from "~/types/api";
 import type { Unit, UserUnits } from "~/types/equipment";
+import Button from "~/components/ui/Button.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 /** Reaproveita os endpoints da Etapa 4; não recria cadastro de usuários. */
@@ -142,9 +143,9 @@ onMounted(load);
           <p v-if="units.length === 0" class="access-hint">Nenhuma unidade cadastrada ainda.</p>
           <div class="access-actions">
             <span v-if="feedback" class="access-feedback">{{ feedback }}</span>
-            <button type="button" class="btn small primary" :disabled="saving" data-testid="access-save" :aria-busy="saving" @click="save">
-              <span v-if="saving" class="spinner-small" aria-hidden="true" /><Save v-else :size="13" /> {{ saving ? "Salvando..." : "Salvar acessos" }}
-            </button>
+            <Button size="sm" variant="default" :loading="saving" data-testid="access-save" @click="save">
+              <Save v-if="!saving" :size="13" /> {{ saving ? "Salvando..." : "Salvar acessos" }}
+            </Button>
           </div>
         </template>
       </template>

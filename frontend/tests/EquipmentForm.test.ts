@@ -2,6 +2,12 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import EquipmentForm from "~/components/equipment/EquipmentForm.vue";
 import type { EapNodeItem, Equipment } from "~/types/equipment";
+import {
+  menuElement,
+  menuOptions,
+  openMenu,
+  shownValue,
+} from "./support/searchableSelect";
 
 const process: EapNodeItem = {
   id: "eap-process",
@@ -137,13 +143,12 @@ describe("EquipmentForm", () => {
     expect(get).not.toHaveBeenCalledWith("/work-packages", expect.anything());
     expect(wrapper.get("[data-testid='edit-eaps']").text()).toContain("Editar EAPs");
 
-    const eapSelect = wrapper.get("[data-testid='eap-node-select']");
-    expect((eapSelect.element as HTMLInputElement).value).toBe("04.A · Casa de Força");
-    await eapSelect.trigger("focus");
-    const eapMenu = wrapper.get("[role='listbox']");
-    expect(eapMenu.text()).toContain("04 · Geração de Energia");
-    expect(eapMenu.text()).toContain("04.A · Casa de Força");
-    expect(eapMenu.text()).not.toContain("UTI · Utilidades");
+    expect(shownValue(wrapper, "eap-node-select")).toBe("04.A · Casa de Força");
+    await openMenu(wrapper, "eap-node-select");
+    const eapMenu = menuElement(wrapper, "eap-node-select");
+    expect(eapMenu?.textContent).toContain("04 · Geração de Energia");
+    expect(eapMenu?.textContent).toContain("04.A · Casa de Força");
+    expect(eapMenu?.textContent).not.toContain("UTI · Utilidades");
 
     expect(wrapper.findAll("[aria-label^='Remover CAL']")).toHaveLength(3);
     expect(wrapper.findAll("[aria-label^='Remover CIV']")).toHaveLength(3);
@@ -164,21 +169,20 @@ describe("EquipmentForm", () => {
     const current = { ...equipment(), origin: "Importado" };
     const { wrapper, patch } = await mountForm(current);
 
-    const select = wrapper.get("[data-testid='origin-select']");
-    expect((select.element as HTMLInputElement).value).toBe("Importado");
+    expect(shownValue(wrapper, "origin-select")).toBe("Importado");
 
-    await select.trigger("focus");
-    const menu = wrapper.get("[role='listbox']");
-    expect(menu.text()).toContain("Nacional");
-    expect(menu.text()).toContain("Internacional");
-    expect(menu.text()).toContain("A definir");
-    expect(menu.text()).toContain("Importado");
+    await openMenu(wrapper, "origin-select");
+    const menu = menuElement(wrapper, "origin-select");
+    expect(menu?.textContent).toContain("Nacional");
+    expect(menu?.textContent).toContain("Internacional");
+    expect(menu?.textContent).toContain("A definir");
+    expect(menu?.textContent).toContain("Importado");
 
-    const option = wrapper
-      .findAll("[role='option']")
-      .find((item) => item.text() === "Internacional");
+    const option = menuOptions(wrapper, "origin-select").find(
+      (item) => item.text() === "Internacional",
+    );
     expect(option).toBeTruthy();
-    await option!.trigger("mousedown");
+    await option!.trigger("click");
 
     await wrapper.get("form").trigger("submit");
     expect(patch).toHaveBeenCalledWith(
@@ -190,14 +194,13 @@ describe("EquipmentForm", () => {
   it("equipamento novo parte de A definir, sem opção livre", async () => {
     const { wrapper } = await mountForm(null);
 
-    const select = wrapper.get("[data-testid='origin-select']");
-    expect((select.element as HTMLInputElement).value).toBe("A definir");
+    expect(shownValue(wrapper, "origin-select")).toBe("A definir");
 
-    await select.trigger("focus");
-    const menu = wrapper.get("[role='listbox']");
-    expect(menu.text()).toContain("Nacional");
-    expect(menu.text()).toContain("Internacional");
-    expect(menu.text()).toContain("A definir");
+    await openMenu(wrapper, "origin-select");
+    const menu = menuElement(wrapper, "origin-select");
+    expect(menu?.textContent).toContain("Nacional");
+    expect(menu?.textContent).toContain("Internacional");
+    expect(menu?.textContent).toContain("A definir");
   });
 
   it("CAPEX e valor total usam moeda brasileira e enviam decimais", async () => {

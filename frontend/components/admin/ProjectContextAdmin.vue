@@ -11,6 +11,7 @@ import type {
 import { toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import AppModal from "~/components/ui/AppModal.vue";
+import Button from "~/components/ui/Button.vue";
 import { useConfirm } from "~/composables/useConfirm";
 
 /**
@@ -270,16 +271,16 @@ watch(selectedId, loadSummary);
           @change="selectUnit"
         />
       </div>
-      <button
+      <Button
         v-if="canManage && props.unitId"
-        type="button"
-        class="btn small primary"
+        size="sm"
+        variant="default"
         :disabled="saving"
         data-testid="project-new"
         @click="startCreate"
       >
         <Plus :size="14" /> Novo contexto
-      </button>
+      </Button>
       </div>
     </header>
 
@@ -435,20 +436,20 @@ watch(selectedId, loadSummary);
     </form>
 
     <template #actions>
-      <button type="button" class="btn small" :disabled="saving" @click="cancel">
+      <Button size="sm" variant="outline" :disabled="saving" @click="cancel">
         <X :size="13" /> Cancelar
-      </button>
-      <button
+      </Button>
+      <Button
         type="submit"
-        class="btn small primary"
+        size="sm"
+        variant="default"
         :form="formId"
-        :disabled="saving"
+        :loading="saving"
         data-testid="project-save"
-        :aria-busy="saving"
       >
-        <span v-if="saving" class="spinner-small" aria-hidden="true" /><Check v-else :size="13" />
+        <Check v-if="!saving" :size="13" />
         {{ saving ? "Salvando..." : "Salvar" }}
-      </button>
+      </Button>
     </template>
   </AppModal>
 </template>

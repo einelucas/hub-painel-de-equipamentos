@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { ArrowRight } from "lucide-vue-next";
+import Button from "~/components/ui/Button.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import { MAPPING_SECTIONS } from "~/composables/useEquipmentImport";
 import { useImportState } from "~/composables/useImportState";
@@ -118,10 +119,14 @@ function automaticLabel(location: ImportLocationValue): string {
     </section>
 
     <div class="import-actions">
-      <button type="button" class="btn primary" :disabled="busy" data-testid="import-build-plan" :aria-busy="busy" @click="buildPlan">
-        <span v-if="busy" class="spinner-small" aria-hidden="true" />
+      <Button
+        variant="default"
+        :loading="busy"
+        data-testid="import-build-plan"
+        @click="buildPlan"
+      >
         {{ busy ? "Gerando plano..." : "Gerar plano" }}
-      </button>
+      </Button>
     </div>
   </div>
 </template>

@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { Plus } from "lucide-vue-next";
 import type { PurchaseRequest, RequirementGroup, RequirementWaiver } from "~/types/equipment";
 import { blankToNull } from "~/utils/workflow";
+import Button from "~/components/ui/Button.vue";
 import EquipmentPurchaseRequestsTable from "~/components/equipment/purchase-requests/EquipmentPurchaseRequestsTable.vue";
 import EquipmentPurchaseRequestForm, {
   type EquipmentPurchaseRequestFormValues,
@@ -96,9 +97,9 @@ async function removeItem(item: PurchaseRequest): Promise<void> {
         <h2>SC / OCI</h2>
         <p>Solicitações de compra ou importação. Um equipamento pode ter várias.</p>
       </div>
-      <button v-if="editable" class="btn primary" :disabled="busy" data-testid="add-purchase-request" @click="openCreate">
+      <Button v-if="editable" variant="default" :disabled="busy" data-testid="add-purchase-request" @click="openCreate">
         <Plus :size="15" /> Adicionar
-      </button>
+      </Button>
     </div>
 
     <p v-if="actionError" class="notice error list-notice" role="alert">{{ actionError }}</p>

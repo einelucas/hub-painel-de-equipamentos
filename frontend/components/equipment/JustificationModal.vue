@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import Button from "~/components/ui/Button.vue";
 
 const props = defineProps<{
   open: boolean;
@@ -37,11 +38,15 @@ function submit(): void {
       </label>
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <div class="form-actions">
-        <button type="button" class="btn" @click="emit('close')">Cancelar</button>
-        <button type="submit" class="btn primary" :disabled="busy || (required && !text.trim())" :aria-busy="busy">
-          <span v-if="busy" class="spinner-small" aria-hidden="true" />
+        <Button variant="outline" @click="emit('close')">Cancelar</Button>
+        <Button
+          type="submit"
+          variant="default"
+          :loading="busy"
+          :disabled="required && !text.trim()"
+        >
           {{ busy ? "Processando..." : (confirmLabel ?? "Confirmar") }}
-        </button>
+        </Button>
       </div>
     </form>
   </AppModal>

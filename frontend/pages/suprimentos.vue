@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { SlidersHorizontal } from "lucide-vue-next";
 import type { ProcurementRow } from "~/types/equipment";
+import Button from "~/components/ui/Button.vue";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -50,14 +51,14 @@ onMounted(async () => {
       @page="queue.goToPage"
     >
       <template #actions>
-        <button
+        <Button
           v-if="canAdminister"
-          class="btn"
+          variant="outline"
           data-testid="admin-button"
           @click="showAdmin = true"
         >
           <SlidersHorizontal :size="16" /> Administração
-        </button>
+        </Button>
       </template>
 
       <ProcurementTable :rows="queue.items.value" />
