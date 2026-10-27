@@ -213,6 +213,7 @@ async function downloadFile(item: Contract): Promise<void> {
     <AppModal
       :open="showForm"
       :title="editing ? 'Editar contrato' : 'Novo contrato'"
+      :busy="savePhase !== 'idle'"
       @close="closeForm"
     >
       <EquipmentContractForm

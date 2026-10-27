@@ -290,15 +290,16 @@ onMounted(loadCatalogs);
       <div class="field">
         <div class="field-label-row">
           <span>Localização EAP</span>
-          <button
+          <Button
             v-if="auth.can('catalogs:manage')"
             type="button"
             class="eap-manage-button"
             data-testid="edit-eaps"
+            variant="ghost"
             @click="showEapAdmin = true"
           >
             <Pencil :size="12" /> Editar EAPs
-          </button>
+          </Button>
         </div>
         <SearchableSelect
           v-model="form.eapNodeId"
@@ -348,15 +349,16 @@ onMounted(loadCatalogs);
       <div class="field">
         <div class="field-label-row">
           <span>Criticidade</span>
-          <button
+          <Button
             v-if="auth.can('catalogs:manage')"
             type="button"
             class="eap-manage-button"
             data-testid="edit-criticalities"
+            variant="ghost"
             @click="showCriticalityAdmin = true"
           >
             <Pencil :size="12" /> Editar etiquetas
-          </button>
+          </Button>
         </div>
         <SearchableSelect
           v-model="form.criticalityLabelId"
@@ -477,8 +479,6 @@ onMounted(loadCatalogs);
   text-transform: uppercase;
 }
 .field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: space-between; gap: 8px; }
-.eap-manage-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 1px 2px; background: transparent; color: #718096; font-size: 10.5px; font-weight: 650; cursor: pointer; }
-.eap-manage-button:hover { color: #294b77; text-decoration: underline; }
 .equipment-form :deep(.searchable-select__control) { border-radius: 9px; }
 
 .stage-note {

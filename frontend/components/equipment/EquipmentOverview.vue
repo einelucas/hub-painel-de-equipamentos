@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
 import { Pencil } from "lucide-vue-next";
 import type { Equipment, OperationalStatus, OperationalStatusEvent } from "~/types/equipment";
@@ -35,7 +36,7 @@ const stageStyle = computed(() => stageBadgeStyle(props.currentStage, props.curr
 
 <template>
   <section class="surface">
-    <div class="surface-header"><div><h2>Resumo</h2><p>Identificação e posição atual no processo.</p></div><button v-if="canEdit" class="btn" @click="emit('edit')"><Pencil :size="15" /> Editar</button></div>
+    <div class="surface-header"><div><h2>Resumo</h2><p>Identificação e posição atual no processo.</p></div><Button v-if="canEdit"  variant="outline" @click="emit('edit')"><Pencil :size="15" /> Editar</Button></div>
     <div class="surface-body detail-grid">
       <div class="detail-field"><span>Unidade</span><strong>{{ equipment.unit.name }}</strong></div>
       <div class="detail-field"><span>Obra</span><strong>{{ equipment.projectContext.code ? `${equipment.projectContext.code} · ${equipment.projectContext.name}` : equipment.projectContext.name }}</strong></div>

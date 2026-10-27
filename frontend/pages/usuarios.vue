@@ -121,7 +121,7 @@ onMounted(load);
       <div v-if="success" class="message success-message" role="status">{{ success }}</div>
       <div v-if="error" class="message error-message" role="alert">
         <span>{{ error }}</span>
-        <button class="text-button" type="button" @click="load">Tentar novamente</button>
+        <Button class="text-button" type="button" variant="ghost" size="sm" @click="load">Tentar novamente</Button>
       </div>
 
       <section class="surface users-card">
@@ -185,14 +185,16 @@ onMounted(load);
                   </span>
                 </TableCell>
                 <TableCell class="action-cell">
-                  <button
+                  <Button
                     class="text-button"
                     type="button"
                     :disabled="updating.has(user.id) || user.id === auth.user?.id"
+                    variant="ghost"
+                    size="sm"
                     @click="updateUser(user, { active: !user.active })"
                   >
                     {{ user.active ? "Desativar" : "Reativar" }}
-                  </button>
+                  </Button>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -263,6 +265,6 @@ onMounted(load);
 @media (max-width: 760px) {
   .users-header { align-items: flex-start; flex-direction: column; }
   .header-actions { width: 100%; }
-  .header-actions .btn { flex: 1; }
+  .header-actions .el-button { flex: 1; }
 }
 </style>

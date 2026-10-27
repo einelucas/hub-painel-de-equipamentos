@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -43,6 +43,16 @@ describe("seletores pesquisáveis de catálogo", () => {
       .find((item) => item.find("strong").text() === "B · Beta")!
       .trigger("click");
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual(["b"]);
+  });
+
+  it("does not block native form validation when a required select is disabled", async () => {
+    const wrapper = mount(SearchableSelect, { props: { options: [], modelValue: "", label: "Obra", required: true, disabled: true } });
+    await flushPromises();
+    const input = wrapper.get(".searchable-select__required").element as HTMLInputElement;
+    expect(input.checkValidity()).toBe(true);
+    await wrapper.setProps({ disabled: false });
+    expect(input.checkValidity()).toBe(false);
+    wrapper.unmount();
   });
 
   it("sorted=false mantém a ordem recebida e clearable=false esconde a opção vazia", async () => {
@@ -123,6 +133,7 @@ describe("seletores pesquisáveis de catálogo", () => {
       props: { options, modelValue: ["a"], label: "Work Packages", testId: "catalog-multi" },
     });
 
+    await flushPromises();
     expect(wrapper.text()).toContain("A · Alfa");
     await openMenu(wrapper, "catalog-multi");
     const beta = menuOptions(wrapper, "catalog-multi").find((item) =>
@@ -132,7 +143,7 @@ describe("seletores pesquisáveis de catálogo", () => {
     await beta!.trigger("click");
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([["a", "b"]]);
 
-    await wrapper.get("[aria-label='Remover A · Alfa']").trigger("click");
+    await wrapper.get(".el-tag__close").trigger("click");
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([[]]);
   });
 });

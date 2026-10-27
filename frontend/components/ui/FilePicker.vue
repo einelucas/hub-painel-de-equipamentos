@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import Button from "~/components/ui/Button.vue";
 import { Upload } from "lucide-vue-next";
 
 /**
@@ -58,15 +59,16 @@ function onFiles(event: Event): void {
 
 <template>
   <span class="file-picker">
-    <button
+    <Button
       type="button"
-      class="btn file-picker__button"
+      variant="outline"
+      class="file-picker__button"
       :disabled="props.disabled"
       @click="choose"
     >
       <Upload :size="14" aria-hidden="true" />
       <span class="file-picker__name">{{ shown }}</span>
-    </button>
+    </Button>
     <input
       ref="input"
       class="file-picker__input"

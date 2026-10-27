@@ -24,10 +24,11 @@ function mountModal(props: Record<string, unknown> = {}) {
   return wrapper;
 }
 
-afterEach(() => {
+afterEach(async () => {
   wrapper?.unmount();
   wrapper = null;
   document.body.style.overflow = "";
+  await flushPromises();
 });
 
 describe("AppModal", () => {
@@ -96,4 +97,14 @@ describe("AppModal", () => {
 
     expect(document.body.style.overflow).toBe("");
   });
+  it("closes from the inner backdrop without closing on content clicks", async () => {
+    const modal = mountModal();
+    await flushPromises();
+    await modal.get(".modal-body").trigger("mousedown");
+    expect(modal.emitted("close")).toBeUndefined();
+    await modal.get(".el-overlay-dialog").trigger("mousedown");
+    expect(modal.emitted("close")).toHaveLength(1);
+  });
+
+
 });

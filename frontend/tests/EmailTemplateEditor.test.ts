@@ -77,8 +77,8 @@ describe("EmailTemplateEditor", () => {
   it("dispara salvar e restaurar padrão", async () => {
     const wrapper = mount(EmailTemplateEditor, { props: { modelValue: { ...DRAFT } } });
 
-    await wrapper.get(".tpl-editor-actions .btn.primary").trigger("click");
-    await wrapper.findAll(".tpl-editor-actions .btn").at(1)!.trigger("click");
+    await wrapper.get(".tpl-editor-actions .el-button--primary").trigger("click");
+    await wrapper.findAll(".tpl-editor-actions .el-button").at(1)!.trigger("click");
 
     expect(wrapper.emitted("save")).toHaveLength(1);
     expect(wrapper.emitted("reset")).toHaveLength(1);
@@ -131,7 +131,7 @@ describe("EmailTestPanel", () => {
     expect(wrapper.text()).toContain("Equipamento real");
     expect(wrapper.text()).toContain("sempre fictício");
 
-    await wrapper.get(".tpl-test .btn.primary").trigger("click");
+    await wrapper.get(".tpl-test .el-button--primary").trigger("click");
     expect(wrapper.emitted("send")?.[0]?.[0]).toBe("resend");
   });
 

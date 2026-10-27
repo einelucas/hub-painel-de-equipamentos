@@ -76,7 +76,7 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <AppModal :open="open" title="Importar planilha de fornecedores" @close="requestClose">
+  <AppModal :open="open" title="Importar planilha de fornecedores" :busy="uploading" @close="requestClose">
     <form class="supplier-import" data-testid="supplier-import" :aria-busy="uploading" @submit.prevent="submit">
       <p class="hint">
         Envie um arquivo .xlsx com as colunas

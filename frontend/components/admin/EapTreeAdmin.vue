@@ -275,27 +275,28 @@ void load();
         <span class="eap-name">{{ row.node.name }}</span>
         <span class="eap-level" :class="`eap-level--${row.node.level.toLowerCase()}`">{{ levelLabels[row.node.level] }}</span>
         <span v-if="!row.node.active" class="eap-inactive">Inativo</span>
-        <button
+        <Button
           type="button"
           class="eap-edit"
           :aria-label="`Editar ${row.node.code}`"
           :data-testid="`eap-edit-${row.node.id}`"
+          variant="ghost"
           @click="startEdit(row.node)"
         >
           <Pencil :size="13" />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           class="eap-delete"
           :aria-label="`Excluir ${row.node.code}`"
           :disabled="saving"
-          :aria-busy="deletingId === row.node.id"
+          :loading="deletingId === row.node.id"
           :data-testid="`eap-delete-${row.node.id}`"
+          variant="destructive"
           @click="remove(row.node)"
         >
-          <span v-if="deletingId === row.node.id" class="spinner-small" aria-hidden="true" />
-          <Trash2 v-else :size="13" />
-        </button>
+          <Trash2 v-if="!(deletingId === row.node.id)" :size="13" />
+        </Button>
       </li>
     </ul>
   </section>
@@ -430,13 +431,6 @@ void load();
 .eap-inactive { background: var(--stop-wash, #fbeeed); color: var(--stop, #a4453a); }
 .eap-tree li.inactive .eap-name, .eap-tree li.inactive .eap-code { color: #9aa6b5; }
 .active-check { display: flex; align-items: center; gap: 7px; color: #526176; font-size: 12px; font-weight: 700; }
-.eap-edit { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #8592a6; cursor: pointer; }
-.eap-edit:hover { background: #edf3fa; color: var(--steel, #304f7e); }
-.eap-edit:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 1px; }
-.eap-delete { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #b08a87; cursor: pointer; }
-.eap-delete:hover:not(:disabled) { background: var(--stop-wash, #fbeeed); color: var(--stop, #a4453a); }
-.eap-delete:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 1px; }
-.eap-delete:disabled { opacity: .5; cursor: not-allowed; }
 @media (max-width: 700px) {
   .eap-form { grid-template-columns: 1fr; }
   .eap-parent-field { grid-column: auto; }

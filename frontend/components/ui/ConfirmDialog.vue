@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { AlertTriangle, Info, Trash2, X } from "lucide-vue-next";
 import AppTeleport from "~/components/ui/AppTeleport.vue";
@@ -6,13 +7,12 @@ import { useConfirm } from "~/composables/useConfirm";
 import { lockBodyScroll, unlockBodyScroll } from "~/utils/bodyScrollLock";
 
 /**
- * Diálogo de confirmação global no padrão visual do ConfirmDialog do PrimeVue,
- * recriado localmente (sem instalar a biblioteca).
+ * Confirmação global com ações nativas do Element Plus.
  */
 const { state, accept, cancel } = useConfirm();
 
 const card = ref<HTMLElement | null>(null);
-const cancelButton = ref<HTMLButtonElement | null>(null);
+const cancelButton = ref<InstanceType<typeof Button> | null>(null);
 let previousFocus: HTMLElement | null = null;
 let scrollLocked = false;
 
@@ -57,7 +57,7 @@ watch(
         lockBodyScroll();
       }
       await nextTick();
-      cancelButton.value?.focus();
+      (cancelButton.value?.$el as HTMLButtonElement | undefined)?.focus();
     } else {
       if (scrollLocked) {
         scrollLocked = false;
@@ -92,9 +92,9 @@ onBeforeUnmount(() => {
         >
           <header class="confirm-head">
             <h2 id="confirm-dialog-title">{{ state.title }}</h2>
-            <button type="button" class="confirm-close" aria-label="Fechar" @click="cancel">
+            <Button type="button" class="confirm-close" aria-label="Fechar" variant="ghost" size="icon-sm" @click="cancel">
               <X :size="20" aria-hidden="true" />
-            </button>
+            </Button>
           </header>
 
           <div class="confirm-body">
@@ -108,22 +108,24 @@ onBeforeUnmount(() => {
           </div>
 
           <footer class="confirm-actions">
-            <button
+            <Button
               ref="cancelButton"
               type="button"
               class="confirm-btn confirm-btn--cancel"
+              variant="outline"
               @click="cancel"
             >
               {{ state.cancelLabel }}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               class="confirm-btn"
               :class="state.tone === 'danger' ? 'confirm-btn--danger' : 'confirm-btn--primary'"
+              :variant="state.tone === 'danger' ? 'destructive' : 'default'"
               @click="accept"
             >
               {{ state.confirmLabel }}
-            </button>
+            </Button>
           </footer>
         </section>
       </div>
@@ -171,23 +173,6 @@ onBeforeUnmount(() => {
   line-height: 1.25;
 }
 
-.confirm-close {
-  display: inline-grid;
-  flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 0;
-  border-radius: 7px;
-  margin: -4px -6px 0 0;
-  background: transparent;
-  color: #95a1b1;
-  cursor: pointer;
-}
-
-.confirm-close:hover { background: #f0f4f9; color: #526176; }
-.confirm-close:focus-visible { outline: 2px solid #304f7e; outline-offset: 1px; }
-
 .confirm-body {
   display: flex;
   align-items: flex-start;
@@ -232,47 +217,6 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
-.confirm-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 102px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 750;
-  line-height: 1.2;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.confirm-btn:focus-visible { outline: 2px solid #304f7e; outline-offset: 2px; }
-
-.confirm-btn--cancel {
-  border-color: #d7e0ed;
-  background: #fff;
-  color: #3b4b63;
-}
-
-.confirm-btn--cancel:hover { background: #f5f8fc; border-color: #bccbdd; }
-
-.confirm-btn--danger {
-  border-color: #dc4b4b;
-  background: #dc4b4b;
-  color: #fff;
-}
-
-.confirm-btn--danger:hover { border-color: #c53c3c; background: #c53c3c; }
-
-.confirm-btn--primary {
-  border-color: #304f7e;
-  background: #304f7e;
-  color: #fff;
-}
-
-.confirm-btn--primary:hover { border-color: #263f66; background: #263f66; }
-
 .confirm-fade-enter-active,
 .confirm-fade-leave-active { transition: opacity 0.16s ease; }
 
@@ -288,7 +232,6 @@ onBeforeUnmount(() => {
 @media (max-width: 480px) {
   .confirm-card { padding: 18px; }
   .confirm-actions { flex-direction: column-reverse; }
-  .confirm-btn { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

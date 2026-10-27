@@ -288,15 +288,17 @@ watch(selectedId, loadSummary);
 
     <div v-else-if="!props.unitId" class="projects-empty" data-testid="project-no-unit">
       <p>Selecione ou cadastre uma unidade antes de criar um contexto.</p>
-      <button
+      <Button
         v-if="canManage"
         type="button"
         class="text-button"
         data-testid="project-goto-units"
+        variant="ghost"
+        size="sm"
         @click="emit('navigate', { section: 'catalogs', catalog: 'units' })"
       >
         Gerenciar unidades
-      </button>
+      </Button>
     </div>
 
     <template v-else>
@@ -325,18 +327,16 @@ watch(selectedId, loadSummary);
               </span>
             </button>
             <span v-if="canManage" class="project-actions">
-              <button type="button" class="text-button" :disabled="saving" @click="startEdit(item)">
+              <Button type="button" class="text-button" :disabled="saving" variant="ghost" size="sm" @click="startEdit(item)">
                 <Pencil :size="12" /> Editar
-              </button>
-              <button type="button" class="text-button" :disabled="saving" :aria-busy="togglingId === item.id" @click="toggleActive(item)">
-                <span v-if="togglingId === item.id" class="spinner-small" aria-hidden="true" />
+              </Button>
+              <Button type="button" class="text-button" :disabled="saving" :loading="togglingId === item.id" variant="ghost" size="sm" @click="toggleActive(item)">
                 {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
-              </button>
-              <button type="button" class="text-button text-button--danger" :disabled="saving" :aria-busy="deletingId === item.id" @click="remove(item)">
-                <span v-if="deletingId === item.id" class="spinner-small" aria-hidden="true" />
-                <Trash2 v-else :size="12" />
+              </Button>
+              <Button type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="destructive" size="sm" @click="remove(item)">
+                <Trash2 v-if="!(deletingId === item.id)" :size="12" />
                 {{ deletingId === item.id ? "Excluindo..." : "Excluir" }}
-              </button>
+              </Button>
             </span>
           </li>
         </ul>
@@ -373,33 +373,39 @@ watch(selectedId, loadSummary);
           <p v-if="summary.error" class="projects-error" role="alert">{{ summary.error }}</p>
           <p class="field-help">Resumo informativo. Não bloqueia o uso do contexto.</p>
           <div class="readiness-actions">
-            <button
+            <Button
               v-if="canManage"
               type="button"
               class="text-button"
               data-testid="goto-areas"
+              variant="ghost"
+              size="sm"
               @click="emit('navigate', { section: 'catalogs', catalog: 'areas' })"
             >
               Gerenciar Árvore EAP
-            </button>
-            <button
+            </Button>
+            <Button
               v-if="canManage"
               type="button"
               class="text-button"
               data-testid="goto-work-packages"
+              variant="ghost"
+              size="sm"
               @click="emit('navigate', { section: 'catalogs', catalog: 'workPackages' })"
             >
               Gerenciar Work Packages
-            </button>
-            <button
+            </Button>
+            <Button
               v-if="canManageAccess"
               type="button"
               class="text-button"
               data-testid="goto-access"
+              variant="ghost"
+              size="sm"
               @click="emit('navigate', { section: 'access' })"
             >
               Gerenciar acessos
-            </button>
+            </Button>
           </div>
         </aside>
       </div>
@@ -499,9 +505,6 @@ watch(selectedId, loadSummary);
 .status::before { width: 7px; height: 7px; border-radius: 999px; background: currentColor; content: ""; }
 .status--on { color: var(--go, #3f7a2e); }
 .status--off { color: #9aa6b5; }
-.text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: var(--steel, #304f7e); font-size: 11.5px; font-weight: 750; cursor: pointer; }
-.text-button:hover:not(:disabled) { text-decoration: underline; }
-.text-button--danger { color: var(--stop, #a4453a); }
 
 /* Preparação: checklist da obra selecionada */
 .readiness { position: sticky; top: 0; display: grid; gap: 10px; border-radius: 12px; padding: 14px 16px; background: var(--wash, #f3f6fb); }

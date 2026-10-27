@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed, ref } from "vue";
 import {
   Activity,
@@ -159,9 +160,9 @@ onMounted(load);
         <p>{{ error }}</p>
       </div>
 
-      <button type="button" class="retry-button" @click="load">
+      <Button type="button" class="retry-button" variant="ghost" @click="load">
         Tentar novamente
-      </button>
+      </Button>
     </div>
 
     <div
@@ -689,32 +690,6 @@ onMounted(load);
 
   font-size: 10.5px;
   line-height: 1.45;
-}
-
-.retry-button {
-  display: inline-flex;
-  min-height: 31px;
-  align-items: center;
-
-  padding: 6px 10px;
-
-  border: 1px solid #d7dee7;
-  border-radius: 7px;
-
-  background: #ffffff;
-  color: #5e7086;
-
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 700;
-
-  cursor: pointer;
-}
-
-.retry-button:hover {
-  border-color: #bdc9d7;
-  background: #f6f8fb;
-  color: #304f7e;
 }
 
 /* =========================================================

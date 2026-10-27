@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed, ref } from "vue";
 import {
   AlertTriangle,
@@ -156,15 +157,16 @@ async function confirmRevoke(): Promise<void> {
       </p>
 
       <div v-if="canOperate" class="requirement-actions">
-        <button
+        <Button
           type="button"
-          class="btn small"
           :data-testid="`waive-${group.code}`"
+          variant="outline"
+          size="sm"
           @click="openWaive"
         >
           <CircleOff :size="14" />
           Não possui {{ group.label.toLowerCase() }}
-        </button>
+        </Button>
       </div>
     </div>
   </section>
@@ -234,16 +236,24 @@ async function confirmRevoke(): Promise<void> {
           {{ expanded ? "Ocultar justificativa" : "Ver justificativa" }}
         </button>
 
-        <button
+        <Button
+
           v-if="canOperate"
+
           type="button"
+
           class="revoke-action"
+
           :data-testid="`revoke-waiver-${waiver.requirementGroupCode}`"
+
+          variant="destructive"
+
           @click="openRevoke"
+
         >
           <RotateCcw :size="13" />
           Revogar dispensa
-        </button>
+        </Button>
       </div>
 
       <Transition name="waiver-expand">
@@ -308,24 +318,28 @@ async function confirmRevoke(): Promise<void> {
       </p>
 
       <div class="form-actions">
-        <button
+        <Button
           type="button"
-          class="btn"
           :disabled="busy"
+          variant="outline"
           @click="showWaiveModal = false"
         >
           Cancelar
-        </button>
+        </Button>
 
-        <button
+        <Button
+
           type="submit"
-          class="btn primary"
+
           :disabled="!justification.trim() || busy"
-          :aria-busy="busy"
+
+          :loading="busy"
+
+          variant="default"
+
         >
-          <span v-if="busy" class="spinner-small" aria-hidden="true" />
           {{ busy ? "Salvando..." : "Confirmar dispensa" }}
-        </button>
+        </Button>
       </div>
     </form>
   </AppModal>
@@ -365,19 +379,18 @@ async function confirmRevoke(): Promise<void> {
       </p>
 
       <div class="form-actions">
-        <button
+        <Button
           type="button"
-          class="btn"
           :disabled="busy"
+          variant="outline"
           @click="showRevokeModal = false"
         >
           Cancelar
-        </button>
+        </Button>
 
-        <button type="submit" class="btn danger-primary" :disabled="busy" :aria-busy="busy">
-          <span v-if="busy" class="spinner-small" aria-hidden="true" />
+        <Button type="submit" :disabled="busy" :loading="busy" variant="destructive">
           {{ busy ? "Salvando..." : "Revogar dispensa" }}
-        </button>
+        </Button>
       </div>
     </form>
   </AppModal>
@@ -560,8 +573,7 @@ async function confirmRevoke(): Promise<void> {
   padding-top: 2px;
 }
 
-.justification-toggle,
-.revoke-action {
+.justification-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -578,16 +590,8 @@ async function confirmRevoke(): Promise<void> {
   color: #304f7e;
 }
 
-.revoke-action {
-  color: #a4453a;
-}
-
 .justification-toggle:hover {
   color: #233f68;
-}
-
-.revoke-action:hover {
-  color: #8f392f;
 }
 
 .justification-toggle svg {

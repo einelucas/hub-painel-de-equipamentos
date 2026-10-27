@@ -21,6 +21,17 @@
   --el-border-radius-round: 20px;
 }
 
+/* Shared spacing only; button variants and states keep Element Plus styling. */
+.el-button + .el-button { margin-left: 0; }
+.el-button > span { gap: 6px; }
+.el-select { width: 100%; }
+.hub-select-popper .el-select-dropdown__item { height: auto; min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .el-icon.is-loading { animation: none; }
+  .el-skeleton.is-animated .el-skeleton__item { animation: none; }
+}
+
 /* ===== AppModal (ElDialog re-skinado no padrão do Hub) =====
    O CSS scoped do AppModal não alcança os elementos internos do ElDialog —
    a cadeia Teleport/Transition do EP não leva o atributo de escopo. As

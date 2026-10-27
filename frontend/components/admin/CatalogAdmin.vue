@@ -255,18 +255,16 @@ watch(
             {{ item.active ? "Ativo" : "Inativo" }}
           </span>
           <span class="catalog-actions">
-            <button type="button" class="text-button" :disabled="saving" @click="startEdit(item)">
+            <Button type="button" class="text-button" :disabled="saving" variant="ghost" size="sm" @click="startEdit(item)">
               <Pencil :size="12" /> Editar
-            </button>
-            <button type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" :aria-busy="togglingId === item.id" @click="toggleActive(item)">
-              <span v-if="togglingId === item.id" class="spinner-small" aria-hidden="true" />
+            </Button>
+            <Button type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" :loading="togglingId === item.id" variant="ghost" size="sm" @click="toggleActive(item)">
               {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
-            </button>
-            <button type="button" class="text-button text-button--danger" :disabled="saving" :aria-busy="deletingId === item.id" @click="remove(item)">
-              <span v-if="deletingId === item.id" class="spinner-small" aria-hidden="true" />
-              <Trash2 v-else :size="12" />
+            </Button>
+            <Button type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="destructive" size="sm" @click="remove(item)">
+              <Trash2 v-if="!(deletingId === item.id)" :size="12" />
               {{ deletingId === item.id ? "Excluindo..." : "Excluir" }}
-            </button>
+            </Button>
           </span>
         </li>
       </ul>
@@ -370,11 +368,6 @@ watch(
 .status--on { color: var(--go, #3f7a2e); }
 .status--off { color: #9aa6b5; }
 .catalog-actions { display: flex; align-items: center; gap: 12px; }
-.text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: var(--steel, #304f7e); font-size: 11.5px; font-weight: 750; cursor: pointer; }
-.text-button--quiet { color: var(--muted, #6b7a8f); }
-.text-button--danger { color: var(--stop, #a4453a); }
-.text-button--danger:hover:not(:disabled) { color: #8d2f26; }
-.text-button:hover:not(:disabled) { text-decoration: underline; }
 @media (max-width: 640px) {
   .catalog-form { grid-template-columns: 1fr; }
   .catalog-list li { grid-template-columns: auto minmax(0, 1fr); }

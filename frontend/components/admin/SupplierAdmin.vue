@@ -229,20 +229,21 @@ watch(
             {{ supplier.active ? "Ativo" : "Inativo" }}
           </span>
           <span class="supplier-actions">
-            <button type="button" class="text-button" :disabled="saving" @click="startEdit(supplier)">
+            <Button type="button" class="text-button" :disabled="saving" variant="ghost" size="sm" @click="startEdit(supplier)">
               <Pencil :size="12" /> Editar
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               class="text-button"
               :class="{ 'text-button--quiet': supplier.active }"
               :disabled="saving"
-              :aria-busy="togglingId === supplier.id"
+              :loading="togglingId === supplier.id"
+              variant="ghost"
+              size="sm"
               @click="toggleActive(supplier)"
             >
-              <span v-if="togglingId === supplier.id" class="spinner-small" aria-hidden="true" />
               {{ togglingId === supplier.id ? "Salvando..." : supplier.active ? "Desativar" : "Reativar" }}
-            </button>
+            </Button>
           </span>
         </li>
         <li v-if="hasMore" ref="sentinel" class="supplier-sentinel" data-testid="supplier-sentinel">
@@ -326,9 +327,6 @@ watch(
 .status--on { color: var(--go, #3f7a2e); }
 .status--off { color: #9aa6b5; }
 .supplier-actions { display: flex; align-items: center; gap: 12px; }
-.text-button { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px; background: transparent; color: var(--steel, #304f7e); font-size: 11.5px; font-weight: 750; cursor: pointer; }
-.text-button--quiet { color: var(--muted, #6b7a8f); }
-.text-button:hover:not(:disabled) { text-decoration: underline; }
 
 .supplier-shown { margin: -4px 0 0; color: var(--muted, #6b7a8f); font-family: var(--mono, monospace); font-size: 11px; }
 .supplier-list li.supplier-sentinel { display: flex; justify-content: center; gap: 8px; color: var(--muted, #6b7a8f); font-size: 12px; }

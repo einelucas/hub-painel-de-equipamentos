@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { ElProgress } from "element-plus";
 
 /**
@@ -39,12 +39,14 @@ const props = withDefaults(
 const elapsed = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-onMounted(() => {
-  if (!props.showElapsed) return;
-  timer = setInterval(() => {
-    elapsed.value += 1;
-  }, 1000);
-});
+watch(() => [props.uploading, props.showElapsed] as const, ([uploading, showElapsed]) => {
+  if (timer) clearInterval(timer);
+  timer = null;
+  elapsed.value = 0;
+  if (!uploading && showElapsed) {
+    timer = setInterval(() => { elapsed.value += 1; }, 1000);
+  }
+}, { immediate: true });
 onUnmounted(() => {
   if (timer) clearInterval(timer);
   timer = null;

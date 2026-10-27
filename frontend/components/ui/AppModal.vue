@@ -72,7 +72,8 @@ function bindOverlayMousedown(): void {
   const overlay = bodyEl.value?.closest<HTMLElement>(".el-overlay");
   if (!overlay) return;
   const onBackdropMousedown = (event: MouseEvent): void => {
-    if (event.target === overlay && props.dismissableMask) requestClose();
+    const target = event.target as HTMLElement;
+    if ((target === overlay || target.classList.contains("el-overlay-dialog")) && props.dismissableMask) requestClose();
   };
   overlay.addEventListener("mousedown", onBackdropMousedown);
   overlayCleanup = () => overlay.removeEventListener("mousedown", onBackdropMousedown);

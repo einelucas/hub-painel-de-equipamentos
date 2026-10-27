@@ -107,15 +107,17 @@ const groups = computed(() => [
     <section v-for="group in groups" :key="group.title" class="process-group">
       <div class="process-group-header">
         <h3>{{ group.title }}</h3>
-        <button
+        <Button
           v-if="editable && !editing[group.resource]"
           type="button"
           class="text-button"
           :data-testid="`edit-${group.resource}`"
+          variant="ghost"
+          size="sm"
           @click="startEdit(group.resource)"
         >
           Editar
-        </button>
+        </Button>
       </div>
 
       <div v-if="!editing[group.resource]" class="process-fields">
@@ -160,8 +162,6 @@ const groups = computed(() => [
 .process-summary { display: grid; gap: 20px; }
 .process-group-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; }
 .process-group h3 { margin: 0; color: #2b3e58; font-size: 12px; font-weight: 800; }
-.text-button { color: #304f7e; font-size: 12px; font-weight: 750; text-decoration: none; background: none; border: none; cursor: pointer; padding: 0; }
-.text-button:hover { text-decoration: underline; }
 .process-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .detail-field { display: grid; align-content: start; gap: 5px; }
 .detail-field > span { color: #7a879a; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }

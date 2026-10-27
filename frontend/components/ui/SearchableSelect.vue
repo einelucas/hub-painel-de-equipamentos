@@ -150,6 +150,7 @@ watch(
       tabindex="-1"
       aria-hidden="true"
       :required="true"
+      :disabled="props.disabled"
       :value="isEmpty ? '' : props.modelValue"
       @invalid="onInvalid"
     >
@@ -212,54 +213,6 @@ watch(
   pointer-events: none;
 }
 
-.searchable-select :deep(.el-select__wrapper) {
-  min-height: 39px;
-  border-radius: 9px;
-  padding: 0 9px;
-  background: #fff;
-  box-shadow: 0 0 0 1px #d8e1ec inset;
-  font-size: 12px;
-}
-
-.searchable-select :deep(.el-select__wrapper.is-focused) {
-  box-shadow:
-    0 0 0 1px #5277aa inset,
-    0 0 0 2px rgb(82 119 170 / 12%);
-}
-
-.searchable-select :deep(.el-select__wrapper.is-disabled) {
-  background: #f6f7f9;
-  box-shadow: 0 0 0 1px #dfe5ed inset;
-}
-
-.searchable-select :deep(.el-select__selected-item),
-.searchable-select :deep(.el-select__placeholder) {
-  color: #263d5d;
-}
-
-.searchable-select :deep(.el-select__placeholder.is-transparent) {
-  color: #718096;
-}
-
-.searchable-select__option {
-  display: grid;
-  min-width: 0;
-  gap: 1px;
-}
-
-.searchable-select__option strong {
-  overflow: hidden;
-  font-size: 12px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.searchable-select__option small {
-  overflow: hidden;
-  color: #718096;
-  font-size: 10.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.searchable-select__option { display: grid; gap: 2px; }
+.searchable-select__option small { color: var(--el-text-color-secondary); font-size: 12px; }
 </style>

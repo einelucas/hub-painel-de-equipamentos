@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed, ref, watch } from "vue";
 import { Check, ChevronDown, ChevronRight, Search } from "lucide-vue-next";
 
@@ -137,7 +138,7 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <AppModal :open="open" title="Nova obra" size="wide" @close="close">
+  <AppModal :open="open" title="Nova obra" size="wide" :busy="saving" @close="close">
     <div class="project-wizard" data-testid="new-project-wizard">
       <ol class="steps" aria-label="Etapas de criação de obra">
         <li v-for="(item, index) in STEPS" :key="item" :class="{ current: index === step, done: index < step }">
@@ -202,8 +203,8 @@ async function submit(): Promise<void> {
           <div v-for="equipment in selectedModels" :key="equipment.id" class="area-group">
             <div class="area-title">{{ equipment.name }} <small>{{ (selected[equipment.id] ?? []).length }}/{{ equipment.components.length }}</small></div>
             <div class="component-actions">
-              <button type="button" @click="allComponents(equipment, true)">Selecionar todos</button>
-              <button type="button" @click="allComponents(equipment, false)">Limpar</button>
+              <Button type="button" variant="ghost" @click="allComponents(equipment, true)">Selecionar todos</Button>
+              <Button type="button" variant="ghost" @click="allComponents(equipment, false)">Limpar</Button>
             </div>
             <p v-if="!equipment.components.length" class="hint">Sem componentes cadastrados no catálogo.</p>
             <div class="equipment-list">
@@ -230,9 +231,9 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
           <p class="hint">TAGs, EAP, prazos, fornecedores e demais informações operacionais serão preenchidos depois na obra.</p>
         </section>
         <footer class="wizard-footer">
-          <button type="button" class="secondary" :disabled="saving" @click="step === 0 ? close() : previous()">{{ step === 0 ? "Cancelar" : "Voltar" }}</button>
-          <button v-if="step < 3" type="button" class="primary" :disabled="!canContinue" @click="next">Continuar</button>
-          <button v-else type="button" class="primary" :disabled="saving" data-testid="create-project-submit" @click="submit">{{ saving ? "Criando..." : "Criar obra" }}</button>
+          <Button type="button" :disabled="saving" variant="outline" @click="step === 0 ? close() : previous()">{{ step === 0 ? "Cancelar" : "Voltar" }}</Button>
+          <Button v-if="step < 3" type="button" :disabled="!canContinue" variant="default" @click="next">Continuar</Button>
+          <Button v-else type="button" :disabled="saving" data-testid="create-project-submit" variant="default" :loading="saving" @click="submit">{{ saving ? "Criando..." : "Criar obra" }}</Button>
         </footer>
       </template>
     </div>
@@ -264,7 +265,7 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
 .check-row:hover { background: #f6f8fb; }
 .check-row input { width: 16px; height: 16px; accent-color: #304f7e; }
 .component-actions { display: flex; gap: 14px; padding: 8px 12px 0; }
-.component-actions button { border: none; background: transparent; font-size: 12px; color: #304f7e; text-decoration: underline; cursor: pointer; }
+
 .review-line { padding: 10px 14px; border: 1px solid #e0e7f1; border-radius: 9px; display: grid; gap: 4px; font-size: 13px; }
 .review-line > span { color: #75849b; }
 .review-line ul { margin: 4px 0 0 15px; padding: 0; color: #677b92; font-size: 12px; }
@@ -273,9 +274,9 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
 .message { font-size: 13px; color: #476789; }
 .error { padding: 10px; color: #a43e33; background: #fff2f0; border-radius: 9px; }
 .wizard-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; border-top: 1px solid #e0e7f1; }
-.wizard-footer button { padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
-.secondary { background: #fff; border: 1px solid #d4dfed; color: #304f7e; }
-.primary { background: #304f7e; border: 1px solid #304f7e; color: white; }
-button:disabled { opacity: .5; cursor: not-allowed; }
+
+
+
+
 @media (max-width: 660px) { .steps { grid-template-columns: repeat(2, 1fr); } .project-wizard { max-height: 78vh; } }
 </style>

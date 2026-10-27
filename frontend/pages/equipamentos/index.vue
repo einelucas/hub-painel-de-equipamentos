@@ -425,8 +425,8 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div v-if="loading" class="queue-state" role="status" aria-busy="true">
-          <span class="spinner" aria-hidden="true" /> Carregando equipamentos...
+        <div v-if="loading" class="initial-table-loading" role="status" aria-busy="true">
+          <span class="sr-only">Carregando equipamentos...</span><SkeletonBlock :rows="6" />
         </div>
         <div v-else-if="error" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2>
@@ -472,6 +472,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.initial-table-loading { padding: 18px; min-height: 260px; }
 .state-card {
   max-width: none;
 }

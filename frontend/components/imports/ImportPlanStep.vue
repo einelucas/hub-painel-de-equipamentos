@@ -127,9 +127,9 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             <p>Correspondências exatas da origem vêm pré-selecionadas; recomendações históricas continuam sob sua revisão.</p>
           </div>
           <div class="supplier-review-actions">
-            <button type="button" class="btn small" :disabled="!hasRecommendations" @click="useAllRecommended">
+            <Button type="button" :disabled="!hasRecommendations" variant="outline" size="sm" @click="useAllRecommended">
               Usar recomendado em todos
-            </button>
+            </Button>
             <NuxtLink class="btn small" to="/fornecedores">+ Cadastrar fornecedor</NuxtLink>
           </div>
         </div>
@@ -144,14 +144,15 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             <small v-if="item.requiresRegistration">Referência ainda não cadastrada como Supplier global.</small>
           </div>
           <div class="supplier-choice">
-            <button
+            <Button
               type="button"
               class="recommended-button"
               :disabled="!item.supplierId"
+              variant="outline"
               @click="useRecommended(item)"
             >
               Usar recomendado
-            </button>
+            </Button>
             <SupplierCombobox
               :model-value="selectionValue(item)"
               :suppliers="suppliers"
@@ -161,10 +162,9 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             />
           </div>
         </article>
-        <button v-if="mappingDirty" type="button" class="btn" :disabled="busy" :aria-busy="busy" @click="buildPlan">
-          <span v-if="busy" class="spinner-small" aria-hidden="true" />
+        <Button v-if="mappingDirty" type="button" :disabled="busy" :loading="busy" variant="outline" @click="buildPlan">
           {{ busy ? "Atualizando plano..." : "Atualizar plano com as decisões" }}
-        </button>
+        </Button>
       </section>
 
       <section v-if="equipmentWarnings.length" class="callout callout--caution" data-testid="plan-equipment-warnings">
@@ -234,8 +234,6 @@ p.callout { margin: 0; }
 .supplier-suggestion strong { color: var(--ink); }
 .supplier-suggestion small { color: var(--muted); }
 .supplier-choice { display: grid; align-content: start; gap: 6px; }
-.recommended-button { justify-self: end; border: 0; padding: 2px 1px; background: transparent; color: var(--steel); font-size: 11px; font-weight: 750; cursor: pointer; }
-.recommended-button:disabled { color: #9aa6b5; cursor: default; }
 
 /* Resumo final: a última coisa lida antes de confirmar a gravação. */
 .confirm {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed, ref } from "vue";
 import { Ban, Pause, Play, RotateCcw, Wrench } from "lucide-vue-next";
 import type { OperationalStatus } from "~/types/equipment";
@@ -75,39 +76,56 @@ async function confirmEndSanitation(text: string): Promise<void> {
       <!-- Estado normal -->
       <div v-if="isActive" class="actions-row">
         <div class="actions-main">
-          <button
+          <Button
             class="action-button"
             type="button"
             :disabled="busy"
             data-testid="standby-button"
+            variant="outline"
             @click="showStandby = true"
           >
             <Pause :size="16" :stroke-width="1.8" />
             <span>Colocar em Standby</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
+
             class="action-button"
+
             type="button"
+
             :disabled="busy"
+
             data-testid="sanitation-button"
+
+            variant="outline"
+
             @click="showSanitation = true"
+
           >
             <Wrench :size="16" :stroke-width="1.8" />
             <span>Colocar em Saneamento</span>
-          </button>
+          </Button>
         </div>
 
-        <button
+        <Button
+
           class="action-button action-button--danger"
+
           type="button"
+
           :disabled="busy"
+
           data-testid="cancel-button"
+
+          variant="destructive"
+
           @click="showCancel = true"
+
         >
           <Ban :size="16" :stroke-width="1.8" />
           <span>Cancelar equipamento</span>
-        </button>
+        </Button>
       </div>
 
       <!-- Standby -->
@@ -117,16 +135,24 @@ async function confirmEndSanitation(text: string): Promise<void> {
           <span> O processo está pausado na etapa atual. </span>
         </div>
 
-        <button
+        <Button
+
           class="action-button action-button--primary"
+
           type="button"
+
           :disabled="busy"
+
           data-testid="lift-standby-button"
+
+          variant="default"
+
           @click="showLiftStandby = true"
+
         >
           <Play :size="16" :stroke-width="1.8" />
           <span>Retomar processo</span>
-        </button>
+        </Button>
       </div>
 
       <!-- Saneamento -->
@@ -141,16 +167,24 @@ async function confirmEndSanitation(text: string): Promise<void> {
           </span>
         </div>
 
-        <button
+        <Button
+
           class="action-button action-button--primary"
+
           type="button"
+
           :disabled="busy"
+
           data-testid="end-sanitation-button"
+
+          variant="default"
+
           @click="showEndSanitation = true"
+
         >
           <RotateCcw :size="16" :stroke-width="1.8" />
           <span>Encerrar saneamento</span>
-        </button>
+        </Button>
       </div>
 
       <!-- Cancelado -->
@@ -265,76 +299,6 @@ async function confirmEndSanitation(text: string): Promise<void> {
   gap: 8px;
 }
 
-/* Botão */
-
-.action-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  min-height: 38px;
-  padding: 0 14px;
-
-  border: 1px solid #d9e1eb;
-  border-radius: 8px;
-
-  background: #fff;
-  color: #263d5a;
-
-  font: inherit;
-  font-size: 12px;
-  font-weight: 650;
-
-  cursor: pointer;
-
-  transition:
-    border-color 140ms ease,
-    background-color 140ms ease,
-    color 140ms ease;
-}
-
-.action-button:hover:not(:disabled) {
-  border-color: #afbdcd;
-  background: #f8fafc;
-}
-
-.action-button:focus-visible {
-  outline: 2px solid #8da9ca;
-  outline-offset: 2px;
-}
-
-.action-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Principal */
-
-.action-button--primary {
-  border-color: #304f7e;
-  background: #304f7e;
-  color: #fff;
-}
-
-.action-button--primary:hover:not(:disabled) {
-  border-color: #29466f;
-  background: #29466f;
-}
-
-/* Destrutivo */
-
-.action-button--danger {
-  border-color: #e7c3be;
-  color: #a4453a;
-}
-
-.action-button--danger:hover:not(:disabled) {
-  border-color: #dba59d;
-  background: #fff8f7;
-  color: #963b32;
-}
-
 /* Estado operacional */
 
 .status-action {
@@ -396,14 +360,6 @@ async function confirmEndSanitation(text: string): Promise<void> {
 
   .actions-main {
     flex-direction: column;
-  }
-
-  .action-button {
-    width: 100%;
-  }
-
-  .action-button--danger {
-    margin-top: 4px;
   }
 }
 .busy-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; color: #65748a; font-size: 12px; }

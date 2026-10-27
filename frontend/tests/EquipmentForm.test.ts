@@ -150,8 +150,8 @@ describe("EquipmentForm", () => {
     expect(eapMenu?.textContent).toContain("04.A · Casa de Força");
     expect(eapMenu?.textContent).not.toContain("UTI · Utilidades");
 
-    expect(wrapper.findAll("[aria-label^='Remover CAL']")).toHaveLength(3);
-    expect(wrapper.findAll("[aria-label^='Remover CIV']")).toHaveLength(3);
+    expect(wrapper.findAll(".el-tag").filter(tag => tag.text().startsWith("CAL"))).toHaveLength(3);
+    expect(wrapper.findAll(".el-tag").filter(tag => tag.text().startsWith("CIV"))).toHaveLength(3);
 
     await wrapper.get("form").trigger("submit");
     expect(patch).toHaveBeenCalledWith(

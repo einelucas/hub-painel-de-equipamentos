@@ -169,9 +169,9 @@ onMounted(() => {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <button v-if="canWrite" class="text-button" @click="openEdit(supplier)">
+                  <Button v-if="canWrite" class="text-button" variant="ghost" size="sm" @click="openEdit(supplier)">
                     <Pencil :size="13" /> Editar
-                  </button>
+                  </Button>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -221,6 +221,5 @@ onMounted(() => {
 .status { border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 750; }
 .status--on { background: #eaf4e5; color: #477a32; }
 .status--off { background: #eef2f7; color: #6b7a8f; }
-.text-button { display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
 @media (max-width: 860px) { .filter-grid { grid-template-columns: 1fr; } .list-card { height: calc(100vh - 200px); } }
 </style>

@@ -92,14 +92,16 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
               <TableCell>{{ formatDateOnly(component.contractDeliveryAt) }}</TableCell>
               <TableCell>{{ component.freightDays === null ? "—" : `${component.freightDays} dias` }}</TableCell>
               <TableCell class="component-actions">
-                <button
+                <Button
                   class="text-button"
                   :data-testid="`toggle-deadlines-${component.id}`"
+                  variant="ghost"
+                  size="sm"
                   @click="toggleComponentDeadlines(component.id)"
                 >
                   {{ expandedComponentId === component.id ? "Ocultar prazos" : "Prazos calculados" }}
-                </button>
-                <button v-if="canEdit" class="text-button" @click="editComponent(component)">Editar</button>
+                </Button>
+                <Button v-if="canEdit" class="text-button" variant="ghost" size="sm" @click="editComponent(component)">Editar</Button>
               </TableCell>
             </TableRow>
             <TableRow v-if="expandedComponentId === component.id" class="deadlines-row">
@@ -139,6 +141,4 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
 .deadlines-row { background: #fafbfc; }
 .deadlines-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 18px; padding: 6px 4px; }
 @media (max-width: 900px) { .deadlines-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.text-button { border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
-.text-button.danger { color: #a4453a; }
 </style>

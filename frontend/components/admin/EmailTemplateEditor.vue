@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { ref } from "vue";
 import { Code2, RotateCcw, Save, Sparkles } from "lucide-vue-next";
 import EmailTemplateSettings from "~/components/admin/EmailTemplateSettings.vue";
@@ -171,18 +172,18 @@ function toggleAdvanced(): void {
         </label>
         <EmailTemplateVariables @insert="insertToken" />
       </template>
-      <button v-else type="button" class="btn small tpl-html-enable" @click="toggleAdvanced">
+      <Button v-else type="button" class="tpl-html-enable" variant="outline" size="sm" @click="toggleAdvanced">
         <Code2 :size="14" /> Ativar HTML avançado
-      </button>
+      </Button>
     </template>
 
     <div class="tpl-editor-actions">
-      <button type="button" class="btn primary small" :disabled="busy" @click="emit('save')">
+      <Button type="button" :disabled="busy" variant="default" size="sm" @click="emit('save')">
         <Save :size="14" /> {{ busy ? "Salvando..." : "Salvar alterações" }}
-      </button>
-      <button type="button" class="btn small" :disabled="busy" @click="emit('reset')">
+      </Button>
+      <Button type="button" :disabled="busy" variant="outline" size="sm" @click="emit('reset')">
         <RotateCcw :size="14" /> Restaurar padrão
-      </button>
+      </Button>
       <button
         type="button"
         class="tpl-advanced-toggle"

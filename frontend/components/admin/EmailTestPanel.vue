@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed, ref, watch } from "vue";
 import { FlaskConical, Search, Send } from "lucide-vue-next";
 import type {
@@ -114,14 +115,21 @@ watch(
       </label>
     </template>
 
-    <button
+    <Button
+
       type="button"
-      class="btn primary small"
+
       :disabled="disabled"
+
+      variant="default"
+
+      size="sm"
+
       @click="emit('send', provider)"
+
     >
       <Send :size="14" /> {{ busy ? "Enviando..." : "Enviar e-mail de teste" }}
-    </button>
+    </Button>
   </section>
 </template>
 
@@ -136,6 +144,6 @@ watch(
 .tpl-check input { margin-top: 2px; accent-color: #304f7e; }
 .tpl-check span { display: grid; gap: 1px; }
 .tpl-check small { color: #92620f; font-size: 10px; }
-.tpl-test .btn { justify-self: start; }
+.tpl-test .el-button { justify-self: start; }
 @media (max-width: 700px) { .tpl-test-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>

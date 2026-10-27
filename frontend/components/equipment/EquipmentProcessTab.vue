@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
 import { ArrowRight } from "lucide-vue-next";
 import type {
@@ -81,7 +82,7 @@ async function advanceStage(): Promise<void> {
   <div v-else-if="error" class="surface empty-state detail-state" role="alert">
     <h2>Processo indisponível</h2>
     <p>{{ error }}</p>
-    <button class="btn" @click="reloadProcess">Tentar novamente</button>
+    <Button variant="outline" @click="reloadProcess">Tentar novamente</Button>
   </div>
   <template v-else-if="processes">
     <div class="process-layout">
@@ -133,18 +134,18 @@ async function advanceStage(): Promise<void> {
           <p v-else class="requirements-final">
             Processo concluído — não há próxima etapa.
           </p>
-          <button
+          <Button
             v-if="advance"
-            class="btn primary advance-button"
+            class="advance-button"
             :disabled="!advance.canExecute || advancing"
-            :aria-busy="advancing"
+            :loading="advancing"
             data-testid="advance-button"
+            variant="default"
             @click="advanceStage"
           >
-            <span v-if="advancing" class="spinner-small" aria-hidden="true" />
             {{ advancing ? "Processando..." : advanceLabel
             }}<ArrowRight v-if="!advancing" :size="15" />
-          </button>
+          </Button>
         </div>
       </section>
     </div>

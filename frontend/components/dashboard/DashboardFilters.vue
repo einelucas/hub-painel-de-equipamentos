@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
 import { X } from "lucide-vue-next";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -75,15 +76,16 @@ function onDiscipline(value: string): void {
         @change="onDiscipline"
       />
     </div>
-    <button
+    <Button
       v-if="hasActive"
       type="button"
       class="clear-filters"
       data-testid="dashboard-filters-clear"
+      variant="ghost"
       @click="emit('clear')"
     >
       <X :size="13" /> Limpar filtros
-    </button>
+    </Button>
   </div>
 </template>
 
@@ -91,21 +93,5 @@ function onDiscipline(value: string): void {
 /* display: contents deixa cada campo ser um item próprio da barra de filtros (quebra de linha responsiva). */
 .dashboard-filters { display: contents; }
 .field { flex: 1 1 170px; }
-.clear-filters {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-self: flex-end;
-  align-items: center;
-  gap: 5px;
-  min-height: 39px;
-  border: 0;
-  padding: 0 4px;
-  background: transparent;
-  color: #304f7e;
-  font-size: 12px;
-  font-weight: 750;
-  cursor: pointer;
-}
-.clear-filters:hover { text-decoration: underline; }
 @media (max-width: 640px) { .field { flex-basis: 100%; } }
 </style>

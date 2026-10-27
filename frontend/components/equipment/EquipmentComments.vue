@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed, ref } from "vue";
 import {
   Eye,
@@ -218,9 +219,9 @@ onMounted(load);
         <strong>Não foi possível carregar</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" class="ghost-btn" @click="load">
+      <Button type="button" class="ghost-btn" variant="outline" @click="load">
         Tentar novamente
-      </button>
+      </Button>
     </div>
 
     <template v-else>
@@ -252,15 +253,22 @@ onMounted(load);
               {{ remainingCharacters }} caracteres restantes
             </span>
 
-            <button
+            <Button
+
               type="submit"
+
               class="primary-btn"
+
               :disabled="!newText.trim() || busy"
+
               data-testid="comment-submit"
+
+              variant="default"
+
             >
               <SendHorizontal :size="14" />
               {{ busy ? "Publicando..." : "Comentar" }}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -323,25 +331,35 @@ onMounted(load);
               </div>
 
               <div class="comment-top-actions">
-                <button
+                <Button
                   type="button"
                   class="icon-btn"
                   aria-label="Curtir comentário"
+                  variant="ghost"
+                  size="icon-sm"
                 >
                   <Heart :size="15" />
-                </button>
+                </Button>
 
-                <button
+                <Button
+
                   type="button"
+
                   class="icon-btn"
+
                   aria-label="Responder comentário"
+
+                  variant="ghost"
+
+                  size="icon-sm"
+
                 >
                   <Reply :size="15" />
-                </button>
+                </Button>
 
-                <button type="button" class="icon-btn" aria-label="Mais ações">
+                <Button type="button" class="icon-btn" aria-label="Mais ações" variant="ghost" size="icon-sm">
                   <MoreHorizontal :size="15" />
-                </button>
+                </Button>
               </div>
             </header>
 
@@ -364,23 +382,31 @@ onMounted(load);
                   </span>
 
                   <div class="inline-actions">
-                    <button
+                    <Button
                       type="button"
                       class="ghost-btn"
                       :disabled="busy"
+                      variant="outline"
                       @click="cancelEdit"
                     >
                       Cancelar
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
+
                       type="button"
+
                       class="primary-btn"
+
                       :disabled="!editingText.trim() || busy"
+
+                      variant="default"
+
                       @click="saveEdit(item)"
+
                     >
                       {{ busy ? "Salvando..." : "Salvar" }}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -398,39 +424,50 @@ onMounted(load);
 
           <div class="comment-card-footer">
             <div class="footer-actions">
-              <button type="button" class="footer-action">
+              <Button type="button" class="footer-action" variant="ghost" size="sm">
                 <Heart :size="15" />
                 Curtir
-              </button>
+              </Button>
 
-              <button type="button" class="footer-action">
+              <Button type="button" class="footer-action" variant="ghost" size="sm">
                 <Reply :size="15" />
                 Responder
-              </button>
+              </Button>
 
               <template
                 v-if="
                   isOwn(item) && editingId !== item.id && deletingId !== item.id
                 "
               >
-                <button
+                <Button
                   type="button"
                   class="footer-action"
+                  variant="ghost"
+                  size="sm"
                   @click="startEdit(item)"
                 >
                   <Pencil :size="15" />
                   Editar
-                </button>
+                </Button>
 
-                <button
+                <Button
+
                   type="button"
+
                   class="footer-action footer-action--danger"
+
                   :disabled="busy"
+
+                  variant="destructive"
+
+                  size="sm"
+
                   @click="requestDelete(item)"
+
                 >
                   <Trash2 :size="15" />
                   Excluir
-                </button>
+                </Button>
               </template>
             </div>
           </div>
@@ -442,25 +479,33 @@ onMounted(load);
             </div>
 
             <div class="inline-actions">
-              <button
+              <Button
                 type="button"
                 class="ghost-btn"
                 :disabled="busy"
+                variant="outline"
                 @click="cancelDelete"
               >
                 <X :size="14" />
                 Cancelar
-              </button>
+              </Button>
 
-              <button
+              <Button
+
                 type="button"
+
                 class="danger-btn"
+
                 :disabled="busy"
+
+                variant="destructive"
+
                 @click="remove(item)"
+
               >
                 <Trash2 :size="14" />
                 {{ busy ? "Excluindo..." : "Excluir" }}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -484,6 +529,8 @@ onMounted(load);
 </template>
 
 <style scoped>
+.footer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 640px) { .footer-actions { width: 100%; } .footer-actions .el-button { flex: 1 1 auto; } }
 .comments-board {
   display: grid;
   gap: 18px;
@@ -666,74 +713,6 @@ onMounted(load);
 
   background: #f1f4f8;
   color: #73839a;
-}
-
-/* =========================================================
-   GLOBAL BUTTONS
-   ========================================================= */
-
-.primary-btn,
-.ghost-btn,
-.danger-btn {
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-
-  padding: 7px 12px;
-
-  border-radius: 9px;
-
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
-
-  transition:
-    transform 0.15s ease,
-    opacity 0.15s ease,
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.primary-btn {
-  border: 1px solid #304f7e;
-  background: #304f7e;
-  color: #ffffff;
-}
-
-.primary-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: #29456f;
-}
-
-.ghost-btn {
-  border: 1px solid #d9e0e9;
-  background: #ffffff;
-  color: #617187;
-}
-
-.ghost-btn:hover:not(:disabled) {
-  background: #f1f4f8;
-}
-
-.danger-btn {
-  border: 1px solid #ca6d67;
-  background: #bf5e58;
-  color: #fff;
-}
-
-.danger-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: #cb6a64;
-}
-
-.primary-btn:disabled,
-.ghost-btn:disabled,
-.danger-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
 }
 
 /* =========================================================
@@ -951,29 +930,6 @@ onMounted(load);
   gap: 6px;
 }
 
-.icon-btn {
-  display: inline-flex;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
-
-  border: 0;
-  border-radius: 8px;
-
-  background: transparent;
-  color: #64768d;
-
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.icon-btn:hover {
-  background: #f1f4f8;
-  color: #18375c;
-}
-
 .comment-body {
   padding: 18px 0 12px;
 }
@@ -1033,51 +989,6 @@ onMounted(load);
   padding: 0 16px;
 
   border-top: 1px solid #edf1f5;
-}
-
-.footer-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.footer-action {
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  padding: 8px 10px;
-
-  border: 0;
-  border-radius: 9px;
-
-  background: transparent;
-  color: #617187;
-
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 650;
-
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.footer-action:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  color: #18375c;
-}
-
-.footer-action--danger:hover:not(:disabled) {
-  background: #fff2f0;
-  color: #a4453a;
-}
-
-.footer-action:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .delete-box {
@@ -1239,21 +1150,6 @@ onMounted(load);
   .comment-edit-footer {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .primary-btn,
-  .ghost-btn,
-  .danger-btn {
-    width: 100%;
-  }
-
-  .footer-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .footer-action {
-    flex: 1 1 calc(50% - 8px);
   }
 }
 </style>

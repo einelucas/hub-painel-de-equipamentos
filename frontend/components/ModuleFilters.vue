@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
 import { RefreshCw } from "lucide-vue-next";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -82,10 +83,9 @@ function onEquipment(value: string): void {
       </div>
       <div class="filter-extra"><slot /></div>
       <div v-if="props.showRefresh" class="filter-actions">
-        <button class="btn" :disabled="props.refreshing" :aria-busy="props.refreshing" @click="emit('change')">
-          <span v-if="props.refreshing" class="spinner-small" aria-hidden="true" />
-          <RefreshCw v-else :size="15" /> {{ props.refreshing ? "Atualizando..." : "Atualizar" }}
-        </button>
+        <Button :disabled="props.refreshing" :loading="props.refreshing" variant="outline" @click="emit('change')">
+          <RefreshCw v-if="!(props.refreshing)" :size="15" /> {{ props.refreshing ? "Atualizando..." : "Atualizar" }}
+        </Button>
         <slot name="actions" />
       </div>
     </div>
@@ -112,5 +112,5 @@ function onEquipment(value: string): void {
 .filter-grid :deep(.searchable-select__control input) { font-size: inherit; }
 .filter-loading { display: flex; align-items: center; gap: 7px; }
 .filter-hint { margin: 10px 0 0; color: #8b96a5; font-size: 11.5px; }
-@media (max-width: 640px) { .filter-grid > .field, .filter-extra > :slotted(.field) { flex-basis: 100%; } .filter-actions { width: 100%; } .filter-actions .btn { flex: 1; } }
+@media (max-width: 640px) { .filter-grid > .field, .filter-extra > :slotted(.field) { flex-basis: 100%; } .filter-actions { width: 100%; } .filter-actions .el-button { flex: 1; } }
 </style>

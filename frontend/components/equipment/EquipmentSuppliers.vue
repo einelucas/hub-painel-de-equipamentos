@@ -133,16 +133,17 @@ onMounted(load);
         <span>Desde: {{ formatDateTime(current.startedAt) }}</span>
         <span>Fase de entrada: {{ current.startStage ?? "—" }}</span>
         <span v-if="current.role">Papel: {{ current.role }}</span>
-        <button
+        <Button
           v-if="canWrite"
-          class="text-button danger"
+          class="text-button"
           :disabled="busy"
-          :aria-busy="busy"
+          :loading="busy"
+          variant="destructive"
+          size="sm"
           @click="unlink(current.supplier.id)"
         >
-          <span v-if="busy" class="spinner-small" aria-hidden="true" />
-          <Trash2 v-else :size="13" /> {{ busy ? "Encerrando..." : "Encerrar vínculo" }}
-        </button>
+          <Trash2 v-if="!(busy)" :size="13" /> {{ busy ? "Encerrando..." : "Encerrar vínculo" }}
+        </Button>
       </div>
 
       <div v-if="history.length" class="table-wrap" data-testid="supplier-history">
@@ -188,6 +189,4 @@ onMounted(load);
 .table-wrap h3 { margin: 0 0 10px; color: #2b3e58; font-size: 13px; }
 .table-wrap { padding: 0 18px 18px; overflow-x: auto; }
 .table-empty { margin: auto; padding-bottom: 28px; }
-.text-button { display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 4px; background: transparent; color: #304f7e; font-size: 12px; font-weight: 750; }
-.text-button.danger { color: #a4453a; }
 </style>
