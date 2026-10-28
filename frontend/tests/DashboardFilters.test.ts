@@ -36,7 +36,8 @@ function mountFilters(
 describe("DashboardFilters", () => {
   it("mostra Área, Fase e Disciplina, nessa ordem, com a opção 'Todas' e os catálogos recebidos", async () => {
     const wrapper = mountFilters();
-    expect(wrapper.findAll(".field > span").map((item) => item.text())).toEqual(["Área", "Fase", "Disciplina"]);
+    expect(wrapper.findAll(".searchable-select--filter")).toHaveLength(3);
+    expect(wrapper.findAll(".searchable-select--filter").map((item) => item.attributes("data-placeholder"))).toEqual(["Área", "Fase", "Disciplina"]);
     expect(await optionLabels(wrapper, "dashboard-filter-area")).toEqual(["Todas as áreas", "Caldeira", "Drenagem"]);
     expect(await optionLabels(wrapper, "dashboard-filter-discipline")).toEqual([
       "Todas as disciplinas",
@@ -65,6 +66,12 @@ describe("DashboardFilters", () => {
     const wrapper = mountFilters({ areaId: "a-1", stage: 0, disciplineId: "d-2" });
     await chooseOption(wrapper, "dashboard-filter-stage", "Todas as fases");
     expect(wrapper.props()).toMatchObject({ areaId: "a-1", stage: null, disciplineId: "d-2" });
+  });
+
+  it("mostra o rótulo flutuante após a seleção, preservando o valor escolhido", () => {
+    const wrapper = mountFilters({ areaId: "a-1" });
+    expect(wrapper.findAll(".searchable-select__floating-label").map((item) => item.text())).toEqual(["Área"]);
+    expect(shownValue(wrapper, "dashboard-filter-area")).toBe("Caldeira");
   });
 
   it("fase 0 (Nova demanda) conta como filtro ativo", () => {
