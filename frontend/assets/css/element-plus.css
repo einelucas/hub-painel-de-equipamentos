@@ -26,6 +26,12 @@
 .el-button > span { gap: 6px; }
 .el-select { width: 100%; }
 .hub-select-popper .el-select-dropdown__item { height: auto; min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
+/* Somente os filtros: lista alinhada ao campo com rolagem em catálogos extensos. */
+.hub-filter-select-popper { border: 1px solid #e0e6ee; border-radius: 10px; box-shadow: 0 8px 24px rgb(29 49 79 / 14%); }
+.hub-filter-select-popper .el-select-dropdown__wrap { max-height: 280px; }
+.hub-filter-select-popper .el-select-dropdown__item { min-height: 36px; font-size: 13px; font-weight: 500; }
+.hub-filter-select-popper .el-select-dropdown__item.is-selected { color: var(--el-color-primary); background: #eff4fa; }
+
 
 @media (prefers-reduced-motion: reduce) {
   .el-icon.is-loading { animation: none; }

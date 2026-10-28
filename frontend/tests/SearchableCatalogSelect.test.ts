@@ -45,6 +45,20 @@ describe("seletores pesquisáveis de catálogo", () => {
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual(["b"]);
   });
 
+  it("exibe placeholder compacto e rótulo flutuante somente ao abrir ou selecionar", async () => {
+    const wrapper = mount(SearchableSelect, {
+      props: { options, modelValue: "", label: "Responsável", appearance: "filter", testId: "catalog-filter" },
+    });
+    expect(wrapper.attributes("data-placeholder")).toBe("Responsável");
+    expect(wrapper.find(".searchable-select__floating-label").exists()).toBe(false);
+    await openMenu(wrapper, "catalog-filter");
+    expect(wrapper.attributes("data-open")).toBe("true");
+    expect(wrapper.get(".searchable-select__floating-label").text()).toBe("Responsável");
+    await wrapper.setProps({ modelValue: "a" });
+    expect(wrapper.get(".searchable-select__floating-label").text()).toBe("Responsável");
+    wrapper.unmount();
+  });
+
   it("does not block native form validation when a required select is disabled", async () => {
     const wrapper = mount(SearchableSelect, { props: { options: [], modelValue: "", label: "Obra", required: true, disabled: true } });
     await flushPromises();

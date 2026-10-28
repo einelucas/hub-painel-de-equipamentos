@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
-import { RefreshCw } from "lucide-vue-next";
+import { Boxes, Building2, FolderKanban, RefreshCw } from "lucide-vue-next";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import { toOptions } from "~/utils/selectOptions";
 
@@ -39,9 +39,12 @@ function onEquipment(value: string): void {
 
 <template>
   <section class="surface filter-surface" aria-label="Filtros globais do módulo" :aria-busy="context.loading || context.optionsLoading">
+    <header class="filter-heading">
+      <strong>FILTROS</strong>
+      <p>Refine a visualização selecionando os critérios desejados.</p>
+    </header>
     <div class="filter-grid">
       <div class="field">
-        <span>Unidade</span>
         <!-- Com uma única unidade disponível não há a opção "todas". -->
         <SearchableSelect
           :model-value="context.selectedUnit"
@@ -49,6 +52,8 @@ function onEquipment(value: string): void {
           :disabled="context.loading"
           :clearable="context.units.length !== 1"
           label="Unidade"
+          appearance="filter"
+          :icon="Building2"
           placeholder="Buscar unidade"
           empty-label="Todas as unidades"
           test-id="filter-unit"
@@ -56,12 +61,13 @@ function onEquipment(value: string): void {
         />
       </div>
       <div v-if="props.showProjectContext" class="field">
-        <span>Obra</span>
         <SearchableSelect
           :model-value="context.selectedProjectContext"
           :options="projectContextOptions"
           :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
           label="Obra"
+          appearance="filter"
+          :icon="FolderKanban"
           placeholder="Buscar obra"
           empty-label="Todas as obras"
           test-id="filter-project-context"
@@ -69,12 +75,13 @@ function onEquipment(value: string): void {
         />
       </div>
       <div class="field">
-        <span>Equipamento</span>
         <SearchableSelect
           :model-value="context.selectedEquipment"
           :options="equipmentOptions"
           :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
           label="Equipamento"
+          appearance="filter"
+          :icon="Boxes"
           placeholder="Buscar equipamento"
           empty-label="Todos os equipamentos"
           test-id="filter-equipment"
@@ -100,6 +107,9 @@ function onEquipment(value: string): void {
 
 <style scoped>
 .filter-surface { padding: 16px 18px; }
+.filter-heading { margin-bottom: 16px; }
+.filter-heading strong { color: var(--el-color-primary); font-size: 11px; letter-spacing: .055em; }
+.filter-heading p { margin: 6px 0 0; color: #8a97a7; font-size: 12px; }
 .filter-grid { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 12px; }
 .filter-grid > .field { flex: 1 1 240px; }
 /* display: contents deixa cada campo do slot participar da quebra de linha como item próprio */

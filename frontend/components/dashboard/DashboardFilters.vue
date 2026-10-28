@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
-import { X } from "lucide-vue-next";
+import { GitBranch, Layers3, MapPinned, X } from "lucide-vue-next";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import type { CatalogItem } from "~/types/equipment";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
@@ -40,11 +40,12 @@ function onDiscipline(value: string): void {
 <template>
   <div class="dashboard-filters" data-testid="dashboard-filters">
     <div class="field">
-      <span>Área</span>
       <SearchableSelect
         :model-value="areaId ?? ''"
         :options="areaOptions"
         label="Área"
+        appearance="filter"
+        :icon="MapPinned"
         placeholder="Buscar por código ou nome"
         empty-label="Todas as áreas"
         test-id="dashboard-filter-area"
@@ -52,12 +53,13 @@ function onDiscipline(value: string): void {
       />
     </div>
     <div class="field">
-      <span>Fase</span>
       <SearchableSelect
         :model-value="stage === null ? '' : String(stage)"
         :options="STAGE_OPTIONS"
         :sorted="false"
         label="Fase"
+        appearance="filter"
+        :icon="GitBranch"
         placeholder="Buscar fase"
         empty-label="Todas as fases"
         test-id="dashboard-filter-stage"
@@ -65,11 +67,12 @@ function onDiscipline(value: string): void {
       />
     </div>
     <div class="field">
-      <span>Disciplina</span>
       <SearchableSelect
         :model-value="disciplineId ?? ''"
         :options="disciplineOptions"
         label="Disciplina"
+        appearance="filter"
+        :icon="Layers3"
         placeholder="Buscar disciplina"
         empty-label="Todas as disciplinas"
         test-id="dashboard-filter-discipline"
