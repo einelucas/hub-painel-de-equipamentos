@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import { Tags, UserRound } from "lucide-vue-next";
-import type { CatalogItem, CatalogList, EngineeringRow, Responsible } from "~/types/equipment";
+import type {
+  CatalogItem,
+  CatalogList,
+  EngineeringRow,
+  Responsible,
+} from "~/types/equipment";
 import type { SearchableOption } from "~/types/ui";
 import { toOptions } from "~/utils/selectOptions";
 
@@ -23,7 +28,11 @@ const responsibleUserId = ref("");
 const groupEnabled = ref(false);
 const disciplineOptions = computed(() => toOptions(disciplines.value));
 const responsibleOptions = computed<SearchableOption[]>(() =>
-  responsibles.value.map((item) => ({ id: item.id, label: item.name, searchText: item.email })),
+  responsibles.value.map((item) => ({
+    id: item.id,
+    label: item.name,
+    searchText: item.email,
+  })),
 );
 
 const catalogsLoading = ref(false);
@@ -38,10 +47,14 @@ async function loadFilterCatalogs(): Promise<void> {
 }
 
 async function fetchFilterCatalogs(): Promise<void> {
-  disciplines.value = (await api.get<CatalogList<CatalogItem>>("/disciplines")).items;
+  disciplines.value = (
+    await api.get<CatalogList<CatalogItem>>("/disciplines")
+  ).items;
   if (context.selectedUnit) {
     responsibles.value = (
-      await api.get<CatalogList<Responsible>>("/responsibles", { unit_id: context.selectedUnit })
+      await api.get<CatalogList<Responsible>>("/responsibles", {
+        unit_id: context.selectedUnit,
+      })
     ).items;
   } else {
     responsibles.value = [];
@@ -51,7 +64,8 @@ async function fetchFilterCatalogs(): Promise<void> {
 async function applyFieldFilters(): Promise<void> {
   if (disciplineId.value) queue.filters.discipline_id = disciplineId.value;
   else delete queue.filters.discipline_id;
-  if (responsibleUserId.value) queue.filters.responsible_user_id = responsibleUserId.value;
+  if (responsibleUserId.value)
+    queue.filters.responsible_user_id = responsibleUserId.value;
   else delete queue.filters.responsible_user_id;
   await queue.reload();
 }
@@ -68,8 +82,12 @@ onMounted(async () => {
   }
   await queue.initialize({
     unit: typeof route.query.unit === "string" ? route.query.unit : undefined,
-    project: typeof route.query.project === "string" ? route.query.project : undefined,
-    equipment: typeof route.query.equipment === "string" ? route.query.equipment : undefined,
+    project:
+      typeof route.query.project === "string" ? route.query.project : undefined,
+    equipment:
+      typeof route.query.equipment === "string"
+        ? route.query.equipment
+        : undefined,
   });
   await loadFilterCatalogs();
 });
@@ -116,7 +134,11 @@ onMounted(async () => {
             v-model="responsibleUserId"
             :options="responsibleOptions"
             :disabled="!context.selectedUnit || catalogsLoading"
-            :title="!context.selectedUnit ? 'Selecione uma unidade para filtrar por responsável' : undefined"
+            :title="
+              !context.selectedUnit
+                ? 'Selecione uma unidade para filtrar por responsável'
+                : undefined
+            "
             :icon="UserRound"
             label="Responsável"
             placeholder="Buscar responsável"
@@ -125,8 +147,15 @@ onMounted(async () => {
             @change="applyFieldFilters"
           />
         </div>
-        <label class="field-inline group-toggle" :class="{ active: groupEnabled }">
-          <input v-model="groupEnabled" type="checkbox" data-testid="group-by-responsible">
+        <label
+          class="field-inline group-toggle"
+          :class="{ active: groupEnabled }"
+        >
+          <input
+            v-model="groupEnabled"
+            type="checkbox"
+            data-testid="group-by-responsible"
+          />
           <span>Agrupar por responsável</span>
         </label>
       </template>
@@ -138,10 +167,11 @@ onMounted(async () => {
 
 <style scoped>
 .group-toggle {
+  margin-top: 5px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 46px;
+  height: 41px;
   padding: 0 12px;
   border: 1px solid #d8e0ea;
   border-radius: 9px;
@@ -150,8 +180,18 @@ onMounted(async () => {
   font-size: 13px;
   white-space: nowrap;
   cursor: pointer;
-  transition: border-color 0.17s ease, background-color 0.17s ease;
+  transition:
+    border-color 0.17s ease,
+    background-color 0.17s ease;
 }
-.group-toggle.active { border-color: #6687b8; background: #f2f6fc; }
-.group-toggle input { width: 15px; height: 15px; margin: 0; cursor: pointer; }
+.group-toggle.active {
+  border-color: #6687b8;
+  background: #f2f6fc;
+}
+.group-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+}
 </style>

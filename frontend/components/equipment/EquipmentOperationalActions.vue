@@ -89,19 +89,12 @@ async function confirmEndSanitation(text: string): Promise<void> {
           </Button>
 
           <Button
-
             class="action-button"
-
             type="button"
-
             :disabled="busy"
-
             data-testid="sanitation-button"
-
             variant="outline"
-
             @click="showSanitation = true"
-
           >
             <Wrench :size="16" :stroke-width="1.8" />
             <span>Colocar em Saneamento</span>
@@ -109,19 +102,12 @@ async function confirmEndSanitation(text: string): Promise<void> {
         </div>
 
         <Button
-
           class="action-button action-button--danger"
-
           type="button"
-
           :disabled="busy"
-
           data-testid="cancel-button"
-
           variant="destructive"
-
           @click="showCancel = true"
-
         >
           <Ban :size="16" :stroke-width="1.8" />
           <span>Cancelar equipamento</span>
@@ -136,19 +122,12 @@ async function confirmEndSanitation(text: string): Promise<void> {
         </div>
 
         <Button
-
           class="action-button action-button--primary"
-
           type="button"
-
           :disabled="busy"
-
           data-testid="lift-standby-button"
-
           variant="default"
-
           @click="showLiftStandby = true"
-
         >
           <Play :size="16" :stroke-width="1.8" />
           <span>Retomar processo</span>
@@ -168,19 +147,12 @@ async function confirmEndSanitation(text: string): Promise<void> {
         </div>
 
         <Button
-
           class="action-button action-button--primary"
-
           type="button"
-
           :disabled="busy"
-
           data-testid="end-sanitation-button"
-
           variant="default"
-
           @click="showEndSanitation = true"
-
         >
           <RotateCcw :size="16" :stroke-width="1.8" />
           <span>Encerrar saneamento</span>
@@ -362,5 +334,12 @@ async function confirmEndSanitation(text: string): Promise<void> {
     flex-direction: column;
   }
 }
-.busy-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; color: #65748a; font-size: 12px; }
+.busy-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: #65748a;
+  font-size: 12px;
+}
 </style>

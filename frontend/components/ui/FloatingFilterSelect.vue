@@ -84,7 +84,9 @@ const floating = computed(() => focused.value || open.value || hasValue.value);
 
 const selectedOptions = computed(() => {
   const values = props.multiple
-    ? (Array.isArray(props.modelValue) ? props.modelValue : [])
+    ? Array.isArray(props.modelValue)
+      ? props.modelValue
+      : []
     : props.modelValue === null || props.modelValue === undefined
       ? []
       : [String(props.modelValue)];
@@ -184,7 +186,8 @@ function onVisibleChange(visible: boolean): void {
  * alvo de antes da migração para o padrão floating.
  */
 function syncInputAttributes(): void {
-  const input = root.value?.querySelector<HTMLInputElement>(".el-select__input");
+  const input =
+    root.value?.querySelector<HTMLInputElement>(".el-select__input");
   if (!input) return;
   if (props.testId) input.setAttribute("data-testid", props.testId);
   else input.removeAttribute("data-testid");
@@ -221,7 +224,11 @@ watch(
       </legend>
     </fieldset>
 
-    <span v-if="props.icon" class="floating-filter-select__icon" aria-hidden="true">
+    <span
+      v-if="props.icon"
+      class="floating-filter-select__icon"
+      aria-hidden="true"
+    >
       <component :is="props.icon" :size="16" :stroke-width="1.9" />
     </span>
 
@@ -252,7 +259,9 @@ watch(
         :value="props.emptyValue"
         :label="props.emptyLabel"
       >
-        <span><strong>{{ props.emptyLabel }}</strong></span>
+        <span
+          ><strong>{{ props.emptyLabel }}</strong></span
+        >
       </ElOption>
       <ElOption
         v-for="option in filteredOptions"
@@ -267,7 +276,9 @@ watch(
       </ElOption>
     </ElSelect>
 
-    <span class="floating-filter-select__label" aria-hidden="true">{{ props.label }}</span>
+    <span class="floating-filter-select__label" aria-hidden="true">{{
+      props.label
+    }}</span>
   </div>
 </template>
 
@@ -275,7 +286,7 @@ watch(
 .floating-filter-select {
   --ffs-start: 14px;
   --ffs-label-start: 14px;
-  --ffs-end: 34px;
+  --ffs-end: 15px;
   --ffs-border: #d8e0ea;
   --ffs-border-hover: #c2cedd;
   --ffs-text: #7a879a;
@@ -290,7 +301,9 @@ watch(
   font-size: 13.5px;
 }
 
-.has-icon { --ffs-start: 38px; }
+.has-icon {
+  --ffs-start: 38px;
+}
 
 /* ===== contorno (recorte real via fieldset/legend) ===== */
 .floating-filter-select__outline {
@@ -301,7 +314,7 @@ watch(
   margin: 0;
   padding: 0;
   border: 1px solid var(--ffs-border);
-  border-radius: 9px;
+  border-radius: 8px;
   background: #fff;
   pointer-events: none;
   transition:
@@ -313,6 +326,7 @@ watch(
 .floating-filter-select__legend {
   float: unset;
   display: block;
+  justify-content: center;
   width: auto;
   height: 12px;
   max-width: 0.01px;
@@ -345,7 +359,8 @@ watch(
   vertical-align: top;
 }
 
-.floating-filter-select:hover:not(.is-disabled):not(.is-focused) .floating-filter-select__outline {
+.floating-filter-select:hover:not(.is-disabled):not(.is-focused)
+  .floating-filter-select__outline {
   border-color: var(--ffs-border-hover);
 }
 
@@ -391,8 +406,12 @@ watch(
   font-weight: 600;
 }
 
-.is-focused .floating-filter-select__label { color: var(--ffs-focus); }
-.is-disabled .floating-filter-select__label { color: #a0aec0; }
+.is-focused .floating-filter-select__label {
+  color: var(--ffs-focus);
+}
+.is-disabled .floating-filter-select__label {
+  color: #a0aec0;
+}
 
 /* ===== ícone esquerdo ===== */
 .floating-filter-select__icon {
@@ -409,8 +428,12 @@ watch(
 }
 
 .is-focused .floating-filter-select__icon,
-.is-open .floating-filter-select__icon { color: var(--ffs-focus); }
-.is-disabled .floating-filter-select__icon { color: #b6c0cd; }
+.is-open .floating-filter-select__icon {
+  color: var(--ffs-focus);
+}
+.is-disabled .floating-filter-select__icon {
+  color: #b6c0cd;
+}
 
 /* ===== controle Element Plus sem a borda própria ===== */
 .floating-filter-select__control {
@@ -422,7 +445,7 @@ watch(
 .floating-filter-select__control :deep(.el-select__wrapper) {
   min-height: 46px;
   padding: 4px var(--ffs-end) 4px var(--ffs-start);
-  border-radius: 9px;
+  border-radius: 8px;
   background: transparent;
   box-shadow: none;
 }
@@ -434,9 +457,13 @@ watch(
   box-shadow: none;
 }
 
-.floating-filter-select__control :deep(.el-select__selection) { min-width: 0; }
+.floating-filter-select__control :deep(.el-select__selection) {
+  min-width: 0;
+}
 
-.floating-filter-select__control :deep(.el-select__selection.is-near) { margin-left: 0; }
+.floating-filter-select__control :deep(.el-select__selection.is-near) {
+  margin-left: 0;
+}
 
 .floating-filter-select__control :deep(.el-select__placeholder) {
   width: 100%;
@@ -458,7 +485,9 @@ watch(
   max-width: 100%;
 }
 
-.floating-filter-select__control :deep(.el-select__input-wrapper) { min-width: 0; }
+.floating-filter-select__control :deep(.el-select__input-wrapper) {
+  min-width: 0;
+}
 
 .floating-filter-select__control :deep(.el-select__input) {
   color: var(--ffs-value);
@@ -474,9 +503,13 @@ watch(
     color 0.17s ease;
 }
 
-.is-open .floating-filter-select__control :deep(.el-select__caret) { color: var(--ffs-focus); }
+.is-open .floating-filter-select__control :deep(.el-select__caret) {
+  color: var(--ffs-focus);
+}
 
-.floating-filter-select__control :deep(.el-select__clear) { color: #94a3b8; }
+.floating-filter-select__control :deep(.el-select__clear) {
+  color: #94a3b8;
+}
 
 .is-disabled .floating-filter-select__control :deep(.el-select__placeholder),
 .is-disabled .floating-filter-select__control :deep(.el-select__input) {
