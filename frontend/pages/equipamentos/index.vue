@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import {
   CloudDownload,
+  Layers3,
+  MapPin,
+  PackageCheck,
   Plus,
   Search,
   SlidersHorizontal,
+  Tags,
+  UserRound,
 } from "lucide-vue-next";
 import type {
   CatalogItem,
@@ -16,7 +21,7 @@ import type {
 import { formatDateOnly } from "~/utils/format";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
-import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import Button from "~/components/ui/Button.vue";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
@@ -348,12 +353,11 @@ onMounted(async () => {
         </div>
         <div class="table-filters">
           <div class="inline-field">
-            <span>Etapa</span>
-            <SearchableSelect
+            <FloatingFilterSelect
               v-model="stage"
-              :class="{ 'is-set': stage }"
               :options="STAGE_OPTIONS"
               :sorted="false"
+              :icon="Layers3"
               label="Etapa"
               placeholder="Buscar etapa"
               empty-label="Todas"
@@ -361,11 +365,10 @@ onMounted(async () => {
             />
           </div>
           <div class="inline-field">
-            <span>Disciplina</span>
-            <SearchableSelect
+            <FloatingFilterSelect
               v-model="disciplineId"
-              :class="{ 'is-set': disciplineId }"
               :options="disciplineOptions"
+              :icon="Tags"
               label="Disciplina"
               placeholder="Buscar disciplina"
               empty-label="Todas"
@@ -373,10 +376,8 @@ onMounted(async () => {
             />
           </div>
           <div class="inline-field">
-            <span>Responsável</span>
-            <SearchableSelect
+            <FloatingFilterSelect
               v-model="responsibleUserId"
-              :class="{ 'is-set': responsibleUserId }"
               :options="responsibleOptions"
               :disabled="!context.selectedUnit"
               :title="
@@ -384,6 +385,7 @@ onMounted(async () => {
                   ? 'Selecione uma unidade para filtrar por responsável'
                   : undefined
               "
+              :icon="UserRound"
               label="Responsável"
               placeholder="Buscar responsável"
               empty-label="Todos"
@@ -392,11 +394,10 @@ onMounted(async () => {
             />
           </div>
           <div class="inline-field">
-            <span>Área</span>
-            <SearchableSelect
+            <FloatingFilterSelect
               v-model="areaId"
-              :class="{ 'is-set': areaId }"
               :options="areaOptions"
+              :icon="MapPin"
               label="Área"
               placeholder="Buscar por código ou nome"
               empty-label="Todas"
@@ -405,10 +406,8 @@ onMounted(async () => {
             />
           </div>
           <div class="inline-field">
-            <span>Work Package</span>
-            <SearchableSelect
+            <FloatingFilterSelect
               v-model="workPackageId"
-              :class="{ 'is-set': workPackageId }"
               :options="workPackageOptions"
               :disabled="!context.selectedUnit"
               :title="
@@ -416,6 +415,7 @@ onMounted(async () => {
                   ? 'Selecione uma unidade para filtrar por Work Package'
                   : undefined
               "
+              :icon="PackageCheck"
               label="Work Package"
               placeholder="Buscar por código ou descrição"
               empty-label="Todos"
@@ -497,52 +497,8 @@ onMounted(async () => {
   padding: 18px 18px 16px;
 }
 .inline-field {
-  display: grid;
+  display: block;
   min-width: 0;
-  gap: 5px;
-}
-.inline-field > span {
-  color: #7a879a;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.table-filters select {
-  width: 100%;
-  min-height: 36px;
-  padding: 7px 30px 7px 10px;
-  border: 1px solid #d8e0ea;
-  border-radius: 8px;
-  /* seta própria: o appearance nativo fica desalinhado com o resto do sistema */
-  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a879a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
-  color: #26364d;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  appearance: none;
-  outline: none;
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.table-filters :deep(.searchable-select__control) {
-  min-height: 36px;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.table-filters :deep(.searchable-select__control input) {
-  padding: 7px 0;
-  font-size: 13px;
-}
-.table-filters :deep(.searchable-select__control:hover) {
-  border-color: #b9c6d6;
-}
-/* Filtro aplicado fica destacado, como nos selects anteriores. */
-.table-filters .is-set :deep(.searchable-select__control) {
-  border-color: #9fb5d4;
-  background-color: #f2f6fc;
-}
-.table-filters .is-set :deep(.searchable-select__control input) {
-  color: #213758;
-  font-weight: 600;
 }
 .queue-state {
   display: flex;
@@ -569,7 +525,7 @@ onMounted(async () => {
    de apertar as colunas. */
 @media (max-width: 1100px) {
   .table-filters {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     padding: 14px 14px 12px;
   }
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
+import { Tags, UserRound } from "lucide-vue-next";
 import type { CatalogItem, CatalogList, EngineeringRow, Responsible } from "~/types/equipment";
 import type { SearchableOption } from "~/types/ui";
 import { toOptions } from "~/utils/selectOptions";
@@ -102,11 +103,11 @@ onMounted(async () => {
     >
       <template #filters>
         <div class="field">
-          <span>Disciplina</span>
-          <SearchableSelect
+          <FloatingFilterSelect
             v-model="disciplineId"
             :options="disciplineOptions"
             :disabled="catalogsLoading"
+            :icon="Tags"
             label="Disciplina"
             placeholder="Buscar disciplina"
             empty-label="Todas"
@@ -115,12 +116,12 @@ onMounted(async () => {
           />
         </div>
         <div class="field">
-          <span>Responsável</span>
-          <SearchableSelect
+          <FloatingFilterSelect
             v-model="responsibleUserId"
             :options="responsibleOptions"
             :disabled="!context.selectedUnit || catalogsLoading"
             :title="!context.selectedUnit ? 'Selecione uma unidade para filtrar por responsável' : undefined"
+            :icon="UserRound"
             label="Responsável"
             placeholder="Buscar responsável"
             empty-label="Todos"
@@ -144,7 +145,7 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 39px;
+  min-height: 46px;
   padding: 0 12px;
   border: 1px solid #d8e0ea;
   border-radius: 9px;
@@ -153,6 +154,7 @@ onMounted(async () => {
   font-size: 13px;
   white-space: nowrap;
   cursor: pointer;
+  transition: border-color 0.17s ease, background-color 0.17s ease;
 }
 .group-toggle.active { border-color: #6687b8; background: #f2f6fc; }
 .group-toggle input { width: 15px; height: 15px; margin: 0; cursor: pointer; }

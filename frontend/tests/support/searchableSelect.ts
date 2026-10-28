@@ -17,7 +17,7 @@ type AnyWrapper = VueWrapper | ElementWrapper;
  */
 function root(wrapper: AnyWrapper, testId: string): ElementWrapper {
   const found = wrapper
-    .findAll(".searchable-select, .searchable-multi-select")
+    .findAll(".searchable-select, .searchable-multi-select, .floating-filter-select")
     .find(
       (item) =>
         item.attributes("data-testid") === testId ||

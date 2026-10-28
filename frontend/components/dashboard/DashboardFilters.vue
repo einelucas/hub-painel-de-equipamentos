@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
-import { X } from "lucide-vue-next";
-import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import { Layers3, MapPin, Tags, X } from "lucide-vue-next";
+import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import type { CatalogItem } from "~/types/equipment";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 
@@ -40,10 +40,10 @@ function onDiscipline(value: string): void {
 <template>
   <div class="dashboard-filters" data-testid="dashboard-filters">
     <div class="field">
-      <span>Área</span>
-      <SearchableSelect
+      <FloatingFilterSelect
         :model-value="areaId ?? ''"
         :options="areaOptions"
+        :icon="MapPin"
         label="Área"
         placeholder="Buscar por código ou nome"
         empty-label="Todas as áreas"
@@ -52,11 +52,11 @@ function onDiscipline(value: string): void {
       />
     </div>
     <div class="field">
-      <span>Fase</span>
-      <SearchableSelect
+      <FloatingFilterSelect
         :model-value="stage === null ? '' : String(stage)"
         :options="STAGE_OPTIONS"
         :sorted="false"
+        :icon="Layers3"
         label="Fase"
         placeholder="Buscar fase"
         empty-label="Todas as fases"
@@ -65,10 +65,10 @@ function onDiscipline(value: string): void {
       />
     </div>
     <div class="field">
-      <span>Disciplina</span>
-      <SearchableSelect
+      <FloatingFilterSelect
         :model-value="disciplineId ?? ''"
         :options="disciplineOptions"
+        :icon="Tags"
         label="Disciplina"
         placeholder="Buscar disciplina"
         empty-label="Todas as disciplinas"
@@ -92,6 +92,6 @@ function onDiscipline(value: string): void {
 <style scoped>
 /* display: contents deixa cada campo ser um item próprio da barra de filtros (quebra de linha responsiva). */
 .dashboard-filters { display: contents; }
-.field { flex: 1 1 170px; }
+.field { flex: 1 1 180px; min-width: 0; }
 @media (max-width: 640px) { .field { flex-basis: 100%; } }
 </style>

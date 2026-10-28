@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
-import { RefreshCw } from "lucide-vue-next";
-import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import { Boxes, Building2, MapPin, RefreshCw } from "lucide-vue-next";
+import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import { toOptions } from "~/utils/selectOptions";
 
 const props = withDefaults(defineProps<{
@@ -41,13 +41,13 @@ function onEquipment(value: string): void {
   <section class="surface filter-surface" aria-label="Filtros globais do módulo" :aria-busy="context.loading || context.optionsLoading">
     <div class="filter-grid">
       <div class="field">
-        <span>Unidade</span>
         <!-- Com uma única unidade disponível não há a opção "todas". -->
-        <SearchableSelect
+        <FloatingFilterSelect
           :model-value="context.selectedUnit"
           :options="unitOptions"
           :disabled="context.loading"
           :clearable="context.units.length !== 1"
+          :icon="Building2"
           label="Unidade"
           placeholder="Buscar unidade"
           empty-label="Todas as unidades"
@@ -56,11 +56,11 @@ function onEquipment(value: string): void {
         />
       </div>
       <div v-if="props.showProjectContext" class="field">
-        <span>Obra</span>
-        <SearchableSelect
+        <FloatingFilterSelect
           :model-value="context.selectedProjectContext"
           :options="projectContextOptions"
           :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
+          :icon="MapPin"
           label="Obra"
           placeholder="Buscar obra"
           empty-label="Todas as obras"
@@ -69,11 +69,11 @@ function onEquipment(value: string): void {
         />
       </div>
       <div class="field">
-        <span>Equipamento</span>
-        <SearchableSelect
+        <FloatingFilterSelect
           :model-value="context.selectedEquipment"
           :options="equipmentOptions"
           :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
+          :icon="Boxes"
           label="Equipamento"
           placeholder="Buscar equipamento"
           empty-label="Todos os equipamentos"
@@ -101,15 +101,13 @@ function onEquipment(value: string): void {
 <style scoped>
 .filter-surface { padding: 16px 18px; }
 .filter-grid { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 12px; }
-.filter-grid > .field { flex: 1 1 240px; }
+.filter-grid > .field { flex: 1 1 240px; min-width: 0; }
 /* display: contents deixa cada campo do slot participar da quebra de linha como item próprio */
 .filter-extra { display: contents; }
-.filter-extra > :slotted(.field) { flex: 1 1 170px; }
+.filter-extra > :slotted(.field) { flex: 1 1 170px; min-width: 0; }
 .filter-extra > :slotted(.field-wide) { flex: 2 1 300px; }
 .filter-extra > :slotted(.field-inline) { flex: 0 0 auto; }
 .filter-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
-/* Seletores pesquisáveis (inclusive os do slot) com a mesma fonte dos selects vizinhos. */
-.filter-grid :deep(.searchable-select__control input) { font-size: inherit; }
 .filter-loading { display: flex; align-items: center; gap: 7px; }
 .filter-hint { margin: 10px 0 0; color: #8b96a5; font-size: 11.5px; }
 @media (max-width: 640px) { .filter-grid > .field, .filter-extra > :slotted(.field) { flex-basis: 100%; } .filter-actions { width: 100%; } .filter-actions .el-button { flex: 1; } }

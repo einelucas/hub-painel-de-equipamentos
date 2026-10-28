@@ -36,7 +36,13 @@ function mountFilters(
 describe("DashboardFilters", () => {
   it("mostra Área, Fase e Disciplina, nessa ordem, com a opção 'Todas' e os catálogos recebidos", async () => {
     const wrapper = mountFilters();
-    expect(wrapper.findAll(".field > span").map((item) => item.text())).toEqual(["Área", "Fase", "Disciplina"]);
+    expect(wrapper.findAll(".field .floating-filter-select__label").map((item) => item.text())).toEqual([
+      "Área",
+      "Fase",
+      "Disciplina",
+    ]);
+    // O padrão floating label não usa mais label separado acima do controle.
+    expect(wrapper.findAll(".field > span")).toHaveLength(0);
     expect(await optionLabels(wrapper, "dashboard-filter-area")).toEqual(["Todas as áreas", "Caldeira", "Drenagem"]);
     expect(await optionLabels(wrapper, "dashboard-filter-discipline")).toEqual([
       "Todas as disciplinas",
