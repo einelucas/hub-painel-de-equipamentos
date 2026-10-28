@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ElOption, ElSelect } from "element-plus";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
+import type { Component } from "vue";
 import type { SearchableOption } from "~/types/ui";
 
 /**
@@ -13,6 +14,9 @@ const props = withDefaults(
     options: SearchableOption[];
     modelValue: string;
     label: string;
+    /** Apresentação de filtro com rótulo flutuante; preserva a aparência dos formulários. */
+    appearance?: "default" | "filter";
+    icon?: Component;
     placeholder?: string;
     emptyLabel?: string;
     emptyValue?: string;
@@ -26,6 +30,8 @@ const props = withDefaults(
     required?: boolean;
   }>(),
   {
+    appearance: "default",
+    icon: undefined,
     placeholder: "Digite para buscar",
     emptyLabel: "Não informado",
     emptyValue: "",
@@ -44,6 +50,7 @@ const emit = defineEmits<{
 
 const root = ref<HTMLElement | null>(null);
 const query = ref("");
+const isOpen = ref(false);
 const selected = computed(
   () => props.options.find((item) => item.id === props.modelValue) ?? null,
 );
@@ -70,11 +77,18 @@ const filteredOptions = computed(() => {
 });
 const selectedLabel = computed(() => selected.value?.label ?? "");
 const isEmpty = computed(() => props.modelValue === props.emptyValue);
+const floatingLabel = computed(() => props.appearance === "filter" && (isOpen.value || !isEmpty.value));
+const selectPlaceholder = computed(() =>
+  props.appearance === "filter" && isEmpty.value
+    ? props.label
+    : isEmpty.value ? props.emptyLabel : props.placeholder,
+);
 const wrapperAttrs = computed(() => ({
   "data-selected-label": selectedLabel.value,
   "data-disabled": props.disabled ? "true" : "false",
   "data-required": props.required ? "true" : "false",
-  "data-placeholder": isEmpty.value ? props.emptyLabel : props.placeholder,
+  "data-placeholder": selectPlaceholder.value,
+  "data-open": isOpen.value ? "true" : "false",
 }));
 
 function normalize(value: unknown): string {
@@ -126,6 +140,7 @@ function onFilter(value: string): void {
 }
 
 function onVisibleChange(open: boolean): void {
+  isOpen.value = open;
   // Ao fechar, a próxima abertura volta a mostrar todas as opções.
   if (!open) query.value = "";
 }
@@ -140,7 +155,12 @@ watch(
 </script>
 
 <template>
-  <div ref="root" class="searchable-select" v-bind="wrapperAttrs">
+  <div
+    ref="root"
+    class="searchable-select"
+    :class="{ 'searchable-select--filter': props.appearance === 'filter' }"
+    v-bind="wrapperAttrs"
+  >
     <!-- Campo nativo oculto: participa da validação do formulário e mantém o
          bloqueio de envio obrigatório mesmo com o select do Element Plus. -->
     <input
@@ -154,17 +174,18 @@ watch(
       :value="isEmpty ? '' : props.modelValue"
       @invalid="onInvalid"
     >
+    <span v-if="floatingLabel" class="searchable-select__floating-label" aria-hidden="true">{{ props.label }}</span>
     <ElSelect
       :model-value="props.modelValue"
       :disabled="props.disabled"
-      :placeholder="isEmpty ? props.emptyLabel : props.placeholder"
-      :clearable="props.clearable"
+      :placeholder="selectPlaceholder"
+      :clearable="props.appearance === 'filter' ? false : props.clearable"
       :aria-label="props.label"
       filterable
       automatic-dropdown
       :persistent="false"
       :fit-input-width="true"
-      popper-class="hub-select-popper"
+      :popper-class="props.appearance === 'filter' ? 'hub-select-popper hub-filter-select-popper' : 'hub-select-popper'"
       :filter-method="onFilter"
       :no-data-text="'Nenhuma opção encontrada.'"
       class="searchable-select__control"
@@ -172,6 +193,9 @@ watch(
       @change="onChange"
       @visible-change="onVisibleChange"
     >
+      <template v-if="props.appearance === 'filter' && props.icon" #prefix>
+        <component :is="props.icon" class="searchable-select__filter-icon" :size="17" aria-hidden="true" />
+      </template>
       <ElOption
         v-if="props.clearable"
         :value="props.emptyValue"
@@ -213,6 +237,55 @@ watch(
   pointer-events: none;
 }
 
+.searchable-select--filter { width: 100%; }
+.searchable-select__floating-label {
+  position: absolute;
+  top: -8px;
+  left: 17px;
+  z-index: 2;
+  max-width: calc(100% - 34px);
+  overflow: hidden;
+  padding: 0 5px;
+  background: #fff;
+  color: #667a97;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.searchable-select--filter[data-open="true"] .searchable-select__floating-label { color: var(--el-color-primary); }
+.searchable-select--filter :deep(.el-select__wrapper) {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #dce3ec;
+  border-radius: 9px;
+  box-shadow: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.searchable-select--filter :deep(.el-select__wrapper:hover) { border-color: #a8b8ce; }
+.searchable-select--filter[data-open="true"] :deep(.el-select__wrapper),
+.searchable-select--filter :deep(.el-select__wrapper.is-focused) {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 1px var(--el-color-primary);
+}
+.searchable-select--filter[data-disabled="true"] :deep(.el-select__wrapper) {
+  border-color: #e1e6ee;
+  box-shadow: none;
+  background: #f7f9fc;
+}
+.searchable-select--filter :deep(.el-select__placeholder) {
+  overflow: hidden;
+  color: #748295;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.searchable-select--filter :deep(.el-select__selected-item) { font-size: 13px; }
+.searchable-select--filter :deep(.el-select__suffix) { color: #66758a; }
+.searchable-select--filter :deep(.el-select__prefix) { color: #6a7687; }
+.searchable-select__filter-icon { flex: none; }
 .searchable-select__option { display: grid; gap: 2px; }
 .searchable-select__option small { color: var(--el-text-color-secondary); font-size: 12px; }
 </style>
