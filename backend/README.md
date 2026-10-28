@@ -21,6 +21,13 @@ python -m alembic upgrade head
 python -m uvicorn app.main:app --reload
 ~~~
 
+Alternativa de start rápido com salvaguardas (cria venv se faltar, mata filhos órfãos do `--reload` que prendem a porta com `Errno 10048`, e pergunta antes de encerrar quem ocupa a porta):
+
+~~~bash
+powershell -ExecutionPolicy Bypass -File scripts\dev_backend.ps1              # porta 8000
+powershell -ExecutionPolicy Bypass -File scripts\dev_backend.ps1 -Port 8010   # outra porta
+~~~
+
 No Windows, ative o virtualenv ou utilize diretamente `.venv\Scripts\python.exe`. Ajuste `DATABASE_URL` e `MIGRATION_DATABASE_URL` antes de qualquer migration. **Não use bancos remotos de produção como alvo de experimentação.**
 
 ## Validação
