@@ -7,11 +7,6 @@ const auth = useAuthStore();
 const queue = useQueue<LegalRow>("legal");
 const allowed = computed(() => auth.can("equipments:read"));
 
-async function applySearch(term: string): Promise<void> {
-  queue.search.value = term;
-  await queue.reload();
-}
-
 onMounted(async () => {
   if (!allowed.value) {
     queue.loading.value = false;
@@ -42,8 +37,8 @@ onMounted(async () => {
       :pagination="queue.pagination.value"
       :page="queue.page.value"
       :allowed="allowed"
+      :show-search="false"
       @reload="queue.reload"
-      @search="applySearch"
       @page="queue.goToPage"
     >
       <LegalTable :rows="queue.items.value" />

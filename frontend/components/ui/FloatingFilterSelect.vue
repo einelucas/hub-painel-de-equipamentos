@@ -274,6 +274,7 @@ watch(
 <style scoped>
 .floating-filter-select {
   --ffs-start: 14px;
+  --ffs-label-start: 14px;
   --ffs-end: 34px;
   --ffs-border: #d8e0ea;
   --ffs-border-hover: #c2cedd;
@@ -283,7 +284,7 @@ watch(
 
   position: relative;
   min-width: 0;
-  min-height: 46px;
+  height: 46px;
   color: var(--ffs-value);
   font-family: var(--el-font-family);
   font-size: 13.5px;
@@ -315,7 +316,7 @@ watch(
   width: auto;
   height: 12px;
   max-width: 0.01px;
-  margin: 0 0 0 calc(var(--ffs-start) - 4px);
+  margin: 0 0 0 calc(var(--ffs-label-start) - 4px);
   padding: 0;
   overflow: hidden;
   font-size: 10.5px;
@@ -331,7 +332,7 @@ watch(
  * DOM, mas parece colidir com o controle.
  */
 .is-floating .floating-filter-select__legend {
-  max-width: calc(100% - var(--ffs-start) - var(--ffs-end) - 12px);
+  max-width: calc(100% - var(--ffs-label-start) - var(--ffs-end) - 12px);
 }
 
 .floating-filter-select__legend > span {
@@ -383,6 +384,8 @@ watch(
 
 .is-floating .floating-filter-select__label {
   top: 0;
+  right: calc(var(--ffs-end) + 12px);
+  left: var(--ffs-label-start);
   color: #64748b;
   font-size: 10.5px;
   font-weight: 600;

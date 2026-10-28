@@ -40,48 +40,50 @@ function onEquipment(value: string): void {
 <template>
   <section class="surface filter-surface" aria-label="Filtros globais do módulo" :aria-busy="context.loading || context.optionsLoading">
     <div class="filter-grid">
-      <div class="field">
-        <!-- Com uma única unidade disponível não há a opção "todas". -->
-        <FloatingFilterSelect
-          :model-value="context.selectedUnit"
-          :options="unitOptions"
-          :disabled="context.loading"
-          :clearable="context.units.length !== 1"
-          :icon="Building2"
-          label="Unidade"
-          placeholder="Buscar unidade"
-          empty-label="Todas as unidades"
-          test-id="filter-unit"
-          @change="onUnit"
-        />
+      <div class="filter-controls">
+        <div class="field">
+          <!-- Com uma única unidade disponível não há a opção "todas". -->
+          <FloatingFilterSelect
+            :model-value="context.selectedUnit"
+            :options="unitOptions"
+            :disabled="context.loading"
+            :clearable="context.units.length !== 1"
+            :icon="Building2"
+            label="Unidade"
+            placeholder="Buscar unidade"
+            empty-label="Todas as unidades"
+            test-id="filter-unit"
+            @change="onUnit"
+          />
+        </div>
+        <div v-if="props.showProjectContext" class="field">
+          <FloatingFilterSelect
+            :model-value="context.selectedProjectContext"
+            :options="projectContextOptions"
+            :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
+            :icon="MapPin"
+            label="Obra"
+            placeholder="Buscar obra"
+            empty-label="Todas as obras"
+            test-id="filter-project-context"
+            @change="onProjectContext"
+          />
+        </div>
+        <div class="field">
+          <FloatingFilterSelect
+            :model-value="context.selectedEquipment"
+            :options="equipmentOptions"
+            :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
+            :icon="Boxes"
+            label="Equipamento"
+            placeholder="Buscar equipamento"
+            empty-label="Todos os equipamentos"
+            test-id="filter-equipment"
+            @change="onEquipment"
+          />
+        </div>
+        <div class="filter-extra"><slot /></div>
       </div>
-      <div v-if="props.showProjectContext" class="field">
-        <FloatingFilterSelect
-          :model-value="context.selectedProjectContext"
-          :options="projectContextOptions"
-          :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
-          :icon="MapPin"
-          label="Obra"
-          placeholder="Buscar obra"
-          empty-label="Todas as obras"
-          test-id="filter-project-context"
-          @change="onProjectContext"
-        />
-      </div>
-      <div class="field">
-        <FloatingFilterSelect
-          :model-value="context.selectedEquipment"
-          :options="equipmentOptions"
-          :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
-          :icon="Boxes"
-          label="Equipamento"
-          placeholder="Buscar equipamento"
-          empty-label="Todos os equipamentos"
-          test-id="filter-equipment"
-          @change="onEquipment"
-        />
-      </div>
-      <div class="filter-extra"><slot /></div>
       <div v-if="props.showRefresh" class="filter-actions">
         <Button :disabled="props.refreshing" :loading="props.refreshing" variant="outline" @click="emit('change')">
           <RefreshCw v-if="!(props.refreshing)" :size="15" /> {{ props.refreshing ? "Atualizando..." : "Atualizar" }}
@@ -100,15 +102,35 @@ function onEquipment(value: string): void {
 
 <style scoped>
 .filter-surface { padding: 16px 18px; }
-.filter-grid { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 12px; }
-.filter-grid > .field { flex: 1 1 240px; min-width: 0; }
+.filter-grid { display: flex; align-items: flex-end; gap: 12px; }
+.filter-controls {
+  display: grid;
+  flex: 1 1 680px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 12px;
+  min-width: 0;
+}
+.filter-controls > .field { min-width: 0; }
 /* display: contents deixa cada campo do slot participar da quebra de linha como item próprio */
 .filter-extra { display: contents; }
-.filter-extra > :slotted(.field) { flex: 1 1 170px; min-width: 0; }
-.filter-extra > :slotted(.field-wide) { flex: 2 1 300px; }
-.filter-extra > :slotted(.field-inline) { flex: 0 0 auto; }
-.filter-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.filter-extra > :slotted(.field) { min-width: 0; }
+.filter-extra > :slotted(.field-wide) { grid-column: span 2; }
+.filter-extra > :slotted(.field-inline) { width: max-content; }
+.filter-extra :deep(.el-button) { height: 41px; min-height: 41px; margin: 0; align-self: flex-end; }
+.filter-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin-left: auto; }
+/* O seletor reserva 5 px acima da borda para a legenda flutuante. A altura
+   visual do contorno é 41 px; os botões seguem esse contorno, não o wrapper. */
+.filter-actions :deep(.el-button) { height: 41px; min-height: 41px; margin: 0; }
 .filter-loading { display: flex; align-items: center; gap: 7px; }
 .filter-hint { margin: 10px 0 0; color: #8b96a5; font-size: 11.5px; }
-@media (max-width: 640px) { .filter-grid > .field, .filter-extra > :slotted(.field) { flex-basis: 100%; } .filter-actions { width: 100%; } .filter-actions .el-button { flex: 1; } }
+@media (max-width: 1180px) {
+  .filter-grid { flex-wrap: wrap; }
+  .filter-actions { width: 100%; justify-content: flex-end; }
+}
+@media (max-width: 640px) {
+  .filter-controls { grid-template-columns: minmax(0, 1fr); }
+  .filter-extra > :slotted(.field-wide) { grid-column: auto; }
+  .filter-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filter-actions :deep(.el-button) { width: 100%; }
+}
 </style>

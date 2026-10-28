@@ -10,6 +10,7 @@ import { lockBodyScroll, unlockBodyScroll } from "~/utils/bodyScrollLock";
  * Confirmação global com ações nativas do Element Plus.
  */
 const { state, accept, cancel } = useConfirm();
+const CONFIRMATION_Z_INDEX = 10_000;
 
 const card = ref<HTMLElement | null>(null);
 const cancelButton = ref<InstanceType<typeof Button> | null>(null);
@@ -80,7 +81,12 @@ onBeforeUnmount(() => {
 <template>
   <AppTeleport>
     <Transition name="confirm-fade">
-      <div v-if="state.open" class="confirm-backdrop" @mousedown.self="cancel">
+      <div
+        v-if="state.open"
+        class="confirm-backdrop"
+        :style="{ zIndex: CONFIRMATION_Z_INDEX }"
+        @mousedown.self="cancel"
+      >
         <section
           ref="card"
           class="confirm-card"
@@ -136,7 +142,6 @@ onBeforeUnmount(() => {
 <style scoped>
 .confirm-backdrop {
   position: fixed;
-  z-index: 1200;
   inset: 0;
   display: grid;
   place-items: center;

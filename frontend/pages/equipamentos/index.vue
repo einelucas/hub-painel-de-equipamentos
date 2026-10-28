@@ -5,7 +5,6 @@ import {
   MapPin,
   PackageCheck,
   Plus,
-  Search,
   SlidersHorizontal,
   Tags,
   UserRound,
@@ -40,7 +39,6 @@ const disciplines = ref<CatalogItem[]>([]);
 const responsibles = ref<Responsible[]>([]);
 const areas = ref<CatalogItem[]>([]);
 const workPackages = ref<CatalogItem[]>([]);
-const search = ref("");
 const stage = ref<string>("");
 const disciplineId = ref("");
 const responsibleUserId = ref("");
@@ -129,7 +127,6 @@ async function load(): Promise<void> {
       pageSize: 25,
       sortBy: "name",
     };
-    if (search.value.trim()) query.search = search.value.trim();
     if (stage.value !== "") query.stage = Number(stage.value);
     if (disciplineId.value) query.discipline_id = disciplineId.value;
     if (responsibleUserId.value)
@@ -192,7 +189,6 @@ function currentQuery(pageSize: number, page: number): Record<string, unknown> {
     pageSize,
     sortBy: "name",
   };
-  if (search.value.trim()) query.search = search.value.trim();
   if (stage.value !== "") query.stage = Number(stage.value);
   if (disciplineId.value) query.discipline_id = disciplineId.value;
   if (responsibleUserId.value)
@@ -292,7 +288,7 @@ onMounted(async () => {
   <ModuleWorkspace
     eyebrow="Planejamento · Equipamentos"
     title="Equipamentos"
-    description="Listagem operacional com busca, filtros e acesso ao detalhe do processo."
+    description="Listagem operacional com filtros e acesso ao detalhe do processo."
   >
     <div v-if="!allowed" class="surface empty-state state-card" role="alert">
       <h2>Sem permissão</h2>
@@ -300,15 +296,6 @@ onMounted(async () => {
     </div>
     <div v-else class="stack">
       <ModuleFilters show-project-context :refreshing="refreshing" @change="onGlobalFilterChange">
-        <form class="field field-wide" @submit.prevent="reload">
-          <span>Busca</span>
-          <div class="search-control">
-            <input v-model="search" placeholder="Nome do equipamento" />
-            <Button variant="outline" type="submit" :loading="refreshing">
-              <Search v-if="!refreshing" :size="16" /> Buscar
-            </Button>
-          </div>
-        </form>
         <template #actions>
           <Button
             v-if="canAdminister"
@@ -475,20 +462,6 @@ onMounted(async () => {
 .initial-table-loading { padding: 18px; min-height: 260px; }
 .state-card {
   max-width: none;
-}
-.search-control {
-  display: flex;
-  min-width: 0;
-  gap: 7px;
-}
-/* O input precisa poder encolher; sem isso ele impõe a largura mínima do
-   campo de busca e ajuda a estourar a barra de filtros em telas menores. */
-.search-control input {
-  flex: 1;
-  min-width: 0;
-}
-.search-control .btn {
-  flex: none;
 }
 .table-filters {
   display: grid;

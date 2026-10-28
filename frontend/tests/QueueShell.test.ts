@@ -20,6 +20,7 @@ describe("QueueShell", () => {
         pagination: null,
         page: 1,
         allowed: true,
+        showSearch: false,
       },
       global: {
         stubs: {
@@ -32,5 +33,32 @@ describe("QueueShell", () => {
     });
 
     expect(wrapper.get("[data-testid='module-filters']").attributes("data-project")).toBe("true");
+    expect(wrapper.find("input[placeholder='Nome do equipamento']").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("Buscar");
+  });
+
+  it("preserva a busca nas filas que não a desativam", () => {
+    const wrapper = mount(QueueShell, {
+      props: {
+        title: "Engenharia",
+        description: "Descrição",
+        criteria: "Critério",
+        loading: true,
+        refreshing: false,
+        error: "",
+        empty: true,
+        pagination: null,
+        page: 1,
+        allowed: true,
+      },
+      global: {
+        stubs: {
+          ModuleFilters: { template: "<div><slot /></div>" },
+        },
+      },
+    });
+
+    expect(wrapper.get("input[placeholder='Nome do equipamento']").attributes("placeholder")).toBe("Nome do equipamento");
+    expect(wrapper.text()).toContain("Buscar");
   });
 });

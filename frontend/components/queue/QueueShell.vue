@@ -4,7 +4,7 @@ import Button from "~/components/ui/Button.vue";
 import { Search } from "lucide-vue-next";
 import type { Pagination } from "~/types/equipment";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   title: string;
   description: string;
   criteria: string;
@@ -15,7 +15,8 @@ const props = defineProps<{
   pagination: Pagination | null;
   page: number;
   allowed: boolean;
-}>();
+  showSearch?: boolean;
+}>(), { showSearch: true });
 const emit = defineEmits<{ reload: []; search: [term: string]; page: [next: number] }>();
 const term = ref("");
 </script>
@@ -28,7 +29,7 @@ const term = ref("");
     </div>
     <template v-else>
       <ModuleFilters show-project-context :refreshing="props.refreshing" @change="emit('reload')">
-        <form class="field field-wide queue-search" @submit.prevent="emit('search', term)">
+        <form v-if="props.showSearch" class="field field-wide queue-search" @submit.prevent="emit('search', term)">
           <span>Busca</span>
           <div class="search-control">
             <input v-model="term" placeholder="Nome do equipamento">
@@ -78,8 +79,8 @@ const term = ref("");
 .state-card { max-width: none; }
 .queue-search { min-width: 0; }
 .search-control { display: flex; gap: 7px; }
-.search-control input { flex: 1; min-width: 0; }
-.search-control .el-button { flex: none; }
+.search-control input { flex: 1; min-width: 0; min-height: 46px; }
+.search-control .el-button { flex: none; height: 46px; margin: 0; }
 .queue-criteria { margin: 0; padding: 0 18px 12px; color: #8b96a5; font-size: 11.5px; }
 .queue-state { display: block; padding: 18px; min-height: 220px; align-items: center; justify-content: center; gap: 12px; color: #748197; }
 .table-wrap { padding: 0 18px 18px; overflow-x: auto; }

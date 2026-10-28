@@ -19,6 +19,7 @@ describe("ConfirmDialog", () => {
     await wrapper.vm.$nextTick();
 
     const dialog = wrapper.get("[role='alertdialog']");
+    expect((wrapper.get(".confirm-backdrop").element as HTMLElement).style.zIndex).toBe("10000");
     expect(dialog.text()).toContain("Zona de risco");
     expect(dialog.text()).toContain('Deseja excluir "Elétrica"?');
     expect(dialog.text()).toContain("Esta ação não pode ser desfeita.");

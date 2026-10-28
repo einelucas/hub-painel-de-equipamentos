@@ -11,11 +11,6 @@ const allowed = computed(() => auth.can("equipments:read"));
 const canAdminister = computed(() => auth.can("suppliers:write"));
 const showAdmin = ref(false);
 
-async function applySearch(term: string): Promise<void> {
-  queue.search.value = term;
-  await queue.reload();
-}
-
 onMounted(async () => {
   if (!allowed.value) {
     queue.loading.value = false;
@@ -46,8 +41,8 @@ onMounted(async () => {
       :pagination="queue.pagination.value"
       :page="queue.page.value"
       :allowed="allowed"
+      :show-search="false"
       @reload="queue.reload"
-      @search="applySearch"
       @page="queue.goToPage"
     >
       <template #actions>
