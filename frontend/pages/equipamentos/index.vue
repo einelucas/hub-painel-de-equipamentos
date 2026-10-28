@@ -295,7 +295,12 @@ onMounted(async () => {
       <p>Seu perfil não tem acesso à leitura de equipamentos.</p>
     </div>
     <div v-else class="stack">
-      <ModuleFilters show-project-context :refreshing="refreshing" @change="onGlobalFilterChange">
+      <ModuleFilters
+        show-project-context
+        :refreshing="refreshing || loading"
+        @change="onGlobalFilterChange"
+        @refresh="load"
+      >
         <template #actions>
           <Button
             v-if="canAdminister"

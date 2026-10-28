@@ -124,7 +124,12 @@ onMounted(async () => {
       <h2>Sem permissão</h2><p>Seu perfil não tem acesso à leitura de equipamentos deste módulo.</p>
     </div>
     <div v-else class="stack">
-      <ModuleFilters show-project-context :refreshing="refreshing" @change="reload">
+      <ModuleFilters
+        show-project-context
+        :refreshing="refreshing || loading"
+        @change="reload"
+        @refresh="load"
+      >
         <DashboardFilters
           v-model:area-id="dashboard.filters.areaId"
           v-model:discipline-id="dashboard.filters.disciplineId"

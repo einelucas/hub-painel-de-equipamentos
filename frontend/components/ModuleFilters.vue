@@ -1,24 +1,79 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
-import { computed } from "vue";
-import { Boxes, Building2, MapPin, RefreshCw } from "lucide-vue-next";
+import { computed, onBeforeUnmount, onMounted, watch } from "vue";
+import { Boxes, Building2, MapPin } from "lucide-vue-next";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import { toOptions } from "~/utils/selectOptions";
 
-const props = withDefaults(defineProps<{
-  refreshing?: boolean;
-  showRefresh?: boolean;
-  showProjectContext?: boolean;
-}>(), {
-  refreshing: false,
-  showRefresh: true,
-  showProjectContext: false,
-});
-const emit = defineEmits<{ change: [] }>();
+const props = withDefaults(
+  defineProps<{
+    refreshing?: boolean;
+    showProjectContext?: boolean;
+    autoRefreshMs?: number;
+  }>(),
+  {
+    refreshing: false,
+    showProjectContext: false,
+    autoRefreshMs: 60_000,
+  },
+);
+const emit = defineEmits<{ change: []; refresh: [] }>();
 const context = useModuleContextStore();
 
+/**
+ * As abas se atualizam sozinhas. O intervalo para enquanto a aba está em
+ * segundo plano e dispara uma atualização imediata ao voltar a ficar visível.
+ * `refreshing` evita empilhar requisições se a anterior ainda estiver aberta.
+ */
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+function canAutoRefresh(): boolean {
+  return (
+    !props.refreshing &&
+    (typeof document === "undefined" || document.visibilityState !== "hidden")
+  );
+}
+
+function stopAutoRefreshTimer(): void {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+}
+
+function startAutoRefreshTimer(): void {
+  stopAutoRefreshTimer();
+  if (props.autoRefreshMs > 0) {
+    refreshTimer = setInterval(() => {
+      if (canAutoRefresh()) emit("refresh");
+    }, props.autoRefreshMs);
+  }
+}
+
+function onVisibilityChange(): void {
+  if (document.visibilityState === "hidden") {
+    stopAutoRefreshTimer();
+    return;
+  }
+  if (canAutoRefresh()) emit("refresh");
+  startAutoRefreshTimer();
+}
+
+onMounted(() => {
+  startAutoRefreshTimer();
+  document.addEventListener("visibilitychange", onVisibilityChange);
+});
+
+onBeforeUnmount(() => {
+  stopAutoRefreshTimer();
+  document.removeEventListener("visibilitychange", onVisibilityChange);
+});
+
+watch(() => props.autoRefreshMs, startAutoRefreshTimer);
+
 const unitOptions = computed(() => toOptions(context.units));
-const projectContextOptions = computed(() => toOptions(context.projectContexts));
+const projectContextOptions = computed(() =>
+  toOptions(context.projectContexts),
+);
 const equipmentOptions = computed(() => toOptions(context.equipmentOptions));
 
 async function onUnit(value: string): Promise<void> {
@@ -38,7 +93,11 @@ function onEquipment(value: string): void {
 </script>
 
 <template>
-  <section class="surface filter-surface" aria-label="Filtros globais do módulo" :aria-busy="context.loading || context.optionsLoading">
+  <section
+    class="surface filter-surface"
+    aria-label="Filtros globais do módulo"
+    :aria-busy="context.loading || context.optionsLoading"
+  >
     <div class="filter-grid">
       <div class="filter-controls">
         <div class="field">
@@ -60,7 +119,9 @@ function onEquipment(value: string): void {
           <FloatingFilterSelect
             :model-value="context.selectedProjectContext"
             :options="projectContextOptions"
-            :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
+            :disabled="
+              !context.selectedUnit || context.loading || context.optionsLoading
+            "
             :icon="MapPin"
             label="Obra"
             placeholder="Buscar obra"
@@ -73,7 +134,9 @@ function onEquipment(value: string): void {
           <FloatingFilterSelect
             :model-value="context.selectedEquipment"
             :options="equipmentOptions"
-            :disabled="!context.selectedUnit || context.loading || context.optionsLoading"
+            :disabled="
+              !context.selectedUnit || context.loading || context.optionsLoading
+            "
             :icon="Boxes"
             label="Equipamento"
             placeholder="Buscar equipamento"
@@ -84,25 +147,34 @@ function onEquipment(value: string): void {
         </div>
         <div class="filter-extra"><slot /></div>
       </div>
-      <div v-if="props.showRefresh" class="filter-actions">
-        <Button :disabled="props.refreshing" :loading="props.refreshing" variant="outline" @click="emit('change')">
-          <RefreshCw v-if="!(props.refreshing)" :size="15" /> {{ props.refreshing ? "Atualizando..." : "Atualizar" }}
-        </Button>
+      <div v-if="$slots.actions" class="filter-actions">
         <slot name="actions" />
       </div>
     </div>
-    <p v-if="context.loading || context.optionsLoading" class="filter-hint filter-loading" role="status">
-      <span class="spinner-small" aria-hidden="true" /> Carregando opções de filtro...
+    <p
+      v-if="context.loading || context.optionsLoading"
+      class="filter-hint filter-loading"
+      role="status"
+    >
+      <span class="spinner-small" aria-hidden="true" /> Carregando opções de
+      filtro...
     </p>
     <p v-else-if="!context.selectedUnit" class="filter-hint">
-      Sem unidade selecionada os números consolidam todas as unidades disponíveis para você.
+      Sem unidade selecionada os números consolidam todas as unidades
+      disponíveis para você.
     </p>
   </section>
 </template>
 
 <style scoped>
-.filter-surface { padding: 16px 18px; }
-.filter-grid { display: flex; align-items: flex-end; gap: 12px; }
+.filter-surface {
+  padding: 16px 18px;
+}
+.filter-grid {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
 .filter-controls {
   display: grid;
   flex: 1 1 680px;
@@ -110,27 +182,75 @@ function onEquipment(value: string): void {
   gap: 14px 12px;
   min-width: 0;
 }
-.filter-controls > .field { min-width: 0; }
+.filter-controls > .field {
+  min-width: 0;
+}
 /* display: contents deixa cada campo do slot participar da quebra de linha como item próprio */
-.filter-extra { display: contents; }
-.filter-extra > :slotted(.field) { min-width: 0; }
-.filter-extra > :slotted(.field-wide) { grid-column: span 2; }
-.filter-extra > :slotted(.field-inline) { width: max-content; }
-.filter-extra :deep(.el-button) { height: 41px; min-height: 41px; margin: 0; align-self: flex-end; }
-.filter-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin-left: auto; }
+.filter-extra {
+  display: contents;
+}
+.filter-extra > :slotted(.field) {
+  min-width: 0;
+}
+.filter-extra > :slotted(.field-wide) {
+  grid-column: span 2;
+}
+.filter-extra > :slotted(.field-inline) {
+  width: max-content;
+}
+.filter-extra :deep(.el-button) {
+  height: 41px;
+  min-height: 41px;
+  margin: 0;
+  align-self: flex-end;
+}
+.filter-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
 /* O seletor reserva 5 px acima da borda para a legenda flutuante. A altura
    visual do contorno é 41 px; os botões seguem esse contorno, não o wrapper. */
-.filter-actions :deep(.el-button) { height: 41px; min-height: 41px; margin: 0; }
-.filter-loading { display: flex; align-items: center; gap: 7px; }
-.filter-hint { margin: 10px 0 0; color: #8b96a5; font-size: 11.5px; }
+.filter-actions :deep(.el-button) {
+  height: 41px;
+  min-height: 41px;
+  margin: 0;
+}
+.filter-loading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.filter-hint {
+  margin: 10px 0 0;
+  color: #8b96a5;
+  font-size: 11.5px;
+}
 @media (max-width: 1180px) {
-  .filter-grid { flex-wrap: wrap; }
-  .filter-actions { width: 100%; justify-content: flex-end; }
+  .filter-grid {
+    flex-wrap: wrap;
+  }
+  .filter-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 @media (max-width: 640px) {
-  .filter-controls { grid-template-columns: minmax(0, 1fr); }
-  .filter-extra > :slotted(.field-wide) { grid-column: auto; }
-  .filter-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .filter-actions :deep(.el-button) { width: 100%; }
+  .filter-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .filter-extra > :slotted(.field-wide) {
+    grid-column: auto;
+  }
+  .filter-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .filter-actions :deep(.el-button) {
+    width: 100%;
+  }
 }
 </style>

@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<{
   allowed: boolean;
   showSearch?: boolean;
 }>(), { showSearch: true });
-const emit = defineEmits<{ reload: []; search: [term: string]; page: [next: number] }>();
+const emit = defineEmits<{ reload: []; refresh: []; search: [term: string]; page: [next: number] }>();
 const term = ref("");
 </script>
 
@@ -28,7 +28,12 @@ const term = ref("");
       <p>Seu perfil não tem acesso à leitura de equipamentos deste módulo.</p>
     </div>
     <template v-else>
-      <ModuleFilters show-project-context :refreshing="props.refreshing" @change="emit('reload')">
+      <ModuleFilters
+        show-project-context
+        :refreshing="props.refreshing || props.loading"
+        @change="emit('reload')"
+        @refresh="emit('refresh')"
+      >
         <form v-if="props.showSearch" class="field field-wide queue-search" @submit.prevent="emit('search', term)">
           <span>Busca</span>
           <div class="search-control">
@@ -37,7 +42,7 @@ const term = ref("");
           </div>
         </form>
         <slot name="filters" />
-        <template #actions><slot name="actions" /></template>
+        <template v-if="$slots.actions" #actions><slot name="actions" /></template>
       </ModuleFilters>
 
       <section class="surface">

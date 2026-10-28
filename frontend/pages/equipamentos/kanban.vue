@@ -35,6 +35,7 @@ const router = useRouter();
 
 const equipments = ref<Equipment[]>([]);
 const loading = ref(true);
+const refreshing = ref(false);
 const error = ref("");
 const loadProgress = ref("");
 let requestVersion = 0;
@@ -149,9 +150,10 @@ function countFor(key: ColumnKey): number {
 
 const PAGE_SIZE = 100;
 
-async function load(): Promise<void> {
+async function load(background = false): Promise<void> {
   const version = ++requestVersion;
-  loading.value = true;
+  if (background) refreshing.value = true;
+  else loading.value = true;
   error.value = "";
   loadProgress.value = "";
 
@@ -184,9 +186,14 @@ async function load(): Promise<void> {
   } finally {
     if (version === requestVersion) {
       loading.value = false;
+      refreshing.value = false;
       loadProgress.value = "";
     }
   }
+}
+
+function refreshQuietly(): void {
+  void load(true);
 }
 
 async function syncQuery(): Promise<void> {
@@ -240,7 +247,19 @@ onMounted(async () => {
     </div>
 
     <div v-else class="stack">
-      <ModuleFilters show-project-context :refreshing="loading" @change="reload" />
+      <ModuleFilters
+        show-project-context
+        :refreshing="loading || refreshing"
+        @change="reload"
+        @refresh="refreshQuietly"
+      />
+
+      <div
+        v-if="refreshing"
+        class="progress-indeterminate"
+        role="progressbar"
+        aria-label="Atualizando kanban"
+      />
 
       <div v-if="loading" class="queue-state" role="status" aria-busy="true">
         <span class="spinner" aria-hidden="true" />

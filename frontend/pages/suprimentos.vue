@@ -43,6 +43,7 @@ onMounted(async () => {
       :allowed="allowed"
       :show-search="false"
       @reload="queue.reload"
+      @refresh="queue.load"
       @page="queue.goToPage"
     >
       <template #actions>

@@ -61,11 +61,6 @@ async function reloadAll(): Promise<void> {
   await applyFieldFilters();
 }
 
-async function applySearch(term: string): Promise<void> {
-  queue.search.value = term;
-  await queue.reload();
-}
-
 onMounted(async () => {
   if (!allowed.value) {
     queue.loading.value = false;
@@ -97,8 +92,9 @@ onMounted(async () => {
       :pagination="queue.pagination.value"
       :page="queue.page.value"
       :allowed="allowed"
+      :show-search="false"
       @reload="reloadAll"
-      @search="applySearch"
+      @refresh="queue.load"
       @page="queue.goToPage"
     >
       <template #filters>
