@@ -60,7 +60,7 @@ describe("TipBadge", () => {
     await badge.trigger("mouseenter");
 
     const style = balloon.attributes("style") ?? "";
-    expect(style).toContain("left: 120px");
+    expect(style).toContain("left: 20px");
     expect(style).toContain(`bottom: ${window.innerHeight - 300 + 9}px`);
     expect(style).toContain("--tip-arrow: 100px");
     expect(balloon.classes()).not.toContain("tip-badge-tip--below");

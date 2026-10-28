@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Pencil, Plus, Upload, EyeOff, Eye } from "lucide-vue-next";
+import { Pencil, Plus, Upload, EyeOff, Eye, Search } from "lucide-vue-next";
 import type { CatalogList, Supplier } from "~/types/equipment";
 import Button from "~/components/ui/Button.vue";
 import SupplierImportModal from "~/components/supplier/SupplierImportModal.vue";
@@ -8,6 +8,7 @@ import SupplierForm, {
 } from "~/components/supplier/SupplierForm.vue";
 import { useIncrementalList } from "~/composables/useIncrementalList";
 import { formatCnpj, sortSuppliers } from "~/utils/suppliers";
+import FloatingFilterInput from "~/components/ui/FloatingFilterInput.vue";
 
 definePageMeta({ middleware: "auth" });
 const api = useApi();
@@ -20,7 +21,6 @@ let loadVersion = 0;
 const error = ref("");
 const formError = ref("");
 const search = ref("");
-const searchFocused = ref(false);
 const includeInactive = ref(false);
 const showForm = ref(false);
 const showImport = ref(false);
@@ -37,12 +37,7 @@ const numberFormat = new Intl.NumberFormat("pt-BR");
 
 const allowed = computed(() => auth.can("suppliers:read"));
 const canWrite = computed(() => auth.can("suppliers:write"));
-const searchFloating = computed(
-  () => searchFocused.value || Boolean(search.value),
-);
-const searchPlaceholder = computed(() =>
-  searchFloating.value ? "Código, razão social, nome fantasia ou CNPJ" : "",
-);
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function load(): Promise<void> {
   const version = ++loadVersion;
@@ -67,6 +62,24 @@ async function load(): Promise<void> {
     if (version === loadVersion) loading.value = false;
   }
 }
+
+function scheduleSearch(): void {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchTimer = null;
+    void load();
+  }, 300);
+}
+
+async function submitSearch(): Promise<void> {
+  if (searchTimer) {
+    clearTimeout(searchTimer);
+    searchTimer = null;
+  }
+  await load();
+}
+
+watch(search, scheduleSearch);
 
 function openCreate(): void {
   editing.value = null;
@@ -109,6 +122,10 @@ onMounted(() => {
   }
   return load();
 });
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer);
+});
 </script>
 
 <template>
@@ -127,25 +144,15 @@ onMounted(() => {
         aria-label="Filtros de fornecedores"
       >
         <div class="filter-grid">
-          <form class="field" @submit.prevent="load">
-            <div
-              class="search-control"
-              :class="{ 'is-search-focused': searchFocused, 'is-search-floating': searchFloating }"
-            >
-              <div class="search-field">
-                <fieldset class="search-outline" aria-hidden="true">
-                  <legend class="search-legend"><span>Busca</span></legend>
-                </fieldset>
-                <span class="search-label">Busca</span>
-                <input
-                  v-model="search"
-                  class="search-input"
-                  :placeholder="searchPlaceholder"
-                  aria-label="Buscar fornecedor por código, razão social, nome fantasia ou CNPJ"
-                  @focus="searchFocused = true"
-                  @blur="searchFocused = false"
-                />
-              </div>
+          <form class="field supplier-search" @submit.prevent="submitSearch">
+            <div class="search-control">
+              <FloatingFilterInput
+                v-model="search"
+                :icon="Search"
+                label="Busca"
+                placeholder="Código, razão social, nome fantasia ou CNPJ"
+                test-id="supplier-search"
+              />
               <Button
                 variant="outline"
                 type="submit"
@@ -319,138 +326,26 @@ onMounted(() => {
   align-items: end;
   gap: 14px;
 }
-  .search-control {
-    display: flex;
-    gap: 0;
-    align-items: stretch;
-    position: relative;
-    height: 46px;
-    font-family: var(--el-font-family);
-    font-size: 13.5px;
-  }
-  .search-field {
-    position: relative;
-    flex: 1;
-    min-width: 0;
-  }
-  .search-outline {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 1px solid #d8e0ea;
-    border-radius: 8px;
-    border-right: none;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    background: #fff;
-    pointer-events: none;
-    transition:
-      border-color 0.17s ease,
-      box-shadow 0.17s ease,
-      background-color 0.17s ease;
-  }
-  .search-legend {
-    float: unset;
-    display: block;
-    width: auto;
-    height: 12px;
-    max-width: 0.01px;
-    margin: 0 0 0 10px;
-    padding: 0;
-    overflow: hidden;
-    font-size: 10.5px;
-    font-weight: 600;
-    line-height: 12px;
-    visibility: hidden;
-    transition: max-width 0.17s ease;
-  }
-  .is-search-floating .search-legend {
-    max-width: calc(100% - 22px);
-    visibility: visible;
-  }
-  .search-legend > span {
-    display: inline-block;
-    max-width: 100%;
-    padding: 0 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    vertical-align: top;
-  }
-  .search-label {
-    position: absolute;
-    top: 50%;
-    left: 14px;
-    z-index: 3;
-    color: #7a879a;
-    font-size: 13.5px;
-    font-weight: 500;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    pointer-events: none;
-    transform: translateY(-50%);
-    transition:
-      top 0.17s ease,
-      font-size 0.17s ease,
-      color 0.17s ease;
-  }
-  .is-search-floating .search-label {
-    top: 0;
-    left: 10px;
-    color: #64748b;
-    font-size: 10.5px;
-    font-weight: 600;
-  }
-  .is-search-focused .search-label {
-    color: var(--el-color-primary, #304f7e);
-  }
-  .search-input {
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    height: 100%;
-    padding: 0 12px;
-    box-sizing: border-box;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: #26364d;
-    min-width: 0;
-  }
-  .search-input::placeholder {
-    color: #9aa6b5;
-    font-weight: 400;
-  }
-  .is-search-focused .search-outline,
-  .is-search-open .search-outline {
-    border-color: var(--el-color-primary, #304f7e);
-    box-shadow: 0 0 0 3px rgb(48 79 126 / 9%);
-  }
+.supplier-search { min-width: 0; }
+.search-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
   .filter-actions {
     display: flex;
     gap: 8px;
   }
   .toolbar-btn {
-    height: 46px;
-    min-height: 46px;
+    height: 41px;
+    min-height: 41px;
   }
   .search-control > .toolbar-btn {
-    position: relative;
-    z-index: 2;
-    flex: 0 0 auto;
-    height: 46px;
-    min-height: 46px;
+    height: 41px;
+    min-height: 41px;
     margin: 0;
     border-radius: 8px;
-    border-left: none;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
   }
   .toolbar-btn.active {
     background: #eef4fb;

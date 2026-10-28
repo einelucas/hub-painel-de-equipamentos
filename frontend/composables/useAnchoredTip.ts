@@ -51,7 +51,9 @@ export function useAnchoredTip() {
     );
 
     style.value = {
-      left: `${left}px`,
+      // `left` acima representa o centro desejado; CSS posiciona pela borda
+      // esquerda. Compensar metade da largura mantém o balão sobre o badge.
+      left: `${left - half}px`,
       "--tip-arrow": `${arrow}px`,
       ...(upward
         ? { bottom: `${window.innerHeight - rect.top + GAP}px` }
