@@ -75,10 +75,6 @@ function onUpdate(value: unknown): void {
       chips
       closable-chips
       clearable
-      variant="outlined"
-      color="primary"
-      density="comfortable"
-      hide-details="auto"
       :no-data-text="props.disabled ? props.disabledMessage : 'Nenhuma opção encontrada.'"
       clear-on-select
       @update:model-value="onUpdate"
