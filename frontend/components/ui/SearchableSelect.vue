@@ -114,6 +114,7 @@ watch(
       @invalid="onInvalid"
     >
     <VAutocomplete
+      :menu-props="{ zIndex: 10020 }"
       :model-value="props.modelValue"
       :items="items"
       item-title="title"
@@ -121,7 +122,6 @@ watch(
       :filter-keys="[...AUTOCOMPLETE_FILTER_KEYS]"
       :ignore-accents="true"
       :label="props.label"
-      :placeholder="props.clearable && isEmpty ? props.emptyLabel : props.placeholder"
       :disabled="props.disabled"
       :clearable="props.clearable"
       variant="outlined"
