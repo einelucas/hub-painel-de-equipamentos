@@ -1,12 +1,12 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { VueWrapper } from "@vue/test-utils";
-const mounted: VueWrapper[] = [];
-afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 import EquipmentReopenPanel from "~/components/equipment/EquipmentReopenPanel.vue";
 import type { ReopenRequest } from "~/types/equipment";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 import { chooseOption } from "./support/searchableSelect";
+import type { VueWrapper } from "@vue/test-utils";
+const mounted: VueWrapper[] = [];
+afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 
 /**
  * AppModal usa <Teleport to="body">, que complica a busca por elementos em
