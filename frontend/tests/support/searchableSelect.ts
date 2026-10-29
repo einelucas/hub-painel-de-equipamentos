@@ -17,7 +17,7 @@ type AnyWrapper = VueWrapper | ElementWrapper;
  */
 function root(wrapper: AnyWrapper, testId: string): ElementWrapper {
   const found = wrapper
-    .findAll(".searchable-select, .searchable-multi-select, .floating-filter-select")
+    .findAll(".searchable-select, .searchable-multi-select, .floating-filter-select, .v-autocomplete")
     .find(
       (item) =>
         item.attributes("data-testid") === testId ||
@@ -95,7 +95,6 @@ export async function chooseOption(
       `Opção '${label}' não encontrada em '${testId}'${available ? ` (opções: ${available})` : ""}`,
     );
   }
-  await option.trigger("mousedown");
   await option.trigger("click");
   await nextTick();
   await flushPromises();
