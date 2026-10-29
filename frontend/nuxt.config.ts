@@ -39,6 +39,7 @@ export default defineNuxtConfig({
     "~/assets/css/vue.css",
     "element-plus/dist/index.css",
     "~/assets/css/element-plus.css",
+    "~/assets/css/vuetify-hub.css",
   ],
   vuetify: {
     moduleOptions: {
