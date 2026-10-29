@@ -387,10 +387,6 @@ onMounted(load);
               :items="(settings?.providers ?? []).map((p) => ({ title: `${p.name}${p.configured ? '' : ' (não configurado)'}`, value: p.id }))"
               item-title="title"
               item-value="value"
-              variant="outlined"
-              color="primary"
-              density="comfortable"
-              hide-details="auto"
               label="Provedor para este teste"
             />
           </div>
@@ -408,10 +404,6 @@ onMounted(load);
             :items="Object.entries(names).map(([kind, label]) => ({ title: label, value: kind }))"
             item-title="title"
             item-value="value"
-            variant="outlined"
-            color="primary"
-            density="comfortable"
-            hide-details="auto"
             label="Evento"
             @update:model-value="chooseRule($event as Kind)"
           />
@@ -440,10 +432,6 @@ onMounted(load);
               :items="Object.entries(names).map(([kind, label]) => ({ title: label, value: kind }))"
               item-title="title"
               item-value="value"
-              variant="outlined"
-              color="primary"
-              density="comfortable"
-              hide-details="auto"
               label="Tipo de notificação"
               @update:model-value="chooseRule($event as Kind)"
             />
