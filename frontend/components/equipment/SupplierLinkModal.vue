@@ -91,11 +91,10 @@ function cnpj(supplier: Pick<Supplier, "taxId">): string | null {
       </div>
 
       <div class="field">
-        <span>Fornecedor *</span>
         <SupplierCombobox
           v-model="chosen"
           :suppliers="props.suppliers"
-          label="Fornecedor"
+          label="Fornecedor *"
           empty-label="Selecione"
           empty-value=""
           test-id="supplier-link-combobox"

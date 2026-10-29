@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { hubAutocompleteDefaults } from "./config/vuetifyDefaults";
 
 // O dayjs publicado e CJS (UMD em dayjs.min.js). Com rolldown-vite o otimizador
 // nao faz o pre-bundle dele e o browser/SSR recebem o arquivo cru, quebrando com
@@ -93,6 +94,7 @@ export default defineNuxtConfig({
           density: "comfortable",
           hideDetails: "auto",
         },
+        VAutocomplete: hubAutocompleteDefaults,
       },
     },
   },

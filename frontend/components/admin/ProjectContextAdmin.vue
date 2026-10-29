@@ -258,7 +258,6 @@ watch(selectedId, loadSummary);
       </div>
       <div class="projects-toolbar">
       <div class="field unit-picker">
-        <span>Unidade</span>
         <SearchableSelect
           :model-value="props.unitId"
           :options="unitOptions"

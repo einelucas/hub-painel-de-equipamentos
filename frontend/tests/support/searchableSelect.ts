@@ -1,5 +1,5 @@
 import { nextTick } from "vue";
-import { DOMWrapper } from "@vue/test-utils";
+import { DOMWrapper, flushPromises } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 
 /**
@@ -11,13 +11,13 @@ type ElementWrapper = DOMWrapper<Element> | Omit<DOMWrapper<Element>, "exists">;
 type AnyWrapper = VueWrapper | ElementWrapper;
 
 /**
- * O dropdown do ElSelect é teleportado para o `body`, então as opções não fazem
- * parte da árvore do wrapper. Este helper resolve o menu pelo `aria-controls`
- * do input interno, que aponta para o `listbox` do próprio select.
+ * O dropdown de `VAutocomplete` é renderizado por um `VMenu` teleportado.
+ * O helper localiza as opções pelo `aria-controls` do input combobox,
+ * sem depender de classes antigas de Element Plus.
  */
 function root(wrapper: AnyWrapper, testId: string): ElementWrapper {
   const found = wrapper
-    .findAll(".searchable-select, .searchable-multi-select, .floating-filter-select")
+    .findAll(".searchable-select, .searchable-multi-select, .floating-filter-select, .v-autocomplete")
     .find(
       (item) =>
         item.attributes("data-testid") === testId ||
@@ -27,9 +27,9 @@ function root(wrapper: AnyWrapper, testId: string): ElementWrapper {
   return found;
 }
 
-/** Input interno do ElSelect que recebe foco, busca e teclado. */
+/** Input interno do VAutocomplete que recebe foco, busca e teclado. */
 function control(wrapper: AnyWrapper, testId: string): ElementWrapper {
-  return root(wrapper, testId).get(".el-select__input");
+  return root(wrapper, testId).get("input[role='combobox']");
 }
 
 /** `listbox` do menu, já dentro da árvore do `document.body`. */
@@ -46,7 +46,11 @@ export function menuElement(wrapper: AnyWrapper, testId: string): Element | null
 /** Abre o menu sem fechá-lo caso ele já esteja aberto. */
 export async function openMenu(wrapper: AnyWrapper, testId: string): Promise<void> {
   const input = control(wrapper, testId);
-  if (input.attributes("aria-expanded") !== "true") await input.trigger("click");
+  if (input.attributes("aria-expanded") !== "true") {
+    await input.trigger("mousedown");
+    await input.trigger("click");
+  }
+  await flushPromises();
 }
 
 /** Opções visíveis no menu (inclui a opção vazia, quando houver). */
@@ -59,6 +63,8 @@ export function menuOptions(wrapper: AnyWrapper, testId: string): DOMWrapper<Ele
 }
 
 function optionLabel(option: DOMWrapper<Element>): string {
+  const title = option.find(".v-list-item-title");
+  if (title.exists()) return title.text();
   const strong = option.find("strong");
   if (strong.exists()) return strong.text();
   return option.text();
@@ -91,6 +97,7 @@ export async function chooseOption(
   }
   await option.trigger("click");
   await nextTick();
+  await flushPromises();
 }
 
 /** Texto exibido no campo fechado: rótulo da opção escolhida ou vazio. */

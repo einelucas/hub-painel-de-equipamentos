@@ -1,6 +1,8 @@
-import { mount } from "@vue/test-utils";
+import { mount, type VueWrapper } from "@vue/test-utils";
+import { portal } from "./support/portal";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EapTreeAdmin from "~/components/admin/EapTreeAdmin.vue";
+import { chooseOption } from "./support/searchableSelect";
 import { useConfirm } from "~/composables/useConfirm";
 
 const nodes = [
@@ -9,13 +11,17 @@ const nodes = [
   { id: "a1", code: "01.A", name: "Área Sintética", level: "AREA", parentId: "p1", active: true },
 ];
 
+const mounted: VueWrapper[] = [];
+
 function setup() {
   const get = vi.fn().mockResolvedValue({ items: nodes });
   const post = vi.fn().mockResolvedValue({});
   const patch = vi.fn().mockResolvedValue({});
   const del = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("useApi", () => ({ get, post, patch, delete: del }));
-  return { wrapper: mount(EapTreeAdmin), get, post, patch, del };
+  const wrapper = mount(EapTreeAdmin);
+  mounted.push(wrapper);
+  return { wrapper, get, post, patch, del };
 }
 
 async function settle(wrapper: ReturnType<typeof mount>) {
@@ -26,6 +32,7 @@ async function settle(wrapper: ReturnType<typeof mount>) {
 }
 
 afterEach(() => {
+  for (const wrapper of mounted.splice(0)) wrapper.unmount();
   useConfirm().cancel();
   vi.unstubAllGlobals();
 });
@@ -72,15 +79,15 @@ describe("EapTreeAdmin", () => {
     await settle(wrapper);
 
     await wrapper.get("[data-testid='eap-new']").trigger("click");
-    expect(wrapper.get(".modal-card h2").text()).toBe("Novo nó da Árvore EAP");
-    await wrapper.get("[data-testid='eap-level']").setValue("AREA");
-    await wrapper.get("[data-testid='eap-code']").setValue("01.b");
-    await wrapper.get("[data-testid='eap-name']").setValue("Área Sintética B");
-    await wrapper.get("[data-testid='eap-parent']").setValue("p1");
-    await wrapper.get("[data-testid='eap-form']").trigger("submit");
+    expect(portal().get(".modal-card h2").text()).toBe("Novo nó da Árvore EAP");
+    await chooseOption(portal(), "eap-level", "Área");
+    await portal().get("[data-testid='eap-code']").setValue("01.b");
+    await portal().get("[data-testid='eap-name']").setValue("Área Sintética B");
+    await chooseOption(portal(), "eap-parent", "01 · Processo Sintético");
+    await portal().get("[data-testid='eap-form']").trigger("submit");
     await settle(wrapper);
 
-    expect(wrapper.find(".modal-card").exists()).toBe(false);
+    expect(portal().find(".modal-card").exists()).toBe(false);
     expect(post).toHaveBeenCalledWith("/eap-nodes", {
       code: "01.B",
       name: "Área Sintética B",
@@ -94,14 +101,14 @@ describe("EapTreeAdmin", () => {
     await settle(wrapper);
 
     await wrapper.get("[data-testid='eap-edit-a1']").trigger("click");
-    expect(wrapper.get(".modal-card h2").text()).toBe("Editar nó da Árvore EAP");
-    expect((wrapper.get("[data-testid='eap-code']").element as HTMLInputElement).disabled).toBe(true);
-    await wrapper.get("[data-testid='eap-name']").setValue("Área revisada");
-    await wrapper.get("[data-testid='eap-active']").setValue(false);
-    await wrapper.get("[data-testid='eap-form']").trigger("submit");
+    expect(portal().get(".modal-card h2").text()).toBe("Editar nó da Árvore EAP");
+    expect((portal().get("[data-testid='eap-code']").element as HTMLInputElement).disabled).toBe(true);
+    await portal().get("[data-testid='eap-name']").setValue("Área revisada");
+    await portal().get("[data-testid='eap-active']").setValue(false);
+    await portal().get("[data-testid='eap-form']").trigger("submit");
     await settle(wrapper);
 
-    expect(wrapper.find(".modal-card").exists()).toBe(false);
+    expect(portal().find(".modal-card").exists()).toBe(false);
     expect(patch).toHaveBeenCalledWith("/eap-nodes/a1", {
       name: "Área revisada",
       active: false,

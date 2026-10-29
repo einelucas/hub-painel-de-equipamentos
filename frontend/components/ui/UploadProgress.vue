@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
-import { ElProgress } from "element-plus";
+import { VProgressLinear } from "vuetify/components";
 
 /**
  * Progresso de um envio de arquivo, com as duas fases do fluxo real:
@@ -84,25 +84,18 @@ function childTestId(suffix: string): string | undefined {
       >{{ elapsed }}s</span>
     </p>
 
-    <!-- Barra determinística: só quando o total do envio é conhecido. -->
-    <ElProgress
-      v-if="props.uploading && knownPercent"
-      :percentage="props.percent ?? 0"
-      :stroke-width="8"
-      :show-text="false"
+    <VProgressLinear
       class="upload-progress__bar"
-      :data-testid="childTestId('-bar')"
-    />
-    <!-- Indeterminada: total desconhecido ou processamento no servidor. -->
-    <div
-      v-else
-      class="upload-progress__indeterminate"
-      role="progressbar"
+      :model-value="props.uploading && knownPercent ? (props.percent ?? 0) : undefined"
+      :indeterminate="!props.uploading || !knownPercent"
+      color="primary"
+      bg-color="primary"
+      bg-opacity="0.12"
+      :height="8"
+      rounded
       :aria-label="props.uploading ? props.uploadLabel : props.processingLabel"
       :data-testid="childTestId('-bar')"
-    >
-      <span class="upload-progress__fill" />
-    </div>
+    />
 
     <p v-if="props.warning" class="upload-progress__warn">{{ props.warning }}</p>
   </div>
@@ -139,36 +132,5 @@ function childTestId(suffix: string): string | undefined {
   margin: 0;
   color: var(--muted, #6b7a8f);
   font-size: 11.5px;
-}
-
-.upload-progress__indeterminate {
-  position: relative;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e4eaf2;
-}
-
-.upload-progress__fill {
-  position: absolute;
-  display: block;
-  width: 35%;
-  height: 100%;
-  border-radius: 999px;
-  background: #304f7e;
-  animation: upload-progress-slide 1.2s ease-in-out infinite;
-}
-
-@keyframes upload-progress-slide {
-  from { left: -35%; }
-  to { left: 100%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .upload-progress__fill {
-    width: 100%;
-    animation: none;
-    opacity: 0.55;
-  }
 }
 </style>

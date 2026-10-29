@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
 import type { Supplier } from "~/types/equipment";
@@ -18,6 +18,7 @@ const supplier = (id: string, corporateCode: string, legalName: string): Supplie
 describe("SupplierCombobox", () => {
   it("mantém o menu, ordena A–Z e busca por código ou nome", async () => {
     const wrapper = mount(SupplierCombobox, {
+      attachTo: document.body,
       props: {
         modelValue: "",
         label: "Fornecedor",
@@ -28,7 +29,7 @@ describe("SupplierCombobox", () => {
         ],
       },
     });
-    const input = wrapper.get("[data-testid='supplier-combobox']");
+    const input = wrapper.get("input[role='combobox']");
 
     await openMenu(wrapper, "supplier-combobox");
     expect(await optionLabels(wrapper, "supplier-combobox")).toEqual([
@@ -37,22 +38,27 @@ describe("SupplierCombobox", () => {
       "9002 · Zeta Industrial",
     ]);
 
+    await input.trigger("focus");
     await input.setValue("9002");
+    await flushPromises();
     expect(
-      menuOptions(wrapper, "supplier-combobox").map((item) => item.find("strong").text()),
-    ).toEqual(["Manter sem fornecedor", "9002 · Zeta Industrial"]);
+      menuOptions(wrapper, "supplier-combobox").map((item) => item.find(".v-list-item-title").text()),
+    ).toEqual(["9002 · Zeta Industrial"]);
 
-    // Esc limpa o texto do filtro e, num segundo Esc, fecha o menu; clicar
-    // no campo reabre com todas as opções.
+    // Escape fecha a lista nativa do Vuetify sem apagar a pesquisa digitada.
     await input.trigger("keydown", { key: "Escape" });
     await input.trigger("keydown", { key: "Escape" });
     expect(input.attributes("aria-expanded")).toBe("false");
     await openMenu(wrapper, "supplier-combobox");
     expect(input.attributes("aria-expanded")).toBe("true");
+    expect(await optionLabels(wrapper, "supplier-combobox")).toEqual(["9002 · Zeta Industrial"]);
+    await input.setValue("");
+    await flushPromises();
     expect(await optionLabels(wrapper, "supplier-combobox")).toEqual([
       "Manter sem fornecedor",
       "1001 · Alfa Engenharia",
       "9002 · Zeta Industrial",
     ]);
+    wrapper.unmount();
   });
 });

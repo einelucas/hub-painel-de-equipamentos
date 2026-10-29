@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { mdiPencilOutline } from "@mdi/js";
+import {
+  mdiAccount,
+  mdiAlertCircleOutline,
+  mdiEarth,
+  mdiMapMarker,
+  mdiOfficeBuilding,
+  mdiPackageVariant,
+  mdiPencilOutline,
+  mdiTag,
+} from "@mdi/js";
 import { computed, onMounted, reactive, ref } from "vue";
 import { VBtn } from "vuetify/components";
 import CurrencyInput from "~/components/ui/CurrencyInput.vue";
@@ -258,14 +267,14 @@ onMounted(loadCatalogs);
       </label>
 
       <div class="field">
-        <span>Obra *</span>
 
         <SearchableSelect
           v-model="form.projectContextId"
           :options="contextOptions"
           :clearable="false"
           required
-          label="Obra"
+          label="Obra *"
+          :icon="mdiOfficeBuilding"
           placeholder="Buscar por código ou nome"
           empty-label="Selecione"
           test-id="project-context-select"
@@ -273,7 +282,6 @@ onMounted(loadCatalogs);
       </div>
 
       <div class="field">
-        <span>Origem</span>
 
         <SearchableSelect
           v-model="form.origin"
@@ -281,6 +289,7 @@ onMounted(loadCatalogs);
           :clearable="false"
           :sorted="false"
           label="Origem"
+          :icon="mdiEarth"
           placeholder="Selecione a origem"
           empty-label="Selecione"
           test-id="origin-select"
@@ -304,6 +313,7 @@ onMounted(loadCatalogs);
           v-model="form.eapNodeId"
           :options="eapOptions"
           label="Localização EAP"
+          :icon="mdiMapMarker"
           placeholder="Buscar por código ou nome"
           empty-label="Não informada"
           test-id="eap-node-select"
@@ -311,11 +321,11 @@ onMounted(loadCatalogs);
       </div>
 
       <div class="field">
-        <span>Disciplina</span>
         <SearchableSelect
           v-model="form.disciplineId"
           :options="disciplineOptions"
           label="Disciplina"
+          :icon="mdiTag"
           placeholder="Buscar disciplina"
           empty-label="Não informada"
         />
@@ -323,10 +333,8 @@ onMounted(loadCatalogs);
 
       <!-- WORK PACKAGES -->
       <div class="field field-wide work-package-field">
-        <div class="wp-header">
-          <span class="wp-title"> Work Packages </span>
-
-          <span v-if="form.workPackageIds.length" class="wp-count">
+        <div v-if="form.workPackageIds.length" class="wp-header">
+          <span class="wp-count">
             {{ form.workPackageIds.length }}
             {{ form.workPackageIds.length === 1 ? "selecionado" : "selecionados" }}
           </span>
@@ -335,6 +343,7 @@ onMounted(loadCatalogs);
           v-model="form.workPackageIds"
           :options="workPackageOptions"
           label="Work Packages"
+          :icon="mdiPackageVariant"
           placeholder="Buscar por código, nome ou descrição"
         />
       </div>
@@ -362,6 +371,7 @@ onMounted(loadCatalogs);
           v-model="form.criticalityLabelId"
           :options="criticalityOptions"
           label="Criticidade"
+          :icon="mdiAlertCircleOutline"
           placeholder="Buscar criticidade"
           empty-label="Não informada"
           test-id="criticality-select"
@@ -379,11 +389,11 @@ onMounted(loadCatalogs);
       </label>
 
       <div class="field">
-        <span>Responsável</span>
         <SearchableSelect
           v-model="form.responsibleUserId"
           :options="responsibleOptions"
           label="Responsável"
+          :icon="mdiAccount"
           placeholder="Buscar por nome ou e-mail"
           empty-label="Não atribuído"
           test-id="responsible-select"
@@ -476,8 +486,7 @@ onMounted(loadCatalogs);
   line-height: 20px;
   text-transform: uppercase;
 }
-.field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: space-between; gap: 8px; }
-.equipment-form :deep(.searchable-select__control) { border-radius: 9px; }
+.field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: flex-end; gap: 8px; }
 
 .stage-note {
   margin: 0;
@@ -503,13 +512,9 @@ onMounted(loadCatalogs);
 .wp-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   margin-bottom: 7px;
-}
-
-.wp-title {
-  color: inherit;
 }
 
 .wp-count {

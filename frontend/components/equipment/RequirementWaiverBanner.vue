@@ -277,20 +277,19 @@ async function confirmRevoke(): Promise<void> {
         </div>
       </div>
 
-      <label class="field">
-        <span>Motivo *</span>
+      <div class="field">
         <SearchableSelect
           :model-value="reasonCode"
           :options="REASON_OPTIONS"
           :sorted="false"
           :clearable="false"
           required
-          label="Motivo"
+          label="Motivo *"
           placeholder="Buscar motivo"
           test-id="waiver-reason"
           @update:model-value="reasonCode = $event as RequirementWaiverReasonCode"
         />
-      </label>
+      </div>
 
       <label class="field">
         <span>Justificativa *</span>

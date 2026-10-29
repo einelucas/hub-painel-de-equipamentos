@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from "vue";
-import { Boxes, Building2, MapPin } from "lucide-vue-next";
+import { mdiOfficeBuilding, mdiMapMarker, mdiPackageVariant } from "@mdi/js";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import { toOptions } from "~/utils/selectOptions";
 
@@ -107,7 +107,7 @@ function onEquipment(value: string): void {
             :options="unitOptions"
             :disabled="context.loading"
             :clearable="context.units.length !== 1"
-            :icon="Building2"
+            :icon="mdiOfficeBuilding"
             label="Unidade"
             placeholder="Buscar unidade"
             empty-label="Todas as unidades"
@@ -122,7 +122,7 @@ function onEquipment(value: string): void {
             :disabled="
               !context.selectedUnit || context.loading || context.optionsLoading
             "
-            :icon="MapPin"
+            :icon="mdiMapMarker"
             label="Obra"
             placeholder="Buscar obra"
             empty-label="Todas as obras"
@@ -137,7 +137,7 @@ function onEquipment(value: string): void {
             :disabled="
               !context.selectedUnit || context.loading || context.optionsLoading
             "
-            :icon="Boxes"
+            :icon="mdiPackageVariant"
             label="Equipamento"
             placeholder="Buscar equipamento"
             empty-label="Todos os equipamentos"

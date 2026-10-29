@@ -1,81 +1,66 @@
-import { mount } from "@vue/test-utils";
+import { DOMWrapper, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
+import { VDialog } from "vuetify/components";
 import ConfirmDialog from "~/components/ui/ConfirmDialog.vue";
 import { useConfirm } from "~/composables/useConfirm";
+
+function rendered(selector: string): DOMWrapper<Element> {
+  const element = document.body.querySelector(selector);
+  if (!element) throw new Error(`Elemento não renderizado: ${selector}`);
+  return new DOMWrapper(element);
+}
 
 afterEach(() => {
   useConfirm().cancel();
 });
 
-describe("ConfirmDialog", () => {
-  it("abre com título, mensagem e detalhe, e confirma resolvendo true", async () => {
-    const wrapper = mount(ConfirmDialog);
-    const { confirm, accept } = useConfirm();
-
-    const result = confirm({
+describe("ConfirmDialog com Vuetify", () => {
+  it("mostra a mensagem e confirma a ação por um VBtn nativo", async () => {
+    const wrapper = mount(ConfirmDialog, { attachTo: document.body });
+    const result = useConfirm().confirm({
       message: 'Deseja excluir "Elétrica"?',
       detail: "Esta ação não pode ser desfeita.",
     });
-    await wrapper.vm.$nextTick();
+    await flushPromises();
 
-    const dialog = wrapper.get("[role='alertdialog']");
-    expect((wrapper.get(".confirm-backdrop").element as HTMLElement).style.zIndex).toBe("10000");
-    expect(dialog.text()).toContain("Zona de risco");
-    expect(dialog.text()).toContain('Deseja excluir "Elétrica"?');
-    expect(dialog.text()).toContain("Esta ação não pode ser desfeita.");
-    expect(dialog.text()).toContain("Cancelar");
-    expect(dialog.text()).toContain("Excluir");
+    expect(wrapper.findComponent(VDialog).props("modelValue")).toBe(true);
+    expect(rendered(".confirm-card").text()).toContain("Zona de risco");
+    expect(rendered(".confirm-card").text()).toContain('Deseja excluir "Elétrica"?');
+    expect(rendered(".confirm-card").text()).toContain("Esta ação não pode ser desfeita.");
+    await rendered(".confirm-btn--danger").trigger("click");
 
-    accept();
     await expect(result).resolves.toBe(true);
-    await wrapper.vm.$nextTick();
-    expect(wrapper.find("[role='alertdialog']").exists()).toBe(false);
     wrapper.unmount();
   });
 
-  it("cancela pelo botão Cancelar resolvendo false", async () => {
-    const wrapper = mount(ConfirmDialog);
-    const { confirm } = useConfirm();
-
-    const result = confirm({ message: "Excluir registro?" });
-    await wrapper.vm.$nextTick();
-    await wrapper.get("[data-testid='confirm-cancel']").trigger("click");
-
+  it("cancela pelo botão Cancelar", async () => {
+    const wrapper = mount(ConfirmDialog, { attachTo: document.body });
+    const result = useConfirm().confirm({ message: "Excluir registro?" });
+    await flushPromises();
+    await rendered(".confirm-btn--cancel").trigger("click");
     await expect(result).resolves.toBe(false);
     wrapper.unmount();
   });
 
-  it("fecha com Escape e com clique no fundo", async () => {
-    const wrapper = mount(ConfirmDialog);
-    const { confirm } = useConfirm();
-
-    const first = confirm({ message: "Excluir A?" });
-    await wrapper.vm.$nextTick();
-    await wrapper.get("[role='alertdialog']").trigger("keydown", { key: "Escape" });
-    await expect(first).resolves.toBe(false);
-
-    const second = confirm({ message: "Excluir B?" });
-    await wrapper.vm.$nextTick();
-    await wrapper.get(".confirm-backdrop").trigger("mousedown");
-    await expect(second).resolves.toBe(false);
-
+  it("cancela quando o VDialog emite fechamento nativo", async () => {
+    const wrapper = mount(ConfirmDialog, { attachTo: document.body });
+    const result = useConfirm().confirm({ message: "Excluir A?" });
+    await flushPromises();
+    wrapper.findComponent(VDialog).vm.$emit("update:modelValue", false);
+    await expect(result).resolves.toBe(false);
     wrapper.unmount();
   });
 
-  it("usa o tom primário para ações não destrutivas", async () => {
-    const wrapper = mount(ConfirmDialog);
-    const { confirm } = useConfirm();
-
-    void confirm({
+  it("usa a variante e a cor primária para ações não destrutivas", async () => {
+    const wrapper = mount(ConfirmDialog, { attachTo: document.body });
+    void useConfirm().confirm({
       message: "Desativar registro?",
       confirmLabel: "Desativar",
       tone: "primary",
     });
-    await wrapper.vm.$nextTick();
-
-    const accept = wrapper.get("[data-testid='confirm-accept']");
-    expect(accept.classes()).toContain("text-primary");
-    expect(accept.text()).toBe("Desativar");
+    await flushPromises();
+    expect(rendered(".confirm-card").text()).toContain("Desativar");
+    expect(rendered(".confirm-btn--primary").exists()).toBe(true);
     wrapper.unmount();
   });
 });

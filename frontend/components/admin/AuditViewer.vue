@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiRefresh } from "@mdi/js";
+import { mdiAccountOutline, mdiPackageVariant, mdiRefresh } from "@mdi/js";
 import { VBtn } from "vuetify/components";
 import type { CatalogList, Equipment, EquipmentList } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
@@ -107,12 +107,12 @@ onMounted(async () => {
         <Input id="au-action" v-model="action" placeholder="ex.: user.update" @change="page = 1" />
       </div>
       <div class="space-y-1">
-        <Label>Equipamento</Label>
         <SearchableSelect
           v-model="equipmentId"
           class="min-w-[180px]"
           :options="equipmentSelectOptions"
           label="Equipamento"
+          :icon="mdiPackageVariant"
           placeholder="Buscar equipamento"
           empty-label="Todos"
           test-id="au-equipment"
@@ -120,12 +120,12 @@ onMounted(async () => {
         />
       </div>
       <div class="space-y-1">
-        <Label>Usuário</Label>
         <SearchableSelect
           v-model="userId"
           class="min-w-[180px]"
           :options="userSelectOptions"
           label="Usuário"
+          :icon="mdiAccountOutline"
           placeholder="Buscar usuário"
           empty-label="Todos"
           test-id="au-user"

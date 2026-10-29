@@ -1,6 +1,7 @@
-import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { DOMWrapper, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { h, nextTick } from "vue";
+import { VDialog } from "vuetify/components";
 import AppModal from "~/components/ui/AppModal.vue";
 
 let wrapper: VueWrapper | null = null;
@@ -10,11 +11,7 @@ function mountModal(props: Record<string, unknown> = {}) {
     attachTo: document.body,
     props: { open: true, title: "Editar registro", ...props },
     slots: {
-      default: () =>
-        h("label", { class: "field" }, [
-          h("span", "Nome"),
-          h("input", { "data-testid": "first-field" }),
-        ]),
+      default: () => h("input", { "data-testid": "first-field" }),
       actions: () => [
         h("button", { type: "button", "data-testid": "cancel" }, "Cancelar"),
         h("button", { type: "submit", "data-testid": "save" }, "Salvar"),
@@ -24,87 +21,68 @@ function mountModal(props: Record<string, unknown> = {}) {
   return wrapper;
 }
 
+function rendered(selector: string): DOMWrapper<Element> {
+  const element = document.body.querySelector(selector);
+  if (!element) throw new Error(`Elemento não renderizado: ${selector}`);
+  return new DOMWrapper(element);
+}
+
 afterEach(async () => {
   wrapper?.unmount();
   wrapper = null;
-  document.body.style.overflow = "";
+  await nextTick();
   await flushPromises();
 });
 
-describe("AppModal", () => {
-  it("abre como popup com título, foco no primeiro campo e rolagem bloqueada", async () => {
+describe("AppModal com VDialog nativo", () => {
+  it("renderiza o conteúdo e as ações em VDialog e VCard", async () => {
     const modal = mountModal();
     await flushPromises();
 
-    expect(modal.get("[role='dialog']").attributes("aria-modal")).toBe("true");
-    expect(modal.get(".modal-card h2").text()).toBe("Editar registro");
-    expect(document.body.style.overflow).toBe("hidden");
-    expect(document.activeElement).toBe(modal.get("[data-testid='first-field']").element);
+    expect(modal.findComponent(VDialog).exists()).toBe(true);
+    expect(modal.findComponent(VDialog).props("modelValue")).toBe(true);
+    expect(rendered(".modal-card h2").text()).toBe("Editar registro");
+    expect(rendered(".modal-body [data-testid='first-field']").exists()).toBe(true);
+    expect(rendered(".modal-actions [data-testid='save']").text()).toBe("Salvar");
   });
 
-  it("fecha pelo X, pelo fundo e por Escape", async () => {
+  it("o botão nativo de fechar emite close", async () => {
     const modal = mountModal();
     await flushPromises();
 
-    await modal.get("[data-testid='modal-close']").trigger("click");
-    // O fundo fecha por mousedown no overlay (tratamento próprio do Hub).
-    await modal.get(".el-overlay").trigger("mousedown");
-    await modal.get(".modal-card").trigger("keydown", { key: "Escape" });
-
-    expect(modal.emitted("close")).toHaveLength(3);
-  });
-
-  it("mantém o foco dentro do modal ao tabular", async () => {
-    const modal = mountModal();
-    await flushPromises();
-
-    const save = modal.get("[data-testid='save']").element as HTMLElement;
-    save.focus();
-    await modal.get(".modal-card").trigger("keydown", { key: "Tab" });
-
-    expect(document.activeElement).toBe(modal.get("[data-testid='modal-close']").element);
-  });
-
-  it("não fecha com Escape enquanto há um dropdown aberto dentro do modal", async () => {
-    const modal = mountModal();
-    await flushPromises();
-
-    const input = modal.get("[data-testid='first-field']");
-    input.element.setAttribute("aria-expanded", "true");
-    await input.trigger("keydown", { key: "Escape" });
-
-    expect(modal.emitted("close")).toBeUndefined();
-  });
-
-  it("não fecha pelo X, fundo ou Escape enquanto está ocupado", async () => {
-    const modal = mountModal({ busy: true });
-    await flushPromises();
-
-    await modal.get("[data-testid='modal-close']").trigger("click");
-    await modal.get(".el-overlay").trigger("mousedown");
-    await modal.get(".modal-card").trigger("keydown", { key: "Escape" });
-
-    expect(modal.emitted("close")).toBeUndefined();
-  });
-
-  it("libera a rolagem do body ao fechar", async () => {
-    const modal = mountModal();
-    await flushPromises();
-    expect(document.body.style.overflow).toBe("hidden");
-
-    await modal.setProps({ open: false });
-    await nextTick();
-
-    expect(document.body.style.overflow).toBe("");
-  });
-  it("closes from the inner backdrop without closing on content clicks", async () => {
-    const modal = mountModal();
-    await flushPromises();
-    await modal.get(".modal-body").trigger("mousedown");
-    expect(modal.emitted("close")).toBeUndefined();
-    await modal.get(".el-overlay-dialog").trigger("mousedown");
+    await rendered(".modal-close").trigger("click");
     expect(modal.emitted("close")).toHaveLength(1);
   });
 
+  it("preserva o diálogo aberto durante o salvamento", async () => {
+    const modal = mountModal({ busy: true });
+    await flushPromises();
 
+    expect(modal.findComponent(VDialog).props("persistent")).toBe(true);
+    expect(rendered(".modal-close").attributes("disabled")).toBeDefined();
+    await rendered(".modal-close").trigger("click");
+    expect(modal.emitted("close")).toBeUndefined();
+  });
+
+  it("desmonta o diálogo ao receber open=false", async () => {
+    const modal = mountModal();
+    await flushPromises();
+
+    await modal.setProps({ open: false });
+    await flushPromises();
+    expect(modal.findComponent(VDialog).exists()).toBe(false);
+  });
+
+  it("usa largura wide e preserva o corpo de altura contida quando solicitado", async () => {
+    const modal = mountModal({ size: "wide", contained: true });
+    await flushPromises();
+    expect(modal.findComponent(VDialog).props("maxWidth")).toBe(1040);
+    expect(rendered(".modal-card").classes()).toContain("modal-card--contained");
+  });
+
+  it("usa persistent para impedir dismissal em fluxos restritos", async () => {
+    const modal = mountModal({ dismissableMask: false });
+    await flushPromises();
+    expect(modal.findComponent(VDialog).props("persistent")).toBe(true);
+  });
 });

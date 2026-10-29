@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { mdiCloudDownloadOutline, mdiPlus, mdiTuneVariant } from "@mdi/js";
-import { Layers3, MapPin, PackageCheck, Tags, UserRound } from "lucide-vue-next";
+import {
+  mdiAccount,
+  mdiCloudDownloadOutline,
+  mdiLayers,
+  mdiMapMarker,
+  mdiPackageVariant,
+  mdiPlus,
+  mdiTag,
+  mdiTuneVariant,
+} from "@mdi/js";
 import type {
   CatalogItem,
   CatalogList,
@@ -341,7 +349,7 @@ onMounted(async () => {
               v-model="stage"
               :options="STAGE_OPTIONS"
               :sorted="false"
-              :icon="Layers3"
+              :icon="mdiLayers"
               label="Etapa"
               placeholder="Buscar etapa"
               empty-label="Todas"
@@ -352,7 +360,7 @@ onMounted(async () => {
             <FloatingFilterSelect
               v-model="disciplineId"
               :options="disciplineOptions"
-              :icon="Tags"
+              :icon="mdiTag"
               label="Disciplina"
               placeholder="Buscar disciplina"
               empty-label="Todas"
@@ -369,7 +377,7 @@ onMounted(async () => {
                   ? 'Selecione uma unidade para filtrar por responsável'
                   : undefined
               "
-              :icon="UserRound"
+              :icon="mdiAccount"
               label="Responsável"
               placeholder="Buscar responsável"
               empty-label="Todos"
@@ -381,7 +389,7 @@ onMounted(async () => {
             <FloatingFilterSelect
               v-model="areaId"
               :options="areaOptions"
-              :icon="MapPin"
+              :icon="mdiMapMarker"
               label="Área"
               placeholder="Buscar por código ou nome"
               empty-label="Todas"
@@ -399,7 +407,7 @@ onMounted(async () => {
                   ? 'Selecione uma unidade para filtrar por Work Package'
                   : undefined
               "
-              :icon="PackageCheck"
+              :icon="mdiPackageVariant"
               label="Work Package"
               placeholder="Buscar por código ou descrição"
               empty-label="Todos"

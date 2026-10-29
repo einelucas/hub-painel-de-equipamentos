@@ -310,14 +310,13 @@ void load();
   >
     <form :id="formId" class="eap-form" data-testid="eap-form" @submit.prevent="submit">
       <div class="field">
-        <span>Nível *</span>
         <SearchableSelect
           :model-value="form.level"
           :options="LEVEL_OPTIONS"
           :sorted="false"
           :clearable="false"
           :disabled="Boolean(editingId)"
-          label="Nível"
+          label="Nível *"
           placeholder="Buscar nível"
           test-id="eap-level"
           @update:model-value="form.level = $event as EapLevel"
@@ -332,14 +331,13 @@ void load();
         <input v-model="form.name" maxlength="160" required data-testid="eap-name">
       </label>
       <div v-if="form.level !== 'ISLAND'" class="field eap-parent-field">
-        <span>{{ form.level === "AREA" ? "Processo pai *" : "Ilha pai (opcional)" }}</span>
         <SearchableSelect
           v-model="form.parentId"
           :options="parentSelectOptions"
           :clearable="form.level !== 'AREA'"
           :required="form.level === 'AREA'"
           :disabled="Boolean(editingId)"
-          :label="form.level === 'AREA' ? 'Processo pai' : 'Ilha pai'"
+          :label="form.level === 'AREA' ? 'Processo pai *' : 'Ilha pai (opcional)'"
           placeholder="Buscar por código ou nome"
           :empty-label="form.level === 'AREA' ? 'Selecione' : 'Sem ilha'"
           test-id="eap-parent"

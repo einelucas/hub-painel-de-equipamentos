@@ -191,8 +191,7 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.field input:not(.el-input__inner):not(.el-select__input):not(.searchable-select__required):not([type="file"]),
-.field select,
+.field input:not(.el-input__inner):not([role='combobox']):not([type='hidden']):not(.searchable-select__required):not([type="file"])
 .field textarea,
 .input {
   width: 100%;
@@ -210,8 +209,7 @@ button:disabled {
   resize: vertical;
 }
 
-.field input:not(.el-input__inner):not(.el-select__input):not(.searchable-select__required):not([type="file"]):focus,
-.field select:focus,
+.field input:not(.el-input__inner):not([role='combobox']):not([type='hidden']):not(.searchable-select__required):not([type="file"]):focus
 .field textarea:focus,
 .input:focus {
   border-color: #6687b8;

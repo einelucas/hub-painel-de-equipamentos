@@ -49,7 +49,6 @@ function size(bytes: number): string {
       <section class="import-panel destination" aria-label="Destino da importação">
         <div class="import-panel-head"><h4>Destino</h4></div>
         <div class="field">
-          <span>Unidade</span>
           <SearchableSelect
             v-model="selection.unitId"
             :options="unitOptions"
@@ -62,7 +61,6 @@ function size(bytes: number): string {
           />
         </div>
         <div class="field">
-          <span>Obra / contexto de projeto</span>
           <SearchableSelect
             v-model="selection.contextId"
             :options="contextOptions"
@@ -80,7 +78,6 @@ function size(bytes: number): string {
         </p>
 
         <div v-if="profiles.length > 1" class="field">
-          <span>Formato da planilha</span>
           <SearchableSelect
             v-model="selection.profileId"
             :options="profileOptions"
