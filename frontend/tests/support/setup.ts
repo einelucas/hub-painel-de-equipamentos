@@ -1,5 +1,7 @@
 import { config } from "@vue/test-utils";
 import { defineComponent } from "vue";
+import { createVuetify } from "vuetify";
+import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
 
 /**
  * O `AppTeleport` (usado apenas pelos diálogos do Hub) é substituído por um
@@ -14,6 +16,24 @@ const AppTeleportStub = defineComponent({
     return () => slots.default?.();
   },
 });
+
+const vuetify = createVuetify({
+  icons: {
+    defaultSet: "mdi",
+    aliases,
+    sets: { mdi },
+  },
+  defaults: {
+    VBtn: {
+      color: "primary",
+      variant: "outlined",
+      rounded: "lg",
+      elevation: 0,
+    },
+  },
+});
+
+config.global.plugins = [...(config.global.plugins ?? []), vuetify];
 
 config.global.stubs = {
   ...config.global.stubs,

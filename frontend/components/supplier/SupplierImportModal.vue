@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { mdiClose, mdiFileImportOutline } from "@mdi/js";
 import { FileSpreadsheet } from "lucide-vue-next";
+import { VBtn } from "vuetify/components";
 import AppModal from "~/components/ui/AppModal.vue";
-import Button from "~/components/ui/Button.vue";
 import FilePicker from "~/components/ui/FilePicker.vue";
 import UploadProgress from "~/components/ui/UploadProgress.vue";
 import type { SupplierImportResult } from "~/types/equipment";
@@ -129,16 +130,19 @@ async function submit(): Promise<void> {
       </div>
 
       <div class="actions">
-        <Button variant="outline" :disabled="uploading" @click="requestClose">Fechar</Button>
-        <Button
+        <VBtn variant="outlined" :prepend-icon="mdiClose" :disabled="uploading" @click="requestClose">
+          Fechar
+        </VBtn>
+        <VBtn
           type="submit"
-          variant="default"
+          variant="tonal"
+          :prepend-icon="mdiFileImportOutline"
           :loading="uploading"
-          :disabled="!file"
+          :disabled="!file || uploading"
           data-testid="supplier-import-submit"
         >
           {{ submitLabel }}
-        </Button>
+        </VBtn>
       </div>
     </form>
   </AppModal>
