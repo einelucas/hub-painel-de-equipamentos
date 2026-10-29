@@ -1,6 +1,7 @@
 import type { Component } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { chooseOption } from "./support/searchableSelect";
 import type { AdminUser } from "~/types/api";
 
 let UsersPage: Component;
@@ -92,7 +93,7 @@ describe("página temporária de usuários", () => {
     const inputs = form.findAll("input");
     await inputs[0]!.setValue("Ana Souza");
     await inputs[1]!.setValue("ana@example.com");
-    await form.get("select").setValue("VIEWER");
+    await chooseOption(wrapper, "create-user-role", "Visualizador");
     await form.trigger("submit");
     await flushPromises();
 
@@ -109,9 +110,9 @@ describe("página temporária de usuários", () => {
     const { wrapper, patch } = mountPage();
     await flushPromises();
 
-    const ownSelect = wrapper.get("[aria-label='Perfil de Lucas Pinheiro']");
-    expect((ownSelect.element as HTMLSelectElement).disabled).toBe(true);
-    await wrapper.get("[aria-label='Perfil de Diego Costa']").setValue("ADMIN");
+    const ownSelect = wrapper.get("[data-testid='role-user-1']");
+    expect(ownSelect.classes()).toContain("v-input--disabled");
+    await chooseOption(wrapper, "role-user-2", "Administrador");
     await flushPromises();
 
     expect(patch).toHaveBeenCalledWith("/usuarios/user-2", { role: "ADMIN" });
