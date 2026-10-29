@@ -24,6 +24,7 @@ const props = withDefaults(
     required?: boolean;
   }>(),
   {
+    icon: undefined,
     placeholder: "Digite para buscar",
     emptyLabel: "Não informado",
     emptyValue: "",
