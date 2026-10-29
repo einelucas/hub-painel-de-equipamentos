@@ -226,8 +226,8 @@ onMounted(load);
         </label>
         <div class="field">
           <VAutocomplete
-            :menu-props="{ zIndex: 10020 }"
             v-model="form.role"
+            :menu-props="{ zIndex: 10020 }"
             :items="roleOptions"
             item-title="title"
             item-value="value"
