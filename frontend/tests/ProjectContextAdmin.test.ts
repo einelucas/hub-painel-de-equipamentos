@@ -281,7 +281,7 @@ describe("ProjectContextAdmin", () => {
     const wrapper = mountAdmin();
     await settle(wrapper);
 
-    expect(wrapper.get("[role='alert']").text()).toContain("Falha sintética ao listar");
+    expect(wrapper.get(".projects-error[role='alert']").text()).toContain("Falha sintética ao listar");
   });
 
   it("unidade sem contextos mostra estado vazio", async () => {
