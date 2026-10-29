@@ -9,6 +9,8 @@ const props = withDefaults(
     options: SearchableOption[];
     modelValue: string[];
     label: string;
+    /** Ícone MDI opcional, renderizado pelo próprio Vuetify. */
+    icon?: string;
     placeholder?: string;
     disabled?: boolean;
     disabledMessage?: string;
@@ -67,6 +69,7 @@ function onUpdate(value: unknown): void {
       :filter-keys="[...AUTOCOMPLETE_FILTER_KEYS]"
       :ignore-accents="true"
       :label="props.label"
+      :prepend-inner-icon="props.icon"
       :disabled="props.disabled"
       multiple
       chips
