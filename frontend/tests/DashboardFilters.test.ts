@@ -94,7 +94,7 @@ describe("DashboardFilters", () => {
     const wrapper = mountFilters({ areaId: "a-1" });
     const input = wrapper.get("input[role='combobox']");
     await openMenu(wrapper, "dashboard-filter-area");
-    (input.element as HTMLInputElement).focus();
+    await input.trigger("focus");
     await flushPromises();
     await input.setValue("dren");
     await flushPromises();
