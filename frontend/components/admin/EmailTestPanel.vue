@@ -90,7 +90,6 @@ watch(
       <div class="field">
         <VAutocomplete
           v-model="provider"
-          :menu-props="{ zIndex: 10020 }"
           :items="providerOptions"
           item-title="title"
           item-value="value"
@@ -123,7 +122,6 @@ watch(
       </label>
       <div class="field">
         <VAutocomplete
-          :menu-props="{ zIndex: 10020 }"
           :model-value="equipmentId ?? ''"
           :items="equipmentSelectOptions"
           item-title="title"
