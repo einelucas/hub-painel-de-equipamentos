@@ -89,8 +89,12 @@ export default defineNuxtConfig({
           hideDetails: "auto",
         },
         VAutocomplete: {
+          // Visual único do Hub: label nativa flutuante, contorno discreto
+          // em repouso e azul corporativo no foco.
           variant: "outlined",
           color: "primary",
+          baseColor: "secondary",
+          bgColor: "surface",
           rounded: "lg",
           density: "comfortable",
           hideDetails: "auto",
