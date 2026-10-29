@@ -117,7 +117,7 @@ watch(
       @invalid="onInvalid"
     >
     <VAutocomplete
-      :model-value="props.modelValue"
+      :model-value="isEmpty ? null : props.modelValue"
       :items="items"
       item-title="title"
       item-value="value"
@@ -127,10 +127,6 @@ watch(
       :prepend-inner-icon="props.icon"
       :disabled="props.disabled"
       :clearable="props.clearable"
-      variant="outlined"
-      color="primary"
-      density="comfortable"
-      hide-details="auto"
       no-data-text="Nenhuma opção encontrada."
       @update:model-value="onUpdate"
     />

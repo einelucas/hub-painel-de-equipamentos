@@ -2,6 +2,7 @@ import { config } from "@vue/test-utils";
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
+import { hubAutocompleteDefaults } from "~/config/vuetifyDefaults";
 
 // happy-dom não fornece visualViewport, usado pelo VOverlay do Vuetify.
 if (!("visualViewport" in globalThis)) {
@@ -19,5 +20,9 @@ if (!("visualViewport" in globalThis)) {
   });
 }
 
-const vuetify = createVuetify({ components, directives });
+const vuetify = createVuetify({
+  components,
+  directives,
+  defaults: { VAutocomplete: hubAutocompleteDefaults },
+});
 config.global.plugins = [...(config.global.plugins || []), vuetify];

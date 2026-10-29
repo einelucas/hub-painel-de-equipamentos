@@ -93,10 +93,6 @@ watch(
           :items="providerOptions"
           item-title="title"
           item-value="value"
-          variant="outlined"
-          color="primary"
-          density="comfortable"
-          hide-details="auto"
           label="Provedor para este teste"
         />
       </div>
@@ -127,10 +123,6 @@ watch(
           :items="equipmentSelectOptions"
           item-title="title"
           item-value="value"
-          variant="outlined"
-          color="primary"
-          density="comfortable"
-          hide-details="auto"
           label="Equipamento para pré-visualização e teste"
           @update:model-value="emit('update:equipmentId', String($event || '') || null)"
         />
