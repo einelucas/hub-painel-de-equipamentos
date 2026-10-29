@@ -1,5 +1,8 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { VueWrapper } from "@vue/test-utils";
+const mounted: VueWrapper[] = [];
+afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 import EquipmentPurchaseRequestForm from "~/components/equipment/purchase-requests/EquipmentPurchaseRequestForm.vue";
 import EquipmentPurchaseRequestsList from "~/components/equipment/EquipmentPurchaseRequestsList.vue";
 import type { PurchaseRequest, RequirementGroup } from "~/types/equipment";
@@ -16,9 +19,12 @@ const existing: PurchaseRequest = {
 };
 
 function mountForm(item: PurchaseRequest | null, props: { busy?: boolean; error?: string } = {}) {
-  return mount(EquipmentPurchaseRequestForm, {
+  const wrapper = mount(EquipmentPurchaseRequestForm, {
+    attachTo: document.body,
     props: { item, busy: props.busy ?? false, error: props.error ?? "" },
   });
+  mounted.push(wrapper);
+  return wrapper;
 }
 
 function fields(wrapper: ReturnType<typeof mount>) {
