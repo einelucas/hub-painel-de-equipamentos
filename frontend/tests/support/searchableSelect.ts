@@ -1,5 +1,5 @@
 import { nextTick } from "vue";
-import { DOMWrapper } from "@vue/test-utils";
+import { DOMWrapper, flushPromises } from "@vue/test-utils";
 import type { VueWrapper } from "@vue/test-utils";
 
 /**
@@ -50,6 +50,7 @@ export async function openMenu(wrapper: AnyWrapper, testId: string): Promise<voi
     await input.trigger("mousedown");
     await input.trigger("click");
   }
+  await flushPromises();
 }
 
 /** Opções visíveis no menu (inclui a opção vazia, quando houver). */
@@ -97,6 +98,7 @@ export async function chooseOption(
   await option.trigger("mousedown");
   await option.trigger("click");
   await nextTick();
+  await flushPromises();
 }
 
 /** Texto exibido no campo fechado: rótulo da opção escolhida ou vazio. */
