@@ -11,9 +11,9 @@ type ElementWrapper = DOMWrapper<Element> | Omit<DOMWrapper<Element>, "exists">;
 type AnyWrapper = VueWrapper | ElementWrapper;
 
 /**
- * O dropdown do ElSelect é teleportado para o `body`, então as opções não fazem
- * parte da árvore do wrapper. Este helper resolve o menu pelo `aria-controls`
- * do input interno, que aponta para o `listbox` do próprio select.
+ * O dropdown de `VAutocomplete` é renderizado por um `VMenu` teleportado.
+ * O helper localiza as opções pelo `aria-controls` do input combobox,
+ * sem depender de classes antigas de Element Plus.
  */
 function root(wrapper: AnyWrapper, testId: string): ElementWrapper {
   const found = wrapper
