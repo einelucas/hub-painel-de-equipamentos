@@ -89,8 +89,6 @@ export default defineNuxtConfig({
           hideDetails: "auto",
         },
         VAutocomplete: {
-          // VMenu usa um overlay acima dos ElDialog ainda ativos no Hub.
-          menuProps: { zIndex: 3000 },
           variant: "outlined",
           color: "primary",
           rounded: "lg",
