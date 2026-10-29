@@ -5,11 +5,9 @@ import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
 
 /**
- * O `AppTeleport` (usado apenas pelos diálogos do Hub) é substituído por um
- * pass-through nos testes: o conteúdo continua dentro do wrapper e as
- * asserções de modal seguem funcionando. O `Teleport` nativo do Element Plus
- * permanece real, porque stubbá-lo faz o `ElSelect` entrar em atualização
- * recursiva no happy-dom.
+ * Apenas o diálogo de confirmação antigo utiliza AppTeleport.
+ * Os overlays do Vuetify usam seu próprio Teleport e são exercitados
+ * de maneira nativa nos testes.
  */
 const AppTeleportStub = defineComponent({
   name: "AppTeleport",
