@@ -23,9 +23,13 @@ function mountSelect(props: Record<string, unknown> = {}) {
 }
 
 describe("FloatingFilterSelect", () => {
-  it("renderiza o label nativo", () => {
+  it("mostra a label dentro do outlined quando não existe seleção", () => {
     const wrapper = mountSelect();
-    expect(wrapper.text()).toContain("Responsável");
+    const field = wrapper.get(".v-field");
+    expect(field.classes()).toContain("v-field--variant-outlined");
+    expect(field.classes()).not.toContain("v-field--active");
+    expect(wrapper.get(".v-field-label").text()).toBe("Responsável");
+    expect(wrapper.get("input[role='combobox']").attributes("placeholder")).toBeUndefined();
     wrapper.unmount();
   });
 
@@ -35,7 +39,7 @@ describe("FloatingFilterSelect", () => {
     });
 
     await openMenu(wrapper, "floating-filter");
-    expect(wrapper.attributes("data-floating") ?? "true").toBeTruthy();
+    expect(wrapper.get(".v-field").classes()).toContain("v-field--active");
 
     await chooseOption(wrapper, "floating-filter", "B · Beta");
     expect(wrapper.props("modelValue")).toBe("b");
