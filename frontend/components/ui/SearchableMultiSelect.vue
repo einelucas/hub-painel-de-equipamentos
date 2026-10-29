@@ -59,6 +59,7 @@ function onUpdate(value: unknown): void {
 <template>
   <div ref="root" class="searchable-multi-select" v-bind="wrapperAttrs">
     <VAutocomplete
+      :menu-props="{ zIndex: 10020 }"
       :model-value="props.modelValue"
       :items="items"
       item-title="title"
@@ -66,7 +67,6 @@ function onUpdate(value: unknown): void {
       :filter-keys="[...AUTOCOMPLETE_FILTER_KEYS]"
       :ignore-accents="true"
       :label="props.label"
-      :placeholder="props.placeholder"
       :disabled="props.disabled"
       multiple
       chips
