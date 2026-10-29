@@ -117,8 +117,6 @@ describe("seletores pesquisáveis de catálogo", () => {
     await flushPromises();
     await chooseOption(wrapper, "catalog-select", "B · Beta");
     wrapper.unmount();
-    return;
-    wrapper.unmount();
   });
 
   it("navega pelas opções com as setas e escolhe com Enter", async () => {
