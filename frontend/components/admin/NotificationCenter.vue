@@ -383,8 +383,8 @@ onMounted(load);
           <strong>Enviar teste para caixa autorizada</strong>
           <div class="field">
             <VAutocomplete
-              :menu-props="{ zIndex: 10020 }"
               v-model="testProvider"
+              :menu-props="{ zIndex: 10020 }"
               :items="(settings?.providers ?? []).map((p) => ({ title: `${p.name}${p.configured ? '' : ' (não configurado)'}`, value: p.id }))"
               item-title="title"
               item-value="value"
