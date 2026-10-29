@@ -101,21 +101,20 @@ async function confirmReopenDecision(): Promise<void> {
 
   <AppModal :open="showReopenRequest" title="Solicitar reabertura" @close="showReopenRequest = false">
     <form class="exception-form" @submit.prevent="confirmReopenRequest">
-      <label class="field">
-        <span>Fase de destino *</span>
+      <div class="field">
         <SearchableSelect
           :model-value="String(reopenTargetStage)"
           :options="reopenStageOptions"
           :sorted="false"
           :clearable="false"
           required
-          label="Fase de destino"
+          label="Fase de destino *"
           placeholder="Buscar fase"
           empty-label="Selecione"
           test-id="reopen-target-stage"
           @update:model-value="reopenTargetStage = $event === '' ? '' : Number($event)"
         />
-      </label>
+      </div>
       <p class="exception-hint">O equipamento permanece na fase atual até a solicitação ser aprovada por um usuário com permissão de aprovação.</p>
       <label class="field">
         <span>Justificativa *</span>
