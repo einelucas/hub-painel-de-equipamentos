@@ -28,7 +28,7 @@ const props = withDefaults(
 );
 const emit = defineEmits<{ close: [] }>();
 const titleId = `app-modal-title-${useId()}`;
-const bodyEl = ref<HTMLElement | null>(null);
+const bodyEl = ref<InstanceType<typeof VCardText> | null>(null);
 
 const dialogOpen = computed({
   get: () => props.open,
@@ -47,7 +47,8 @@ function requestClose(): void {
 }
 
 function focusFirstField(): void {
-  bodyEl.value
+  const root = bodyEl.value?.$el as HTMLElement | undefined;
+  root
     ?.querySelector<HTMLElement>(
       'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [tabindex="0"]',
     )
