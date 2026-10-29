@@ -18,6 +18,7 @@ const supplier = (id: string, corporateCode: string, legalName: string): Supplie
 describe("SupplierCombobox", () => {
   it("mantém o menu, ordena A–Z e busca por código ou nome", async () => {
     const wrapper = mount(SupplierCombobox, {
+      attachTo: document.body,
       props: {
         modelValue: "",
         label: "Fornecedor",
@@ -37,6 +38,7 @@ describe("SupplierCombobox", () => {
       "9002 · Zeta Industrial",
     ]);
 
+    await input.trigger("focus");
     await input.setValue("9002");
     await flushPromises();
     expect(
@@ -55,5 +57,6 @@ describe("SupplierCombobox", () => {
       "1001 · Alfa Engenharia",
       "9002 · Zeta Industrial",
     ]);
+    wrapper.unmount();
   });
 });
