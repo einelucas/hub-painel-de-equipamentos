@@ -2,7 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import SupplierLinkModal from "~/components/equipment/SupplierLinkModal.vue";
 import type { EquipmentSupplier, Supplier } from "~/types/equipment";
-import { menuOptions, openMenu } from "./support/searchableSelect";
+import { chooseOption } from "./support/searchableSelect";
 
 function supplier(id: string, legalName: string, taxId: string | null = null): Supplier {
   return {
@@ -51,12 +51,7 @@ function mountModal(link: EquipmentSupplier | null) {
 }
 
 async function choose(wrapper: ReturnType<typeof mountModal>, label: string) {
-  await openMenu(wrapper, "supplier-link-combobox");
-  const option = menuOptions(wrapper, "supplier-link-combobox").find((item) =>
-    item.text().includes(label),
-  );
-  if (!option) throw new Error(`Opção '${label}' não encontrada`);
-  await option.trigger("click");
+  await chooseOption(wrapper, "supplier-link-combobox", label);
 }
 
 describe("SupplierLinkModal", () => {
