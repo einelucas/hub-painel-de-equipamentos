@@ -173,6 +173,7 @@ onMounted(load);
                 </TableCell>
                 <TableCell>
                   <VAutocomplete
+                    :menu-props="{ zIndex: 10020 }"
                     :model-value="user.role"
                     :items="roleOptions"
                     item-title="title"
@@ -223,9 +224,9 @@ onMounted(load);
           <span>E-mail</span>
           <input v-model="form.email" required type="email" autocomplete="off" />
         </label>
-        <label class="field">
-          <span>Perfil</span>
+        <div class="field">
           <VAutocomplete
+            :menu-props="{ zIndex: 10020 }"
             v-model="form.role"
             :items="roleOptions"
             item-title="title"
@@ -236,7 +237,7 @@ onMounted(load);
             hide-details="auto"
             label="Perfil"
           />
-        </label>
+        </div>
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
       </form>
       <template #actions>
