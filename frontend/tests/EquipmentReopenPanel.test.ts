@@ -1,5 +1,8 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { VueWrapper } from "@vue/test-utils";
+const mounted: VueWrapper[] = [];
+afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 import EquipmentReopenPanel from "~/components/equipment/EquipmentReopenPanel.vue";
 import type { ReopenRequest } from "~/types/equipment";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
@@ -54,6 +57,7 @@ function mountPanel(
   const rejectReopen = props.rejectReopen ?? vi.fn().mockResolvedValue({});
 
   const wrapper = mount(EquipmentReopenPanel, {
+    attachTo: document.body,
     props: {
       currentStage: props.currentStage ?? 3,
       isActive: props.isActive ?? true,
@@ -68,6 +72,7 @@ function mountPanel(
     },
     global: { stubs: { AppModal: appModalStub } },
   });
+  mounted.push(wrapper);
   return { wrapper, requestReopen, approveReopen, rejectReopen };
 }
 
