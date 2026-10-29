@@ -64,6 +64,14 @@ const selectedLabel = computed(() => {
     .join(", ");
 });
 
+// Um filtro sem seleção mostra a label dentro do campo; o contrato externo
+// continua usando emptyValue para limpar o filtro.
+const visualValue = computed(() =>
+  !props.multiple && (props.modelValue === props.emptyValue || props.modelValue === null)
+    ? null
+    : props.modelValue,
+);
+
 const items = computed(() =>
   toAutocompleteItems(props.options, {
     emptyLabel: props.emptyLabel || undefined,
@@ -103,7 +111,7 @@ function onMenuChange(open: boolean): void {
 <template>
   <div ref="root" class="floating-filter-select" :data-testid="testId" :data-selected-label="selectedLabel" :data-disabled="props.disabled ? 'true' : 'false'">
     <VAutocomplete
-      :model-value="props.modelValue"
+      :model-value="visualValue"
       :items="items"
       item-title="title"
       item-value="value"
