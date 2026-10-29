@@ -96,7 +96,7 @@ describe("SupplierImportModal", () => {
 
       onProgress(50, 100);
       await wrapper.vm.$nextTick();
-      expect(portal().get("[role='progressbar']").attributes("aria-valuenow")).toBe("50");
+      expect(portal().get("[data-testid='supplier-import-progress-bar']").attributes("aria-valuenow")).toBe("50");
       expect(portal().get("[data-testid='supplier-import-progress-status']").text()).toContain("50%");
       expect(portal().get("form").attributes("aria-busy")).toBe("true");
       expect(portal().get("[data-testid='supplier-import-submit']").attributes("disabled")).toBeDefined();
@@ -107,7 +107,7 @@ describe("SupplierImportModal", () => {
       onProgress(100, 100);
       await wrapper.vm.$nextTick();
       expect(portal().get("[data-testid='supplier-import-progress-status']").text()).toContain("Processando planilha no servidor");
-      expect(portal().get("[role='progressbar']").attributes("aria-valuenow")).toBeUndefined();
+      expect(portal().get("[data-testid='supplier-import-progress-bar']").attributes("aria-valuenow")).toBeUndefined();
 
       vi.advanceTimersByTime(12000);
       await wrapper.vm.$nextTick();
