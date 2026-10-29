@@ -1,12 +1,12 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { VueWrapper } from "@vue/test-utils";
-const mounted: VueWrapper[] = [];
-afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 import EquipmentPurchaseRequestForm from "~/components/equipment/purchase-requests/EquipmentPurchaseRequestForm.vue";
 import EquipmentPurchaseRequestsList from "~/components/equipment/EquipmentPurchaseRequestsList.vue";
 import type { PurchaseRequest, RequirementGroup } from "~/types/equipment";
 import { chooseOption, optionLabels, shownValue } from "./support/searchableSelect";
+import type { VueWrapper } from "@vue/test-utils";
+const mounted: VueWrapper[] = [];
+afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 
 const existing: PurchaseRequest = {
   id: "pr-1",
