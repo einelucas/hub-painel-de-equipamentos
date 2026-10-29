@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
-import { Tags, UserRound } from "lucide-vue-next";
+import { mdiTag, mdiAccount } from "@mdi/js";
 import type {
   CatalogItem,
   CatalogList,
@@ -121,7 +121,7 @@ onMounted(async () => {
             v-model="disciplineId"
             :options="disciplineOptions"
             :disabled="catalogsLoading"
-            :icon="Tags"
+            :icon="mdiTag"
             label="Disciplina"
             placeholder="Buscar disciplina"
             empty-label="Todas"
@@ -139,7 +139,7 @@ onMounted(async () => {
                 ? 'Selecione uma unidade para filtrar por responsável'
                 : undefined
             "
-            :icon="UserRound"
+            :icon="mdiAccount"
             label="Responsável"
             placeholder="Buscar responsável"
             empty-label="Todos"
