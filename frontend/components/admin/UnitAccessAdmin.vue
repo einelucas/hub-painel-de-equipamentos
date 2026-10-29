@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { mdiContentSaveOutline } from "@mdi/js";
 import { computed, ref } from "vue";
-import { Save } from "lucide-vue-next";
 import type { UserSummary } from "~/types/api";
 import type { Unit, UserUnits } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 /** Reaproveita os endpoints da Etapa 4; não recria cadastro de usuários. */
@@ -142,9 +142,9 @@ onMounted(load);
           <p v-if="units.length === 0" class="access-hint">Nenhuma unidade cadastrada ainda.</p>
           <div class="access-actions">
             <span v-if="feedback" class="access-feedback">{{ feedback }}</span>
-            <Button size="sm" variant="default" :loading="saving" data-testid="access-save" @click="save">
-              <Save v-if="!saving" :size="13" /> {{ saving ? "Salvando..." : "Salvar acessos" }}
-            </Button>
+            <VBtn size="small" variant="tonal" :loading="saving" data-testid="access-save" :prepend-icon="!saving ? mdiContentSaveOutline : undefined" :disabled="saving" @click="save">
+               {{ saving ? "Salvando..." : "Salvar acessos" }}
+            </VBtn>
           </div>
         </template>
       </template>

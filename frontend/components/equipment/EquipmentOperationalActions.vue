@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiCancel, mdiPause, mdiPlay, mdiRestore, mdiWrenchOutline } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed, ref } from "vue";
-import { Ban, Pause, Play, RotateCcw, Wrench } from "lucide-vue-next";
+import { Ban } from "lucide-vue-next";
 import type { OperationalStatus } from "~/types/equipment";
 
 const props = defineProps<{
@@ -76,42 +77,39 @@ async function confirmEndSanitation(text: string): Promise<void> {
       <!-- Estado normal -->
       <div v-if="isActive" class="actions-row">
         <div class="actions-main">
-          <Button
-            class="action-button"
+          <VBtn
             type="button"
             :disabled="busy"
             data-testid="standby-button"
-            variant="outline"
-            @click="showStandby = true"
-          >
-            <Pause :size="16" :stroke-width="1.8" />
-            <span>Colocar em Standby</span>
-          </Button>
+            variant="outlined"
+            :prepend-icon="mdiPause"
+           @click="showStandby = true">
 
-          <Button
-            class="action-button"
+            <span>Colocar em Standby</span>
+          </VBtn>
+
+          <VBtn
             type="button"
             :disabled="busy"
             data-testid="sanitation-button"
-            variant="outline"
-            @click="showSanitation = true"
-          >
-            <Wrench :size="16" :stroke-width="1.8" />
+            variant="outlined"
+            :prepend-icon="mdiWrenchOutline"
+           @click="showSanitation = true">
+
             <span>Colocar em Saneamento</span>
-          </Button>
+          </VBtn>
         </div>
 
-        <Button
-          class="action-button action-button--danger"
+        <VBtn
           type="button"
           :disabled="busy"
           data-testid="cancel-button"
-          variant="destructive"
-          @click="showCancel = true"
-        >
-          <Ban :size="16" :stroke-width="1.8" />
+          variant="tonal" color="error"
+          :prepend-icon="mdiCancel"
+         @click="showCancel = true">
+
           <span>Cancelar equipamento</span>
-        </Button>
+        </VBtn>
       </div>
 
       <!-- Standby -->
@@ -121,17 +119,16 @@ async function confirmEndSanitation(text: string): Promise<void> {
           <span> O processo está pausado na etapa atual. </span>
         </div>
 
-        <Button
-          class="action-button action-button--primary"
+        <VBtn
           type="button"
           :disabled="busy"
           data-testid="lift-standby-button"
-          variant="default"
-          @click="showLiftStandby = true"
-        >
-          <Play :size="16" :stroke-width="1.8" />
+          variant="tonal"
+          :prepend-icon="mdiPlay"
+         @click="showLiftStandby = true">
+
           <span>Retomar processo</span>
-        </Button>
+        </VBtn>
       </div>
 
       <!-- Saneamento -->
@@ -146,17 +143,16 @@ async function confirmEndSanitation(text: string): Promise<void> {
           </span>
         </div>
 
-        <Button
-          class="action-button action-button--primary"
+        <VBtn
           type="button"
           :disabled="busy"
           data-testid="end-sanitation-button"
-          variant="default"
-          @click="showEndSanitation = true"
-        >
-          <RotateCcw :size="16" :stroke-width="1.8" />
+          variant="tonal"
+          :prepend-icon="mdiRestore"
+         @click="showEndSanitation = true">
+
           <span>Encerrar saneamento</span>
-        </Button>
+        </VBtn>
       </div>
 
       <!-- Cancelado -->

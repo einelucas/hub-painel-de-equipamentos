@@ -583,11 +583,6 @@ button:disabled {
   font-weight: 600;
 }
 
-.login-submit {
-  width: 100%;
-  padding: 11px 16px;
-}
-
 @media (max-width: 900px) {
   .app-toolbar-shell,
   .nuxt-app-main {

@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { mdiCheck, mdiClose, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from "@mdi/js";
 import { computed, reactive, ref, useId, watch } from "vue";
-import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-vue-next";
+import { Search } from "lucide-vue-next";
 import type { CatalogItem, CatalogList } from "~/types/equipment";
 import { catalogColor } from "~/utils/catalogColors";
 import { useConfirm } from "~/composables/useConfirm";
 import AppModal from "~/components/ui/AppModal.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 
 /**
  * CRUD de um catálogo. Registros sem vínculos podem ser excluídos; os que já
@@ -218,9 +219,9 @@ watch(
           {{ activeCount }} ativo{{ activeCount === 1 ? "" : "s" }}<template v-if="inactiveCount"> · {{ inactiveCount }} inativo{{ inactiveCount === 1 ? "" : "s" }}</template>
         </p>
       </div>
-      <Button v-if="!blocked" size="sm" variant="default" :disabled="saving" @click="startCreate">
-        <Plus :size="14" /> Novo
-      </Button>
+      <VBtn v-if="!blocked" size="small" variant="tonal" :disabled="saving" :prepend-icon="mdiPlus" @click="startCreate">
+         Novo
+      </VBtn>
     </header>
 
     <p v-if="blocked" class="catalog-hint" data-testid="catalog-blocked">{{ props.requiresParent }}</p>
@@ -255,16 +256,16 @@ watch(
             {{ item.active ? "Ativo" : "Inativo" }}
           </span>
           <span class="catalog-actions">
-            <Button type="button" class="text-button" :disabled="saving" variant="ghost" size="sm" @click="startEdit(item)">
-              <Pencil :size="12" /> Editar
-            </Button>
-            <Button type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" :loading="togglingId === item.id" variant="ghost" size="sm" @click="toggleActive(item)">
+            <VBtn type="button" class="text-button" :disabled="saving" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="startEdit(item)">
+               Editar
+            </VBtn>
+            <VBtn type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" :loading="togglingId === item.id" variant="text" size="small" @click="toggleActive(item)">
               {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
-            </Button>
-            <Button type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="destructive" size="sm" @click="remove(item)">
-              <Trash2 v-if="!(deletingId === item.id)" :size="12" />
+            </VBtn>
+            <VBtn type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(deletingId === item.id) ? mdiTrashCanOutline : undefined" @click="remove(item)">
+
               {{ deletingId === item.id ? "Excluindo..." : "Excluir" }}
-            </Button>
+            </VBtn>
           </span>
         </li>
       </ul>
@@ -297,19 +298,19 @@ watch(
     </form>
 
     <template #actions>
-      <Button size="sm" variant="outline" :disabled="saving" @click="cancel">
-        <X :size="13" /> Cancelar
-      </Button>
-      <Button
+      <VBtn size="small" variant="outlined" :disabled="saving" :prepend-icon="mdiClose" @click="cancel">
+         Cancelar
+      </VBtn>
+      <VBtn
         type="submit"
-        size="sm"
-        variant="default"
+        size="small"
+        variant="tonal"
         :form="formId"
         :loading="saving"
-      >
-        <Check v-if="!saving" :size="13" />
+       :prepend-icon="!saving ? mdiCheck : undefined" :disabled="saving">
+
         {{ saving ? "Salvando..." : "Salvar" }}
-      </Button>
+      </VBtn>
     </template>
   </AppModal>
 </template>

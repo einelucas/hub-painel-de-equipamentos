@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 
 const props = defineProps<{
   open: boolean;
@@ -38,15 +38,15 @@ function submit(): void {
       </label>
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
       <div class="form-actions">
-        <Button variant="outline" @click="emit('close')">Cancelar</Button>
-        <Button
+        <VBtn variant="outlined" @click="emit('close')">Cancelar</VBtn>
+        <VBtn
           type="submit"
-          variant="default"
+          variant="tonal"
           :loading="busy"
           :disabled="required && !text.trim()"
         >
           {{ busy ? "Processando..." : (confirmLabel ?? "Confirmar") }}
-        </Button>
+        </VBtn>
       </div>
     </form>
   </AppModal>

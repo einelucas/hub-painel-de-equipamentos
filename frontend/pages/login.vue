@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 
 definePageMeta({ publicLayout: true });
 
@@ -104,18 +104,18 @@ async function submit() {
           <span>Senha</span>
           <input v-model="password" type="password" autocomplete="current-password" required />
         </label>
-        <Button type="submit" variant="default" class="login-submit mt-1" :disabled="checking" :loading="loading">
+        <VBtn type="submit" variant="tonal" class="mt-1" block :disabled="checking" :loading="loading">
           {{ loading ? "Entrando..." : "Entrar" }}
-        </Button>
+        </VBtn>
       </form>
 
       <template v-if="oidcConfigured">
         <div class="my-4 flex items-center gap-3 text-xs text-slate-400">
           <span class="h-px flex-1 bg-slate-200" />ou<span class="h-px flex-1 bg-slate-200" />
         </div>
-        <Button variant="outline" class="login-submit" :disabled="loading || checking" @click="oidc">
+        <VBtn variant="outlined" block :disabled="loading || checking" @click="oidc">
           Entrar com conta corporativa
-        </Button>
+        </VBtn>
       </template>
 
       <p v-if="error" class="login-error" role="alert">{{ error }}</p>
@@ -136,10 +136,10 @@ async function submit() {
         <p v-if="changeError" class="login-error" role="alert">{{ changeError }}</p>
       </form>
       <template #actions>
-        <Button variant="outline" :disabled="loading" @click="closeChange">Cancelar</Button>
-        <Button type="submit" variant="default" form="first-access-form" :loading="loading">
+        <VBtn variant="outlined" :disabled="loading" @click="closeChange">Cancelar</VBtn>
+        <VBtn type="submit" variant="tonal" form="first-access-form" :loading="loading" :disabled="loading">
           {{ loading ? "Salvando..." : "Salvar nova senha" }}
-        </Button>
+        </VBtn>
       </template>
     </AppModal>
   </div>

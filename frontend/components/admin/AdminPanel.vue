@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { VBtn } from "vuetify/components";
 import { computed, watch } from "vue";
 
 /**
@@ -72,31 +73,36 @@ function openChild(section: AdminPanelSection, child: AdminPanelItem): void {
         <p class="admin-description">{{ props.description }}</p>
         <div class="admin-index-list" role="tablist" aria-orientation="vertical">
           <template v-for="section in props.sections" :key="section.key">
-            <button
+            <VBtn
               type="button"
               role="tab"
               class="admin-index-item"
               :class="{ active: active === section.key }"
+              :variant="active === section.key ? 'tonal' : 'text'"
+              block
               :aria-selected="active === section.key"
               :data-hint="section.hint"
               :data-testid="`admin-tab-${section.key}`"
               @click="active = section.key"
             >
               {{ section.label }}
-            </button>
+            </VBtn>
             <div v-if="section.children?.length" class="admin-index-children" role="group" :aria-label="section.label">
-              <button
+              <VBtn
                 v-for="child in section.children"
                 :key="child.key"
                 type="button"
                 class="admin-index-child"
                 :class="{ active: active === section.key && item === child.key }"
+                :variant="active === section.key && item === child.key ? 'tonal' : 'text'"
+                size="small"
+                block
                 :aria-current="active === section.key && item === child.key ? 'page' : undefined"
                 :data-testid="`${section.childTestId ?? 'admin-item'}-${child.key}`"
                 @click="openChild(section, child)"
               >
                 {{ child.label }}
-              </button>
+              </VBtn>
             </div>
           </template>
         </div>
@@ -153,17 +159,7 @@ function openChild(section: AdminPanelSection, child: AdminPanelItem): void {
 .admin-index-list { display: grid; gap: 2px; }
 .admin-index-item {
   position: relative;
-  display: grid;
-  gap: 1px;
-  border: 0;
-  border-radius: 10px;
-  padding: 9px 12px 9px 14px;
-  background: transparent;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 800;
   text-align: left;
-  cursor: pointer;
 }
 /* Descrição do item via CSS: não entra no nome acessível da aba. */
 .admin-index-item[data-hint]::after {
@@ -182,25 +178,12 @@ function openChild(section: AdminPanelSection, child: AdminPanelItem): void {
   background: transparent;
   content: "";
 }
-.admin-index-item:hover { background: var(--wash); }
-.admin-index-item.active { background: #e8f1fc; }
 .admin-index-item.active::before { background: var(--steel); }
 
 .admin-index-children { display: grid; gap: 1px; margin: 2px 0 6px 14px; padding-left: 10px; border-left: 1px solid var(--rule); }
 .admin-index-child {
-  border: 0;
-  border-radius: 8px;
-  padding: 6px 10px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
   text-align: left;
-  cursor: pointer;
 }
-.admin-index-child:hover { background: var(--wash); color: var(--ink); }
-.admin-index-child.active { background: var(--ink); color: #fff; }
-.admin-index-item:focus-visible, .admin-index-child:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
 
 .admin-body { min-width: 0; }
 

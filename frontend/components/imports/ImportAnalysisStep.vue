@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { useImportState } from "~/composables/useImportState";
 
 /** Passo 2: staging de cada arquivo (fase, contagens, problemas). Erro em qualquer arquivo impede avançar. */
@@ -78,16 +78,16 @@ const standby = computed(() =>
       Há arquivo com erro. Corrija no Monday e envie o conjunto novamente; nada é importado parcialmente.
     </p>
     <div class="import-actions">
-      <Button variant="outline" @click="reset">Enviar outros arquivos</Button>
-      <Button
-        variant="default"
+      <VBtn variant="outlined" @click="reset">Enviar outros arquivos</VBtn>
+      <VBtn
+        variant="tonal"
         :disabled="!canProceed"
         :loading="busy"
         data-testid="import-to-mapping"
         @click="loadMappingOptions"
       >
         {{ busy ? "Carregando cadastros..." : "Continuar para o mapeamento" }}
-      </Button>
+      </VBtn>
     </div>
   </div>
 </template>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { mdiPencilOutline, mdiPlus, mdiPower, mdiTrashCanOutline } from "@mdi/js";
 import { computed } from "vue";
-import { Pencil, Plus, Power, Trash2 } from "lucide-vue-next";
 import AppModal from "~/components/ui/AppModal.vue";
 import Badge from "~/components/ui/Badge.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import Input from "~/components/ui/Input.vue";
 import Table from "~/components/ui/Table.vue";
 import TableBody from "~/components/ui/TableBody.vue";
@@ -73,9 +73,9 @@ function addArea(): void {
           aria-label="Nome da nova área"
           :disabled="props.busy"
         />
-        <Button type="submit" size="sm" :disabled="props.busy || !newAreaName.trim()">
-          <Plus aria-hidden="true" /> Adicionar
-        </Button>
+        <VBtn type="submit" size="small" :disabled="props.busy || !newAreaName.trim()" :prepend-icon="mdiPlus">
+           Adicionar
+        </VBtn>
       </form>
 
       <p v-if="props.error" class="notice error" role="alert">{{ props.error }}</p>
@@ -105,37 +105,37 @@ function addArea(): void {
             </TableCell>
             <TableCell>
               <div v-if="!area.isUnassigned" class="row-actions">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
+                <VBtn
+                  variant="text"
+                  size="x-small"
                   :disabled="props.busy"
                   :aria-label="`Renomear ${area.name}`"
                   :title="`Renomear ${area.name}`"
-                  @click="emit('rename', area)"
-                >
-                  <Pencil aria-hidden="true" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
+                  :icon="mdiPencilOutline"
+                 @click="emit('rename', area)">
+
+                </VBtn>
+                <VBtn
+                  variant="text"
+                  size="x-small"
                   :disabled="props.busy"
                   :aria-label="`${area.active ? 'Desativar' : 'Reativar'} ${area.name}`"
                   :title="`${area.active ? 'Desativar' : 'Reativar'} ${area.name}`"
-                  @click="emit('toggle', area)"
-                >
-                  <Power aria-hidden="true" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="icon-sm"
+                  :icon="mdiPower"
+                 @click="emit('toggle', area)">
+
+                </VBtn>
+                <VBtn
+                  variant="tonal" color="error"
+                  size="x-small"
                   :disabled="props.busy"
                   :loading="isDeleting(area)"
                   :aria-label="`Excluir ${area.name}`"
                   :title="`Excluir ${area.name}`"
-                  @click="emit('remove', area)"
-                >
-                  <Trash2 v-if="!isDeleting(area)" aria-hidden="true" />
-                </Button>
+                  :icon="!isDeleting(area) ? mdiTrashCanOutline : undefined"
+                 @click="emit('remove', area)">
+
+                </VBtn>
               </div>
               <Badge v-else variant="secondary">Protegida</Badge>
             </TableCell>
@@ -150,9 +150,9 @@ function addArea(): void {
     </div>
 
     <template #actions>
-      <Button variant="outline" size="sm" :disabled="props.busy" @click="emit('close')">
+      <VBtn variant="outlined" size="small" :disabled="props.busy" @click="emit('close')">
         Fechar
-      </Button>
+      </VBtn>
     </template>
   </AppModal>
 </template>

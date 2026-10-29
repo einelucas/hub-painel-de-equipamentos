@@ -1,17 +1,8 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiClose, mdiDotsHorizontal, mdiHeartOutline, mdiPencilOutline, mdiReplyOutline, mdiSend, mdiTrashCanOutline } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed, ref } from "vue";
-import {
-  Eye,
-  Heart,
-  MessageSquareText,
-  MoreHorizontal,
-  Pencil,
-  Reply,
-  SendHorizontal,
-  Trash2,
-  X,
-} from "lucide-vue-next";
+import { Eye, MessageSquareText } from "lucide-vue-next";
 import type { CatalogList, EquipmentComment } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
 
@@ -219,9 +210,9 @@ onMounted(load);
         <strong>Não foi possível carregar</strong>
         <p>{{ error }}</p>
       </div>
-      <Button type="button" class="ghost-btn" variant="outline" @click="load">
+      <VBtn type="button" variant="outlined" @click="load">
         Tentar novamente
-      </Button>
+      </VBtn>
     </div>
 
     <template v-else>
@@ -253,22 +244,20 @@ onMounted(load);
               {{ remainingCharacters }} caracteres restantes
             </span>
 
-            <Button
+            <VBtn
 
               type="submit"
-
-              class="primary-btn"
 
               :disabled="!newText.trim() || busy"
 
               data-testid="comment-submit"
 
-              variant="default"
+              variant="tonal"
 
-            >
-              <SendHorizontal :size="14" />
+             :prepend-icon="mdiSend">
+
               {{ busy ? "Publicando..." : "Comentar" }}
-            </Button>
+            </VBtn>
           </div>
         </form>
       </div>
@@ -331,35 +320,32 @@ onMounted(load);
               </div>
 
               <div class="comment-top-actions">
-                <Button
+                <VBtn
                   type="button"
-                  class="icon-btn"
                   aria-label="Curtir comentário"
-                  variant="ghost"
-                  size="icon-sm"
-                >
-                  <Heart :size="15" />
-                </Button>
+                  variant="text"
+                  size="x-small"
+                 :icon="mdiHeartOutline">
 
-                <Button
+                </VBtn>
+
+                <VBtn
 
                   type="button"
-
-                  class="icon-btn"
 
                   aria-label="Responder comentário"
 
-                  variant="ghost"
+                  variant="text"
 
-                  size="icon-sm"
+                  size="x-small"
 
-                >
-                  <Reply :size="15" />
-                </Button>
+                 :icon="mdiReplyOutline">
 
-                <Button type="button" class="icon-btn" aria-label="Mais ações" variant="ghost" size="icon-sm">
-                  <MoreHorizontal :size="15" />
-                </Button>
+                </VBtn>
+
+                <VBtn type="button" aria-label="Mais ações" variant="text" size="x-small" :icon="mdiDotsHorizontal">
+
+                </VBtn>
               </div>
             </header>
 
@@ -382,31 +368,28 @@ onMounted(load);
                   </span>
 
                   <div class="inline-actions">
-                    <Button
+                    <VBtn
                       type="button"
-                      class="ghost-btn"
                       :disabled="busy"
-                      variant="outline"
+                      variant="outlined"
                       @click="cancelEdit"
                     >
                       Cancelar
-                    </Button>
+                    </VBtn>
 
-                    <Button
+                    <VBtn
 
                       type="button"
 
-                      class="primary-btn"
-
                       :disabled="!editingText.trim() || busy"
 
-                      variant="default"
+                      variant="tonal"
 
                       @click="saveEdit(item)"
 
                     >
                       {{ busy ? "Salvando..." : "Salvar" }}
-                    </Button>
+                    </VBtn>
                   </div>
                 </div>
               </div>
@@ -424,50 +407,47 @@ onMounted(load);
 
           <div class="comment-card-footer">
             <div class="footer-actions">
-              <Button type="button" class="footer-action" variant="ghost" size="sm">
-                <Heart :size="15" />
-                Curtir
-              </Button>
+              <VBtn type="button" variant="text" size="small" :prepend-icon="mdiHeartOutline">
 
-              <Button type="button" class="footer-action" variant="ghost" size="sm">
-                <Reply :size="15" />
+                Curtir
+              </VBtn>
+
+              <VBtn type="button" variant="text" size="small" :prepend-icon="mdiReplyOutline">
+
                 Responder
-              </Button>
+              </VBtn>
 
               <template
                 v-if="
                   isOwn(item) && editingId !== item.id && deletingId !== item.id
                 "
               >
-                <Button
+                <VBtn
                   type="button"
-                  class="footer-action"
-                  variant="ghost"
-                  size="sm"
-                  @click="startEdit(item)"
-                >
-                  <Pencil :size="15" />
+                  variant="text"
+                  size="small"
+                  :prepend-icon="mdiPencilOutline"
+                 @click="startEdit(item)">
+
                   Editar
-                </Button>
+                </VBtn>
 
-                <Button
+                <VBtn
 
                   type="button"
-
-                  class="footer-action footer-action--danger"
 
                   :disabled="busy"
 
-                  variant="destructive"
+                  variant="tonal" color="error"
 
-                  size="sm"
+                  size="small"
 
-                  @click="requestDelete(item)"
+                  :prepend-icon="mdiTrashCanOutline"
 
-                >
-                  <Trash2 :size="15" />
+                 @click="requestDelete(item)">
+
                   Excluir
-                </Button>
+                </VBtn>
               </template>
             </div>
           </div>
@@ -479,33 +459,30 @@ onMounted(load);
             </div>
 
             <div class="inline-actions">
-              <Button
+              <VBtn
                 type="button"
-                class="ghost-btn"
                 :disabled="busy"
-                variant="outline"
-                @click="cancelDelete"
-              >
-                <X :size="14" />
+                variant="outlined"
+                :prepend-icon="mdiClose"
+               @click="cancelDelete">
+
                 Cancelar
-              </Button>
+              </VBtn>
 
-              <Button
+              <VBtn
 
                 type="button"
 
-                class="danger-btn"
-
                 :disabled="busy"
 
-                variant="destructive"
+                variant="tonal" color="error"
 
-                @click="remove(item)"
+                :prepend-icon="mdiTrashCanOutline"
 
-              >
-                <Trash2 :size="14" />
+               @click="remove(item)">
+
                 {{ busy ? "Excluindo..." : "Excluir" }}
-              </Button>
+              </VBtn>
             </div>
           </div>
 
@@ -514,13 +491,15 @@ onMounted(load);
               {{ composerInitials() }}
             </div>
 
-            <button
+            <VBtn
               type="button"
               class="reply-mock-input"
+              variant="outlined"
+              block
               aria-label="Responder comentário"
             >
               Escreva uma resposta e mencione outros com @
-            </button>
+            </VBtn>
           </div>
         </article>
       </div>
@@ -530,7 +509,7 @@ onMounted(load);
 
 <style scoped>
 .footer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-@media (max-width: 640px) { .footer-actions { width: 100%; } .footer-actions .el-button { flex: 1 1 auto; } }
+@media (max-width: 640px) { .footer-actions { width: 100%; } }
 .comments-board {
   display: grid;
   gap: 18px;
@@ -1049,34 +1028,9 @@ onMounted(load);
 }
 
 .reply-mock-input {
-  display: flex;
-  width: 100%;
-  min-height: 52px;
-  align-items: center;
-
-  padding: 0 16px;
-
-  border: 1px solid #d9e0e9;
-  border-radius: 12px;
-
-  background: #ffffff;
-  color: #8b96a5;
-
-  font-family: inherit;
-  font-size: 12px;
   text-align: left;
-
-  transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease,
-    color 0.15s ease;
 }
-
-.reply-mock-input:hover {
-  border-color: #b9c6d8;
-  background: #f8fafc;
-  color: #304f7e;
-}
+.reply-mock-input :deep(.v-btn__content) { justify-content: flex-start; }
 
 /* =========================================================
    RESPONSIVE

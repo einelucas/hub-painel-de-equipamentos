@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiSendOutline } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, ref, watch } from "vue";
-import { FlaskConical, Search, Send } from "lucide-vue-next";
+import { FlaskConical, Search } from "lucide-vue-next";
 import type {
   MailProviderId,
   NotificationEquipmentOption,
@@ -129,21 +130,22 @@ watch(
       </div>
     </template>
 
-    <Button
+    <VBtn
 
       type="button"
 
       :disabled="disabled"
 
-      variant="default"
+      variant="tonal"
 
-      size="sm"
+      size="small"
+      data-testid="email-test-send"
 
-      @click="emit('send', provider)"
+      :prepend-icon="mdiSendOutline"
 
-    >
-      <Send :size="14" /> {{ busy ? "Enviando..." : "Enviar e-mail de teste" }}
-    </Button>
+     @click="emit('send', provider)">
+       {{ busy ? "Enviando..." : "Enviar e-mail de teste" }}
+    </VBtn>
   </section>
 </template>
 
@@ -158,6 +160,6 @@ watch(
 .tpl-check input { margin-top: 2px; accent-color: #304f7e; }
 .tpl-check span { display: grid; gap: 1px; }
 .tpl-check small { color: #92620f; font-size: 10px; }
-.tpl-test .el-button { justify-self: start; }
+.tpl-test .v-btn { justify-self: start; }
 @media (max-width: 700px) { .tpl-test-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>

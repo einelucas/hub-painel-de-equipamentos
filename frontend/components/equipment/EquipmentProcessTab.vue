@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiArrowRight } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed } from "vue";
-import { ArrowRight } from "lucide-vue-next";
 import type {
   EquipmentProcesses,
   RequirementGroup,
@@ -82,7 +82,7 @@ async function advanceStage(): Promise<void> {
   <div v-else-if="error" class="surface empty-state detail-state" role="alert">
     <h2>Processo indisponível</h2>
     <p>{{ error }}</p>
-    <Button variant="outline" @click="reloadProcess">Tentar novamente</Button>
+    <VBtn variant="outlined" @click="reloadProcess">Tentar novamente</VBtn>
   </div>
   <template v-else-if="processes">
     <div class="process-layout">
@@ -134,18 +134,18 @@ async function advanceStage(): Promise<void> {
           <p v-else class="requirements-final">
             Processo concluído — não há próxima etapa.
           </p>
-          <Button
+          <VBtn
             v-if="advance"
             class="advance-button"
             :disabled="!advance.canExecute || advancing"
             :loading="advancing"
             data-testid="advance-button"
-            variant="default"
-            @click="advanceStage"
-          >
+            variant="tonal"
+            :append-icon="!advancing ? mdiArrowRight : undefined"
+           @click="advanceStage">
             {{ advancing ? "Processando..." : advanceLabel
-            }}<ArrowRight v-if="!advancing" :size="15" />
-          </Button>
+            }}
+          </VBtn>
         </div>
       </section>
     </div>
@@ -226,11 +226,7 @@ async function advanceStage(): Promise<void> {
   flex-direction: column;
   gap: 16px;
 }
-.advance-button {
-  justify-content: center;
-  margin-top: auto;
-  gap: 7px;
-}
+.advance-button { margin-top: auto; }
 .requirements-final {
   margin: 0;
   color: #477a32;

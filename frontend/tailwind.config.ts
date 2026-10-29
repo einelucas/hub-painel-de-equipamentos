@@ -2,6 +2,12 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 export default <Partial<Config>>{
+  // Vuetify owns the application reset. Tailwind's preflight zeroes native
+  // outlined borders (including VBtn and VField) because Vuetify 4 scopes its
+  // component styles in cascade layers.
+  corePlugins: {
+    preflight: false,
+  },
   content: [
     "./app.vue",
     "./components/**/*.{vue,ts}",

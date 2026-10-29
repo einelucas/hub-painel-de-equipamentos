@@ -1,18 +1,10 @@
 <script setup lang="ts">
-import {
-  Building2,
-  CalendarClock,
-  ChevronRight,
-  Eye,
-  Layers3,
-  MapPin,
-  UserRound,
-} from "lucide-vue-next";
+import { Building2, CalendarClock, ChevronRight, Eye, Layers3, MapPin, UserRound } from "lucide-vue-next";
 
 import type { Equipment, EquipmentList } from "~/types/equipment";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { formatDateOnly } from "~/utils/format";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
 import { collectAllPages } from "~/utils/pagination";
@@ -274,7 +266,7 @@ onMounted(async () => {
         <h2>Não foi possível carregar</h2>
         <p>{{ error }}</p>
 
-        <Button variant="outline" @click="load">Tentar novamente</Button>
+        <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
       </div>
 
       <template v-else>

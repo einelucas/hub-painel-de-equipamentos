@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import {
-  CloudDownload,
-  Plus,
-  SlidersHorizontal,
-} from "lucide-vue-next";
-import { mdiLayers, mdiMapMarker, mdiPackageVariant, mdiTag, mdiAccount } from "@mdi/js";
+  mdiAccount,
+  mdiCloudDownloadOutline,
+  mdiLayers,
+  mdiMapMarker,
+  mdiPackageVariant,
+  mdiPlus,
+  mdiTag,
+  mdiTuneVariant,
+} from "@mdi/js";
 import type {
   CatalogItem,
   CatalogList,
@@ -17,7 +21,7 @@ import { formatDateOnly } from "~/utils/format";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
@@ -298,37 +302,37 @@ onMounted(async () => {
         @refresh="load"
       >
         <template #actions>
-          <Button
+          <VBtn
             v-if="canAdminister"
-            variant="outline"
+            variant="outlined"
             data-testid="admin-button"
-            @click="showAdmin = true"
-          >
-            <SlidersHorizontal :size="16" /> Administração
-          </Button>
-          <Button
-            variant="outline"
+            :prepend-icon="mdiTuneVariant"
+           @click="showAdmin = true">
+             Administração
+          </VBtn>
+          <VBtn
+            variant="outlined"
             :disabled="loading"
             :loading="exporting"
             data-testid="export-button"
-            @click="exportAll"
-          >
-            <CloudDownload v-if="!exporting" :size="16" />
+            :prepend-icon="!exporting ? mdiCloudDownloadOutline : undefined"
+           @click="exportAll">
+
             {{ exporting ? (exportProgress || "Exportando...") : "Exportar" }}
-          </Button>
-          <Button
+          </VBtn>
+          <VBtn
             v-if="auth.can('equipments:write')"
-            variant="default"
+            variant="tonal"
             :disabled="!canCreate"
             :title="
               !context.selectedUnit
                 ? 'Selecione uma unidade para cadastrar'
                 : undefined
             "
-            @click="showForm = true"
-          >
-            <Plus :size="16" /> Novo equipamento
-          </Button>
+            :prepend-icon="mdiPlus"
+           @click="showForm = true">
+             Novo equipamento
+          </VBtn>
         </template>
       </ModuleFilters>
 
@@ -419,7 +423,7 @@ onMounted(async () => {
         <div v-else-if="error" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2>
           <p>{{ error }}</p>
-          <Button variant="outline" @click="load">Tentar novamente</Button>
+          <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
         </div>
         <template v-else>
           <div v-if="refreshing" class="progress-indeterminate" role="progressbar" aria-label="Atualizando equipamentos" />

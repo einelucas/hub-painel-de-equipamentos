@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { mdiFileDocumentOutline, mdiUpload } from "@mdi/js";
 import { computed, ref, watch } from "vue";
-import { Check, FileJson, Upload } from "lucide-vue-next";
+import { Check, FileJson } from "lucide-vue-next";
 import AppModal from "~/components/ui/AppModal.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { useConfirm } from "~/composables/useConfirm";
 import type { MasterCatalogSeedResult } from "~/types/masterCatalog";
 
@@ -125,16 +126,16 @@ async function apply(): Promise<void> {
       </p>
 
       <div class="import-actions">
-        <Button
-          variant="outline"
-          size="sm"
+        <VBtn
+          variant="outlined"
+          size="small"
           class="validate-button"
           :disabled="!file || busy"
           :loading="running === 'validate'"
-          @click="validate"
-        >
-          <FileJson v-if="running !== 'validate'" aria-hidden="true" /> Validar arquivo
-        </Button>
+          :prepend-icon="running !== 'validate' ? mdiFileDocumentOutline : undefined"
+         @click="validate">
+           Validar arquivo
+        </VBtn>
       </div>
 
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
@@ -153,15 +154,15 @@ async function apply(): Promise<void> {
           <div><strong>{{ preview.componentsNew }}</strong><span>componentes novos</span></div>
           <div><strong>{{ preview.existing }}</strong><span>já existentes</span></div>
         </div>
-        <Button
-          size="sm"
+        <VBtn
+          size="small"
           class="preview-apply"
           :disabled="busy || !file"
           :loading="running === 'apply'"
-          @click="apply"
-        >
-          <Upload v-if="running !== 'apply'" aria-hidden="true" /> Aplicar ao catálogo
-        </Button>
+          :prepend-icon="running !== 'apply' ? mdiUpload : undefined"
+         @click="apply">
+           Aplicar ao catálogo
+        </VBtn>
       </section>
 
       <p class="modal-note">
@@ -171,9 +172,9 @@ async function apply(): Promise<void> {
     </div>
 
     <template #actions>
-      <Button variant="outline" size="sm" :disabled="busy" @click="requestClose">
+      <VBtn variant="outlined" size="small" :disabled="busy" @click="requestClose">
         Fechar
-      </Button>
+      </VBtn>
     </template>
   </AppModal>
 </template>

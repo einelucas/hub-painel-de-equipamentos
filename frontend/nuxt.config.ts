@@ -77,7 +77,12 @@ export default defineNuxtConfig({
       },
       localeMessages: ["en", "pt"],
       defaults: {
-        VBtn: { rounded: "lg", elevation: 0 },
+        VBtn: {
+          color: "primary",
+          variant: "outlined",
+          rounded: "lg",
+          elevation: 0,
+        },
         VCard: { rounded: "lg", elevation: 0 },
         VTextField: {
           variant: "outlined",

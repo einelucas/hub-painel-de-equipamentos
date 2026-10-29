@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiChevronDown, mdiChevronRight } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, ref, watch } from "vue";
-import { Check, ChevronDown, ChevronRight, Search } from "lucide-vue-next";
+import { Check, Search } from "lucide-vue-next";
 
 interface Area { id: string; name: string; isUnassigned: boolean; active: boolean }
 interface ComponentOption { id: string; name: string; active: boolean; requiresQuantityReview: boolean; requiresNameReview: boolean }
@@ -183,10 +184,15 @@ async function submit(): Promise<void> {
           </div>
           <div v-else class="areas-list">
             <div v-for="area in areasWithResults" :key="area.id" class="area-group">
-              <button type="button" class="area-title" @click="expandedAreas[area.id] = expandedAreas[area.id] === false">
-                <ChevronRight v-if="expandedAreas[area.id] === false" :size="16" /><ChevronDown v-else :size="16" />
+              <VBtn
+                type="button"
+                variant="tonal"
+                block
+                :prepend-icon="expandedAreas[area.id] === false ? mdiChevronRight : mdiChevronDown"
+                @click="expandedAreas[area.id] = expandedAreas[area.id] === false"
+              >
                 {{ area.name }} <small>{{ area.models.length }}</small>
-              </button>
+              </VBtn>
               <div v-if="expandedAreas[area.id] !== false" class="equipment-list">
                 <label v-for="equipment in area.models" :key="equipment.id" class="check-row">
                   <input type="checkbox" :checked="selectedEquipment(equipment.id)" @change="toggleEquipment(equipment.id)" />
@@ -212,8 +218,8 @@ async function submit(): Promise<void> {
           <div v-for="equipment in selectedModels" :key="equipment.id" class="area-group">
             <div class="area-title">{{ equipment.name }} <small>{{ (selected[equipment.id] ?? []).length }}/{{ equipment.components.length }}</small></div>
             <div class="component-actions">
-              <Button type="button" variant="ghost" @click="allComponents(equipment, true)">Selecionar todos</Button>
-              <Button type="button" variant="ghost" @click="allComponents(equipment, false)">Limpar</Button>
+              <VBtn type="button" variant="text" @click="allComponents(equipment, true)">Selecionar todos</VBtn>
+              <VBtn type="button" variant="text" @click="allComponents(equipment, false)">Limpar</VBtn>
             </div>
             <p v-if="!equipment.components.length" class="hint">Sem componentes cadastrados no catálogo.</p>
             <div class="equipment-list">
@@ -240,9 +246,9 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
           <p class="hint">TAGs, EAP, prazos, fornecedores e demais informações operacionais serão preenchidos depois na obra.</p>
         </section>
         <footer class="wizard-footer">
-          <Button type="button" :disabled="saving" variant="outline" @click="step === 0 ? close() : previous()">{{ step === 0 ? "Cancelar" : "Voltar" }}</Button>
-          <Button v-if="step < 3" type="button" :disabled="!canContinue" variant="default" @click="next">Continuar</Button>
-          <Button v-else type="button" :disabled="saving" data-testid="create-project-submit" variant="default" :loading="saving" @click="submit">{{ saving ? "Criando..." : "Criar obra" }}</Button>
+          <VBtn type="button" :disabled="saving" variant="outlined" @click="step === 0 ? close() : previous()">{{ step === 0 ? "Cancelar" : "Voltar" }}</VBtn>
+          <VBtn v-if="step < 3" type="button" :disabled="!canContinue" variant="tonal" @click="next">Continuar</VBtn>
+          <VBtn v-else type="button" :disabled="saving" data-testid="create-project-submit" variant="tonal" :loading="saving" @click="submit">{{ saving ? "Criando..." : "Criar obra" }}</VBtn>
         </footer>
       </template>
     </div>

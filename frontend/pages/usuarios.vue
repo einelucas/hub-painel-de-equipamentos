@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { RefreshCw, ShieldAlert, UserPlus } from "lucide-vue-next";
+import { mdiAccountPlusOutline, mdiRefresh } from "@mdi/js";
+import { ShieldAlert } from "lucide-vue-next";
 import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, onMounted, reactive, ref } from "vue";
 import type { AdminUser, Role, UserSummary } from "~/types/api";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 
 definePageMeta({ middleware: "admin" });
 
@@ -126,7 +127,7 @@ onMounted(load);
       <div v-if="success" class="message success-message" role="status">{{ success }}</div>
       <div v-if="error" class="message error-message" role="alert">
         <span>{{ error }}</span>
-        <Button class="text-button" type="button" variant="ghost" size="sm" @click="load">Tentar novamente</Button>
+        <VBtn class="text-button" type="button" variant="text" size="small" @click="load">Tentar novamente</VBtn>
       </div>
 
       <section class="surface users-card">
@@ -136,12 +137,12 @@ onMounted(load);
             <p>{{ users.length }} usuário(s). O login local utiliza o e-mail completo.</p>
           </div>
           <div class="header-actions">
-            <Button variant="outline" :disabled="loading" @click="load">
-              <RefreshCw :size="15" /> Atualizar
-            </Button>
-            <Button variant="default" data-testid="new-user" @click="openCreate">
-              <UserPlus :size="16" /> Novo usuário
-            </Button>
+            <VBtn variant="outlined" :disabled="loading" :prepend-icon="mdiRefresh" @click="load">
+               Atualizar
+            </VBtn>
+            <VBtn variant="tonal" data-testid="new-user" :prepend-icon="mdiAccountPlusOutline" @click="openCreate">
+               Novo usuário
+            </VBtn>
           </div>
         </header>
 
@@ -192,16 +193,16 @@ onMounted(load);
                   </span>
                 </TableCell>
                 <TableCell class="action-cell">
-                  <Button
+                  <VBtn
                     class="text-button"
                     type="button"
                     :disabled="updating.has(user.id) || user.id === auth.user?.id"
-                    variant="ghost"
-                    size="sm"
+                    variant="text"
+                    size="small"
                     @click="updateUser(user, { active: !user.active })"
                   >
                     {{ user.active ? "Desativar" : "Reativar" }}
-                  </Button>
+                  </VBtn>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -234,10 +235,10 @@ onMounted(load);
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
       </form>
       <template #actions>
-        <Button variant="outline" :disabled="saving" @click="showCreate = false">Cancelar</Button>
-        <Button type="submit" variant="default" form="create-user-form" :loading="saving">
+        <VBtn variant="outlined" :disabled="saving" @click="showCreate = false">Cancelar</VBtn>
+        <VBtn type="submit" variant="tonal" form="create-user-form" :loading="saving" :disabled="saving">
           {{ saving ? "Criando..." : "Criar usuário" }}
-        </Button>
+        </VBtn>
       </template>
     </AppModal>
   </ModuleWorkspace>
@@ -276,6 +277,6 @@ onMounted(load);
 @media (max-width: 760px) {
   .users-header { align-items: flex-start; flex-direction: column; }
   .header-actions { width: 100%; }
-  .header-actions .el-button { flex: 1; }
+  .header-actions .v-btn { flex: 1; }
 }
 </style>

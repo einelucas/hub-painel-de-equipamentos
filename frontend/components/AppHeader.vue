@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ArrowLeft, Bell, CloudDownload, History, Search } from "lucide-vue-next";
+import { mdiArrowLeft, mdiBellOutline, mdiCloudDownloadOutline } from "@mdi/js";
+import { VBtn } from "vuetify/components";
+import { History, Search } from "lucide-vue-next";
 
 const router = useRouter();
 const { store } = useAuth();
@@ -12,14 +14,14 @@ const { store } = useAuth();
         <img src="/brand/hub-logo.png" alt="Hub" class="h-9 w-auto" />
       </NuxtLink>
 
-      <button
+      <VBtn
         type="button"
-        class="flex h-[34px] items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-[13.6px] font-medium text-[#374151] transition-colors hover:bg-muted"
+        variant="outlined"
+        :prepend-icon="mdiArrowLeft"
         @click="router.back()"
       >
-        <ArrowLeft class="size-[18px]" />
         Voltar
-      </button>
+      </VBtn>
 
       <div class="hidden sm:block">
         <p class="text-[9.92px] font-extrabold uppercase leading-none tracking-[0.08em] text-[#8a97ab]">
@@ -42,14 +44,14 @@ const { store } = useAuth();
     </label>
 
     <div class="flex shrink-0 items-center gap-1.5">
-      <button
+      <VBtn
         type="button"
+        variant="text"
+        size="small"
         aria-label="Notificações"
         title="Notificações do Hub"
-        class="flex size-[38px] items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      >
-        <Bell class="size-[18px]" />
-      </button>
+        :icon="mdiBellOutline"
+      />
 
       <NuxtLink
         v-if="store.user?.role === 'ADMIN'"
@@ -60,14 +62,14 @@ const { store } = useAuth();
         Registro de Atividades
       </NuxtLink>
 
-      <button
+      <VBtn
         type="button"
+        variant="text"
+        size="small"
         aria-label="Exportar dados"
         title="Exportação disponível quando houver dados no módulo"
-        class="flex size-[38px] items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      >
-        <CloudDownload class="size-[18px]" />
-      </button>
+        :icon="mdiCloudDownloadOutline"
+      />
 
       <UserMenu />
     </div>

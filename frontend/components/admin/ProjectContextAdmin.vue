@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { mdiCheck, mdiClose, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from "@mdi/js";
 import { computed, onMounted, reactive, ref, useId, watch } from "vue";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 import type {
   CatalogItem,
   CatalogList,
@@ -11,7 +11,7 @@ import type {
 import { toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import AppModal from "~/components/ui/AppModal.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { useConfirm } from "~/composables/useConfirm";
 
 /**
@@ -270,16 +270,16 @@ watch(selectedId, loadSummary);
           @change="selectUnit"
         />
       </div>
-      <Button
+      <VBtn
         v-if="canManage && props.unitId"
-        size="sm"
-        variant="default"
+        size="small"
+        variant="tonal"
         :disabled="saving"
         data-testid="project-new"
-        @click="startCreate"
-      >
-        <Plus :size="14" /> Novo contexto
-      </Button>
+        :prepend-icon="mdiPlus"
+       @click="startCreate">
+         Novo contexto
+      </VBtn>
       </div>
     </header>
 
@@ -287,17 +287,17 @@ watch(selectedId, loadSummary);
 
     <div v-else-if="!props.unitId" class="projects-empty" data-testid="project-no-unit">
       <p>Selecione ou cadastre uma unidade antes de criar um contexto.</p>
-      <Button
+      <VBtn
         v-if="canManage"
         type="button"
         class="text-button"
         data-testid="project-goto-units"
-        variant="ghost"
-        size="sm"
+        variant="text"
+        size="small"
         @click="emit('navigate', { section: 'catalogs', catalog: 'units' })"
       >
         Gerenciar unidades
-      </Button>
+      </VBtn>
     </div>
 
     <template v-else>
@@ -316,7 +316,13 @@ watch(selectedId, loadSummary);
             :class="{ selected: item.id === selectedId, inactive: !item.active }"
             :data-testid="`project-item-${item.id}`"
           >
-            <button type="button" class="project-card" @click="selectedId = item.id">
+            <VBtn
+              type="button"
+              class="project-card"
+              :variant="item.id === selectedId ? 'tonal' : 'outlined'"
+              block
+              @click="selectedId = item.id"
+            >
               <span v-if="item.code" class="project-code">{{ item.code }}</span>
               <span class="project-name">{{ item.name }}</span>
               <span class="project-meta">
@@ -324,18 +330,18 @@ watch(selectedId, loadSummary);
                   {{ item.active ? "Ativo" : "Inativo" }}
                 </span>
               </span>
-            </button>
+            </VBtn>
             <span v-if="canManage" class="project-actions">
-              <Button type="button" class="text-button" :disabled="saving" variant="ghost" size="sm" @click="startEdit(item)">
-                <Pencil :size="12" /> Editar
-              </Button>
-              <Button type="button" class="text-button" :disabled="saving" :loading="togglingId === item.id" variant="ghost" size="sm" @click="toggleActive(item)">
+              <VBtn type="button" class="text-button" :disabled="saving" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="startEdit(item)">
+                 Editar
+              </VBtn>
+              <VBtn type="button" class="text-button" :disabled="saving" :loading="togglingId === item.id" variant="text" size="small" @click="toggleActive(item)">
                 {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
-              </Button>
-              <Button type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="destructive" size="sm" @click="remove(item)">
-                <Trash2 v-if="!(deletingId === item.id)" :size="12" />
+              </VBtn>
+              <VBtn type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(deletingId === item.id) ? mdiTrashCanOutline : undefined" @click="remove(item)">
+
                 {{ deletingId === item.id ? "Excluindo..." : "Excluir" }}
-              </Button>
+              </VBtn>
             </span>
           </li>
         </ul>
@@ -372,39 +378,39 @@ watch(selectedId, loadSummary);
           <p v-if="summary.error" class="projects-error" role="alert">{{ summary.error }}</p>
           <p class="field-help">Resumo informativo. Não bloqueia o uso do contexto.</p>
           <div class="readiness-actions">
-            <Button
+            <VBtn
               v-if="canManage"
               type="button"
               class="text-button"
               data-testid="goto-areas"
-              variant="ghost"
-              size="sm"
+              variant="text"
+              size="small"
               @click="emit('navigate', { section: 'catalogs', catalog: 'areas' })"
             >
               Gerenciar Árvore EAP
-            </Button>
-            <Button
+            </VBtn>
+            <VBtn
               v-if="canManage"
               type="button"
               class="text-button"
               data-testid="goto-work-packages"
-              variant="ghost"
-              size="sm"
+              variant="text"
+              size="small"
               @click="emit('navigate', { section: 'catalogs', catalog: 'workPackages' })"
             >
               Gerenciar Work Packages
-            </Button>
-            <Button
+            </VBtn>
+            <VBtn
               v-if="canManageAccess"
               type="button"
               class="text-button"
               data-testid="goto-access"
-              variant="ghost"
-              size="sm"
+              variant="text"
+              size="small"
               @click="emit('navigate', { section: 'access' })"
             >
               Gerenciar acessos
-            </Button>
+            </VBtn>
           </div>
         </aside>
       </div>
@@ -441,20 +447,20 @@ watch(selectedId, loadSummary);
     </form>
 
     <template #actions>
-      <Button size="sm" variant="outline" :disabled="saving" @click="cancel">
-        <X :size="13" /> Cancelar
-      </Button>
-      <Button
+      <VBtn size="small" variant="outlined" :disabled="saving" :prepend-icon="mdiClose" @click="cancel">
+         Cancelar
+      </VBtn>
+      <VBtn
         type="submit"
-        size="sm"
-        variant="default"
+        size="small"
+        variant="tonal"
         :form="formId"
         :loading="saving"
         data-testid="project-save"
-      >
-        <Check v-if="!saving" :size="13" />
+       :prepend-icon="!saving ? mdiCheck : undefined" :disabled="saving">
+
         {{ saving ? "Salvando..." : "Salvar" }}
-      </Button>
+      </VBtn>
     </template>
   </AppModal>
 </template>
@@ -494,8 +500,7 @@ watch(selectedId, loadSummary);
 .project-list li.selected { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 3px rgb(48 79 126 / 10%); }
 .project-list li.inactive { background: #fafbfc; }
 .project-list li.inactive .project-name { color: #9aa6b5; }
-.project-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
-.project-card:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 4px; border-radius: 6px; }
+.project-card :deep(.v-btn__content) { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; text-align: left; }
 .project-code { grid-column: 1; color: var(--steel, #304f7e); font-family: var(--mono, monospace); font-size: 11.5px; font-weight: 700; }
 .project-name { grid-column: 1; min-width: 0; overflow: hidden; color: var(--ink, #1f3352); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .project-meta { grid-column: 2; grid-row: 1 / span 2; }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import ImportCatalogSummary from "~/components/imports/ImportCatalogSummary.vue";
 import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
 import { useImportState } from "~/composables/useImportState";
@@ -127,9 +127,9 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             <p>Correspondências exatas da origem vêm pré-selecionadas; recomendações históricas continuam sob sua revisão.</p>
           </div>
           <div class="supplier-review-actions">
-            <Button type="button" :disabled="!hasRecommendations" variant="outline" size="sm" @click="useAllRecommended">
+            <VBtn type="button" :disabled="!hasRecommendations" variant="outlined" size="small" @click="useAllRecommended">
               Usar recomendado em todos
-            </Button>
+            </VBtn>
             <NuxtLink class="btn small" to="/fornecedores">+ Cadastrar fornecedor</NuxtLink>
           </div>
         </div>
@@ -144,15 +144,14 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             <small v-if="item.requiresRegistration">Referência ainda não cadastrada como Supplier global.</small>
           </div>
           <div class="supplier-choice">
-            <Button
+            <VBtn
               type="button"
-              class="recommended-button"
               :disabled="!item.supplierId"
-              variant="outline"
+              variant="outlined"
               @click="useRecommended(item)"
             >
               Usar recomendado
-            </Button>
+            </VBtn>
             <SupplierCombobox
               :model-value="selectionValue(item)"
               :suppliers="suppliers"
@@ -162,9 +161,9 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             />
           </div>
         </article>
-        <Button v-if="mappingDirty" type="button" :disabled="busy" :loading="busy" variant="outline" @click="buildPlan">
+        <VBtn v-if="mappingDirty" type="button" :disabled="busy" :loading="busy" variant="outlined" @click="buildPlan">
           {{ busy ? "Atualizando plano..." : "Atualizar plano com as decisões" }}
-        </Button>
+        </VBtn>
       </section>
 
       <section v-if="equipmentWarnings.length" class="callout callout--caution" data-testid="plan-equipment-warnings">
@@ -193,16 +192,16 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
     </template>
 
     <div class="import-actions">
-      <Button variant="outline" :disabled="busy" @click="step = 'mapping'">Voltar ao mapeamento</Button>
-      <Button
-        variant="default"
+      <VBtn variant="outlined" :disabled="busy" @click="step = 'mapping'">Voltar ao mapeamento</VBtn>
+      <VBtn
+        variant="tonal"
         :disabled="!plan?.canApply || mappingDirty"
         :loading="busy"
         data-testid="import-confirm"
         @click="apply"
       >
         {{ busy ? "Importando..." : "Confirmar importação" }}
-      </Button>
+      </VBtn>
     </div>
   </div>
 </template>

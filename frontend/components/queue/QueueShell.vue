@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { mdiMagnify } from "@mdi/js";
 import SkeletonBlock from "~/components/ui/SkeletonBlock.vue";
-import Button from "~/components/ui/Button.vue";
-import { Search } from "lucide-vue-next";
+import { VBtn } from "vuetify/components";
 import type { Pagination } from "~/types/equipment";
 
 const props = withDefaults(defineProps<{
@@ -38,7 +38,7 @@ const term = ref("");
           <span>Busca</span>
           <div class="search-control">
             <input v-model="term" placeholder="Nome do equipamento">
-            <Button type="submit" variant="outline"><Search :size="16" /> Buscar</Button>
+            <VBtn type="submit" variant="outlined" :prepend-icon="mdiMagnify"> Buscar</VBtn>
           </div>
         </form>
         <slot name="filters" />
@@ -58,7 +58,7 @@ const term = ref("");
         <div v-if="props.loading" class="queue-state" data-testid="queue-loading" role="status" aria-busy="true"><span class="sr-only">Carregando fila...</span><SkeletonBlock :rows="6" /></div>
         <div v-else-if="props.error" class="empty-state table-empty" role="alert" data-testid="queue-error">
           <h2>Não foi possível carregar</h2><p>{{ props.error }}</p>
-          <Button variant="outline" @click="emit('reload')">Tentar novamente</Button>
+          <VBtn variant="outlined" @click="emit('reload')">Tentar novamente</VBtn>
         </div>
         <div v-else-if="props.empty" class="empty-state table-empty" data-testid="queue-empty">
           <h2>Nenhum equipamento nesta fila</h2>
@@ -85,7 +85,7 @@ const term = ref("");
 .queue-search { min-width: 0; }
 .search-control { display: flex; gap: 7px; }
 .search-control input { flex: 1; min-width: 0; min-height: 46px; }
-.search-control .el-button { flex: none; height: 46px; margin: 0; }
+.search-control .v-btn { flex: none; }
 .queue-criteria { margin: 0; padding: 0 18px 12px; color: #8b96a5; font-size: 11.5px; }
 .queue-state { display: block; padding: 18px; min-height: 220px; align-items: center; justify-content: center; gap: 12px; color: #748197; }
 .table-wrap { padding: 0 18px 18px; overflow-x: auto; }

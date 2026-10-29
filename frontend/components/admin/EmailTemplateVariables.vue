@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { VBtn } from "vuetify/components";
 import { Info } from "lucide-vue-next";
 
 /**
@@ -49,16 +50,18 @@ const groups: { name: string; items: { token: string; label: string; hint: strin
     <div v-for="group in groups" :key="group.name" class="tpl-variable-group">
       <small>{{ group.name }}</small>
       <div class="tpl-variable-chips">
-        <button
+        <VBtn
           v-for="item in group.items"
           :key="item.token"
+          variant="tonal"
+          size="x-small"
           type="button"
-          class="tpl-variable-chip"
+          :data-testid="`template-variable-${item.token}`"
           :title="item.hint"
           @click="emit('insert', '{' + item.token + '}')"
         >
           {{ item.label }}
-        </button>
+        </VBtn>
       </div>
     </div>
   </section>
@@ -72,6 +75,4 @@ const groups: { name: string; items: { token: string; label: string; hint: strin
 .tpl-variable-group { display: grid; gap: 5px; }
 .tpl-variable-group small { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #7c8ba0; }
 .tpl-variable-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.tpl-variable-chip { border: 1px solid #d7e0ec; background: #ffffff; color: #304f7e; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 600; }
-.tpl-variable-chip:hover { background: #eef3fb; border-color: #b9cbe3; }
 </style>

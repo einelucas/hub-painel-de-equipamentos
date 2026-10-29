@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { ArrowRight, Building2, History } from "lucide-vue-next";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
 import type { EquipmentSupplier, Supplier } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
@@ -131,15 +131,15 @@ function cnpj(supplier: Pick<Supplier, "taxId">): string | null {
           <History :size="13" aria-hidden="true" /> O vínculo atual é encerrado e fica no histórico.
         </p>
         <div class="form-actions">
-          <Button variant="outline" @click="emit('close')">Cancelar</Button>
-          <Button
+          <VBtn variant="outlined" @click="emit('close')">Cancelar</VBtn>
+          <VBtn
             type="submit"
-            variant="default"
+            variant="tonal"
             :loading="props.busy"
             :disabled="!chosen"
           >
             {{ props.busy ? "Salvando..." : replacing ? "Substituir" : "Vincular" }}
-          </Button>
+          </VBtn>
         </div>
       </footer>
     </form>

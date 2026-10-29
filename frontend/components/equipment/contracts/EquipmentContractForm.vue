@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import FilePicker from "~/components/ui/FilePicker.vue";
 import UploadProgress from "~/components/ui/UploadProgress.vue";
 import type { Contract } from "~/types/equipment";
@@ -83,14 +83,14 @@ function submit(): void {
       {{ error }}
     </p>
     <div class="form-actions">
-      <Button variant="outline" :disabled="props.busy" @click="emit('cancel')">Cancelar</Button>
-      <Button
+      <VBtn variant="outlined" :disabled="props.busy" @click="emit('cancel')">Cancelar</VBtn>
+      <VBtn
         type="submit"
-        variant="default"
+        variant="tonal"
         :loading="props.busy"
-      >
+       :disabled="props.busy">
         {{ props.busy ? busyLabel : "Salvar" }}
-      </Button>
+      </VBtn>
     </div>
   </form>
 </template>

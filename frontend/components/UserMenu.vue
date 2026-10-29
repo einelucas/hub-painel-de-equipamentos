@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ChevronDown, LogOut } from "lucide-vue-next";
+import { mdiChevronDown, mdiLogout } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 
 const ROLE_LABELS: Record<string, string> = {
   VIEWER: "Visualizador",
@@ -42,11 +43,12 @@ async function handleLogout() {
 
 <template>
   <div ref="rootRef" class="relative">
-    <button
+    <VBtn
       type="button"
+      variant="text"
       aria-haspopup="menu"
       :aria-expanded="open"
-      class="flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-1.5 transition-colors hover:bg-muted"
+      :append-icon="mdiChevronDown"
       @click="open = !open"
     >
       <span
@@ -57,8 +59,8 @@ async function handleLogout() {
           class="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-background bg-success"
         />
       </span>
-      <ChevronDown class="size-3.5 text-muted-foreground" />
-    </button>
+
+    </VBtn>
 
     <div
       v-if="open"
@@ -76,17 +78,20 @@ async function handleLogout() {
 
       <div class="my-1 h-px bg-border" />
 
-      <button
+      <VBtn
         type="button"
-        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
+        variant="tonal"
+        color="error"
+        size="small"
+        block
+        :loading="loggingOut"
         :disabled="loggingOut"
         :aria-busy="loggingOut"
+        :prepend-icon="loggingOut ? undefined : mdiLogout"
         @click="handleLogout"
       >
-        <span v-if="loggingOut" class="spinner-small" aria-hidden="true" />
-        <LogOut v-else class="size-4" />
         {{ loggingOut ? "Saindo..." : "Sair" }}
-      </button>
+      </VBtn>
     </div>
   </div>
 </template>

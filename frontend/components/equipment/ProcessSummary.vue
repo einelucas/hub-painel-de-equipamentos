@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from "vue";
 import type { EquipmentProcesses } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { formatDateOnly } from "~/utils/format";
 import { type ProcessResource, blankToNull } from "~/utils/workflow";
 
@@ -107,17 +107,17 @@ const groups = computed(() => [
     <section v-for="group in groups" :key="group.title" class="process-group">
       <div class="process-group-header">
         <h3>{{ group.title }}</h3>
-        <Button
+        <VBtn
           v-if="editable && !editing[group.resource]"
           type="button"
           class="text-button"
           :data-testid="`edit-${group.resource}`"
-          variant="ghost"
-          size="sm"
+          variant="text"
+          size="small"
           @click="startEdit(group.resource)"
         >
           Editar
-        </Button>
+        </VBtn>
       </div>
 
       <div v-if="!editing[group.resource]" class="process-fields">
@@ -143,15 +143,15 @@ const groups = computed(() => [
         </div>
 
         <div class="edit-actions">
-          <Button variant="outline" :disabled="saving" @click="cancelEdit(group.resource)">Cancelar</Button>
-          <Button
+          <VBtn variant="outlined" :disabled="saving" @click="cancelEdit(group.resource)">Cancelar</VBtn>
+          <VBtn
             type="submit"
-            variant="default"
+            variant="tonal"
             :loading="saving"
             :data-testid="`save-${group.resource}`"
-          >
+           :disabled="saving">
             {{ saving ? "Salvando..." : "Salvar" }}
-          </Button>
+          </VBtn>
         </div>
       </form>
     </section>

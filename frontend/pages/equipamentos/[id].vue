@@ -1,13 +1,7 @@
 <script setup lang="ts">
-import {
-  Boxes,
-  Building2,
-  History,
-  MessageSquare,
-  Workflow,
-} from "lucide-vue-next";
+import { mdiCubeOutline, mdiHistory, mdiMessageTextOutline, mdiOfficeBuildingOutline, mdiTimelineOutline } from "@mdi/js";
 import type { Equipment, EquipmentDetail } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { currentStageEnteredAt } from "~/utils/workflow";
 
 definePageMeta({ middleware: "auth" });
@@ -112,7 +106,7 @@ onMounted(load);
     >
       <h2>Equipamento indisponível</h2>
       <p>{{ error }}</p>
-      <Button variant="outline" @click="load">Tentar novamente</Button>
+      <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
     </div>
     <div v-else-if="detail" class="stack" :aria-busy="loading">
       <div v-if="loading" class="progress-indeterminate" role="progressbar" aria-label="Atualizando" />
@@ -167,59 +161,59 @@ onMounted(load);
         role="tablist"
         aria-label="Seções do equipamento"
       >
-        <button
+        <VBtn
           type="button"
-          :class="{ active: tab === 'process' }"
+          :variant="tab === 'process' ? 'tonal' : 'text'"
           role="tab"
           :aria-selected="tab === 'process'"
+          :prepend-icon="mdiTimelineOutline"
           @click="tab = 'process'"
         >
-          <Workflow :size="16" aria-hidden="true" />
           <span>Processo</span>
-        </button>
-        <button
+        </VBtn>
+        <VBtn
           type="button"
-          :class="{ active: tab === 'components' }"
+          :variant="tab === 'components' ? 'tonal' : 'text'"
           role="tab"
           :aria-selected="tab === 'components'"
+          :prepend-icon="mdiCubeOutline"
           @click="tab = 'components'"
         >
-          <Boxes :size="16" aria-hidden="true" />
           <span>Componentes</span>
           <span class="detail-tab-count">{{ detail.components.length }}</span>
-        </button>
-        <button
+        </VBtn>
+        <VBtn
           type="button"
-          :class="{ active: tab === 'suppliers' }"
+          :variant="tab === 'suppliers' ? 'tonal' : 'text'"
           role="tab"
           :aria-selected="tab === 'suppliers'"
           data-testid="tab-suppliers"
+          :prepend-icon="mdiOfficeBuildingOutline"
           @click="tab = 'suppliers'"
         >
-          <Building2 :size="16" aria-hidden="true" />
           <span>Fornecedor</span>
-        </button>
-        <button
+        </VBtn>
+        <VBtn
           type="button"
-          :class="{ active: tab === 'comments' }"
+          :variant="tab === 'comments' ? 'tonal' : 'text'"
           role="tab"
           :aria-selected="tab === 'comments'"
           data-testid="tab-comments"
+          :prepend-icon="mdiMessageTextOutline"
           @click="tab = 'comments'"
         >
-          <MessageSquare :size="16" aria-hidden="true" />
           <span>Comentários</span>
-        </button>
-        <button
+        </VBtn>
+        <VBtn
           type="button"
-          :class="{ active: tab === 'history' }"
+          :variant="tab === 'history' ? 'tonal' : 'text'"
           role="tab"
           :aria-selected="tab === 'history'"
+          :prepend-icon="mdiHistory"
           @click="tab = 'history'"
         >
-          <History :size="16" aria-hidden="true" />
           <span>Histórico</span>
-        </button>
+        </VBtn>
       </div>
 
       <EquipmentProcessTab
@@ -301,48 +295,6 @@ onMounted(load);
 .detail-tabs::-webkit-scrollbar {
   display: none;
 }
-.detail-tabs button {
-  display: inline-flex;
-  flex: 0 0 auto;
-  min-height: 36px;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 8px 12px;
-  background: transparent;
-  color: #64748b;
-  font-size: 12.5px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
-}
-.detail-tabs button svg {
-  flex: 0 0 auto;
-  color: #8291a6;
-}
-.detail-tabs button:hover {
-  background: #f3f7fc;
-  color: #2b3e58;
-}
-.detail-tabs button:hover svg {
-  color: #52657c;
-}
-.detail-tabs button:focus-visible {
-  outline: 2px solid #304f7e;
-  outline-offset: 2px;
-}
-.detail-tabs button.active {
-  border-color: #cfe0f4;
-  background: #e8f1fc;
-  color: #27456f;
-  box-shadow: inset 0 0 0 1px rgb(48 79 126 / 3%);
-}
-.detail-tabs button.active svg {
-  color: #304f7e;
-}
 .detail-tab-count {
   display: inline-grid;
   min-width: 20px;
@@ -355,14 +307,5 @@ onMounted(load);
   font-size: 10.5px;
   font-weight: 800;
   line-height: 1;
-}
-.detail-tabs button.active .detail-tab-count {
-  background: #fff;
-  color: #27456f;
-}
-@media (prefers-reduced-motion: reduce) {
-  .detail-tabs button {
-    transition: none;
-  }
 }
 </style>

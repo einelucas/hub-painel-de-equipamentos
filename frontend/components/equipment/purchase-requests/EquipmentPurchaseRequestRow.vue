@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
-import { Pencil, Trash2 } from "lucide-vue-next";
+import { mdiPencilOutline, mdiTrashCanOutline } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import type { PurchaseRequest } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 
@@ -17,11 +17,11 @@ const emit = defineEmits<{
     <TableCell>{{ item.requestNumber ?? "—" }}</TableCell>
     <TableCell>{{ formatDateOnly(item.requestedAt) }}</TableCell>
     <TableCell class="row-actions">
-      <Button v-if="editable" class="text-button" variant="ghost" size="sm" @click="emit('edit', item)"><Pencil :size="13" /> Editar</Button>
-      <Button v-if="editable" class="text-button" :disabled="busy" :loading="activeId === item.id" variant="destructive" size="sm" @click="emit('delete', item)">
-        <Trash2 v-if="!(activeId === item.id)" :size="13" />
+      <VBtn v-if="editable" class="text-button" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="emit('edit', item)"> Editar</VBtn>
+      <VBtn v-if="editable" class="text-button" :disabled="busy" :loading="activeId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(activeId === item.id) ? mdiTrashCanOutline : undefined" @click="emit('delete', item)">
+
         {{ activeId === item.id ? "Excluindo..." : "Excluir" }}
-      </Button>
+      </VBtn>
     </TableCell>
   </TableRow>
 </template>

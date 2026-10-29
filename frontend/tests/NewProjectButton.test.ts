@@ -14,7 +14,8 @@ describe("atalho de nova obra", () => {
     });
     const button = wrapper.get("[data-testid='nav-new-project']");
     expect(button.attributes("aria-label")).toBe("Nova obra");
-    expect(button.classes()).toContain("module-action");
-    expect(button.text()).toContain("Nova obra");
+    expect(button.attributes("title")).toBe("Nova obra");
+    expect(button.classes()).toContain("v-btn--icon");
+    expect(button.classes()).toContain("v-btn--variant-text");
   });
 });

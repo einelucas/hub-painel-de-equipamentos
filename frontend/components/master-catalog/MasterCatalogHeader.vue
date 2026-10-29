@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Boxes, Info, Layers, Package, Plus, Upload } from "lucide-vue-next";
-import Button from "~/components/ui/Button.vue";
+import { mdiLayersOutline, mdiPlus, mdiUpload } from "@mdi/js";
+import { Boxes, Info, Layers, Package } from "lucide-vue-next";
+import { VBtn } from "vuetify/components";
 import { plural } from "~/utils/masterCatalog";
 
 const props = defineProps<{
@@ -47,25 +48,25 @@ const emit = defineEmits<{
     </div>
 
     <div class="master-hero__actions">
-      <Button
-        variant="outline"
+      <VBtn
+        variant="outlined"
         class="header-action"
         :disabled="props.busy"
-        @click="emit('manageAreas')"
-      >
-        <Layers aria-hidden="true" /> Gerenciar áreas
-      </Button>
-      <Button
-        variant="outline"
+        :prepend-icon="mdiLayersOutline"
+       @click="emit('manageAreas')">
+         Gerenciar áreas
+      </VBtn>
+      <VBtn
+        variant="outlined"
         class="header-action"
         :disabled="props.busy"
-        @click="emit('importSeed')"
-      >
-        <Upload aria-hidden="true" /> Importar seed
-      </Button>
-      <Button class="header-action" :disabled="props.busy" @click="emit('create')">
-        <Plus aria-hidden="true" /> Novo equipamento
-      </Button>
+        :prepend-icon="mdiUpload"
+       @click="emit('importSeed')">
+         Importar seed
+      </VBtn>
+      <VBtn class="header-action" :disabled="props.busy" :prepend-icon="mdiPlus" @click="emit('create')">
+         Novo equipamento
+      </VBtn>
     </div>
   </header>
 

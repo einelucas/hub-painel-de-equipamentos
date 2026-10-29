@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, reactive, useId, watch } from "vue";
-import { AlertTriangle, Check, CheckCircle2, X } from "lucide-vue-next";
-import Button from "~/components/ui/Button.vue";
+import { AlertTriangle, CheckCircle2 } from "lucide-vue-next";
+import { mdiCheck, mdiClose } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import type { Supplier } from "~/types/equipment";
 import { cnpjStatus, formatCnpj, maskCnpjInput, normalizeCnpj, supplierLabel } from "~/utils/suppliers";
 
@@ -146,18 +147,24 @@ function submit(): void {
     <p v-if="localError.message || props.error" class="form-error" role="alert">{{ localError.message || props.error }}</p>
 
     <div class="form-actions">
-      <Button variant="outline" :size="props.compact ? 'sm' : 'default'" @click="emit('cancel')">
-        <X v-if="props.compact" :size="13" /> Cancelar
-      </Button>
-      <Button
-        type="submit"
-        variant="default"
-        :size="props.compact ? 'sm' : 'default'"
-        :loading="props.saving"
+      <VBtn
+        variant="outlined"
+        :size="props.compact ? 'small' : undefined"
+        :prepend-icon="props.compact ? mdiClose : undefined"
+        @click="emit('cancel')"
       >
-        <Check v-if="props.compact && !props.saving" :size="13" />
+        Cancelar
+      </VBtn>
+      <VBtn
+        type="submit"
+        variant="tonal"
+        :size="props.compact ? 'small' : undefined"
+        :prepend-icon="props.compact && !props.saving ? mdiCheck : undefined"
+        :loading="props.saving"
+        :disabled="props.saving"
+      >
         {{ props.saving ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar fornecedor" }}
-      </Button>
+      </VBtn>
     </div>
   </form>
 </template>
