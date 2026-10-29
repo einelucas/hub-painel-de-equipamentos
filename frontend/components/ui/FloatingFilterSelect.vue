@@ -103,7 +103,6 @@ function onMenuChange(open: boolean): void {
 <template>
   <div ref="root" class="floating-filter-select" :data-testid="testId" :data-selected-label="selectedLabel" :data-disabled="props.disabled ? 'true' : 'false'">
     <VAutocomplete
-      :menu-props="{ zIndex: 10020 }"
       :model-value="props.modelValue"
       :items="items"
       item-title="title"
