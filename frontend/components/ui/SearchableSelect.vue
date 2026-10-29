@@ -116,7 +116,6 @@ watch(
       @invalid="onInvalid"
     >
     <VAutocomplete
-      :menu-props="{ zIndex: 10020 }"
       :model-value="props.modelValue"
       :items="items"
       item-title="title"
