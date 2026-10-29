@@ -45,13 +45,15 @@ describe("SupplierCombobox", () => {
       menuOptions(wrapper, "supplier-combobox").map((item) => item.find(".v-list-item-title").text()),
     ).toEqual(["9002 · Zeta Industrial"]);
 
-    // Esc limpa o texto do filtro e, num segundo Esc, fecha o menu; clicar
-    // no campo reabre com todas as opções.
+    // Escape fecha a lista nativa do Vuetify sem apagar a pesquisa digitada.
     await input.trigger("keydown", { key: "Escape" });
     await input.trigger("keydown", { key: "Escape" });
     expect(input.attributes("aria-expanded")).toBe("false");
     await openMenu(wrapper, "supplier-combobox");
     expect(input.attributes("aria-expanded")).toBe("true");
+    expect(await optionLabels(wrapper, "supplier-combobox")).toEqual(["9002 · Zeta Industrial"]);
+    await input.setValue("");
+    await flushPromises();
     expect(await optionLabels(wrapper, "supplier-combobox")).toEqual([
       "Manter sem fornecedor",
       "1001 · Alfa Engenharia",
