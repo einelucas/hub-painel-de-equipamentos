@@ -26,7 +26,7 @@ async function mountSettledModal(upload: ReturnType<typeof vi.fn>) {
   return wrapper;
 }
 
-async function pickFile(wrapper: ReturnType<typeof mount>) {
+async function pickFile() {
   const file = new File(["x"], "fornecedores.xlsx");
   const input = portal().get("[data-testid='supplier-import-file']");
   Object.defineProperty(input.element, "files", { value: [file], configurable: true });
@@ -46,7 +46,7 @@ describe("SupplierImportModal", () => {
     const wrapper = await mountSettledModal(upload);
 
     expect(portal().get("[data-testid='supplier-import-submit']").attributes("disabled")).toBeDefined();
-    const file = await pickFile(wrapper);
+    const file = await pickFile();
     await portal().get("form").trigger("submit");
     await settle(wrapper);
 
@@ -69,7 +69,7 @@ describe("SupplierImportModal", () => {
   it("mostra a mensagem do servidor quando a importação falha", async () => {
     const upload = vi.fn().mockRejectedValue(new Error("Colunas obrigatórias ausentes."));
     const wrapper = await mountSettledModal(upload);
-    await pickFile(wrapper);
+    await pickFile();
     await portal().get("form").trigger("submit");
     await settle(wrapper);
 
@@ -90,7 +90,7 @@ describe("SupplierImportModal", () => {
       // Fake timers: settle() usa setTimeout e travaria; nextTick é microtask.
       await wrapper.vm.$nextTick();
       await wrapper.vm.$nextTick();
-      await pickFile(wrapper);
+      await pickFile();
       expect(portal().get("[data-testid='supplier-import-file-info']").text()).toContain("fornecedores.xlsx");
       await portal().get("form").trigger("submit");
 
