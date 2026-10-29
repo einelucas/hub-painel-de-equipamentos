@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { Pencil } from "lucide-vue-next";
+import { mdiAccount, mdiAlertCircleOutline, mdiEarth, mdiMapMarker, mdiOfficeBuilding, mdiPackageVariant, mdiTag } from "@mdi/js";
 import Button from "~/components/ui/Button.vue";
 import CurrencyInput from "~/components/ui/CurrencyInput.vue";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
@@ -265,6 +266,7 @@ onMounted(loadCatalogs);
           :clearable="false"
           required
           label="Obra *"
+          :icon="mdiOfficeBuilding"
           placeholder="Buscar por código ou nome"
           empty-label="Selecione"
           test-id="project-context-select"
@@ -279,6 +281,7 @@ onMounted(loadCatalogs);
           :clearable="false"
           :sorted="false"
           label="Origem"
+          :icon="mdiEarth"
           placeholder="Selecione a origem"
           empty-label="Selecione"
           test-id="origin-select"
@@ -302,6 +305,7 @@ onMounted(loadCatalogs);
           v-model="form.eapNodeId"
           :options="eapOptions"
           label="Localização EAP"
+          :icon="mdiMapMarker"
           placeholder="Buscar por código ou nome"
           empty-label="Não informada"
           test-id="eap-node-select"
@@ -313,6 +317,7 @@ onMounted(loadCatalogs);
           v-model="form.disciplineId"
           :options="disciplineOptions"
           label="Disciplina"
+          :icon="mdiTag"
           placeholder="Buscar disciplina"
           empty-label="Não informada"
         />
@@ -330,6 +335,7 @@ onMounted(loadCatalogs);
           v-model="form.workPackageIds"
           :options="workPackageOptions"
           label="Work Packages"
+          :icon="mdiPackageVariant"
           placeholder="Buscar por código, nome ou descrição"
         />
       </div>
@@ -357,6 +363,7 @@ onMounted(loadCatalogs);
           v-model="form.criticalityLabelId"
           :options="criticalityOptions"
           label="Criticidade"
+          :icon="mdiAlertCircleOutline"
           placeholder="Buscar criticidade"
           empty-label="Não informada"
           test-id="criticality-select"
@@ -378,6 +385,7 @@ onMounted(loadCatalogs);
           v-model="form.responsibleUserId"
           :options="responsibleOptions"
           label="Responsável"
+          :icon="mdiAccount"
           placeholder="Buscar por nome ou e-mail"
           empty-label="Não atribuído"
           test-id="responsible-select"
