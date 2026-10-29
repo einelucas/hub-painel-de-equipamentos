@@ -159,8 +159,8 @@ async function submit(): Promise<void> {
           <p>Selecione a unidade e informe o nome do novo projeto.</p>
           <div class="project-unit">
             <VAutocomplete
-              :menu-props="{ zIndex: 10020 }"
               v-model="unitId"
+              :menu-props="{ zIndex: 10020 }"
               :items="unitOptions"
               item-title="title"
               item-value="value"
