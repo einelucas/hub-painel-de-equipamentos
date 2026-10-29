@@ -258,14 +258,13 @@ onMounted(loadCatalogs);
       </label>
 
       <div class="field">
-        <span>Obra *</span>
 
         <SearchableSelect
           v-model="form.projectContextId"
           :options="contextOptions"
           :clearable="false"
           required
-          label="Obra"
+          label="Obra *"
           placeholder="Buscar por código ou nome"
           empty-label="Selecione"
           test-id="project-context-select"
@@ -273,7 +272,6 @@ onMounted(loadCatalogs);
       </div>
 
       <div class="field">
-        <span>Origem</span>
 
         <SearchableSelect
           v-model="form.origin"
@@ -289,7 +287,6 @@ onMounted(loadCatalogs);
 
       <div class="field">
         <div class="field-label-row">
-          <span>Localização EAP</span>
           <Button
             v-if="auth.can('catalogs:manage')"
             type="button"
@@ -312,7 +309,6 @@ onMounted(loadCatalogs);
       </div>
 
       <div class="field">
-        <span>Disciplina</span>
         <SearchableSelect
           v-model="form.disciplineId"
           :options="disciplineOptions"
@@ -324,10 +320,8 @@ onMounted(loadCatalogs);
 
       <!-- WORK PACKAGES -->
       <div class="field field-wide work-package-field">
-        <div class="wp-header">
-          <span class="wp-title"> Work Packages </span>
-
-          <span v-if="form.workPackageIds.length" class="wp-count">
+        <div v-if="form.workPackageIds.length" class="wp-header">
+          <span class="wp-count">
             {{ form.workPackageIds.length }}
             {{ form.workPackageIds.length === 1 ? "selecionado" : "selecionados" }}
           </span>
@@ -348,7 +342,6 @@ onMounted(loadCatalogs);
 
       <div class="field">
         <div class="field-label-row">
-          <span>Criticidade</span>
           <Button
             v-if="auth.can('catalogs:manage')"
             type="button"
@@ -381,7 +374,6 @@ onMounted(loadCatalogs);
       </label>
 
       <div class="field">
-        <span>Responsável</span>
         <SearchableSelect
           v-model="form.responsibleUserId"
           :options="responsibleOptions"
@@ -478,8 +470,7 @@ onMounted(loadCatalogs);
   line-height: 20px;
   text-transform: uppercase;
 }
-.field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: space-between; gap: 8px; }
-.equipment-form :deep(.searchable-select__control) { border-radius: 9px; }
+.field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: flex-end; gap: 8px; }
 
 .stage-note {
   margin: 0;
@@ -505,13 +496,9 @@ onMounted(loadCatalogs);
 .wp-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   margin-bottom: 7px;
-}
-
-.wp-title {
-  color: inherit;
 }
 
 .wp-count {
