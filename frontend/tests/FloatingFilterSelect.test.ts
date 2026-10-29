@@ -39,7 +39,7 @@ describe("FloatingFilterSelect", () => {
     });
 
     await openMenu(wrapper, "floating-filter");
-    await wrapper.get("input[role=\'combobox\']").trigger("focus");
+    await wrapper.get("input[role='combobox']").trigger("focus");
     await flushPromises();
     expect(wrapper.get(".v-field").classes()).toContain("v-field--active");
 
