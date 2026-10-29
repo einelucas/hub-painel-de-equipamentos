@@ -164,10 +164,6 @@ async function submit(): Promise<void> {
               item-title="title"
               item-value="value"
               data-testid="new-project-unit"
-              variant="outlined"
-              color="primary"
-              density="comfortable"
-              hide-details="auto"
               label="Unidade"
             />
           </div>
