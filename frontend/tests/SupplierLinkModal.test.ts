@@ -1,5 +1,5 @@
-import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { mount, type VueWrapper } from "@vue/test-utils";
+import { afterEach, describe, expect, it } from "vitest";
 import SupplierLinkModal from "~/components/equipment/SupplierLinkModal.vue";
 import type { EquipmentSupplier, Supplier } from "~/types/equipment";
 import { chooseOption } from "./support/searchableSelect";
@@ -32,8 +32,11 @@ const current: EquipmentSupplier = {
   createdAt: "2026-09-20T00:00:00",
 };
 
+const mounted: VueWrapper[] = [];
+afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
+
 function mountModal(link: EquipmentSupplier | null) {
-  return mount(SupplierLinkModal, {
+  const wrapper = mount(SupplierLinkModal, {
     attachTo: document.body,
     props: {
       open: true,
@@ -49,6 +52,8 @@ function mountModal(link: EquipmentSupplier | null) {
       },
     },
   });
+  mounted.push(wrapper);
+  return wrapper;
 }
 
 async function choose(wrapper: ReturnType<typeof mountModal>, label: string) {
