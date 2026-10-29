@@ -1,5 +1,8 @@
 import { flushPromises, mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import type { VueWrapper } from "@vue/test-utils";
+const mounted: VueWrapper[] = [];
+afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 import DashboardFilters from "~/components/dashboard/DashboardFilters.vue";
 import { useDashboardFilters } from "~/composables/useDashboardFilters";
 import type { CatalogItem } from "~/types/equipment";
@@ -19,6 +22,7 @@ function mountFilters(
   models: { areaId?: string | null; disciplineId?: string | null; stage?: number | null } = {},
 ) {
   const wrapper = mount(DashboardFilters, {
+    attachTo: document.body,
     props: {
       areas,
       disciplines,
@@ -30,6 +34,7 @@ function mountFilters(
       "onUpdate:stage": (value: number | null) => wrapper.setProps({ stage: value }),
     },
   });
+  mounted.push(wrapper);
   return wrapper;
 }
 
