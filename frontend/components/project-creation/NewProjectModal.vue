@@ -160,7 +160,6 @@ async function submit(): Promise<void> {
           <div class="project-unit">
             <VAutocomplete
               v-model="unitId"
-              :menu-props="{ zIndex: 10020 }"
               :items="unitOptions"
               item-title="title"
               item-value="value"
@@ -265,7 +264,7 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
 .step-body h3 { font-size: 16px; font-weight: 800; margin: 0; }
 .step-body p { margin: 0; font-size: 13px; color: #677b92; }
 .step-body label:not(.check-row) { display: grid; gap: 6px; font-size: 12px; font-weight: 700; }
-.step-body input:not([type=checkbox]):not(.v-field__input), .step-body select { width: 100%; border: 1px solid #dce4ef; border-radius: 9px; padding: 10px 12px; background: #fff; color: #273e5a; }
+.step-body input:not([type=checkbox]):not([role=combobox]), .step-body select { width: 100%; border: 1px solid #dce4ef; border-radius: 9px; padding: 10px 12px; background: #fff; color: #273e5a; }
 .section-title { display: flex; justify-content: space-between; gap: 15px; align-items: center; }
 .section-title strong { font-size: 12px; white-space: nowrap; }
 .search { position: relative; display: flex; align-items: center; gap: 8px; border: 1px solid #dce4ef; border-radius: 10px; padding-left: 10px; }
