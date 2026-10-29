@@ -1,7 +1,6 @@
 <script setup lang="ts" generic="T extends string | string[] | null = string">
 import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, ref } from "vue";
-import type { Component } from "vue";
 import type { SearchableOption } from "~/types/ui";
 import { toAutocompleteItems, AUTOCOMPLETE_FILTER_KEYS } from "~/utils/autocomplete";
 
@@ -10,7 +9,7 @@ const props = withDefaults(
     modelValue: T;
     label: string;
     options: SearchableOption[];
-    icon?: Component;
+    icon?: string;
     placeholder?: string;
     disabled?: boolean;
     loading?: boolean;
@@ -104,6 +103,7 @@ function onMenuChange(open: boolean): void {
 <template>
   <div ref="root" class="floating-filter-select" :data-testid="testId" :data-selected-label="selectedLabel" :data-disabled="props.disabled ? 'true' : 'false'">
     <VAutocomplete
+      :menu-props="{ zIndex: 10020 }"
       :model-value="props.modelValue"
       :items="items"
       item-title="title"
@@ -112,7 +112,7 @@ function onMenuChange(open: boolean): void {
       :ignore-accents="true"
       :no-filter="!props.filterable"
       :label="props.label"
-      :placeholder="props.placeholder"
+      :prepend-inner-icon="props.icon"
       :disabled="props.disabled"
       :loading="props.loading"
       :clearable="props.clearable"
@@ -127,9 +127,6 @@ function onMenuChange(open: boolean): void {
       @update:model-value="onUpdate"
       @update:menu="onMenuChange"
     >
-      <template v-if="props.icon" #prepend-inner>
-        <component :is="props.icon" :size="16" :stroke-width="1.9" />
-      </template>
     </VAutocomplete>
   </div>
 </template>
