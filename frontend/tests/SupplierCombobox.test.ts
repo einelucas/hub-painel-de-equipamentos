@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
 import type { Supplier } from "~/types/equipment";
@@ -28,7 +28,7 @@ describe("SupplierCombobox", () => {
         ],
       },
     });
-    const input = wrapper.get("[data-testid='supplier-combobox']");
+    const input = wrapper.get("input[role='combobox']");
 
     await openMenu(wrapper, "supplier-combobox");
     expect(await optionLabels(wrapper, "supplier-combobox")).toEqual([
@@ -38,9 +38,10 @@ describe("SupplierCombobox", () => {
     ]);
 
     await input.setValue("9002");
+    await flushPromises();
     expect(
-      menuOptions(wrapper, "supplier-combobox").map((item) => item.find("strong").text()),
-    ).toEqual(["Manter sem fornecedor", "9002 · Zeta Industrial"]);
+      menuOptions(wrapper, "supplier-combobox").map((item) => item.find(".v-list-item-title").text()),
+    ).toEqual(["9002 · Zeta Industrial"]);
 
     // Esc limpa o texto do filtro e, num segundo Esc, fecha o menu; clicar
     // no campo reabre com todas as opções.
