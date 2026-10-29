@@ -173,6 +173,7 @@ onMounted(load);
                 </TableCell>
                 <TableCell>
                   <VAutocomplete
+                    :data-testid="`role-${user.id}`"
                     :model-value="user.role"
                     :items="roleOptions"
                     item-title="title"
@@ -226,6 +227,7 @@ onMounted(load);
         <div class="field">
           <VAutocomplete
             v-model="form.role"
+            data-testid="create-user-role"
             :items="roleOptions"
             item-title="title"
             item-value="value"
