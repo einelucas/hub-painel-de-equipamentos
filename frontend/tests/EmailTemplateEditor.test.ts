@@ -1,4 +1,5 @@
 import { mount } from "@vue/test-utils";
+import { chooseOption, optionLabels } from "./support/searchableSelect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EmailTemplateEditor from "~/components/admin/EmailTemplateEditor.vue";
 import EmailTemplatePreview from "~/components/admin/EmailTemplatePreview.vue";
@@ -145,8 +146,8 @@ describe("EmailTestPanel", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Equipamento real");
-    await wrapper.findAll("select").at(1)!.setValue("eq-1");
+    expect(await optionLabels(wrapper, "email-test-equipment")).toContain("Equipamento real");
+    await chooseOption(wrapper, "email-test-equipment", "Equipamento real");
     expect(wrapper.emitted("update:equipmentId")?.[0]?.[0]).toBe("eq-1");
   });
 });
