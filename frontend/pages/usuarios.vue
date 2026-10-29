@@ -180,10 +180,6 @@ onMounted(load);
                     item-value="value"
                     :disabled="updating.has(user.id) || user.id === auth.user?.id"
                     :aria-label="`Perfil de ${user.name}`"
-                    variant="outlined"
-                    color="primary"
-                    density="comfortable"
-                    hide-details="auto"
                     @update:model-value="changeRole(user, String($event))"
                   />
                 </TableCell>
@@ -231,10 +227,6 @@ onMounted(load);
             :items="roleOptions"
             item-title="title"
             item-value="value"
-            variant="outlined"
-            color="primary"
-            density="comfortable"
-            hide-details="auto"
             label="Perfil"
           />
         </div>
