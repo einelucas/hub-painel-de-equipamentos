@@ -17,6 +17,7 @@ const props = withDefaults(
     testId?: string;
   }>(),
   {
+    icon: undefined,
     placeholder: "Digite para buscar",
     disabled: false,
     disabledMessage: "Nenhuma opção disponível.",
