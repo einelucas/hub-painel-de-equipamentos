@@ -117,7 +117,7 @@ watch(
       @invalid="onInvalid"
     >
     <VAutocomplete
-      :model-value="props.modelValue"
+      :model-value="isEmpty ? null : props.modelValue"
       :items="items"
       item-title="title"
       item-value="value"
