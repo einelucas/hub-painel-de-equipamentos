@@ -106,7 +106,7 @@ describe("DashboardFilters", () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(
       menuOptions(wrapper, "dashboard-filter-area").map((item) => item.find(".v-list-item-title").text()),
-    ).toEqual(["Todas as áreas", "Drenagem"]);
+    ).toEqual(["Drenagem"]);
 
     await chooseOption(wrapper, "dashboard-filter-area", "Drenagem");
     await chooseOption(wrapper, "dashboard-filter-area", "Drenagem");
