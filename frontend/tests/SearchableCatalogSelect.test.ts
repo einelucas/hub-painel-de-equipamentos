@@ -132,10 +132,8 @@ describe("seletores pesquisáveis de catálogo", () => {
     await input.trigger("keydown", { key: "ArrowDown" });
     await input.trigger("keydown", { key: "ArrowDown" });
     await flushPromises();
-    const hovering = menuOptions(wrapper, "catalog-select").find((item) =>
-      item.classes().includes("v-list-item--active") || item.attributes("aria-selected") === "true",
-    );
-    // just ensure selection happens
+    expect(menuOptions(wrapper, "catalog-select").length).toBeGreaterThan(0);
+    // Verifica a seleção por teclado após abrir a lista.
     await input.trigger("keydown", { key: "Enter" });
     await flushPromises();
 
