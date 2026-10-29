@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { mdiCheck, mdiClose } from "@mdi/js";
 import { ref, useId, watch } from "vue";
-import { Check, Info, X } from "lucide-vue-next";
+import { Info } from "lucide-vue-next";
 import AppModal from "~/components/ui/AppModal.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 
 const props = withDefaults(
   defineProps<{
@@ -88,19 +89,19 @@ function submit(): void {
     </form>
 
     <template #actions>
-      <Button variant="outline" size="sm" :disabled="props.busy" @click="cancel">
-        <X aria-hidden="true" /> Cancelar
-      </Button>
-      <Button
+      <VBtn variant="outlined" size="small" :disabled="props.busy" :prepend-icon="mdiClose" @click="cancel">
+         Cancelar
+      </VBtn>
+      <VBtn
         type="submit"
-        size="sm"
+        size="small"
         :form="formId"
         :disabled="props.busy"
         :loading="props.busy"
-      >
-        <Check v-if="!props.busy" aria-hidden="true" />
+       :prepend-icon="!props.busy ? mdiCheck : undefined">
+
         {{ props.busy ? "Salvando..." : props.confirmLabel }}
-      </Button>
+      </VBtn>
     </template>
   </AppModal>
 </template>

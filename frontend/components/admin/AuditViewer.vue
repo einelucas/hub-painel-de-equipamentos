@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { RefreshCw } from "lucide-vue-next";
+import { mdiRefresh } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import type { CatalogList, Equipment, EquipmentList } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
 import { toOptions } from "~/utils/selectOptions";
@@ -139,9 +140,16 @@ onMounted(async () => {
         <Label for="au-date-to">Até</Label>
         <Input id="au-date-to" v-model="dateTo" type="date" @change="page = 1" />
       </div>
-      <Button variant="outline" size="icon" aria-label="Atualizar" :disabled="loading" :aria-busy="loading" @click="load">
-        <RefreshCw class="size-4" :class="{ 'animate-spin': loading }" />
-      </Button>
+      <VBtn
+        :icon="mdiRefresh"
+        variant="outlined"
+        size="small"
+        aria-label="Atualizar"
+        :disabled="loading"
+        :loading="loading"
+        :aria-busy="loading"
+        @click="load"
+      />
     </div>
 
     <p v-if="message" class="text-sm text-danger">{{ message }}</p>
@@ -188,8 +196,8 @@ onMounted(async () => {
       <div v-if="pages > 1" class="flex items-center justify-between text-sm">
         <span class="text-neutralbrand">Página {{ page }} de {{ pages }}</span>
         <div class="flex gap-2">
-          <Button variant="outline" size="sm" :disabled="page <= 1" @click="page--">Anterior</Button>
-          <Button variant="outline" size="sm" :disabled="page >= pages" @click="page++">Próxima</Button>
+          <VBtn variant="outlined" size="small" :disabled="page <= 1" @click="page--">Anterior</VBtn>
+          <VBtn variant="outlined" size="small" :disabled="page >= pages" @click="page++">Próxima</VBtn>
         </div>
       </div>
     </template>

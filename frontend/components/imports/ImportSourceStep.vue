@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { mdiFileUploadOutline } from "@mdi/js";
 import { computed, ref } from "vue";
-import { FileSpreadsheet, FileUp, UploadCloud } from "lucide-vue-next";
+import { FileSpreadsheet, UploadCloud } from "lucide-vue-next";
 import { useImportState } from "~/composables/useImportState";
 import { codeNameLabel, toOptions } from "~/utils/selectOptions";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import UploadProgress from "~/components/ui/UploadProgress.vue";
 
@@ -140,16 +141,16 @@ function size(bytes: number): string {
     </div>
 
     <div class="import-actions">
-      <Button
-        variant="default"
+      <VBtn
+        variant="tonal"
         :disabled="!canAnalyze"
         :loading="busy"
         data-testid="import-analyze"
-        @click="analyze"
-      >
-        <FileUp v-if="!busy" :size="15" />
+        :prepend-icon="!busy ? mdiFileUploadOutline : undefined"
+       @click="analyze">
+
         {{ busy ? (analysisProgress ? `Analisando arquivo ${analysisProgress.current} de ${analysisProgress.total}...` : "Analisando...") : files.length > 1 ? `Analisar ${files.length} planilhas` : "Analisar planilha" }}
-      </Button>
+      </VBtn>
       <UploadProgress
         v-if="busy && uploadProgress"
         :uploading="!uploadProgress.processing"

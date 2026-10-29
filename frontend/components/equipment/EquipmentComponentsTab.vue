@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { mdiPlus } from "@mdi/js";
 import { ref } from "vue";
-import { Plus } from "lucide-vue-next";
 import type { EquipmentComponent } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { formatDateOnly } from "~/utils/format";
 
 /**
@@ -57,9 +57,9 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
         <h2>Componentes</h2>
         <p>{{ components.length }} subitem(ns) cadastrado(s).</p>
       </div>
-      <Button v-if="canEdit" variant="default" @click="openCreate">
-        <Plus :size="15" /> Adicionar componente
-      </Button>
+      <VBtn v-if="canEdit" variant="tonal" :prepend-icon="mdiPlus" @click="openCreate">
+         Adicionar componente
+      </VBtn>
     </div>
     <div v-if="components.length === 0" class="empty-state table-empty">
       <h2>Nenhum componente cadastrado</h2>
@@ -92,16 +92,16 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
               <TableCell>{{ formatDateOnly(component.contractDeliveryAt) }}</TableCell>
               <TableCell>{{ component.freightDays === null ? "—" : `${component.freightDays} dias` }}</TableCell>
               <TableCell class="component-actions">
-                <Button
+                <VBtn
                   class="text-button"
                   :data-testid="`toggle-deadlines-${component.id}`"
-                  variant="ghost"
-                  size="sm"
+                  variant="text"
+                  size="small"
                   @click="toggleComponentDeadlines(component.id)"
                 >
                   {{ expandedComponentId === component.id ? "Ocultar prazos" : "Prazos calculados" }}
-                </Button>
-                <Button v-if="canEdit" class="text-button" variant="ghost" size="sm" @click="editComponent(component)">Editar</Button>
+                </VBtn>
+                <VBtn v-if="canEdit" class="text-button" variant="text" size="small" @click="editComponent(component)">Editar</VBtn>
               </TableCell>
             </TableRow>
             <TableRow v-if="expandedComponentId === component.id" class="deadlines-row">

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiClose } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { AlertTriangle, Info, Trash2, X } from "lucide-vue-next";
+import { AlertTriangle, Info, Trash2 } from "lucide-vue-next";
 import AppTeleport from "~/components/ui/AppTeleport.vue";
 import { useConfirm } from "~/composables/useConfirm";
 import { lockBodyScroll, unlockBodyScroll } from "~/utils/bodyScrollLock";
@@ -13,7 +14,7 @@ const { state, accept, cancel } = useConfirm();
 const CONFIRMATION_Z_INDEX = 10_000;
 
 const card = ref<HTMLElement | null>(null);
-const cancelButton = ref<InstanceType<typeof Button> | null>(null);
+const cancelButton = ref<InstanceType<typeof VBtn> | null>(null);
 let previousFocus: HTMLElement | null = null;
 let scrollLocked = false;
 
@@ -98,9 +99,9 @@ onBeforeUnmount(() => {
         >
           <header class="confirm-head">
             <h2 id="confirm-dialog-title">{{ state.title }}</h2>
-            <Button type="button" class="confirm-close" aria-label="Fechar" variant="ghost" size="icon-sm" @click="cancel">
-              <X :size="20" aria-hidden="true" />
-            </Button>
+            <VBtn type="button" class="confirm-close" aria-label="Fechar" variant="text" size="x-small" :icon="mdiClose" @click="cancel">
+
+            </VBtn>
           </header>
 
           <div class="confirm-body">
@@ -114,24 +115,25 @@ onBeforeUnmount(() => {
           </div>
 
           <footer class="confirm-actions">
-            <Button
+            <VBtn
               ref="cancelButton"
               type="button"
               class="confirm-btn confirm-btn--cancel"
-              variant="outline"
+              variant="outlined"
               @click="cancel"
             >
               {{ state.cancelLabel }}
-            </Button>
-            <Button
+            </VBtn>
+            <VBtn
               type="button"
               class="confirm-btn"
               :class="state.tone === 'danger' ? 'confirm-btn--danger' : 'confirm-btn--primary'"
-              :variant="state.tone === 'danger' ? 'destructive' : 'default'"
+              variant="tonal"
+              :color="state.tone === 'danger' ? 'error' : 'primary'"
               @click="accept"
             >
               {{ state.confirmLabel }}
-            </Button>
+            </VBtn>
           </footer>
         </section>
       </div>

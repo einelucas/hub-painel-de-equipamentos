@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import type { EquipmentProcesses, RequirementGroup } from "~/types/equipment";
 import { type ProcessResource, blankToNull, resourceForStage } from "~/utils/workflow";
 
@@ -100,9 +100,9 @@ function submit(): void {
       </div>
     </fieldset>
     <div v-if="editable" class="form-actions">
-      <Button type="submit" variant="outline" :loading="saving" data-testid="save-process">
+      <VBtn type="submit" variant="outlined" :loading="saving" data-testid="save-process" :disabled="saving">
         {{ saving ? "Salvando..." : "Salvar alterações" }}
-      </Button>
+      </VBtn>
     </div>
     </form>
   </template>

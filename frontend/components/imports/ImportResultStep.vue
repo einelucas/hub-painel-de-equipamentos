@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AlertTriangle, CheckCircle2 } from "lucide-vue-next";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { useImportState } from "~/composables/useImportState";
 
 /** Passo 5: resultado do apply + reconciliação. Divergência nunca aparece como "sucesso". */
@@ -44,7 +44,7 @@ const { result } = useImportState();
       </ul>
     </section>
     <div class="import-actions">
-      <Button variant="default" data-testid="import-finish" @click="emit('close')">Concluir</Button>
+      <VBtn variant="tonal" data-testid="import-finish" @click="emit('close')">Concluir</VBtn>
     </div>
   </div>
 </template>

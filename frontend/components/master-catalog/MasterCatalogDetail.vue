@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { mdiPencilOutline, mdiPlus, mdiPower, mdiTrashCanOutline } from "@mdi/js";
 import { computed } from "vue";
-import { Info, Layers, Package, Pencil, Plus, Power, Trash2 } from "lucide-vue-next";
+import { Info, Layers, Package } from "lucide-vue-next";
 import Badge from "~/components/ui/Badge.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import Checkbox from "~/components/ui/Checkbox.vue";
 import Input from "~/components/ui/Input.vue";
 import LoadingSpinner from "~/components/ui/LoadingSpinner.vue";
@@ -107,22 +108,22 @@ function isComponentDeleting(component: MasterComponent): boolean {
         </div>
 
         <div class="detail-actions">
-          <Button variant="outline" size="sm" :disabled="props.busy" @click="emit('renameEquipment')">
-            <Pencil aria-hidden="true" /> Renomear
-          </Button>
-          <Button variant="outline" size="sm" :disabled="props.busy" @click="emit('toggleEquipment')">
-            <Power aria-hidden="true" />
+          <VBtn variant="outlined" size="small" :disabled="props.busy" :prepend-icon="mdiPencilOutline" @click="emit('renameEquipment')">
+             Renomear
+          </VBtn>
+          <VBtn variant="outlined" size="small" :disabled="props.busy" :prepend-icon="mdiPower" @click="emit('toggleEquipment')">
+
             {{ props.equipment.active ? "Desativar" : "Reativar" }}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
+          </VBtn>
+          <VBtn
+            variant="tonal" color="error"
+            size="small"
             :disabled="props.busy"
             :loading="equipmentDeleting"
-            @click="emit('removeEquipment')"
-          >
-            <Trash2 v-if="!equipmentDeleting" aria-hidden="true" /> Excluir
-          </Button>
+            :prepend-icon="!equipmentDeleting ? mdiTrashCanOutline : undefined"
+           @click="emit('removeEquipment')">
+             Excluir
+          </VBtn>
         </div>
       </header>
 
@@ -185,22 +186,22 @@ function isComponentDeleting(component: MasterComponent): boolean {
               <span class="unsaved-dot" aria-hidden="true" /> Alterações não salvas
             </span>
             <div class="unsaved-actions">
-              <Button
-                variant="ghost"
-                size="sm"
+              <VBtn
+                variant="text"
+                size="small"
                 :disabled="props.busy"
                 @click="emit('discardAreas')"
               >
                 Descartar
-              </Button>
-              <Button
-                size="sm"
+              </VBtn>
+              <VBtn
+                size="small"
                 :disabled="props.busy"
                 :loading="props.savingAreas"
                 @click="emit('saveAreas')"
               >
                 {{ props.savingAreas ? "Salvando..." : "Salvar áreas" }}
-              </Button>
+              </VBtn>
             </div>
           </div>
 
@@ -224,13 +225,13 @@ function isComponentDeleting(component: MasterComponent): boolean {
               aria-label="Nome do novo componente"
               :disabled="props.busy"
             />
-            <Button
+            <VBtn
               type="submit"
-              size="sm"
+              size="small"
               :disabled="props.busy || !newComponentName.trim()"
-            >
-              <Plus aria-hidden="true" /> Adicionar
-            </Button>
+             :prepend-icon="mdiPlus">
+               Adicionar
+            </VBtn>
           </form>
           <p v-if="props.componentError" class="inline-error" role="alert">
             {{ props.componentError }}
@@ -262,37 +263,37 @@ function isComponentDeleting(component: MasterComponent): boolean {
                   </TableCell>
                   <TableCell>
                     <div class="row-actions">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
+                      <VBtn
+                        variant="text"
+                        size="x-small"
                         :disabled="props.busy"
                         :aria-label="`Renomear ${component.name}`"
                         :title="`Renomear ${component.name}`"
-                        @click="emit('renameComponent', component)"
-                      >
-                        <Pencil aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
+                        :icon="mdiPencilOutline"
+                       @click="emit('renameComponent', component)">
+
+                      </VBtn>
+                      <VBtn
+                        variant="text"
+                        size="x-small"
                         :disabled="props.busy"
                         :aria-label="`${component.active ? 'Desativar' : 'Reativar'} ${component.name}`"
                         :title="`${component.active ? 'Desativar' : 'Reativar'} ${component.name}`"
-                        @click="emit('toggleComponent', component)"
-                      >
-                        <Power aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon-sm"
+                        :icon="mdiPower"
+                       @click="emit('toggleComponent', component)">
+
+                      </VBtn>
+                      <VBtn
+                        variant="tonal" color="error"
+                        size="x-small"
                         :disabled="props.busy"
                         :loading="isComponentDeleting(component)"
                         :aria-label="`Excluir ${component.name}`"
                         :title="`Excluir ${component.name}`"
-                        @click="emit('removeComponent', component)"
-                      >
-                        <Trash2 v-if="!isComponentDeleting(component)" aria-hidden="true" />
-                      </Button>
+                        :icon="!isComponentDeleting(component) ? mdiTrashCanOutline : undefined"
+                       @click="emit('removeComponent', component)">
+
+                      </VBtn>
                     </div>
                   </TableCell>
                 </TableRow>

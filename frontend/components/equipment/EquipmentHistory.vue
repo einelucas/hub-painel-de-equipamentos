@@ -1,16 +1,7 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { computed, ref } from "vue";
-import {
-  Activity,
-  ArrowRightLeft,
-  Clock3,
-  FileText,
-  History,
-  RefreshCcw,
-  ShieldCheck,
-  UserRound,
-} from "lucide-vue-next";
+import { Activity, ArrowRightLeft, Clock3, FileText, History, RefreshCcw, ShieldCheck, UserRound } from "lucide-vue-next";
 
 import type { HistoryEntry, HistoryList } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
@@ -160,9 +151,9 @@ onMounted(load);
         <p>{{ error }}</p>
       </div>
 
-      <Button type="button" class="retry-button" variant="ghost" @click="load">
+      <VBtn type="button" class="retry-button" variant="text" @click="load">
         Tentar novamente
-      </Button>
+      </VBtn>
     </div>
 
     <div

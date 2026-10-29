@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { mdiClose } from "@mdi/js";
 import { computed } from "vue";
-import { Layers, Search, X } from "lucide-vue-next";
+import { Layers, Search } from "lucide-vue-next";
 import Badge from "~/components/ui/Badge.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import Input from "~/components/ui/Input.vue";
 import LoadingSpinner from "~/components/ui/LoadingSpinner.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -95,16 +96,16 @@ function clearFilters(): void {
           aria-label="Buscar equipamento mestre"
           @update:model-value="updateSearch"
         />
-        <Button
+        <VBtn
           v-if="props.search"
-          variant="ghost"
-          size="icon-sm"
+          variant="text"
+          size="x-small"
           class="search-clear"
           aria-label="Limpar busca"
-          @click="clearSearch"
-        >
-          <X aria-hidden="true" />
-        </Button>
+          :icon="mdiClose"
+         @click="clearSearch">
+
+        </VBtn>
       </div>
 
       <SearchableSelect
@@ -130,7 +131,7 @@ function clearFilters(): void {
         <span class="panel-empty__icon"><Search :size="22" aria-hidden="true" /></span>
         <strong>Nenhum resultado</strong>
         <p>Ajuste a busca ou o filtro de área para encontrar o modelo.</p>
-        <Button variant="outline" size="sm" @click="clearFilters">Limpar filtros</Button>
+        <VBtn variant="outlined" size="small" @click="clearFilters">Limpar filtros</VBtn>
       </div>
       <ul v-else class="model-list">
         <li v-for="item in visibleEquipments" :key="item.id">
@@ -161,9 +162,9 @@ function clearFilters(): void {
     </div>
 
     <footer v-if="props.equipments.length && visibleEquipments.length" class="browser-foot">
-      <Button v-if="hasFilters" variant="ghost" size="sm" @click="clearFilters">
+      <VBtn v-if="hasFilters" variant="text" size="small" @click="clearFilters">
         Limpar filtros
-      </Button>
+      </VBtn>
       <span v-else>Clique em um equipamento para administrar</span>
     </footer>
   </aside>

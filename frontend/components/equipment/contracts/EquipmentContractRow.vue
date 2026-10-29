@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
-import { Download, Pencil, Trash2 } from "lucide-vue-next";
+import { mdiDownload, mdiPencilOutline, mdiTrashCanOutline } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import type { Contract } from "~/types/equipment";
 import { formatDateOnly } from "~/utils/format";
 
@@ -25,41 +25,41 @@ const emit = defineEmits<{
     }}</TableCell>
     <TableCell>{{ formatDateOnly(contract.executedAt) }}</TableCell>
     <TableCell>
-      <Button
+      <VBtn
         v-if="contract.file"
         class="text-button"
         :disabled="downloadingId === contract.id"
         :loading="downloadingId === contract.id"
-        variant="ghost"
-        size="sm"
-        @click="emit('download', contract)"
-      >
-        <Download v-if="!(downloadingId === contract.id)" :size="13" /> {{ contract.file.fileName }}
-      </Button>
+        variant="text"
+        size="small"
+        :prepend-icon="!(downloadingId === contract.id) ? mdiDownload : undefined"
+       @click="emit('download', contract)">
+         {{ contract.file.fileName }}
+      </VBtn>
       <span v-else>—</span>
     </TableCell>
     <TableCell class="row-actions">
-      <Button
+      <VBtn
         v-if="editable"
         class="text-button"
-        variant="ghost"
-        size="sm"
-        @click="emit('edit', contract)"
-      >
-        <Pencil :size="13" /> Editar
-      </Button>
-      <Button
+        variant="text"
+        size="small"
+        :prepend-icon="mdiPencilOutline"
+       @click="emit('edit', contract)">
+         Editar
+      </VBtn>
+      <VBtn
         v-if="editable"
         class="text-button"
         :disabled="busy"
         :loading="activeId === contract.id"
-        variant="destructive"
-        size="sm"
-        @click="emit('delete', contract)"
-      >
-        <Trash2 v-if="!(activeId === contract.id)" :size="13" />
+        variant="tonal" color="error"
+        size="small"
+        :prepend-icon="!(activeId === contract.id) ? mdiTrashCanOutline : undefined"
+       @click="emit('delete', contract)">
+
         {{ activeId === contract.id ? "Excluindo..." : "Excluir" }}
-      </Button>
+      </VBtn>
     </TableCell>
   </TableRow>
 </template>

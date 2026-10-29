@@ -1,17 +1,8 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiClose, mdiDotsHorizontal, mdiHeartOutline, mdiPencilOutline, mdiReplyOutline, mdiSend, mdiTrashCanOutline } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed, ref } from "vue";
-import {
-  Eye,
-  Heart,
-  MessageSquareText,
-  MoreHorizontal,
-  Pencil,
-  Reply,
-  SendHorizontal,
-  Trash2,
-  X,
-} from "lucide-vue-next";
+import { Eye, MessageSquareText } from "lucide-vue-next";
 import type { CatalogList, EquipmentComment } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
 
@@ -219,9 +210,9 @@ onMounted(load);
         <strong>Não foi possível carregar</strong>
         <p>{{ error }}</p>
       </div>
-      <Button type="button" class="ghost-btn" variant="outline" @click="load">
+      <VBtn type="button" class="ghost-btn" variant="outlined" @click="load">
         Tentar novamente
-      </Button>
+      </VBtn>
     </div>
 
     <template v-else>
@@ -253,7 +244,7 @@ onMounted(load);
               {{ remainingCharacters }} caracteres restantes
             </span>
 
-            <Button
+            <VBtn
 
               type="submit"
 
@@ -263,12 +254,12 @@ onMounted(load);
 
               data-testid="comment-submit"
 
-              variant="default"
+              variant="tonal"
 
-            >
-              <SendHorizontal :size="14" />
+             :prepend-icon="mdiSend">
+
               {{ busy ? "Publicando..." : "Comentar" }}
-            </Button>
+            </VBtn>
           </div>
         </form>
       </div>
@@ -331,17 +322,17 @@ onMounted(load);
               </div>
 
               <div class="comment-top-actions">
-                <Button
+                <VBtn
                   type="button"
                   class="icon-btn"
                   aria-label="Curtir comentário"
-                  variant="ghost"
-                  size="icon-sm"
-                >
-                  <Heart :size="15" />
-                </Button>
+                  variant="text"
+                  size="x-small"
+                 :icon="mdiHeartOutline">
 
-                <Button
+                </VBtn>
+
+                <VBtn
 
                   type="button"
 
@@ -349,17 +340,17 @@ onMounted(load);
 
                   aria-label="Responder comentário"
 
-                  variant="ghost"
+                  variant="text"
 
-                  size="icon-sm"
+                  size="x-small"
 
-                >
-                  <Reply :size="15" />
-                </Button>
+                 :icon="mdiReplyOutline">
 
-                <Button type="button" class="icon-btn" aria-label="Mais ações" variant="ghost" size="icon-sm">
-                  <MoreHorizontal :size="15" />
-                </Button>
+                </VBtn>
+
+                <VBtn type="button" class="icon-btn" aria-label="Mais ações" variant="text" size="x-small" :icon="mdiDotsHorizontal">
+
+                </VBtn>
               </div>
             </header>
 
@@ -382,17 +373,17 @@ onMounted(load);
                   </span>
 
                   <div class="inline-actions">
-                    <Button
+                    <VBtn
                       type="button"
                       class="ghost-btn"
                       :disabled="busy"
-                      variant="outline"
+                      variant="outlined"
                       @click="cancelEdit"
                     >
                       Cancelar
-                    </Button>
+                    </VBtn>
 
-                    <Button
+                    <VBtn
 
                       type="button"
 
@@ -400,13 +391,13 @@ onMounted(load);
 
                       :disabled="!editingText.trim() || busy"
 
-                      variant="default"
+                      variant="tonal"
 
                       @click="saveEdit(item)"
 
                     >
                       {{ busy ? "Salvando..." : "Salvar" }}
-                    </Button>
+                    </VBtn>
                   </div>
                 </div>
               </div>
@@ -424,33 +415,33 @@ onMounted(load);
 
           <div class="comment-card-footer">
             <div class="footer-actions">
-              <Button type="button" class="footer-action" variant="ghost" size="sm">
-                <Heart :size="15" />
-                Curtir
-              </Button>
+              <VBtn type="button" class="footer-action" variant="text" size="small" :prepend-icon="mdiHeartOutline">
 
-              <Button type="button" class="footer-action" variant="ghost" size="sm">
-                <Reply :size="15" />
+                Curtir
+              </VBtn>
+
+              <VBtn type="button" class="footer-action" variant="text" size="small" :prepend-icon="mdiReplyOutline">
+
                 Responder
-              </Button>
+              </VBtn>
 
               <template
                 v-if="
                   isOwn(item) && editingId !== item.id && deletingId !== item.id
                 "
               >
-                <Button
+                <VBtn
                   type="button"
                   class="footer-action"
-                  variant="ghost"
-                  size="sm"
-                  @click="startEdit(item)"
-                >
-                  <Pencil :size="15" />
-                  Editar
-                </Button>
+                  variant="text"
+                  size="small"
+                  :prepend-icon="mdiPencilOutline"
+                 @click="startEdit(item)">
 
-                <Button
+                  Editar
+                </VBtn>
+
+                <VBtn
 
                   type="button"
 
@@ -458,16 +449,16 @@ onMounted(load);
 
                   :disabled="busy"
 
-                  variant="destructive"
+                  variant="tonal" color="error"
 
-                  size="sm"
+                  size="small"
 
-                  @click="requestDelete(item)"
+                  :prepend-icon="mdiTrashCanOutline"
 
-                >
-                  <Trash2 :size="15" />
+                 @click="requestDelete(item)">
+
                   Excluir
-                </Button>
+                </VBtn>
               </template>
             </div>
           </div>
@@ -479,18 +470,18 @@ onMounted(load);
             </div>
 
             <div class="inline-actions">
-              <Button
+              <VBtn
                 type="button"
                 class="ghost-btn"
                 :disabled="busy"
-                variant="outline"
-                @click="cancelDelete"
-              >
-                <X :size="14" />
-                Cancelar
-              </Button>
+                variant="outlined"
+                :prepend-icon="mdiClose"
+               @click="cancelDelete">
 
-              <Button
+                Cancelar
+              </VBtn>
+
+              <VBtn
 
                 type="button"
 
@@ -498,14 +489,14 @@ onMounted(load);
 
                 :disabled="busy"
 
-                variant="destructive"
+                variant="tonal" color="error"
 
-                @click="remove(item)"
+                :prepend-icon="mdiTrashCanOutline"
 
-              >
-                <Trash2 :size="14" />
+               @click="remove(item)">
+
                 {{ busy ? "Excluindo..." : "Excluir" }}
-              </Button>
+              </VBtn>
             </div>
           </div>
 

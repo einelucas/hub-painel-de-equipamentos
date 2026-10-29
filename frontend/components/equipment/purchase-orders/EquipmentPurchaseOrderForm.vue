@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import type { PurchaseOrder } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 
 export interface EquipmentPurchaseOrderFormValues {
   orderNumber: string;
@@ -36,8 +36,8 @@ const form = reactive<EquipmentPurchaseOrderFormValues>({
     <label class="field"><span>Valor</span><input v-model="form.amount" type="number" min="0" step="0.01"></label>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <div class="form-actions">
-      <Button variant="outline" @click="emit('cancel')">Cancelar</Button>
-      <Button type="submit" variant="default" :loading="busy">{{ busy ? "Salvando..." : "Salvar" }}</Button>
+      <VBtn variant="outlined" @click="emit('cancel')">Cancelar</VBtn>
+      <VBtn type="submit" variant="tonal" :loading="busy" :disabled="busy">{{ busy ? "Salvando..." : "Salvar" }}</VBtn>
     </div>
   </form>
 </template>

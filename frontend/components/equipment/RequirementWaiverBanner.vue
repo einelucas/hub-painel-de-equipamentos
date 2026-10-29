@@ -1,16 +1,8 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiCancel, mdiRestore } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed, ref } from "vue";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ChevronDown,
-  CircleOff,
-  FileText,
-  RotateCcw,
-  ShieldCheck,
-  UserRound,
-} from "lucide-vue-next";
+import { AlertTriangle, CheckCircle2, ChevronDown, CircleOff, FileText, RotateCcw, ShieldCheck, UserRound } from "lucide-vue-next";
 
 import type {
   RequirementGroup,
@@ -157,16 +149,16 @@ async function confirmRevoke(): Promise<void> {
       </p>
 
       <div v-if="canOperate" class="requirement-actions">
-        <Button
+        <VBtn
           type="button"
           :data-testid="`waive-${group.code}`"
-          variant="outline"
-          size="sm"
-          @click="openWaive"
-        >
-          <CircleOff :size="14" />
+          variant="outlined"
+          size="small"
+          :prepend-icon="mdiCancel"
+         @click="openWaive">
+
           Não possui {{ group.label.toLowerCase() }}
-        </Button>
+        </VBtn>
       </div>
     </div>
   </section>
@@ -236,7 +228,7 @@ async function confirmRevoke(): Promise<void> {
           {{ expanded ? "Ocultar justificativa" : "Ver justificativa" }}
         </button>
 
-        <Button
+        <VBtn
 
           v-if="canOperate"
 
@@ -246,14 +238,14 @@ async function confirmRevoke(): Promise<void> {
 
           :data-testid="`revoke-waiver-${waiver.requirementGroupCode}`"
 
-          variant="destructive"
+          variant="tonal" color="error"
 
-          @click="openRevoke"
+          :prepend-icon="mdiRestore"
 
-        >
-          <RotateCcw :size="13" />
+         @click="openRevoke">
+
           Revogar dispensa
-        </Button>
+        </VBtn>
       </div>
 
       <Transition name="waiver-expand">
@@ -318,16 +310,16 @@ async function confirmRevoke(): Promise<void> {
       </p>
 
       <div class="form-actions">
-        <Button
+        <VBtn
           type="button"
           :disabled="busy"
-          variant="outline"
+          variant="outlined"
           @click="showWaiveModal = false"
         >
           Cancelar
-        </Button>
+        </VBtn>
 
-        <Button
+        <VBtn
 
           type="submit"
 
@@ -335,11 +327,11 @@ async function confirmRevoke(): Promise<void> {
 
           :loading="busy"
 
-          variant="default"
+          variant="tonal"
 
         >
           {{ busy ? "Salvando..." : "Confirmar dispensa" }}
-        </Button>
+        </VBtn>
       </div>
     </form>
   </AppModal>
@@ -379,18 +371,18 @@ async function confirmRevoke(): Promise<void> {
       </p>
 
       <div class="form-actions">
-        <Button
+        <VBtn
           type="button"
           :disabled="busy"
-          variant="outline"
+          variant="outlined"
           @click="showRevokeModal = false"
         >
           Cancelar
-        </Button>
+        </VBtn>
 
-        <Button type="submit" :disabled="busy" :loading="busy" variant="destructive">
+        <VBtn type="submit" :disabled="busy" :loading="busy" variant="tonal" color="error">
           {{ busy ? "Salvando..." : "Revogar dispensa" }}
-        </Button>
+        </VBtn>
       </div>
     </form>
   </AppModal>

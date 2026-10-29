@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { mdiCheck, mdiClose, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from "@mdi/js";
 import { computed, reactive, ref, useId, watch } from "vue";
-import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-vue-next";
+import { Search } from "lucide-vue-next";
 import type { CatalogList, EapLevel, EapNodeItem } from "~/types/equipment";
 import { codeNameLabel, toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import AppModal from "~/components/ui/AppModal.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { useConfirm } from "~/composables/useConfirm";
 
 const emit = defineEmits<{ changed: [] }>();
@@ -244,9 +245,9 @@ void load();
           {{ levelCounts.AREA }} área{{ levelCounts.AREA === 1 ? "" : "s" }}
         </p>
       </div>
-      <Button size="sm" variant="default" :disabled="saving" data-testid="eap-new" @click="startCreate">
-        <Plus :size="14" /> Novo nó
-      </Button>
+      <VBtn size="small" variant="tonal" :disabled="saving" data-testid="eap-new" :prepend-icon="mdiPlus" @click="startCreate">
+         Novo nó
+      </VBtn>
     </header>
 
     <label v-if="nodes.length" class="eap-search">
@@ -275,28 +276,28 @@ void load();
         <span class="eap-name">{{ row.node.name }}</span>
         <span class="eap-level" :class="`eap-level--${row.node.level.toLowerCase()}`">{{ levelLabels[row.node.level] }}</span>
         <span v-if="!row.node.active" class="eap-inactive">Inativo</span>
-        <Button
+        <VBtn
           type="button"
           class="eap-edit"
           :aria-label="`Editar ${row.node.code}`"
           :data-testid="`eap-edit-${row.node.id}`"
-          variant="ghost"
-          @click="startEdit(row.node)"
-        >
-          <Pencil :size="13" />
-        </Button>
-        <Button
+          variant="text"
+          :icon="mdiPencilOutline"
+         @click="startEdit(row.node)">
+
+        </VBtn>
+        <VBtn
           type="button"
           class="eap-delete"
           :aria-label="`Excluir ${row.node.code}`"
           :disabled="saving"
           :loading="deletingId === row.node.id"
           :data-testid="`eap-delete-${row.node.id}`"
-          variant="destructive"
-          @click="remove(row.node)"
-        >
-          <Trash2 v-if="!(deletingId === row.node.id)" :size="13" />
-        </Button>
+          variant="tonal" color="error"
+          :icon="!(deletingId === row.node.id) ? mdiTrashCanOutline : undefined"
+         @click="remove(row.node)">
+
+        </VBtn>
       </li>
     </ul>
   </section>
@@ -356,20 +357,20 @@ void load();
     </form>
 
     <template #actions>
-      <Button size="sm" variant="outline" :disabled="saving" @click="cancel">
-        <X :size="13" /> Cancelar
-      </Button>
-      <Button
+      <VBtn size="small" variant="outlined" :disabled="saving" :prepend-icon="mdiClose" @click="cancel">
+         Cancelar
+      </VBtn>
+      <VBtn
         type="submit"
-        size="sm"
-        variant="default"
+        size="small"
+        variant="tonal"
         :form="formId"
         :loading="saving"
         data-testid="eap-save"
-      >
-        <Check v-if="!saving" :size="13" />
+       :prepend-icon="!saving ? mdiCheck : undefined" :disabled="saving">
+
         {{ saving ? "Salvando..." : "Salvar" }}
-      </Button>
+      </VBtn>
     </template>
   </AppModal>
 </template>

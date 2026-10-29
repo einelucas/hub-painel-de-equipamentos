@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { mdiPencilOutline } from "@mdi/js";
 import { computed, onMounted, reactive, ref } from "vue";
-import { Pencil } from "lucide-vue-next";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import CurrencyInput from "~/components/ui/CurrencyInput.vue";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -290,16 +290,16 @@ onMounted(loadCatalogs);
       <div class="field">
         <div class="field-label-row">
           <span>Localização EAP</span>
-          <Button
+          <VBtn
             v-if="auth.can('catalogs:manage')"
             type="button"
             class="eap-manage-button"
             data-testid="edit-eaps"
-            variant="ghost"
-            @click="showEapAdmin = true"
-          >
-            <Pencil :size="12" /> Editar EAPs
-          </Button>
+            variant="text"
+            :prepend-icon="mdiPencilOutline"
+           @click="showEapAdmin = true">
+             Editar EAPs
+          </VBtn>
         </div>
         <SearchableSelect
           v-model="form.eapNodeId"
@@ -349,16 +349,16 @@ onMounted(loadCatalogs);
       <div class="field">
         <div class="field-label-row">
           <span>Criticidade</span>
-          <Button
+          <VBtn
             v-if="auth.can('catalogs:manage')"
             type="button"
             class="eap-manage-button"
             data-testid="edit-criticalities"
-            variant="ghost"
-            @click="showCriticalityAdmin = true"
-          >
-            <Pencil :size="12" /> Editar etiquetas
-          </Button>
+            variant="text"
+            :prepend-icon="mdiPencilOutline"
+           @click="showCriticalityAdmin = true">
+             Editar etiquetas
+          </VBtn>
         </div>
         <SearchableSelect
           v-model="form.criticalityLabelId"
@@ -420,13 +420,13 @@ onMounted(loadCatalogs);
     </div>
 
     <div class="form-actions">
-      <Button variant="outline" @click="emit('cancel')">
+      <VBtn variant="outlined" @click="emit('cancel')">
         Cancelar
-      </Button>
+      </VBtn>
 
-      <Button type="submit" variant="default" :loading="saving">
+      <VBtn type="submit" variant="tonal" :loading="saving" :disabled="saving">
         {{ saving ? "Salvando..." : "Salvar equipamento" }}
-      </Button>
+      </VBtn>
     </div>
   </form>
 

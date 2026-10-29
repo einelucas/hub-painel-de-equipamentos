@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { mdiPlus } from "@mdi/js";
 import { computed, ref } from "vue";
-import { Plus } from "lucide-vue-next";
 import type { PurchaseOrder } from "~/types/equipment";
 import { blankToNull } from "~/utils/workflow";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import EquipmentPurchaseOrdersTable from "~/components/equipment/purchase-orders/EquipmentPurchaseOrdersTable.vue";
 import EquipmentPurchaseOrderForm, {
   type EquipmentPurchaseOrderFormValues,
@@ -90,9 +90,9 @@ async function removeItem(item: PurchaseOrder): Promise<void> {
         <h2>Ordens de compra</h2>
         <p>Um equipamento pode ter várias OCs. O Valor Total do Projeto não é a soma automática delas.</p>
       </div>
-      <Button v-if="editable" variant="default" :disabled="busy" data-testid="add-purchase-order" @click="openCreate">
-        <Plus :size="15" /> Adicionar
-      </Button>
+      <VBtn v-if="editable" variant="tonal" :disabled="busy" data-testid="add-purchase-order" :prepend-icon="mdiPlus" @click="openCreate">
+         Adicionar
+      </VBtn>
     </div>
 
     <p v-if="actionError" class="notice error list-notice" role="alert">{{ actionError }}</p>

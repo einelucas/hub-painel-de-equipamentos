@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { mdiUpload } from "@mdi/js";
 import { computed, ref } from "vue";
-import Button from "~/components/ui/Button.vue";
-import { Upload } from "lucide-vue-next";
+import { VBtn } from "vuetify/components";
 
 /**
  * Seletor de arquivo do Hub: botão visível + input oculto. Os envios em si
@@ -59,16 +59,16 @@ function onFiles(event: Event): void {
 
 <template>
   <span class="file-picker">
-    <Button
+    <VBtn
       type="button"
-      variant="outline"
+      variant="outlined"
       class="file-picker__button"
       :disabled="props.disabled"
-      @click="choose"
-    >
-      <Upload :size="14" aria-hidden="true" />
+      :prepend-icon="mdiUpload"
+     @click="choose">
+
       <span class="file-picker__name">{{ shown }}</span>
-    </Button>
+    </VBtn>
     <input
       ref="input"
       class="file-picker__input"

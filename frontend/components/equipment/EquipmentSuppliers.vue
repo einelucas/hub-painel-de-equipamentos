@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { mdiRefresh, mdiTrashCanOutline } from "@mdi/js";
 import { computed, ref } from "vue";
-import { RefreshCw, Trash2 } from "lucide-vue-next";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import SupplierLinkModal, { type SupplierLinkValues } from "~/components/equipment/SupplierLinkModal.vue";
 import type { CatalogList, EquipmentSupplier, Supplier } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
@@ -107,12 +107,12 @@ onMounted(load);
         <h2>Fornecedor atual</h2>
         <p>Um equipamento pode trocar de fornecedor, mantendo no máximo um vínculo ativo por vez.</p>
       </div>
-      <Button v-if="canWrite && !current" variant="default" :loading="opening" @click="openLink">
+      <VBtn v-if="canWrite && !current" variant="tonal" :loading="opening" :disabled="opening" @click="openLink">
         Vincular fornecedor
-      </Button>
-      <Button v-else-if="canWrite" variant="outline" :disabled="busy || opening" data-testid="replace-supplier" @click="openLink">
-        <RefreshCw v-if="!opening" :size="15" /> Substituir fornecedor
-      </Button>
+      </VBtn>
+      <VBtn v-else-if="canWrite" variant="outlined" :disabled="busy || opening" data-testid="replace-supplier" :prepend-icon="!opening ? mdiRefresh : undefined" @click="openLink">
+         Substituir fornecedor
+      </VBtn>
     </div>
 
     <div v-if="loading" class="supplier-state" data-testid="suppliers-loading" role="status">
@@ -120,7 +120,7 @@ onMounted(load);
     </div>
     <div v-else-if="error" class="empty-state table-empty" role="alert" data-testid="suppliers-error">
       <h2>Não foi possível carregar</h2><p>{{ error }}</p>
-      <Button variant="outline" @click="load">Tentar novamente</Button>
+      <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
     </div>
     <template v-else>
       <p v-if="actionError" class="notice error supplier-notice" role="alert">{{ actionError }}</p>
@@ -133,17 +133,17 @@ onMounted(load);
         <span>Desde: {{ formatDateTime(current.startedAt) }}</span>
         <span>Fase de entrada: {{ current.startStage ?? "—" }}</span>
         <span v-if="current.role">Papel: {{ current.role }}</span>
-        <Button
+        <VBtn
           v-if="canWrite"
           class="text-button"
           :disabled="busy"
           :loading="busy"
-          variant="destructive"
-          size="sm"
-          @click="unlink(current.supplier.id)"
-        >
-          <Trash2 v-if="!(busy)" :size="13" /> {{ busy ? "Encerrando..." : "Encerrar vínculo" }}
-        </Button>
+          variant="tonal" color="error"
+          size="small"
+          :prepend-icon="!(busy) ? mdiTrashCanOutline : undefined"
+         @click="unlink(current.supplier.id)">
+           {{ busy ? "Encerrando..." : "Encerrar vínculo" }}
+        </VBtn>
       </div>
 
       <div v-if="history.length" class="table-wrap" data-testid="supplier-history">

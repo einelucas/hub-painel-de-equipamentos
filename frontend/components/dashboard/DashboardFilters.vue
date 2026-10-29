@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiClose } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed } from "vue";
-import { Layers3, MapPin, Tags, X } from "lucide-vue-next";
+import { Layers3, MapPin, Tags } from "lucide-vue-next";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import type { CatalogItem } from "~/types/equipment";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
@@ -76,16 +77,16 @@ function onDiscipline(value: string): void {
         @change="onDiscipline"
       />
     </div>
-    <Button
+    <VBtn
       v-if="hasActive"
       type="button"
       class="clear-filters"
       data-testid="dashboard-filters-clear"
-      variant="ghost"
-      @click="emit('clear')"
-    >
-      <X :size="13" /> Limpar filtros
-    </Button>
+      variant="text"
+      :prepend-icon="mdiClose"
+     @click="emit('clear')">
+       Limpar filtros
+    </VBtn>
   </div>
 </template>
 

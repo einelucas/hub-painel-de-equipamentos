@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { SlidersHorizontal } from "lucide-vue-next";
+import { mdiTuneVariant } from "@mdi/js";
 import type { ProcurementRow } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -47,14 +47,14 @@ onMounted(async () => {
       @page="queue.goToPage"
     >
       <template #actions>
-        <Button
+        <VBtn
           v-if="canAdminister"
-          variant="outline"
+          variant="outlined"
           data-testid="admin-button"
-          @click="showAdmin = true"
-        >
-          <SlidersHorizontal :size="16" /> Administração
-        </Button>
+          :prepend-icon="mdiTuneVariant"
+         @click="showAdmin = true">
+           Administração
+        </VBtn>
       </template>
 
       <ProcurementTable :rows="queue.items.value" />

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Boxes, Layers } from "lucide-vue-next";
 import type { CatalogItem, CatalogList, DashboardSummary } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { situationDonut, stageChartPoints, startupLabel } from "~/utils/dashboard";
 import { formatCurrency, formatNumber } from "~/utils/format";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
@@ -154,7 +154,7 @@ onMounted(async () => {
       </div>
       <div v-else-if="error" class="surface empty-state state-card" role="alert" data-testid="dashboard-error">
         <h2>Não foi possível carregar o painel</h2><p>{{ error }}</p>
-        <Button variant="outline" @click="load">Tentar novamente</Button>
+        <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
       </div>
       <div v-else-if="isEmpty" class="surface empty-state state-card" data-testid="dashboard-empty">
         <h2>Nenhum equipamento no recorte</h2>

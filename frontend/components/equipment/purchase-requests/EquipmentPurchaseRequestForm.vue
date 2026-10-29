@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import type { PurchaseRequest, PurchaseRequestKind } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 
 export interface EquipmentPurchaseRequestFormValues {
@@ -53,8 +53,8 @@ const form = reactive<EquipmentPurchaseRequestFormValues>({
     <label class="field"><span>Data</span><input v-model="form.requestedAt" type="date"></label>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <div class="form-actions">
-      <Button type="button" variant="outline" @click="emit('cancel')">Cancelar</Button>
-      <Button type="submit" variant="default" :loading="busy">{{ busy ? "Salvando..." : "Salvar" }}</Button>
+      <VBtn type="button" variant="outlined" @click="emit('cancel')">Cancelar</VBtn>
+      <VBtn type="submit" variant="tonal" :loading="busy" :disabled="busy">{{ busy ? "Salvando..." : "Salvar" }}</VBtn>
     </div>
   </form>
 </template>

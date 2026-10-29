@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiSendOutline } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed, ref, watch } from "vue";
-import { FlaskConical, Search, Send } from "lucide-vue-next";
+import { FlaskConical, Search } from "lucide-vue-next";
 import type {
   MailProviderId,
   NotificationEquipmentOption,
@@ -115,21 +116,22 @@ watch(
       </label>
     </template>
 
-    <Button
+    <VBtn
 
       type="button"
 
       :disabled="disabled"
 
-      variant="default"
+      variant="tonal"
 
-      size="sm"
+      size="small"
+      data-testid="email-test-send"
 
-      @click="emit('send', provider)"
+      :prepend-icon="mdiSendOutline"
 
-    >
-      <Send :size="14" /> {{ busy ? "Enviando..." : "Enviar e-mail de teste" }}
-    </Button>
+     @click="emit('send', provider)">
+       {{ busy ? "Enviando..." : "Enviar e-mail de teste" }}
+    </VBtn>
   </section>
 </template>
 

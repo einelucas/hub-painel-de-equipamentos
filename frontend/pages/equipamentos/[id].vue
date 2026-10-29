@@ -1,13 +1,7 @@
 <script setup lang="ts">
-import {
-  Boxes,
-  Building2,
-  History,
-  MessageSquare,
-  Workflow,
-} from "lucide-vue-next";
+import { Boxes, Building2, History, MessageSquare, Workflow } from "lucide-vue-next";
 import type { Equipment, EquipmentDetail } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { currentStageEnteredAt } from "~/utils/workflow";
 
 definePageMeta({ middleware: "auth" });
@@ -112,7 +106,7 @@ onMounted(load);
     >
       <h2>Equipamento indisponível</h2>
       <p>{{ error }}</p>
-      <Button variant="outline" @click="load">Tentar novamente</Button>
+      <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
     </div>
     <div v-else-if="detail" class="stack" :aria-busy="loading">
       <div v-if="loading" class="progress-indeterminate" role="progressbar" aria-label="Atualizando" />

@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { mdiPlus } from "@mdi/js";
 import { computed, ref } from "vue";
-import { Plus } from "lucide-vue-next";
 import type {
   Contract,
   RequirementGroup,
   RequirementWaiver,
 } from "~/types/equipment";
 import { blankToNull } from "~/utils/workflow";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import EquipmentContractsTable from "~/components/equipment/contracts/EquipmentContractsTable.vue";
 import EquipmentContractForm, {
   type EquipmentContractFormValues,
@@ -172,15 +172,15 @@ async function downloadFile(item: Contract): Promise<void> {
           arquivo.
         </p>
       </div>
-      <Button
+      <VBtn
         v-if="editable"
-        variant="default"
+        variant="tonal"
         :disabled="busy"
         data-testid="add-contract"
-        @click="openCreate"
-      >
-        <Plus :size="15" /> Adicionar
-      </Button>
+        :prepend-icon="mdiPlus"
+       @click="openCreate">
+         Adicionar
+      </VBtn>
     </div>
 
     <p v-if="actionError" class="notice error list-notice" role="alert">

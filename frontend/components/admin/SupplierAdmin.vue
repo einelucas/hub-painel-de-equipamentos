@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { mdiPencilOutline, mdiPlus, mdiUpload } from "@mdi/js";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { Pencil, Plus, Search, Upload } from "lucide-vue-next";
+import { Search } from "lucide-vue-next";
 import SupplierImportModal from "~/components/supplier/SupplierImportModal.vue";
 import SupplierForm, { type SupplierFormValues } from "~/components/supplier/SupplierForm.vue";
 import AppModal from "~/components/ui/AppModal.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import type { CatalogList, Supplier } from "~/types/equipment";
 import { useConfirm } from "~/composables/useConfirm";
 import { useIncrementalList } from "~/composables/useIncrementalList";
@@ -175,12 +176,12 @@ watch(
           </p>
         </div>
         <div class="supplier-header-actions">
-          <Button size="sm" variant="outline" :disabled="saving" data-testid="supplier-import-open" @click="showImport = true">
-            <Upload :size="14" /> Importar planilha
-          </Button>
-          <Button size="sm" variant="default" :disabled="saving" @click="startCreate">
-            <Plus :size="14" /> Novo
-          </Button>
+          <VBtn size="small" variant="outlined" :disabled="saving" data-testid="supplier-import-open" :prepend-icon="mdiUpload" @click="showImport = true">
+             Importar planilha
+          </VBtn>
+          <VBtn size="small" variant="tonal" :disabled="saving" :prepend-icon="mdiPlus" @click="startCreate">
+             Novo
+          </VBtn>
         </div>
       </header>
 
@@ -229,21 +230,21 @@ watch(
             {{ supplier.active ? "Ativo" : "Inativo" }}
           </span>
           <span class="supplier-actions">
-            <Button type="button" class="text-button" :disabled="saving" variant="ghost" size="sm" @click="startEdit(supplier)">
-              <Pencil :size="12" /> Editar
-            </Button>
-            <Button
+            <VBtn type="button" class="text-button" :disabled="saving" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="startEdit(supplier)">
+               Editar
+            </VBtn>
+            <VBtn
               type="button"
               class="text-button"
               :class="{ 'text-button--quiet': supplier.active }"
               :disabled="saving"
               :loading="togglingId === supplier.id"
-              variant="ghost"
-              size="sm"
+              variant="text"
+              size="small"
               @click="toggleActive(supplier)"
             >
               {{ togglingId === supplier.id ? "Salvando..." : supplier.active ? "Desativar" : "Reativar" }}
-            </Button>
+            </VBtn>
           </span>
         </li>
         <li v-if="hasMore" ref="sentinel" class="supplier-sentinel" data-testid="supplier-sentinel">

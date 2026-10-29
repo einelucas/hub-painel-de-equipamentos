@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { mdiRestore } from "@mdi/js";
 import { computed, ref } from "vue";
-import { RotateCcw } from "lucide-vue-next";
 import type { ReopenRequest } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { formatDateTime } from "~/utils/format";
 import { STAGE_OPTIONS } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -83,18 +83,18 @@ async function confirmReopenDecision(): Promise<void> {
           <br><em>{{ pendingReopenRequest.justification }}</em>
         </p>
         <div v-if="canApproveReopen" class="reopen-decision-actions">
-          <Button variant="default" data-testid="approve-reopen" @click="openReopenDecision('approve')">Aprovar</Button>
-          <Button variant="destructive" data-testid="reject-reopen" @click="openReopenDecision('reject')">Rejeitar</Button>
+          <VBtn variant="tonal" data-testid="approve-reopen" @click="openReopenDecision('approve')">Aprovar</VBtn>
+          <VBtn variant="tonal" color="error" data-testid="reject-reopen" @click="openReopenDecision('reject')">Rejeitar</VBtn>
         </div>
       </template>
-      <Button
+      <VBtn
         v-else-if="canRequestReopen && currentStage >= 1 && isActive"
-        variant="outline"
+        variant="outlined"
         data-testid="request-reopen-button"
-        @click="openReopenRequest"
-      >
-        <RotateCcw :size="15" /> Solicitar reabertura
-      </Button>
+        :prepend-icon="mdiRestore"
+       @click="openReopenRequest">
+         Solicitar reabertura
+      </VBtn>
       <p v-else-if="currentStage < 1" class="operational-hint">Não há fase anterior para reabrir.</p>
     </div>
   </section>
@@ -123,15 +123,15 @@ async function confirmReopenDecision(): Promise<void> {
       </label>
       <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
       <div class="form-actions">
-        <Button variant="outline" @click="showReopenRequest = false">Cancelar</Button>
-        <Button
+        <VBtn variant="outlined" @click="showReopenRequest = false">Cancelar</VBtn>
+        <VBtn
           type="submit"
-          variant="default"
+          variant="tonal"
           :loading="busy"
           :disabled="reopenTargetStage === '' || !reopenJustification.trim()"
         >
           {{ busy ? "Enviando..." : "Solicitar" }}
-        </Button>
+        </VBtn>
       </div>
     </form>
   </AppModal>
@@ -141,10 +141,10 @@ async function confirmReopenDecision(): Promise<void> {
       <label class="field"><span>Nota (opcional)</span><textarea v-model="reopenDecisionNote" maxlength="1000" rows="3" /></label>
       <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
       <div class="form-actions">
-        <Button variant="outline" @click="showReopenDecision = false">Cancelar</Button>
-        <Button type="submit" variant="default" :loading="busy">
+        <VBtn variant="outlined" @click="showReopenDecision = false">Cancelar</VBtn>
+        <VBtn type="submit" variant="tonal" :loading="busy" :disabled="busy">
           {{ reopenDecisionMode === "approve" ? "Confirmar aprovação" : "Confirmar rejeição" }}
-        </Button>
+        </VBtn>
       </div>
     </form>
   </AppModal>

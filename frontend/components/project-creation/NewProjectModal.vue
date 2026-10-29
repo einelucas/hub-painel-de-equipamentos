@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { computed, ref, watch } from "vue";
 import { Check, ChevronDown, ChevronRight, Search } from "lucide-vue-next";
 
@@ -203,8 +203,8 @@ async function submit(): Promise<void> {
           <div v-for="equipment in selectedModels" :key="equipment.id" class="area-group">
             <div class="area-title">{{ equipment.name }} <small>{{ (selected[equipment.id] ?? []).length }}/{{ equipment.components.length }}</small></div>
             <div class="component-actions">
-              <Button type="button" variant="ghost" @click="allComponents(equipment, true)">Selecionar todos</Button>
-              <Button type="button" variant="ghost" @click="allComponents(equipment, false)">Limpar</Button>
+              <VBtn type="button" variant="text" @click="allComponents(equipment, true)">Selecionar todos</VBtn>
+              <VBtn type="button" variant="text" @click="allComponents(equipment, false)">Limpar</VBtn>
             </div>
             <p v-if="!equipment.components.length" class="hint">Sem componentes cadastrados no catálogo.</p>
             <div class="equipment-list">
@@ -231,9 +231,9 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
           <p class="hint">TAGs, EAP, prazos, fornecedores e demais informações operacionais serão preenchidos depois na obra.</p>
         </section>
         <footer class="wizard-footer">
-          <Button type="button" :disabled="saving" variant="outline" @click="step === 0 ? close() : previous()">{{ step === 0 ? "Cancelar" : "Voltar" }}</Button>
-          <Button v-if="step < 3" type="button" :disabled="!canContinue" variant="default" @click="next">Continuar</Button>
-          <Button v-else type="button" :disabled="saving" data-testid="create-project-submit" variant="default" :loading="saving" @click="submit">{{ saving ? "Criando..." : "Criar obra" }}</Button>
+          <VBtn type="button" :disabled="saving" variant="outlined" @click="step === 0 ? close() : previous()">{{ step === 0 ? "Cancelar" : "Voltar" }}</VBtn>
+          <VBtn v-if="step < 3" type="button" :disabled="!canContinue" variant="tonal" @click="next">Continuar</VBtn>
+          <VBtn v-else type="button" :disabled="saving" data-testid="create-project-submit" variant="tonal" :loading="saving" @click="submit">{{ saving ? "Criando..." : "Criar obra" }}</VBtn>
         </footer>
       </template>
     </div>

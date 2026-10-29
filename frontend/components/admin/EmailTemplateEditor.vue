@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import Button from "~/components/ui/Button.vue";
+import { mdiCodeTags, mdiContentSaveOutline, mdiRestore } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { ref } from "vue";
-import { Code2, RotateCcw, Save, Sparkles } from "lucide-vue-next";
+import { Code2, Sparkles } from "lucide-vue-next";
 import EmailTemplateSettings from "~/components/admin/EmailTemplateSettings.vue";
 import EmailTemplateVariables from "~/components/admin/EmailTemplateVariables.vue";
 import type { EmailTemplateDraft } from "~/types/notifications";
@@ -172,18 +173,18 @@ function toggleAdvanced(): void {
         </label>
         <EmailTemplateVariables @insert="insertToken" />
       </template>
-      <Button v-else type="button" class="tpl-html-enable" variant="outline" size="sm" @click="toggleAdvanced">
-        <Code2 :size="14" /> Ativar HTML avançado
-      </Button>
+      <VBtn v-else type="button" class="tpl-html-enable" variant="outlined" size="small" :prepend-icon="mdiCodeTags" @click="toggleAdvanced">
+         Ativar HTML avançado
+      </VBtn>
     </template>
 
     <div class="tpl-editor-actions">
-      <Button type="button" :disabled="busy" variant="default" size="sm" @click="emit('save')">
-        <Save :size="14" /> {{ busy ? "Salvando..." : "Salvar alterações" }}
-      </Button>
-      <Button type="button" :disabled="busy" variant="outline" size="sm" @click="emit('reset')">
-        <RotateCcw :size="14" /> Restaurar padrão
-      </Button>
+      <VBtn type="button" :disabled="busy" variant="tonal" size="small" :prepend-icon="mdiContentSaveOutline" data-testid="template-save" @click="emit('save')">
+         {{ busy ? "Salvando..." : "Salvar alterações" }}
+      </VBtn>
+      <VBtn type="button" :disabled="busy" variant="outlined" size="small" :prepend-icon="mdiRestore" data-testid="template-reset" @click="emit('reset')">
+         Restaurar padrão
+      </VBtn>
       <button
         type="button"
         class="tpl-advanced-toggle"

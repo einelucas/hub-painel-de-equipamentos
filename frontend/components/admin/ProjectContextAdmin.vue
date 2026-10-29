@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { mdiCheck, mdiClose, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from "@mdi/js";
 import { computed, onMounted, reactive, ref, useId, watch } from "vue";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 import type {
   CatalogItem,
   CatalogList,
@@ -11,7 +11,7 @@ import type {
 import { toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import AppModal from "~/components/ui/AppModal.vue";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import { useConfirm } from "~/composables/useConfirm";
 
 /**
@@ -271,16 +271,16 @@ watch(selectedId, loadSummary);
           @change="selectUnit"
         />
       </div>
-      <Button
+      <VBtn
         v-if="canManage && props.unitId"
-        size="sm"
-        variant="default"
+        size="small"
+        variant="tonal"
         :disabled="saving"
         data-testid="project-new"
-        @click="startCreate"
-      >
-        <Plus :size="14" /> Novo contexto
-      </Button>
+        :prepend-icon="mdiPlus"
+       @click="startCreate">
+         Novo contexto
+      </VBtn>
       </div>
     </header>
 
@@ -288,17 +288,17 @@ watch(selectedId, loadSummary);
 
     <div v-else-if="!props.unitId" class="projects-empty" data-testid="project-no-unit">
       <p>Selecione ou cadastre uma unidade antes de criar um contexto.</p>
-      <Button
+      <VBtn
         v-if="canManage"
         type="button"
         class="text-button"
         data-testid="project-goto-units"
-        variant="ghost"
-        size="sm"
+        variant="text"
+        size="small"
         @click="emit('navigate', { section: 'catalogs', catalog: 'units' })"
       >
         Gerenciar unidades
-      </Button>
+      </VBtn>
     </div>
 
     <template v-else>
@@ -327,16 +327,16 @@ watch(selectedId, loadSummary);
               </span>
             </button>
             <span v-if="canManage" class="project-actions">
-              <Button type="button" class="text-button" :disabled="saving" variant="ghost" size="sm" @click="startEdit(item)">
-                <Pencil :size="12" /> Editar
-              </Button>
-              <Button type="button" class="text-button" :disabled="saving" :loading="togglingId === item.id" variant="ghost" size="sm" @click="toggleActive(item)">
+              <VBtn type="button" class="text-button" :disabled="saving" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="startEdit(item)">
+                 Editar
+              </VBtn>
+              <VBtn type="button" class="text-button" :disabled="saving" :loading="togglingId === item.id" variant="text" size="small" @click="toggleActive(item)">
                 {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
-              </Button>
-              <Button type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="destructive" size="sm" @click="remove(item)">
-                <Trash2 v-if="!(deletingId === item.id)" :size="12" />
+              </VBtn>
+              <VBtn type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(deletingId === item.id) ? mdiTrashCanOutline : undefined" @click="remove(item)">
+
                 {{ deletingId === item.id ? "Excluindo..." : "Excluir" }}
-              </Button>
+              </VBtn>
             </span>
           </li>
         </ul>
@@ -373,39 +373,39 @@ watch(selectedId, loadSummary);
           <p v-if="summary.error" class="projects-error" role="alert">{{ summary.error }}</p>
           <p class="field-help">Resumo informativo. Não bloqueia o uso do contexto.</p>
           <div class="readiness-actions">
-            <Button
+            <VBtn
               v-if="canManage"
               type="button"
               class="text-button"
               data-testid="goto-areas"
-              variant="ghost"
-              size="sm"
+              variant="text"
+              size="small"
               @click="emit('navigate', { section: 'catalogs', catalog: 'areas' })"
             >
               Gerenciar Árvore EAP
-            </Button>
-            <Button
+            </VBtn>
+            <VBtn
               v-if="canManage"
               type="button"
               class="text-button"
               data-testid="goto-work-packages"
-              variant="ghost"
-              size="sm"
+              variant="text"
+              size="small"
               @click="emit('navigate', { section: 'catalogs', catalog: 'workPackages' })"
             >
               Gerenciar Work Packages
-            </Button>
-            <Button
+            </VBtn>
+            <VBtn
               v-if="canManageAccess"
               type="button"
               class="text-button"
               data-testid="goto-access"
-              variant="ghost"
-              size="sm"
+              variant="text"
+              size="small"
               @click="emit('navigate', { section: 'access' })"
             >
               Gerenciar acessos
-            </Button>
+            </VBtn>
           </div>
         </aside>
       </div>
@@ -442,20 +442,20 @@ watch(selectedId, loadSummary);
     </form>
 
     <template #actions>
-      <Button size="sm" variant="outline" :disabled="saving" @click="cancel">
-        <X :size="13" /> Cancelar
-      </Button>
-      <Button
+      <VBtn size="small" variant="outlined" :disabled="saving" :prepend-icon="mdiClose" @click="cancel">
+         Cancelar
+      </VBtn>
+      <VBtn
         type="submit"
-        size="sm"
-        variant="default"
+        size="small"
+        variant="tonal"
         :form="formId"
         :loading="saving"
         data-testid="project-save"
-      >
-        <Check v-if="!saving" :size="13" />
+       :prepend-icon="!saving ? mdiCheck : undefined" :disabled="saving">
+
         {{ saving ? "Salvando..." : "Salvar" }}
-      </Button>
+      </VBtn>
     </template>
   </AppModal>
 </template>

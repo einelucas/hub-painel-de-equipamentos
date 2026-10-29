@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Pencil, Plus, Upload, EyeOff, Eye, Search } from "lucide-vue-next";
+import { mdiEyeOffOutline, mdiEyeOutline, mdiPencilOutline, mdiPlus, mdiUpload } from "@mdi/js";
+import { Search } from "lucide-vue-next";
 import type { CatalogList, Supplier } from "~/types/equipment";
-import Button from "~/components/ui/Button.vue";
+import { VBtn } from "vuetify/components";
 import SupplierImportModal from "~/components/supplier/SupplierImportModal.vue";
 import SupplierForm, {
   type SupplierFormValues,
@@ -153,43 +154,43 @@ onBeforeUnmount(() => {
                 placeholder="Código, razão social, nome fantasia ou CNPJ"
                 test-id="supplier-search"
               />
-              <Button
-                variant="outline"
+              <VBtn
+                variant="outlined"
                 type="submit"
                 :loading="loading"
                 class="toolbar-btn"
-              >
+               :disabled="loading">
                 {{ loading ? "Buscando..." : "Buscar" }}
-              </Button>
+              </VBtn>
             </div>
           </form>
-          <Button
-            variant="ghost"
+          <VBtn
+            variant="text"
             class="toolbar-btn"
             :class="{ active: includeInactive }"
-            @click="includeInactive = !includeInactive; load()"
-          >
-            <EyeOff v-if="!includeInactive" :size="16" />
-            <Eye v-if="includeInactive" :size="16" />
+            :prepend-icon="includeInactive ? mdiEyeOutline : mdiEyeOffOutline"
+           @click="includeInactive = !includeInactive; load()">
+
+
             {{ includeInactive ? "Ocultar inativos" : "Mostrar inativos" }}
-          </Button>
+          </VBtn>
           <div class="filter-actions">
-            <Button
+            <VBtn
               v-if="canWrite"
-              variant="default"
+              variant="tonal"
               class="toolbar-btn"
-              @click="openCreate"
-            >
-              <Plus :size="16" /> Novo fornecedor
-            </Button>
-            <Button
+              :prepend-icon="mdiPlus"
+             @click="openCreate">
+               Novo fornecedor
+            </VBtn>
+            <VBtn
               v-if="canWrite"
-              variant="outline"
+              variant="outlined"
               class="toolbar-btn"
-              @click="showImport = true"
-            >
-              <Upload :size="16" /> Importar planilha
-            </Button>
+              :prepend-icon="mdiUpload"
+             @click="showImport = true">
+               Importar planilha
+            </VBtn>
           </div>
         </div>
       </section>
@@ -217,7 +218,7 @@ onBeforeUnmount(() => {
         <div v-else-if="error" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2>
           <p>{{ error }}</p>
-          <Button variant="outline" @click="load">Tentar novamente</Button>
+          <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
         </div>
         <div v-else-if="suppliers.length === 0" class="empty-state table-empty">
           <h2>Nenhum fornecedor cadastrado</h2>
@@ -265,15 +266,15 @@ onBeforeUnmount(() => {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Button
+                  <VBtn
                     v-if="canWrite"
                     class="text-button"
-                    variant="ghost"
-                    size="sm"
-                    @click="openEdit(supplier)"
-                  >
-                    <Pencil :size="13" /> Editar
-                  </Button>
+                    variant="text"
+                    size="small"
+                    :prepend-icon="mdiPencilOutline"
+                   @click="openEdit(supplier)">
+                     Editar
+                  </VBtn>
                 </TableCell>
               </TableRow>
             </TableBody>
