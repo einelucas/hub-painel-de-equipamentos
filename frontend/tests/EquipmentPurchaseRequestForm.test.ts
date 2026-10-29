@@ -70,7 +70,7 @@ describe("EquipmentPurchaseRequestForm", () => {
     const save = wrapper.get("button[type='submit']");
     expect(save.text()).toBe("Salvando...");
     expect(save.attributes("disabled")).toBeDefined();
-    expect(wrapper.get("[role='alert']").text()).toBe("Falhou");
+    expect(wrapper.get(".notice.error[role='alert']").text()).toBe("Falhou");
   });
 });
 
@@ -142,7 +142,7 @@ describe("EquipmentPurchaseRequestsList (container)", () => {
     await flushPromises();
 
     expect(wrapper.find(".modal").exists()).toBe(true);
-    expect(wrapper.get(".modal [role='alert']").text()).toBe("Número duplicado");
+    expect(wrapper.get(".modal .notice.error[role='alert']").text()).toBe("Número duplicado");
     expect(wrapper.emitted("changed")).toBeUndefined();
   });
 
