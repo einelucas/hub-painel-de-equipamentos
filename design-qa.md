@@ -1,29 +1,56 @@
-# Design QA — filtros e camadas de diálogo
+# Design QA — filtros, diálogos e controles Vuetify
 
-Status: **aprovado** em 2026-10-28.
+Status: **aprovado** em 2026-10-29.
 
 Final result: **passed**.
 
-## Referências
+## Visual truth
 
-- `/tmp/codex-remote-attachments/01a1110d-df1b-7272-908c-3daec6b7601e/5475ed5f-f3cc-481d-9e86-dad6b475c1bb/1-1000440108.jpg`
-- `/tmp/codex-remote-attachments/01a1110d-df1b-7272-908c-3daec6b7601e/5475ed5f-f3cc-481d-9e86-dad6b475c1bb/2-1000440109.jpg`
+- Source: screenshots attached by the user in the request, showing neutral outlined filters/buttons and a primary-blue focused outline with a floating label.
+- Earlier filter/dialog references:
+  - `/tmp/codex-remote-attachments/01a1110d-df1b-7272-908c-3daec6b7601e/5475ed5f-f3cc-481d-9e86-dad6b475c1bb/1-1000440108.jpg`
+  - `/tmp/codex-remote-attachments/01a1110d-df1b-7272-908c-3daec6b7601e/5475ed5f-f3cc-481d-9e86-dad6b475c1bb/2-1000440109.jpg`
+- Implementation screenshots:
+  - `/tmp/vuetify-outline-desktop.png`
+  - `/tmp/vuetify-outline-focus.png`
+  - `/tmp/vuetify-outline-mobile.png`
 
-## Evidências locais
+## Viewports and states checked
 
-- Desktop: `/tmp/equipamentos-filtros-desktop.png`
-- Dropdown aberto: `/tmp/equipamentos-filtros-dropdown.png`
-- Tablet: `/tmp/equipamentos-filtros-tablet.png`
+| Viewport | State | Result |
+| --- | --- | --- |
+| 1440 × 1000 | Equipment filters and actions, default state | Outlined fields and buttons visible and aligned |
+| 1440 × 1000 | Unit selector focused/open | 2 px primary-blue outline and floating label visible |
+| 768 × 1000 | Equipment filters and actions | Controls wrap without page-level horizontal overflow |
 
-## Checklist
+## Focused comparison
 
-- [x] Unidade, Obra e Equipamento mantêm a mesma largura (248 px no viewport de 1440 px), com ou sem valor.
-- [x] Seletores têm wrapper de 46 px e contorno visível de 41 px; botões de ação seguem os 41 px visuais e ficam alinhados pela base.
-- [x] Rótulos flutuantes ficam centralizados sobre o recorte da borda, sem deslocamento causado pelo ícone.
-- [x] O dropdown é teleportado para o `body` com `z-index: 2001` e não é cortado pelos cards seguintes.
-- [x] O campo e o botão de busca não aparecem em Equipamentos, Suprimentos ou Jurídico.
-- [x] A busca continua disponível na fila de Engenharia, que não fazia parte da remoção solicitada.
-- [x] Em largura reduzida, seletores e ações quebram em linhas completas sem sobreposição horizontal.
-- [x] A confirmação destrutiva usa `z-index: 10000`, acima dos diálogos do Element Plus.
+- Normal selectors use the native Vuetify 1 px outlined field treatment.
+- Focus changes the selector outline to the Hub primary color (`#304f7e`) and 2 px width.
+- Outlined action buttons use the native Vuetify 1 px primary border.
+- Tonal actions retain their hierarchy and are not forced into the outlined treatment.
+- Labels remain legible and float above selected/focused values, matching the supplied reference behavior.
 
-Observação: no navegador de QA, o carregamento da fonte Google foi bloqueado pela política de rede do ambiente; a pilha de fontes do sistema foi usada como fallback sem alterar geometria ou legibilidade.
+## Regression checklist retained from the filter/dialog QA
+
+- [x] Unidade, Obra e Equipamento maintain equal fixed widths, with or without a selected value.
+- [x] Selectors and action buttons remain vertically aligned.
+- [x] Floating labels stay centered over the outline notch.
+- [x] Dropdowns are teleported above adjacent cards and are not clipped.
+- [x] Equipment search remains absent from Equipamentos, Suprimentos and Jurídico.
+- [x] Engineering keeps its intentional search field.
+- [x] Narrow layouts wrap controls without page-level horizontal overlap.
+- [x] Destructive confirmations remain above their parent dialog.
+
+## Issue history
+
+1. **P1 — Outlined controls rendered without borders**
+   - Cause: Tailwind preflight reset applied `border-width: 0` after Vuetify 4's layered component rules.
+   - Fix: disabled Tailwind preflight so Vuetify remains the single owner of the application reset and its native component borders.
+   - Recheck: computed styles show 1 px outlined button/field borders and 2 px focused field borders.
+
+## Final result
+
+**Passed** — no actionable P0, P1, or P2 visual issues remain in the requested button/filter states.
+
+The QA browser could not download Google Fonts because of the environment network policy; the configured system-font fallback was used without geometry or readability regressions.
