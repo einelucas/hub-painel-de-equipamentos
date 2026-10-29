@@ -89,8 +89,8 @@ watch(
     <div class="tpl-test-grid">
       <div class="field">
         <VAutocomplete
-          :menu-props="{ zIndex: 10020 }"
           v-model="provider"
+          :menu-props="{ zIndex: 10020 }"
           :items="providerOptions"
           item-title="title"
           item-value="value"
