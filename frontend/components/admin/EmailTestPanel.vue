@@ -122,6 +122,7 @@ watch(
       </label>
       <div class="field">
         <VAutocomplete
+          data-testid="email-test-equipment"
           :model-value="equipmentId ?? ''"
           :items="equipmentSelectOptions"
           item-title="title"
