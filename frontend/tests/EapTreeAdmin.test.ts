@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EapTreeAdmin from "~/components/admin/EapTreeAdmin.vue";
+import { chooseOption } from "./support/searchableSelect";
 import { useConfirm } from "~/composables/useConfirm";
 
 const nodes = [
@@ -73,10 +74,10 @@ describe("EapTreeAdmin", () => {
 
     await wrapper.get("[data-testid='eap-new']").trigger("click");
     expect(wrapper.get(".modal-card h2").text()).toBe("Novo nó da Árvore EAP");
-    await wrapper.get("[data-testid='eap-level']").setValue("AREA");
+    await chooseOption(wrapper, "eap-level", "Área");
     await wrapper.get("[data-testid='eap-code']").setValue("01.b");
     await wrapper.get("[data-testid='eap-name']").setValue("Área Sintética B");
-    await wrapper.get("[data-testid='eap-parent']").setValue("p1");
+    await chooseOption(wrapper, "eap-parent", "01 · Processo Sintético");
     await wrapper.get("[data-testid='eap-form']").trigger("submit");
     await settle(wrapper);
 
