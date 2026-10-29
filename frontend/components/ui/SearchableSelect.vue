@@ -127,10 +127,6 @@ watch(
       :prepend-inner-icon="props.icon"
       :disabled="props.disabled"
       :clearable="props.clearable"
-      variant="outlined"
-      color="primary"
-      density="comfortable"
-      hide-details="auto"
       no-data-text="Nenhuma opção encontrada."
       @update:model-value="onUpdate"
     />
