@@ -87,9 +87,9 @@ watch(
     </p>
 
     <div class="tpl-test-grid">
-      <label class="field">
-        <span>Provedor para este teste</span>
+      <div class="field">
         <VAutocomplete
+          :menu-props="{ zIndex: 10020 }"
           v-model="provider"
           :items="providerOptions"
           item-title="title"
@@ -100,7 +100,7 @@ watch(
           hide-details="auto"
           label="Provedor para este teste"
         />
-      </label>
+      </div>
     </div>
 
     <label class="tpl-check">
@@ -121,9 +121,9 @@ watch(
         <span><Search :size="12" /> Buscar equipamento (dados reais)</span>
         <input v-model="search" placeholder="Nome do equipamento" />
       </label>
-      <label class="field">
-        <span>Equipamento para pré-visualização e teste</span>
+      <div class="field">
         <VAutocomplete
+          :menu-props="{ zIndex: 10020 }"
           :model-value="equipmentId ?? ''"
           :items="equipmentSelectOptions"
           item-title="title"
@@ -135,7 +135,7 @@ watch(
           label="Equipamento para pré-visualização e teste"
           @update:model-value="emit('update:equipmentId', String($event || '') || null)"
         />
-      </label>
+      </div>
     </template>
 
     <Button
