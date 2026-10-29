@@ -191,7 +191,7 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.field input:not(.el-input__inner):not(.el-select__input):not(.v-field__input):not(.searchable-select__required):not([type="file"]),
+.field input:not(.el-input__inner):not(.el-select__input):not([role='combobox']):not([type='hidden']):not(.searchable-select__required):not([type="file"]),
 .field select,
 .field textarea,
 .input {
@@ -210,7 +210,7 @@ button:disabled {
   resize: vertical;
 }
 
-.field input:not(.el-input__inner):not(.el-select__input):not(.v-field__input):not(.searchable-select__required):not([type="file"]):focus,
+.field input:not(.el-input__inner):not(.el-select__input):not([role='combobox']):not([type='hidden']):not(.searchable-select__required):not([type="file"]):focus,
 .field select:focus,
 .field textarea:focus,
 .input:focus {
