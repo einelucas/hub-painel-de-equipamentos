@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Button from "~/components/ui/Button.vue";
+import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, ref, watch } from "vue";
 import { Check, ChevronDown, ChevronRight, Search } from "lucide-vue-next";
 
@@ -21,6 +22,10 @@ const error = ref("");
 const step = ref(0);
 const units = ref<Unit[]>([]);
 const unitId = ref("");
+const unitOptions = computed(() => [
+  { title: "Selecionar unidade", value: "" },
+  ...units.value.map((unit) => ({ title: unit.name, value: unit.id })),
+]);
 const name = ref("");
 const code = ref("");
 const search = ref("");
@@ -152,12 +157,20 @@ async function submit(): Promise<void> {
         <section v-if="step === 0" class="step-body">
           <h3>Identificação da obra</h3>
           <p>Selecione a unidade e informe o nome do novo projeto.</p>
-          <label>Unidade
-            <select v-model="unitId" data-testid="new-project-unit">
-              <option disabled value="">Selecionar unidade</option>
-              <option v-for="unit in units" :key="unit.id" :value="unit.id">{{ unit.name }}</option>
-            </select>
-          </label>
+          <div class="project-unit">
+            <VAutocomplete
+              v-model="unitId"
+              :items="unitOptions"
+              item-title="title"
+              item-value="value"
+              data-testid="new-project-unit"
+              variant="outlined"
+              color="primary"
+              density="comfortable"
+              hide-details="auto"
+              label="Unidade"
+            />
+          </div>
           <label>Nome da obra
             <input v-model="name" maxlength="160" placeholder="Ex.: Ampliação da unidade" data-testid="new-project-name" />
           </label>
@@ -251,7 +264,7 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
 .step-body h3 { font-size: 16px; font-weight: 800; margin: 0; }
 .step-body p { margin: 0; font-size: 13px; color: #677b92; }
 .step-body label:not(.check-row) { display: grid; gap: 6px; font-size: 12px; font-weight: 700; }
-.step-body input:not([type=checkbox]), .step-body select { width: 100%; border: 1px solid #dce4ef; border-radius: 9px; padding: 10px 12px; background: #fff; color: #273e5a; }
+.step-body input:not([type=checkbox]):not([role=combobox]):not([type=hidden]), .step-body select { width: 100%; border: 1px solid #dce4ef; border-radius: 9px; padding: 10px 12px; background: #fff; color: #273e5a; }
 .section-title { display: flex; justify-content: space-between; gap: 15px; align-items: center; }
 .section-title strong { font-size: 12px; white-space: nowrap; }
 .search { position: relative; display: flex; align-items: center; gap: 8px; border: 1px solid #dce4ef; border-radius: 10px; padding-left: 10px; }

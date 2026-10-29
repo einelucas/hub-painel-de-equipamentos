@@ -1,8 +1,11 @@
-import { mount } from "@vue/test-utils";
+import { mount, type VueWrapper } from "@vue/test-utils";
+import { portal } from "./support/portal";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CatalogAdmin from "~/components/admin/CatalogAdmin.vue";
 import { useConfirm } from "~/composables/useConfirm";
 import type { CatalogItem } from "~/types/equipment";
+
+const mounted: VueWrapper[] = [];
 
 function items(): CatalogItem[] {
   return [
@@ -21,6 +24,7 @@ function mountAdmin(overrides: Record<string, unknown> = {}) {
   const wrapper = mount(CatalogAdmin, {
     props: { path: "/disciplines", label: "Disciplinas", hasCode: true, ...overrides },
   });
+  mounted.push(wrapper);
   return { wrapper, get, patch, post, del };
 }
 
@@ -30,6 +34,7 @@ async function settle(wrapper: ReturnType<typeof mount>) {
 }
 
 afterEach(() => {
+  for (const wrapper of mounted.splice(0)) wrapper.unmount();
   useConfirm().cancel();
   vi.unstubAllGlobals();
 });
@@ -55,13 +60,13 @@ describe("CatalogAdmin", () => {
       .find((button) => button.text().includes("Editar"));
     await edit!.trigger("click");
 
-    expect(wrapper.get(".modal-card h2").text()).toBe("Editar registro");
-    expect(wrapper.get(".modal-card").find("form").exists()).toBe(true);
-    await wrapper.get("form input[maxlength='200']").setValue("Elétrica industrial");
-    await wrapper.get("form").trigger("submit");
+    expect(portal().get(".modal-card h2").text()).toBe("Editar registro");
+    expect(portal().get(".modal-card").find("form").exists()).toBe(true);
+    await portal().get("form input[maxlength='200']").setValue("Elétrica industrial");
+    await portal().get("form").trigger("submit");
     await settle(wrapper);
 
-    expect(wrapper.find(".modal-card").exists()).toBe(false);
+    expect(portal().find(".modal-card").exists()).toBe(false);
     expect(patch).toHaveBeenCalledWith("/disciplines/c-1", {
       code: "EL",
       name: "Elétrica industrial",
@@ -162,8 +167,8 @@ describe("CatalogAdmin", () => {
       .findAll("button")
       .find((button) => button.text().includes("Editar"));
     await edit!.trigger("click");
-    await wrapper.get("form textarea").setValue("Instalações elétricas provisórias");
-    await wrapper.get("form").trigger("submit");
+    await portal().get("form textarea").setValue("Instalações elétricas provisórias");
+    await portal().get("form").trigger("submit");
     await settle(wrapper);
 
     expect(patch).toHaveBeenCalledWith("/work-packages/c-1", {
@@ -182,10 +187,10 @@ describe("CatalogAdmin", () => {
     });
     await settle(wrapper);
     await wrapper.get(".catalog-header button").trigger("click");
-    expect(wrapper.get(".modal-card h2").text()).toBe("Novo registro em Criticidades");
-    await wrapper.get("form input[maxlength='200']").setValue("Urgente");
-    await wrapper.get("form input[type='color']").setValue("#cc3344");
-    await wrapper.get("form").trigger("submit");
+    expect(portal().get(".modal-card h2").text()).toBe("Novo registro em Criticidades");
+    await portal().get("form input[maxlength='200']").setValue("Urgente");
+    await portal().get("form input[type='color']").setValue("#cc3344");
+    await portal().get("form").trigger("submit");
     await settle(wrapper);
 
     expect(post).toHaveBeenCalledWith("/criticality-labels", {
@@ -234,7 +239,7 @@ describe("CatalogAdmin · contextos de projeto", () => {
     expect(wrapper.text()).not.toContain("Prefixo EAP");
     await editItem(wrapper, "pc-2");
     expect(wrapper.find("[data-testid='catalog-eap-prefix']").exists()).toBe(false);
-    await wrapper.get("form").trigger("submit");
+    await portal().get("form").trigger("submit");
     await settle(wrapper);
     expect(patch).toHaveBeenCalledWith("/project-contexts/pc-2", { name: "Fase 2", code: "F2" });
   });
@@ -282,7 +287,7 @@ describe("CatalogAdmin · contextos de projeto", () => {
       .find((button) => button.text().includes("Editar"));
     await edit!.trigger("click");
     expect(wrapper.find("[data-testid='catalog-eap-prefix']").exists()).toBe(false);
-    await wrapper.get("form").trigger("submit");
+    await portal().get("form").trigger("submit");
     await settle(wrapper);
     expect(patch).toHaveBeenCalledWith("/disciplines/c-1", { code: "EL", name: "Elétrica" });
   });

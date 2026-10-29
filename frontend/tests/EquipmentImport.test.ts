@@ -435,7 +435,7 @@ describe("Importar equipamentos", () => {
     const review = wrapper.get("[data-testid='supplier-review']");
     expect(review.text()).toContain("Origem: 9001");
     expect(review.text()).toContain("Confiança HIGH");
-    await review.get("[role='combobox']").trigger("click");
+    await openMenu(review, "supplier-review-combobox");
     const supplierOption = menuOptions(review, "supplier-review-combobox").find(
       (option) => option.text().includes("Fornecedor Sintético SA"),
     );
@@ -661,7 +661,7 @@ describe("Importar equipamentos", () => {
     await wrapper.get("[data-testid='import-to-mapping']").trigger("click");
     await settle(wrapper);
     // valores repetidos entre os arquivos aparecem uma vez só
-    expect(wrapper.findAll("[data-testid='mapping-select-responsibles']")).toHaveLength(1);
+    expect(wrapper.findAll(".searchable-select[data-testid='mapping-select-responsibles']")).toHaveLength(1);
     await wrapper.get("[data-testid='import-build-plan']").trigger("click");
     await settle(wrapper);
     expect(post).toHaveBeenCalledWith(

@@ -37,7 +37,6 @@ const form = reactive<EquipmentPurchaseRequestFormValues>({
 <template>
   <form class="item-form" @submit.prevent="emit('submit', { ...form })">
     <div class="field">
-      <span>Tipo</span>
       <SearchableSelect
         :model-value="form.kind"
         :options="KIND_OPTIONS"
@@ -63,6 +62,6 @@ const form = reactive<EquipmentPurchaseRequestFormValues>({
 .item-form { display: grid; gap: 14px; }
 .field { display: grid; gap: 4px; font-size: 12px; }
 .field span { color: #7a879a; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-.field input, .field select { border: 1px solid #d8dee7; border-radius: 6px; padding: 7px 9px; font-size: 13px; }
+.field input:not([role="combobox"]):not([type="hidden"]) { border: 1px solid #d8dee7; border-radius: 6px; padding: 7px 9px; font-size: 13px; }
 .form-actions { display: flex; justify-content: flex-end; gap: 9px; }
 </style>

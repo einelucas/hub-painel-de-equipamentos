@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RefreshCw, ShieldAlert, UserPlus } from "lucide-vue-next";
-import { onMounted, reactive, ref } from "vue";
+import { VAutocomplete } from "vuetify/components/VAutocomplete";
+import { computed, onMounted, reactive, ref } from "vue";
 import type { AdminUser, Role, UserSummary } from "~/types/api";
 import Button from "~/components/ui/Button.vue";
 
@@ -27,6 +28,10 @@ const roleLabels: Record<Role, string> = {
   ANALYST: "Analista",
   ADMIN: "Administrador",
 };
+
+const roleOptions = computed(() =>
+  Object.entries(roleLabels).map(([role, label]) => ({ title: label, value: role })),
+);
 
 function formatDate(value: string | null): string {
   if (!value) return "Nunca";
@@ -95,8 +100,8 @@ async function updateUser(user: AdminUser, changes: { role?: Role; active?: bool
   }
 }
 
-function changeRole(user: AdminUser, event: Event): void {
-  const role = (event.target as HTMLSelectElement).value as Role;
+function changeRole(user: AdminUser, value: string): void {
+  const role = value as Role;
   if (role !== user.role) void updateUser(user, { role });
 }
 
@@ -167,15 +172,20 @@ onMounted(load);
                   <small v-if="user.id === auth.user?.id" class="self-label">Sua conta</small>
                 </TableCell>
                 <TableCell>
-                  <select
-                    class="role-select"
-                    :value="user.role"
+                  <VAutocomplete
+                    :data-testid="`role-${user.id}`"
+                    :model-value="user.role"
+                    :items="roleOptions"
+                    item-title="title"
+                    item-value="value"
                     :disabled="updating.has(user.id) || user.id === auth.user?.id"
                     :aria-label="`Perfil de ${user.name}`"
-                    @change="changeRole(user, $event)"
-                  >
-                    <option v-for="(label, role) in roleLabels" :key="role" :value="role">{{ label }}</option>
-                  </select>
+                    variant="outlined"
+                    color="primary"
+                    density="comfortable"
+                    hide-details="auto"
+                    @update:model-value="changeRole(user, String($event))"
+                  />
                 </TableCell>
                 <TableCell><span class="provider">{{ user.authProvider }}</span></TableCell>
                 <TableCell>{{ formatDate(user.lastLoginAt) }}</TableCell>
@@ -214,12 +224,20 @@ onMounted(load);
           <span>E-mail</span>
           <input v-model="form.email" required type="email" autocomplete="off" />
         </label>
-        <label class="field">
-          <span>Perfil</span>
-          <select v-model="form.role">
-            <option v-for="(label, role) in roleLabels" :key="role" :value="role">{{ label }}</option>
-          </select>
-        </label>
+        <div class="field">
+          <VAutocomplete
+            v-model="form.role"
+            data-testid="create-user-role"
+            :items="roleOptions"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            color="primary"
+            density="comfortable"
+            hide-details="auto"
+            label="Perfil"
+          />
+        </div>
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
       </form>
       <template #actions>

@@ -4,6 +4,9 @@ import EquipmentPurchaseRequestForm from "~/components/equipment/purchase-reques
 import EquipmentPurchaseRequestsList from "~/components/equipment/EquipmentPurchaseRequestsList.vue";
 import type { PurchaseRequest, RequirementGroup } from "~/types/equipment";
 import { chooseOption, optionLabels, shownValue } from "./support/searchableSelect";
+import type { VueWrapper } from "@vue/test-utils";
+const mounted: VueWrapper[] = [];
+afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 
 const existing: PurchaseRequest = {
   id: "pr-1",
@@ -16,9 +19,12 @@ const existing: PurchaseRequest = {
 };
 
 function mountForm(item: PurchaseRequest | null, props: { busy?: boolean; error?: string } = {}) {
-  return mount(EquipmentPurchaseRequestForm, {
+  const wrapper = mount(EquipmentPurchaseRequestForm, {
+    attachTo: document.body,
     props: { item, busy: props.busy ?? false, error: props.error ?? "" },
   });
+  mounted.push(wrapper);
+  return wrapper;
 }
 
 function fields(wrapper: ReturnType<typeof mount>) {
@@ -70,7 +76,7 @@ describe("EquipmentPurchaseRequestForm", () => {
     const save = wrapper.get("button[type='submit']");
     expect(save.text()).toBe("Salvando...");
     expect(save.attributes("disabled")).toBeDefined();
-    expect(wrapper.get("[role='alert']").text()).toBe("Falhou");
+    expect(wrapper.get(".notice.error[role='alert']").text()).toBe("Falhou");
   });
 });
 
@@ -142,7 +148,7 @@ describe("EquipmentPurchaseRequestsList (container)", () => {
     await flushPromises();
 
     expect(wrapper.find(".modal").exists()).toBe(true);
-    expect(wrapper.get(".modal [role='alert']").text()).toBe("Número duplicado");
+    expect(wrapper.get(".modal .notice.error[role='alert']").text()).toBe("Número duplicado");
     expect(wrapper.emitted("changed")).toBeUndefined();
   });
 

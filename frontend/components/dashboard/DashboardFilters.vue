@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import Button from "~/components/ui/Button.vue";
 import { computed } from "vue";
-import { Layers3, MapPin, Tags, X } from "lucide-vue-next";
+import { X } from "lucide-vue-next";
+import { mdiLayers, mdiMapMarker, mdiTag } from "@mdi/js";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import type { CatalogItem } from "~/types/equipment";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
@@ -43,7 +44,7 @@ function onDiscipline(value: string): void {
       <FloatingFilterSelect
         :model-value="areaId ?? ''"
         :options="areaOptions"
-        :icon="MapPin"
+        :icon="mdiMapMarker"
         label="Área"
         placeholder="Buscar por código ou nome"
         empty-label="Todas as áreas"
@@ -56,7 +57,7 @@ function onDiscipline(value: string): void {
         :model-value="stage === null ? '' : String(stage)"
         :options="STAGE_OPTIONS"
         :sorted="false"
-        :icon="Layers3"
+        :icon="mdiLayers"
         label="Fase"
         placeholder="Buscar fase"
         empty-label="Todas as fases"
@@ -68,7 +69,7 @@ function onDiscipline(value: string): void {
       <FloatingFilterSelect
         :model-value="disciplineId ?? ''"
         :options="disciplineOptions"
-        :icon="Tags"
+        :icon="mdiTag"
         label="Disciplina"
         placeholder="Buscar disciplina"
         empty-label="Todas as disciplinas"

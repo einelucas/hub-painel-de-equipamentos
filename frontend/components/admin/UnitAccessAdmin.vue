@@ -107,7 +107,6 @@ onMounted(load);
     <p v-else-if="error" class="access-error" role="alert">{{ error }}</p>
     <template v-else>
       <div class="field access-user">
-        <span>Usuário</span>
         <SearchableSelect
           v-model="selectedUser"
           :options="userOptions"
