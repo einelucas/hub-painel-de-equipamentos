@@ -1,13 +1,13 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
-import type { VueWrapper } from "@vue/test-utils";
-const mounted: VueWrapper[] = [];
-afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 import DashboardFilters from "~/components/dashboard/DashboardFilters.vue";
 import { useDashboardFilters } from "~/composables/useDashboardFilters";
 import type { CatalogItem } from "~/types/equipment";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 import { chooseOption, isDisabled, menuOptions, openMenu, optionLabels, shownValue } from "./support/searchableSelect";
+import type { VueWrapper } from "@vue/test-utils";
+const mounted: VueWrapper[] = [];
+afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); });
 
 const areas: CatalogItem[] = [
   { id: "a-1", name: "Caldeira", active: true },
