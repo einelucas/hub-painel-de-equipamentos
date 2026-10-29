@@ -1,4 +1,5 @@
-import { mount } from "@vue/test-utils";
+import { mount, type VueWrapper } from "@vue/test-utils";
+import { portal } from "./support/portal";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ProjectContextAdmin from "~/components/admin/ProjectContextAdmin.vue";
 import { useConfirm } from "~/composables/useConfirm";
@@ -59,8 +60,11 @@ async function settle(wrapper: ReturnType<typeof mount>) {
   }
 }
 
+const mounted: VueWrapper[] = [];
 function mountAdmin(unitId = "u-tst") {
-  return mount(ProjectContextAdmin, { props: { unitId } });
+  const wrapper = mount(ProjectContextAdmin, { props: { unitId } });
+  mounted.push(wrapper);
+  return wrapper;
 }
 
 function itemButton(wrapper: ReturnType<typeof mount>, id: string, label: string) {
@@ -71,6 +75,7 @@ function itemButton(wrapper: ReturnType<typeof mount>, id: string, label: string
 }
 
 afterEach(() => {
+  for (const wrapper of mounted.splice(0)) wrapper.unmount();
   useConfirm().cancel();
   vi.unstubAllGlobals();
 });
@@ -142,13 +147,13 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     await wrapper.get("[data-testid='project-new']").trigger("click");
-    expect(wrapper.get(".modal-card h2").text()).toBe("Novo contexto de projeto");
+    expect(portal().get(".modal-card h2").text()).toBe("Novo contexto de projeto");
     expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
-    await wrapper.get("[data-testid='project-name']").setValue("Projeto Novo");
-    await wrapper.get("[data-testid='project-form']").trigger("submit");
+    await portal().get("[data-testid='project-name']").setValue("Projeto Novo");
+    await portal().get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
 
-    expect(wrapper.find(".modal-card").exists()).toBe(false);
+    expect(portal().find(".modal-card").exists()).toBe(false);
     expect(post).toHaveBeenCalledWith("/units/u-tst/project-contexts", { name: "Projeto Novo" });
     expect(wrapper.emitted("changed")).toBeTruthy();
   });
@@ -160,10 +165,10 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     await itemButton(wrapper, "pc-b", "Editar")!.trigger("click");
-    expect(wrapper.get(".modal-card h2").text()).toBe("Editar contexto de projeto");
+    expect(portal().get(".modal-card h2").text()).toBe("Editar contexto de projeto");
     expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
-    await wrapper.get("[data-testid='project-active']").setValue(true);
-    await wrapper.get("[data-testid='project-form']").trigger("submit");
+    await portal().get("[data-testid='project-active']").setValue(true);
+    await portal().get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
 
     expect(patch).toHaveBeenCalledWith("/project-contexts/pc-b", {
@@ -240,9 +245,9 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     await wrapper.get("[data-testid='project-new']").trigger("click");
-    await wrapper.get("[data-testid='project-code']").setValue("PC");
-    await wrapper.get("[data-testid='project-name']").setValue("Projeto Sintético C");
-    await wrapper.get("[data-testid='project-form']").trigger("submit");
+    await portal().get("[data-testid='project-code']").setValue("PC");
+    await portal().get("[data-testid='project-name']").setValue("Projeto Sintético C");
+    await portal().get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
     expect(wrapper.get("[data-testid='project-item-pc-new']").text()).toContain("Ativo");
 
