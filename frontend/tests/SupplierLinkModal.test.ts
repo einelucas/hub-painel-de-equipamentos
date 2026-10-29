@@ -34,6 +34,7 @@ const current: EquipmentSupplier = {
 
 function mountModal(link: EquipmentSupplier | null) {
   return mount(SupplierLinkModal, {
+    attachTo: document.body,
     props: {
       open: true,
       current: link,
