@@ -381,9 +381,9 @@ onMounted(load);
         </div>
         <div class="notify-test-box stack">
           <strong>Enviar teste para caixa autorizada</strong>
-          <label class="field">
-            <span>Provedor para este teste</span>
+          <div class="field">
             <VAutocomplete
+              :menu-props="{ zIndex: 10020 }"
               v-model="testProvider"
               :items="(settings?.providers ?? []).map((p) => ({ title: `${p.name}${p.configured ? '' : ' (não configurado)'}`, value: p.id }))"
               item-title="title"
@@ -394,7 +394,7 @@ onMounted(load);
               hide-details="auto"
               label="Provedor para este teste"
             />
-          </label>
+          </div>
           <p>O destino é fixo: {{ settings?.testInbox || "caixa ainda não configurada" }}. No modo sandbox todos os envios, inclusive alertas operacionais, são redirecionados para ela.</p>
           <label class="field"><span>Assunto</span><input v-model="mailSubject" maxlength="200" /></label>
           <label class="field"><span>Mensagem</span><textarea v-model="mailBody" rows="4" maxlength="4000" /></label>
@@ -403,9 +403,9 @@ onMounted(load);
       </div>
 
       <div v-else-if="tab === 'rules' || tab === 'recipients'" class="notify-panel stack">
-        <label class="field">
-          <span>Evento</span>
+        <div class="field">
           <VAutocomplete
+            :menu-props="{ zIndex: 10020 }"
             :model-value="selectedKind"
             :items="Object.entries(names).map(([kind, label]) => ({ title: label, value: kind }))"
             item-title="title"
@@ -417,7 +417,7 @@ onMounted(load);
             label="Evento"
             @update:model-value="chooseRule($event as Kind)"
           />
-        </label>
+        </div>
         <template v-if="selected">
           <template v-if="tab === 'rules'">
             <label class="notify-check"><input v-model="selected.enabled" type="checkbox" /> Regra ativa</label>
@@ -436,9 +436,9 @@ onMounted(load);
 
       <div v-else-if="tab === 'templates'" class="notify-panel stack tpl-workspace">
         <div class="tpl-workspace-head">
-          <label class="field">
-            <span>Tipo de notificação</span>
+          <div class="field">
             <VAutocomplete
+              :menu-props="{ zIndex: 10020 }"
               :model-value="selectedKind"
               :items="Object.entries(names).map(([kind, label]) => ({ title: label, value: kind }))"
               item-title="title"
@@ -450,7 +450,7 @@ onMounted(load);
               label="Tipo de notificação"
               @update:model-value="chooseRule($event as Kind)"
             />
-          </label>
+          </div>
           <p class="notify-hint"><CircleHelp :size="15" /> O modelo salvo vale para todos os envios deste tipo. A pré-visualização e o teste usam exatamente o HTML que será enviado; o teste nunca atinge destinatários operacionais.</p>
         </div>
 
