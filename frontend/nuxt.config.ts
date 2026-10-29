@@ -91,6 +91,7 @@ export default defineNuxtConfig({
         VAutocomplete: {
           variant: "outlined",
           color: "primary",
+          rounded: "lg",
           density: "comfortable",
           hideDetails: "auto",
         },
