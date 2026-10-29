@@ -157,8 +157,9 @@ async function submit(): Promise<void> {
         <section v-if="step === 0" class="step-body">
           <h3>Identificação da obra</h3>
           <p>Selecione a unidade e informe o nome do novo projeto.</p>
-          <label>Unidade
+          <div class="project-unit">
             <VAutocomplete
+              :menu-props="{ zIndex: 10020 }"
               v-model="unitId"
               :items="unitOptions"
               item-title="title"
@@ -170,7 +171,7 @@ async function submit(): Promise<void> {
               hide-details="auto"
               label="Unidade"
             />
-          </label>
+          </div>
           <label>Nome da obra
             <input v-model="name" maxlength="160" placeholder="Ex.: Ampliação da unidade" data-testid="new-project-name" />
           </label>
@@ -264,7 +265,7 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
 .step-body h3 { font-size: 16px; font-weight: 800; margin: 0; }
 .step-body p { margin: 0; font-size: 13px; color: #677b92; }
 .step-body label:not(.check-row) { display: grid; gap: 6px; font-size: 12px; font-weight: 700; }
-.step-body input:not([type=checkbox]), .step-body select { width: 100%; border: 1px solid #dce4ef; border-radius: 9px; padding: 10px 12px; background: #fff; color: #273e5a; }
+.step-body input:not([type=checkbox]):not(.v-field__input), .step-body select { width: 100%; border: 1px solid #dce4ef; border-radius: 9px; padding: 10px 12px; background: #fff; color: #273e5a; }
 .section-title { display: flex; justify-content: space-between; gap: 15px; align-items: center; }
 .section-title strong { font-size: 12px; white-space: nowrap; }
 .search { position: relative; display: flex; align-items: center; gap: 8px; border: 1px solid #dce4ef; border-radius: 10px; padding-left: 10px; }
