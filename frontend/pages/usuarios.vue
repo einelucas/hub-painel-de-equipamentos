@@ -173,7 +173,6 @@ onMounted(load);
                 </TableCell>
                 <TableCell>
                   <VAutocomplete
-                    :menu-props="{ zIndex: 10020 }"
                     :model-value="user.role"
                     :items="roleOptions"
                     item-title="title"
@@ -227,7 +226,6 @@ onMounted(load);
         <div class="field">
           <VAutocomplete
             v-model="form.role"
-            :menu-props="{ zIndex: 10020 }"
             :items="roleOptions"
             item-title="title"
             item-value="value"
