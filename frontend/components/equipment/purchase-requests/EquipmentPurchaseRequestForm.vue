@@ -37,7 +37,6 @@ const form = reactive<EquipmentPurchaseRequestFormValues>({
 <template>
   <form class="item-form" @submit.prevent="emit('submit', { ...form })">
     <div class="field">
-      <span>Tipo</span>
       <SearchableSelect
         :model-value="form.kind"
         :options="KIND_OPTIONS"
