@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { mdiArrowLeft } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { ArrowLeft } from "lucide-vue-next";
 
 withDefaults(
@@ -26,18 +28,16 @@ const emit = defineEmits<{ click: [event: MouseEvent] }>();
     <span class="back-link__label"><slot>Voltar</slot></span>
   </NuxtLink>
 
-  <button
+  <VBtn
     v-else
+    variant="outlined"
     type="button"
-    class="back-link"
-    :class="{ 'back-link--compact': compact }"
+    :size="compact ? 'x-small' : 'small'"
+    :prepend-icon="mdiArrowLeft"
     @click="emit('click', $event)"
   >
-    <span class="back-link__icon" aria-hidden="true">
-      <ArrowLeft :size="compact ? 15 : 16" :stroke-width="2.2" />
-    </span>
-    <span class="back-link__label"><slot>Voltar</slot></span>
-  </button>
+    <slot>Voltar</slot>
+  </VBtn>
 </template>
 
 <style scoped>

@@ -46,7 +46,7 @@ describe("AppModal", () => {
     const modal = mountModal();
     await flushPromises();
 
-    await modal.get(".modal-close").trigger("click");
+    await modal.get("[data-testid='modal-close']").trigger("click");
     // O fundo fecha por mousedown no overlay (tratamento próprio do Hub).
     await modal.get(".el-overlay").trigger("mousedown");
     await modal.get(".modal-card").trigger("keydown", { key: "Escape" });
@@ -62,7 +62,7 @@ describe("AppModal", () => {
     save.focus();
     await modal.get(".modal-card").trigger("keydown", { key: "Tab" });
 
-    expect(document.activeElement).toBe(modal.get(".modal-close").element);
+    expect(document.activeElement).toBe(modal.get("[data-testid='modal-close']").element);
   });
 
   it("não fecha com Escape enquanto há um dropdown aberto dentro do modal", async () => {
@@ -80,7 +80,7 @@ describe("AppModal", () => {
     const modal = mountModal({ busy: true });
     await flushPromises();
 
-    await modal.get(".modal-close").trigger("click");
+    await modal.get("[data-testid='modal-close']").trigger("click");
     await modal.get(".el-overlay").trigger("mousedown");
     await modal.get(".modal-card").trigger("keydown", { key: "Escape" });
 

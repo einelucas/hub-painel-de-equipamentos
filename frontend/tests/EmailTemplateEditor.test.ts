@@ -40,7 +40,7 @@ describe("EmailTemplateEditor", () => {
     const body = wrapper.get("textarea[rows='5']");
 
     await body.trigger("focus");
-    await wrapper.findAll(".tpl-variable-chip").at(1)!.trigger("click");
+    await wrapper.get("[data-testid='template-variable-tag']").trigger("click");
 
     const emitted = wrapper.emitted("update:modelValue") as EmailTemplateDraft[][];
     expect(emitted.at(-1)?.[0]?.body).toBe("Corpo do e-mail{tag}");
@@ -49,7 +49,7 @@ describe("EmailTemplateEditor", () => {
   it("ativa o modo avançado e expõe o textarea de HTML", async () => {
     const wrapper = mount(EmailTemplateEditor, { props: { modelValue: { ...DRAFT } } });
 
-    await wrapper.get(".tpl-advanced-toggle").trigger("click");
+    await wrapper.get("[data-testid='template-advanced-toggle']").trigger("click");
     const emitted = wrapper.emitted("update:modelValue") as EmailTemplateDraft[][];
     await wrapper.setProps({ modelValue: emitted[0]?.[0] });
     await wrapper.findAll(".tpl-editor-tabs button").at(1)!.trigger("click");
@@ -67,7 +67,7 @@ describe("EmailTemplateEditor", () => {
 
     await wrapper.findAll(".tpl-editor-tabs button").at(1)!.trigger("click");
     await wrapper.get(".tpl-html-editor").trigger("focus");
-    await wrapper.findAll(".tpl-variable-chip").at(1)!.trigger("click");
+    await wrapper.get("[data-testid='template-variable-tag']").trigger("click");
 
     const emitted = wrapper.emitted("update:modelValue") as EmailTemplateDraft[][];
     expect(emitted.at(-1)?.[0]?.customHtml).toBe("<div></div>{tag}");

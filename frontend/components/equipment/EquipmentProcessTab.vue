@@ -226,11 +226,7 @@ async function advanceStage(): Promise<void> {
   flex-direction: column;
   gap: 16px;
 }
-.advance-button {
-  justify-content: center;
-  margin-top: auto;
-  gap: 7px;
-}
+.advance-button { margin-top: auto; }
 .requirements-final {
   margin: 0;
   color: #477a32;

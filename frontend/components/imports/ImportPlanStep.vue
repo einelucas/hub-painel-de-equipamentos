@@ -146,7 +146,6 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
           <div class="supplier-choice">
             <VBtn
               type="button"
-              class="recommended-button"
               :disabled="!item.supplierId"
               variant="outlined"
               @click="useRecommended(item)"

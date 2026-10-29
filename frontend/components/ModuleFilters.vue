@@ -198,10 +198,7 @@ function onEquipment(value: string): void {
 .filter-extra > :slotted(.field-inline) {
   width: max-content;
 }
-.filter-extra :deep(.el-button) {
-  height: 41px;
-  min-height: 41px;
-  margin: 0;
+.filter-extra :deep(.v-btn) {
   align-self: flex-end;
 }
 .filter-actions {
@@ -211,13 +208,6 @@ function onEquipment(value: string): void {
   align-items: flex-end;
   gap: 8px;
   margin-left: auto;
-}
-/* O seletor reserva 5 px acima da borda para a legenda flutuante. A altura
-   visual do contorno é 41 px; os botões seguem esse contorno, não o wrapper. */
-.filter-actions :deep(.el-button) {
-  height: 41px;
-  min-height: 41px;
-  margin: 0;
 }
 .filter-loading {
   display: flex;
@@ -249,7 +239,7 @@ function onEquipment(value: string): void {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .filter-actions :deep(.el-button) {
+  .filter-actions :deep(.v-btn) {
     width: 100%;
   }
 }

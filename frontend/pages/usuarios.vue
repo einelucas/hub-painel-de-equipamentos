@@ -266,6 +266,6 @@ onMounted(load);
 @media (max-width: 760px) {
   .users-header { align-items: flex-start; flex-direction: column; }
   .header-actions { width: 100%; }
-  .header-actions .el-button { flex: 1; }
+  .header-actions .v-btn { flex: 1; }
 }
 </style>

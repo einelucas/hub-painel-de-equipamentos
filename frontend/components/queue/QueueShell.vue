@@ -85,7 +85,7 @@ const term = ref("");
 .queue-search { min-width: 0; }
 .search-control { display: flex; gap: 7px; }
 .search-control input { flex: 1; min-width: 0; min-height: 46px; }
-.search-control .el-button { flex: none; height: 46px; margin: 0; }
+.search-control .v-btn { flex: none; }
 .queue-criteria { margin: 0; padding: 0 18px 12px; color: #8b96a5; font-size: 11.5px; }
 .queue-state { display: block; padding: 18px; min-height: 220px; align-items: center; justify-content: center; gap: 12px; color: #748197; }
 .table-wrap { padding: 0 18px 18px; overflow-x: auto; }

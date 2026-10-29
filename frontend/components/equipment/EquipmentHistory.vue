@@ -151,7 +151,7 @@ onMounted(load);
         <p>{{ error }}</p>
       </div>
 
-      <VBtn type="button" class="retry-button" variant="text" @click="load">
+      <VBtn type="button" variant="outlined" @click="load">
         Tentar novamente
       </VBtn>
     </div>

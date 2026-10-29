@@ -65,8 +65,8 @@ function onFiles(event: Event): void {
       class="file-picker__button"
       :disabled="props.disabled"
       :prepend-icon="mdiUpload"
-     @click="choose">
-
+      @click="choose"
+    >
       <span class="file-picker__name">{{ shown }}</span>
     </VBtn>
     <input
@@ -89,8 +89,6 @@ function onFiles(event: Event): void {
 }
 
 .file-picker__button {
-  justify-content: flex-start;
-  gap: 7px;
   max-width: 100%;
 }
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { mdiChevronDown, mdiChevronRight } from "@mdi/js";
 import { VBtn } from "vuetify/components";
 import { computed, ref, watch } from "vue";
-import { Check, ChevronDown, ChevronRight, Search } from "lucide-vue-next";
+import { Check, Search } from "lucide-vue-next";
 
 interface Area { id: string; name: string; isUnassigned: boolean; active: boolean }
 interface ComponentOption { id: string; name: string; active: boolean; requiresQuantityReview: boolean; requiresNameReview: boolean }
@@ -174,10 +175,15 @@ async function submit(): Promise<void> {
           </div>
           <div v-else class="areas-list">
             <div v-for="area in areasWithResults" :key="area.id" class="area-group">
-              <button type="button" class="area-title" @click="expandedAreas[area.id] = expandedAreas[area.id] === false">
-                <ChevronRight v-if="expandedAreas[area.id] === false" :size="16" /><ChevronDown v-else :size="16" />
+              <VBtn
+                type="button"
+                variant="tonal"
+                block
+                :prepend-icon="expandedAreas[area.id] === false ? mdiChevronRight : mdiChevronDown"
+                @click="expandedAreas[area.id] = expandedAreas[area.id] === false"
+              >
                 {{ area.name }} <small>{{ area.models.length }}</small>
-              </button>
+              </VBtn>
               <div v-if="expandedAreas[area.id] !== false" class="equipment-list">
                 <label v-for="equipment in area.models" :key="equipment.id" class="check-row">
                   <input type="checkbox" :checked="selectedEquipment(equipment.id)" @change="toggleEquipment(equipment.id)" />

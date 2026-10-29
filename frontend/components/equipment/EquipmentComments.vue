@@ -210,7 +210,7 @@ onMounted(load);
         <strong>Não foi possível carregar</strong>
         <p>{{ error }}</p>
       </div>
-      <VBtn type="button" class="ghost-btn" variant="outlined" @click="load">
+      <VBtn type="button" variant="outlined" @click="load">
         Tentar novamente
       </VBtn>
     </div>
@@ -247,8 +247,6 @@ onMounted(load);
             <VBtn
 
               type="submit"
-
-              class="primary-btn"
 
               :disabled="!newText.trim() || busy"
 
@@ -324,7 +322,6 @@ onMounted(load);
               <div class="comment-top-actions">
                 <VBtn
                   type="button"
-                  class="icon-btn"
                   aria-label="Curtir comentário"
                   variant="text"
                   size="x-small"
@@ -336,8 +333,6 @@ onMounted(load);
 
                   type="button"
 
-                  class="icon-btn"
-
                   aria-label="Responder comentário"
 
                   variant="text"
@@ -348,7 +343,7 @@ onMounted(load);
 
                 </VBtn>
 
-                <VBtn type="button" class="icon-btn" aria-label="Mais ações" variant="text" size="x-small" :icon="mdiDotsHorizontal">
+                <VBtn type="button" aria-label="Mais ações" variant="text" size="x-small" :icon="mdiDotsHorizontal">
 
                 </VBtn>
               </div>
@@ -375,7 +370,6 @@ onMounted(load);
                   <div class="inline-actions">
                     <VBtn
                       type="button"
-                      class="ghost-btn"
                       :disabled="busy"
                       variant="outlined"
                       @click="cancelEdit"
@@ -386,8 +380,6 @@ onMounted(load);
                     <VBtn
 
                       type="button"
-
-                      class="primary-btn"
 
                       :disabled="!editingText.trim() || busy"
 
@@ -415,12 +407,12 @@ onMounted(load);
 
           <div class="comment-card-footer">
             <div class="footer-actions">
-              <VBtn type="button" class="footer-action" variant="text" size="small" :prepend-icon="mdiHeartOutline">
+              <VBtn type="button" variant="text" size="small" :prepend-icon="mdiHeartOutline">
 
                 Curtir
               </VBtn>
 
-              <VBtn type="button" class="footer-action" variant="text" size="small" :prepend-icon="mdiReplyOutline">
+              <VBtn type="button" variant="text" size="small" :prepend-icon="mdiReplyOutline">
 
                 Responder
               </VBtn>
@@ -432,7 +424,6 @@ onMounted(load);
               >
                 <VBtn
                   type="button"
-                  class="footer-action"
                   variant="text"
                   size="small"
                   :prepend-icon="mdiPencilOutline"
@@ -444,8 +435,6 @@ onMounted(load);
                 <VBtn
 
                   type="button"
-
-                  class="footer-action footer-action--danger"
 
                   :disabled="busy"
 
@@ -472,7 +461,6 @@ onMounted(load);
             <div class="inline-actions">
               <VBtn
                 type="button"
-                class="ghost-btn"
                 :disabled="busy"
                 variant="outlined"
                 :prepend-icon="mdiClose"
@@ -484,8 +472,6 @@ onMounted(load);
               <VBtn
 
                 type="button"
-
-                class="danger-btn"
 
                 :disabled="busy"
 
@@ -505,13 +491,15 @@ onMounted(load);
               {{ composerInitials() }}
             </div>
 
-            <button
+            <VBtn
               type="button"
               class="reply-mock-input"
+              variant="outlined"
+              block
               aria-label="Responder comentário"
             >
               Escreva uma resposta e mencione outros com @
-            </button>
+            </VBtn>
           </div>
         </article>
       </div>
@@ -521,7 +509,7 @@ onMounted(load);
 
 <style scoped>
 .footer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-@media (max-width: 640px) { .footer-actions { width: 100%; } .footer-actions .el-button { flex: 1 1 auto; } }
+@media (max-width: 640px) { .footer-actions { width: 100%; } }
 .comments-board {
   display: grid;
   gap: 18px;
@@ -1040,34 +1028,9 @@ onMounted(load);
 }
 
 .reply-mock-input {
-  display: flex;
-  width: 100%;
-  min-height: 52px;
-  align-items: center;
-
-  padding: 0 16px;
-
-  border: 1px solid #d9e0e9;
-  border-radius: 12px;
-
-  background: #ffffff;
-  color: #8b96a5;
-
-  font-family: inherit;
-  font-size: 12px;
   text-align: left;
-
-  transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease,
-    color 0.15s ease;
 }
-
-.reply-mock-input:hover {
-  border-color: #b9c6d8;
-  background: #f8fafc;
-  color: #304f7e;
-}
+.reply-mock-input :deep(.v-btn__content) { justify-content: flex-start; }
 
 /* =========================================================
    RESPONSIVE

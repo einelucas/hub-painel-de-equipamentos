@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { mdiClose } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from "vue";
-import { X } from "lucide-vue-next";
 import { ElDialog } from "element-plus";
 import AppTeleport from "~/components/ui/AppTeleport.vue";
 import { lockBodyScroll, unlockBodyScroll } from "~/utils/bodyScrollLock";
@@ -175,15 +176,16 @@ onBeforeUnmount(() => {
       <template #header>
         <header class="modal-header">
           <h2 :id="titleId">{{ title }}</h2>
-          <button
+          <VBtn
             type="button"
-            class="modal-close"
+            variant="text"
+            size="x-small"
             aria-label="Fechar"
+            data-testid="modal-close"
             :disabled="busy"
+            :icon="mdiClose"
             @click="requestClose"
-          >
-            <X :size="20" aria-hidden="true" />
-          </button>
+          />
         </header>
       </template>
       <div ref="bodyEl" class="modal-body"><slot /></div>
@@ -218,24 +220,6 @@ onBeforeUnmount(() => {
   letter-spacing: -0.01em;
   line-height: 1.3;
 }
-
-.modal-close {
-  display: inline-grid;
-  flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 0;
-  border-radius: 7px;
-  margin: -4px -6px 0 0;
-  background: transparent;
-  color: #95a1b1;
-  cursor: pointer;
-}
-
-.modal-close:hover:not(:disabled) { background: #f0f4f9; color: #526176; }
-.modal-close:focus-visible { outline: 2px solid #304f7e; outline-offset: 1px; }
-.modal-close:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .modal-body {
   height: 100%;

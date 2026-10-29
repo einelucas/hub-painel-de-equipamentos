@@ -293,7 +293,6 @@ onMounted(loadCatalogs);
           <VBtn
             v-if="auth.can('catalogs:manage')"
             type="button"
-            class="eap-manage-button"
             data-testid="edit-eaps"
             variant="text"
             :prepend-icon="mdiPencilOutline"
@@ -352,7 +351,6 @@ onMounted(loadCatalogs);
           <VBtn
             v-if="auth.can('catalogs:manage')"
             type="button"
-            class="eap-manage-button"
             data-testid="edit-criticalities"
             variant="text"
             :prepend-icon="mdiPencilOutline"

@@ -42,6 +42,6 @@ describe("BackLink", () => {
       props: { compact: true },
     });
 
-    expect(wrapper.classes()).toContain("back-link--compact");
+    expect(wrapper.classes()).toContain("v-btn--size-x-small");
   });
 });

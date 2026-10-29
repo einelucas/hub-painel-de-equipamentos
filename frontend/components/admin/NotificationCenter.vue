@@ -352,11 +352,16 @@ onMounted(load);
 
     <template v-else>
       <div class="notify-tabs" role="tablist" aria-label="Central de notificações">
-        <button
-          v-for="item in tabs" :key="item.key" type="button" role="tab"
+        <VBtn
+          v-for="item in tabs"
+          :key="item.key"
+          :variant="tab === item.key ? 'tonal' : 'text'"
+          type="button"
+          role="tab"
+          size="small"
           :aria-selected="tab === item.key" :class="{ active: tab === item.key }" @click="tab = item.key">
           {{ item.name }}
-        </button>
+        </VBtn>
       </div>
 
       <div v-if="tab === 'settings'" class="notify-panel stack">
@@ -487,8 +492,6 @@ onMounted(load);
 .notify-heading h4 { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 750; margin: 0; }
 .notify-heading p, .notify-delivery p { margin: 4px 0; font-size: 12px; color: #64748b; }
 .notify-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #dfe6f0; }
-.notify-tabs button { padding: 10px 12px; border-bottom: 2px solid transparent; font-size: 12px; color: #64748b; }
-.notify-tabs button.active { color: #304f7e; font-weight: 800; border-color: #304f7e; }
 .notify-panel { padding: 12px 0; }
 .notify-panel :deep(.field) { max-width: 100%; }
 .notify-panel textarea { resize: vertical; min-height: 90px; width: 100%; }

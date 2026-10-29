@@ -158,16 +158,14 @@ onBeforeUnmount(() => {
                 variant="outlined"
                 type="submit"
                 :loading="loading"
-                class="toolbar-btn"
-               :disabled="loading">
+                :disabled="loading"
+              >
                 {{ loading ? "Buscando..." : "Buscar" }}
               </VBtn>
             </div>
           </form>
           <VBtn
-            variant="text"
-            class="toolbar-btn"
-            :class="{ active: includeInactive }"
+            :variant="includeInactive ? 'tonal' : 'text'"
             :prepend-icon="includeInactive ? mdiEyeOutline : mdiEyeOffOutline"
            @click="includeInactive = !includeInactive; load()">
 
@@ -178,7 +176,6 @@ onBeforeUnmount(() => {
             <VBtn
               v-if="canWrite"
               variant="tonal"
-              class="toolbar-btn"
               :prepend-icon="mdiPlus"
              @click="openCreate">
                Novo fornecedor
@@ -186,7 +183,6 @@ onBeforeUnmount(() => {
             <VBtn
               v-if="canWrite"
               variant="outlined"
-              class="toolbar-btn"
               :prepend-icon="mdiUpload"
              @click="showImport = true">
                Importar planilha
@@ -334,25 +330,10 @@ onBeforeUnmount(() => {
   align-items: end;
   gap: 8px;
 }
-  .filter-actions {
-    display: flex;
-    gap: 8px;
-  }
-  .toolbar-btn {
-    height: 41px;
-    min-height: 41px;
-  }
-  .search-control > .toolbar-btn {
-    height: 41px;
-    min-height: 41px;
-    margin: 0;
-    border-radius: 8px;
-  }
-  .toolbar-btn.active {
-    background: #eef4fb;
-    color: #1d4e89;
-    border-color: #b8d4ee;
-  }
+.filter-actions {
+  display: flex;
+  gap: 8px;
+}
 .list-state {
   display: flex;
   min-height: 200px;

@@ -317,7 +317,13 @@ watch(selectedId, loadSummary);
             :class="{ selected: item.id === selectedId, inactive: !item.active }"
             :data-testid="`project-item-${item.id}`"
           >
-            <button type="button" class="project-card" @click="selectedId = item.id">
+            <VBtn
+              type="button"
+              class="project-card"
+              :variant="item.id === selectedId ? 'tonal' : 'outlined'"
+              block
+              @click="selectedId = item.id"
+            >
               <span v-if="item.code" class="project-code">{{ item.code }}</span>
               <span class="project-name">{{ item.name }}</span>
               <span class="project-meta">
@@ -325,7 +331,7 @@ watch(selectedId, loadSummary);
                   {{ item.active ? "Ativo" : "Inativo" }}
                 </span>
               </span>
-            </button>
+            </VBtn>
             <span v-if="canManage" class="project-actions">
               <VBtn type="button" class="text-button" :disabled="saving" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="startEdit(item)">
                  Editar
@@ -495,8 +501,7 @@ watch(selectedId, loadSummary);
 .project-list li.selected { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 3px rgb(48 79 126 / 10%); }
 .project-list li.inactive { background: #fafbfc; }
 .project-list li.inactive .project-name { color: #9aa6b5; }
-.project-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
-.project-card:focus-visible { outline: 2px solid var(--steel, #304f7e); outline-offset: 4px; border-radius: 6px; }
+.project-card :deep(.v-btn__content) { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; text-align: left; }
 .project-code { grid-column: 1; color: var(--steel, #304f7e); font-family: var(--mono, monospace); font-size: 11.5px; font-weight: 700; }
 .project-name { grid-column: 1; min-width: 0; overflow: hidden; color: var(--ink, #1f3352); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .project-meta { grid-column: 2; grid-row: 1 / span 2; }

@@ -39,7 +39,7 @@ describe("ConfirmDialog", () => {
 
     const result = confirm({ message: "Excluir registro?" });
     await wrapper.vm.$nextTick();
-    await wrapper.get(".confirm-btn--cancel").trigger("click");
+    await wrapper.get("[data-testid='confirm-cancel']").trigger("click");
 
     await expect(result).resolves.toBe(false);
     wrapper.unmount();
@@ -73,8 +73,9 @@ describe("ConfirmDialog", () => {
     });
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.find(".confirm-btn--danger").exists()).toBe(false);
-    expect(wrapper.get(".confirm-btn--primary").text()).toBe("Desativar");
+    const accept = wrapper.get("[data-testid='confirm-accept']");
+    expect(accept.classes()).toContain("text-primary");
+    expect(accept.text()).toBe("Desativar");
     wrapper.unmount();
   });
 });

@@ -104,7 +104,7 @@ async function submit() {
           <span>Senha</span>
           <input v-model="password" type="password" autocomplete="current-password" required />
         </label>
-        <VBtn type="submit" variant="tonal" class="login-submit mt-1" :disabled="checking" :loading="loading">
+        <VBtn type="submit" variant="tonal" class="mt-1" block :disabled="checking" :loading="loading">
           {{ loading ? "Entrando..." : "Entrar" }}
         </VBtn>
       </form>
@@ -113,7 +113,7 @@ async function submit() {
         <div class="my-4 flex items-center gap-3 text-xs text-slate-400">
           <span class="h-px flex-1 bg-slate-200" />ou<span class="h-px flex-1 bg-slate-200" />
         </div>
-        <VBtn variant="outlined" class="login-submit" :disabled="loading || checking" @click="oidc">
+        <VBtn variant="outlined" block :disabled="loading || checking" @click="oidc">
           Entrar com conta corporativa
         </VBtn>
       </template>

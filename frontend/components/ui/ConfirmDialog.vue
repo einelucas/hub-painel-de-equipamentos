@@ -8,7 +8,7 @@ import { useConfirm } from "~/composables/useConfirm";
 import { lockBodyScroll, unlockBodyScroll } from "~/utils/bodyScrollLock";
 
 /**
- * Confirmação global com ações nativas do Element Plus.
+ * Confirmação global com ações nativas do Vuetify.
  */
 const { state, accept, cancel } = useConfirm();
 const CONFIRMATION_Z_INDEX = 10_000;
@@ -99,9 +99,7 @@ onBeforeUnmount(() => {
         >
           <header class="confirm-head">
             <h2 id="confirm-dialog-title">{{ state.title }}</h2>
-            <VBtn type="button" class="confirm-close" aria-label="Fechar" variant="text" size="x-small" :icon="mdiClose" @click="cancel">
-
-            </VBtn>
+            <VBtn type="button" aria-label="Fechar" variant="text" size="x-small" :icon="mdiClose" @click="cancel" />
           </header>
 
           <div class="confirm-body">
@@ -118,7 +116,7 @@ onBeforeUnmount(() => {
             <VBtn
               ref="cancelButton"
               type="button"
-              class="confirm-btn confirm-btn--cancel"
+              data-testid="confirm-cancel"
               variant="outlined"
               @click="cancel"
             >
@@ -126,8 +124,7 @@ onBeforeUnmount(() => {
             </VBtn>
             <VBtn
               type="button"
-              class="confirm-btn"
-              :class="state.tone === 'danger' ? 'confirm-btn--danger' : 'confirm-btn--primary'"
+              data-testid="confirm-accept"
               variant="tonal"
               :color="state.tone === 'danger' ? 'error' : 'primary'"
               @click="accept"

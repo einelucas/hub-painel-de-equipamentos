@@ -146,6 +146,6 @@ watch(
 .tpl-check input { margin-top: 2px; accent-color: #304f7e; }
 .tpl-check span { display: grid; gap: 1px; }
 .tpl-check small { color: #92620f; font-size: 10px; }
-.tpl-test .el-button { justify-self: start; }
+.tpl-test .v-btn { justify-self: start; }
 @media (max-width: 700px) { .tpl-test-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { mdiCancel, mdiRestore } from "@mdi/js";
+import { mdiChevronDown, mdiCancel, mdiRestore  } from "@mdi/js";
 import { VBtn } from "vuetify/components";
 import { computed, ref } from "vue";
-import { AlertTriangle, CheckCircle2, ChevronDown, CircleOff, FileText, RotateCcw, ShieldCheck, UserRound } from "lucide-vue-next";
+import { AlertTriangle, CheckCircle2, CircleOff, FileText, RotateCcw, ShieldCheck, UserRound } from "lucide-vue-next";
 
 import type {
   RequirementGroup,
@@ -215,18 +215,16 @@ async function confirmRevoke(): Promise<void> {
       </div>
 
       <div class="waiver-bottom">
-        <button
+        <VBtn
           type="button"
-          class="justification-toggle"
+          variant="text"
+          size="small"
           :aria-expanded="expanded"
+          :append-icon="mdiChevronDown"
           @click="expanded = !expanded"
         >
-          <ChevronDown
-            :size="14"
-            :class="{ 'toggle-chevron--open': expanded }"
-          />
           {{ expanded ? "Ocultar justificativa" : "Ver justificativa" }}
-        </button>
+        </VBtn>
 
         <VBtn
 

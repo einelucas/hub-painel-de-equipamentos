@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { mdiClose } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed, ref } from "vue";
 import type { Component } from "vue";
-import { X } from "lucide-vue-next";
 
 const props = withDefaults(defineProps<{
   modelValue: string;
@@ -86,16 +87,17 @@ function clear(): void {
       @blur="onBlur"
     >
 
-    <button
+    <VBtn
       v-if="props.clearable && hasValue && !props.disabled"
+      variant="text"
       class="floating-filter-input__clear"
       type="button"
       :aria-label="`Limpar ${props.label.toLowerCase()}`"
+      :icon="mdiClose"
+      size="x-small"
       @mousedown.prevent
       @click="clear"
-    >
-      <X :size="14" aria-hidden="true" />
-    </button>
+    />
 
     <span class="floating-filter-input__label" aria-hidden="true">{{ props.label }}</span>
   </div>
@@ -251,19 +253,8 @@ function clear(): void {
   top: 50%;
   right: 11px;
   z-index: 4;
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: #94a3b8;
-  cursor: pointer;
   transform: translateY(-50%);
 }
-
-.floating-filter-input__clear:hover { color: var(--ffi-focus); }
 
 @media (prefers-reduced-motion: reduce) {
   .floating-filter-input__outline,

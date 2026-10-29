@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { mdiCodeTags, mdiContentSaveOutline, mdiRestore } from "@mdi/js";
+import { mdiCodeTags, mdiCreationOutline, mdiContentSaveOutline, mdiRestore  } from "@mdi/js";
 import { VBtn } from "vuetify/components";
 import { ref } from "vue";
-import { Code2, Sparkles } from "lucide-vue-next";
+import { Code2 } from "lucide-vue-next";
 import EmailTemplateSettings from "~/components/admin/EmailTemplateSettings.vue";
 import EmailTemplateVariables from "~/components/admin/EmailTemplateVariables.vue";
 import type { EmailTemplateDraft } from "~/types/notifications";
@@ -57,24 +57,28 @@ function toggleAdvanced(): void {
 <template>
   <section class="tpl-editor stack">
     <div class="tpl-editor-tabs" role="tablist" aria-label="Modo de edição do modelo">
-      <button
+      <VBtn
         type="button"
         role="tab"
+        :variant="mode === 'visual' ? 'tonal' : 'text'"
         :aria-selected="mode === 'visual'"
         :class="{ active: mode === 'visual' }"
+        :prepend-icon="mdiCreationOutline"
         @click="selectMode('visual')"
       >
-        <Sparkles :size="13" /> Editor visual
-      </button>
-      <button
+        Editor visual
+      </VBtn>
+      <VBtn
         type="button"
         role="tab"
+        :variant="mode === 'html' ? 'tonal' : 'text'"
         :aria-selected="mode === 'html'"
         :class="{ active: mode === 'html' }"
+        :prepend-icon="mdiCodeTags"
         @click="selectMode('html')"
       >
-        <Code2 :size="13" /> HTML avançado
-      </button>
+        HTML avançado
+      </VBtn>
     </div>
 
     <template v-if="mode === 'visual'">
@@ -185,16 +189,17 @@ function toggleAdvanced(): void {
       <VBtn type="button" :disabled="busy" variant="outlined" size="small" :prepend-icon="mdiRestore" data-testid="template-reset" @click="emit('reset')">
          Restaurar padrão
       </VBtn>
-      <button
+      <VBtn
         type="button"
-        class="tpl-advanced-toggle"
-        :class="{ active: modelValue.useCustomHtml }"
+        :variant="modelValue.useCustomHtml ? 'tonal' : 'text'"
+        size="small"
         :aria-pressed="modelValue.useCustomHtml"
+        data-testid="template-advanced-toggle"
+        :prepend-icon="mdiCodeTags"
         @click="toggleAdvanced"
       >
-        <Code2 :size="13" />
         {{ modelValue.useCustomHtml ? "Modo avançado ativo" : "Usar HTML avançado" }}
-      </button>
+      </VBtn>
     </div>
   </section>
 </template>
@@ -202,20 +207,15 @@ function toggleAdvanced(): void {
 <style scoped>
 .tpl-editor { gap: 14px; }
 .tpl-editor-tabs { display: flex; gap: 4px; border-bottom: 1px solid #dfe6f0; }
-.tpl-editor-tabs button { display: inline-flex; align-items: center; gap: 5px; padding: 8px 10px; font-size: 12px; color: #64748b; border-bottom: 2px solid transparent; }
-.tpl-editor-tabs button.active { color: #304f7e; font-weight: 800; border-color: #304f7e; }
 .tpl-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .tpl-span-2 { grid-column: 1 / -1; }
 .tpl-editor-columns { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; align-items: start; }
 .tpl-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.tpl-advanced-toggle { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; border: 1px solid #d7e0ec; border-radius: 7px; padding: 7px 10px; font-size: 11px; color: #64748b; background: #fff; }
-.tpl-advanced-toggle.active { border-color: #304f7e; color: #304f7e; background: #eef3fb; font-weight: 700; }
 .tpl-html-warning { display: flex; gap: 8px; align-items: start; background: #fff8ec; border: 1px solid #f2ddb4; border-radius: 8px; padding: 10px; font-size: 11px; line-height: 1.5; color: #8a5a10; }
 .tpl-html-warning code { background: #fff; border: 1px solid #eadcc1; border-radius: 4px; padding: 0 3px; }
 .tpl-html-enable { justify-self: start; }
 .tpl-html-editor { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; line-height: 1.5; min-height: 320px; }
 @media (max-width: 1100px) {
   .tpl-editor-grid, .tpl-editor-columns { grid-template-columns: minmax(0, 1fr); }
-  .tpl-advanced-toggle { margin-left: 0; }
 }
 </style>

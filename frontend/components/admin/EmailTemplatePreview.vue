@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { mdiCellphone, mdiMonitor } from "@mdi/js";
+import { VBtn } from "vuetify/components";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { Monitor, Smartphone } from "lucide-vue-next";
 import type { EmailTemplatePreview } from "~/types/notifications";
 
 defineProps<{ preview: EmailTemplatePreview | null; loading?: boolean }>();
@@ -58,22 +59,26 @@ onBeforeUnmount(() => {
         <span v-if="preview?.sample" class="tpl-sample-pill">Dados fictícios</span>
       </div>
       <div class="tpl-device-toggle" role="group" aria-label="Visualização do e-mail">
-        <button
+        <VBtn
           type="button"
-          :class="{ active: device === 'desktop' }"
+          :variant="device === 'desktop' ? 'tonal' : 'text'"
+          size="small"
           :aria-pressed="device === 'desktop'"
+          :prepend-icon="mdiMonitor"
           @click="device = 'desktop'"
         >
-          <Monitor :size="13" /> Desktop
-        </button>
-        <button
+          Desktop
+        </VBtn>
+        <VBtn
           type="button"
-          :class="{ active: device === 'mobile' }"
+          :variant="device === 'mobile' ? 'tonal' : 'text'"
+          size="small"
           :aria-pressed="device === 'mobile'"
+          :prepend-icon="mdiCellphone"
           @click="device = 'mobile'"
         >
-          <Smartphone :size="13" /> Celular
-        </button>
+          Celular
+        </VBtn>
       </div>
     </header>
 
@@ -109,9 +114,7 @@ onBeforeUnmount(() => {
 .tpl-preview-subject small { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #7c8ba0; }
 .tpl-preview-subject strong { font-size: 12px; color: #24364f; overflow-wrap: anywhere; }
 .tpl-sample-pill { justify-self: start; margin-top: 2px; background: #fff4df; color: #92620f; border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 700; }
-.tpl-device-toggle { display: inline-flex; border: 1px solid #dbe3ee; border-radius: 8px; overflow: hidden; background: #fff; }
-.tpl-device-toggle button { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; font-size: 11px; color: #64748b; }
-.tpl-device-toggle button.active { background: #eef3fb; color: #304f7e; font-weight: 700; }
+.tpl-device-toggle { display: inline-flex; gap: 4px; }
 .tpl-preview-stage { position: relative; display: flex; justify-content: center; align-items: flex-start; background: #eef2f8; border: 1px solid #dde5ef; border-radius: 12px; padding: 14px; min-height: 648px; overflow: hidden; }
 .tpl-preview-canvas { position: relative; flex: 0 0 auto; }
 .tpl-preview-frame { position: absolute; top: 0; left: 0; transform-origin: top left; border: 0; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgba(30, 47, 71, 0.12); }

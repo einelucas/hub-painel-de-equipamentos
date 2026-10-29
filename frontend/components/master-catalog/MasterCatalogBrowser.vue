@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { mdiClose } from "@mdi/js";
+import { mdiClose, mdiLayersOutline } from "@mdi/js";
 import { computed } from "vue";
-import { Layers, Search } from "lucide-vue-next";
+import { Search } from "lucide-vue-next";
 import Badge from "~/components/ui/Badge.vue";
-import { VBtn } from "vuetify/components";
+import { VBtn, VIcon } from "vuetify/components";
 import Input from "~/components/ui/Input.vue";
 import LoadingSpinner from "~/components/ui/LoadingSpinner.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -135,10 +135,12 @@ function clearFilters(): void {
       </div>
       <ul v-else class="model-list">
         <li v-for="item in visibleEquipments" :key="item.id">
-          <button
+          <VBtn
             type="button"
             class="model-item"
             :class="{ selected: item.id === props.selectedId }"
+            :variant="item.id === props.selectedId ? 'tonal' : 'text'"
+            block
             :disabled="props.busy"
             :aria-pressed="item.id === props.selectedId"
             @click="emit('select', item)"
@@ -151,12 +153,12 @@ function clearFilters(): void {
             </span>
             <span class="model-item__meta">
               <span class="model-area" :title="fullAreaSummary(item, areaMap)">
-                <Layers :size="12" aria-hidden="true" /> {{ areaSummary(item, areaMap) }}
+                <VIcon :icon="mdiLayersOutline" size="12" aria-hidden="true" /> {{ areaSummary(item, areaMap) }}
               </span>
               <span class="meta-dot" aria-hidden="true">·</span>
               <span>{{ componentCountLabel(item.components.length) }}</span>
             </span>
-          </button>
+          </VBtn>
         </li>
       </ul>
     </div>
@@ -286,42 +288,9 @@ function clearFilters(): void {
 }
 
 .model-item {
-  display: grid;
-  width: 100%;
-  gap: 6px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 10px 11px;
-  background: transparent;
-  color: inherit;
   text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
 }
-
-.model-item:hover {
-  background: #f7fafd;
-}
-
-.model-item:disabled {
-  cursor: default;
-  opacity: 0.7;
-}
-
-.model-item:disabled:hover {
-  background: transparent;
-}
-
-.model-item.selected {
-  border-color: #cfe0f4;
-  background: #eef5fd;
-}
-
-.model-item.selected:disabled {
-  background: #eef5fd;
-}
+.model-item :deep(.v-btn__content) { display: grid; width: 100%; gap: 6px; }
 
 .model-item__head,
 .model-item__meta {

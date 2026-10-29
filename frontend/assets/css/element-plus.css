@@ -21,9 +21,6 @@
   --el-border-radius-round: 20px;
 }
 
-/* Shared spacing only; button variants and states keep Element Plus styling. */
-.el-button + .el-button { margin-left: 0; }
-.el-button > span { gap: 6px; }
 .el-select { width: 100%; }
 .hub-select-popper .el-select-dropdown__item { height: auto; min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
 

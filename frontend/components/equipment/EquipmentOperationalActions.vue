@@ -78,7 +78,6 @@ async function confirmEndSanitation(text: string): Promise<void> {
       <div v-if="isActive" class="actions-row">
         <div class="actions-main">
           <VBtn
-            class="action-button"
             type="button"
             :disabled="busy"
             data-testid="standby-button"
@@ -90,7 +89,6 @@ async function confirmEndSanitation(text: string): Promise<void> {
           </VBtn>
 
           <VBtn
-            class="action-button"
             type="button"
             :disabled="busy"
             data-testid="sanitation-button"
@@ -103,7 +101,6 @@ async function confirmEndSanitation(text: string): Promise<void> {
         </div>
 
         <VBtn
-          class="action-button action-button--danger"
           type="button"
           :disabled="busy"
           data-testid="cancel-button"
@@ -123,7 +120,6 @@ async function confirmEndSanitation(text: string): Promise<void> {
         </div>
 
         <VBtn
-          class="action-button action-button--primary"
           type="button"
           :disabled="busy"
           data-testid="lift-standby-button"
@@ -148,7 +144,6 @@ async function confirmEndSanitation(text: string): Promise<void> {
         </div>
 
         <VBtn
-          class="action-button action-button--primary"
           type="button"
           :disabled="busy"
           data-testid="end-sanitation-button"
