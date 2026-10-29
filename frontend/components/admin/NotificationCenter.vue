@@ -384,7 +384,6 @@ onMounted(load);
           <div class="field">
             <VAutocomplete
               v-model="testProvider"
-              :menu-props="{ zIndex: 10020 }"
               :items="(settings?.providers ?? []).map((p) => ({ title: `${p.name}${p.configured ? '' : ' (não configurado)'}`, value: p.id }))"
               item-title="title"
               item-value="value"
@@ -405,7 +404,6 @@ onMounted(load);
       <div v-else-if="tab === 'rules' || tab === 'recipients'" class="notify-panel stack">
         <div class="field">
           <VAutocomplete
-            :menu-props="{ zIndex: 10020 }"
             :model-value="selectedKind"
             :items="Object.entries(names).map(([kind, label]) => ({ title: label, value: kind }))"
             item-title="title"
@@ -438,7 +436,6 @@ onMounted(load);
         <div class="tpl-workspace-head">
           <div class="field">
             <VAutocomplete
-              :menu-props="{ zIndex: 10020 }"
               :model-value="selectedKind"
               :items="Object.entries(names).map(([kind, label]) => ({ title: label, value: kind }))"
               item-title="title"
