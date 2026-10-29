@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import DashboardFilters from "~/components/dashboard/DashboardFilters.vue";
 import { useDashboardFilters } from "~/composables/useDashboardFilters";
@@ -36,12 +36,11 @@ function mountFilters(
 describe("DashboardFilters", () => {
   it("mostra Área, Fase e Disciplina, nessa ordem, com a opção 'Todas' e os catálogos recebidos", async () => {
     const wrapper = mountFilters();
-    expect(wrapper.findAll(".field .floating-filter-select__label").map((item) => item.text())).toEqual([
+    expect(wrapper.findAll(".v-field-label:not(.v-field-label--floating)").map((item) => item.text())).toEqual([
       "Área",
       "Fase",
       "Disciplina",
     ]);
-    // O padrão floating label não usa mais label separado acima do controle.
     expect(wrapper.findAll(".field > span")).toHaveLength(0);
     expect(await optionLabels(wrapper, "dashboard-filter-area")).toEqual(["Todas as áreas", "Caldeira", "Drenagem"]);
     expect(await optionLabels(wrapper, "dashboard-filter-discipline")).toEqual([
@@ -93,11 +92,15 @@ describe("DashboardFilters", () => {
 
   it("Área é pesquisável e escolher a opção já selecionada não emite change", async () => {
     const wrapper = mountFilters({ areaId: "a-1" });
-    const input = wrapper.get("[data-testid='dashboard-filter-area']");
+    const input = wrapper.get("input[role='combobox']");
     await openMenu(wrapper, "dashboard-filter-area");
+    (input.element as HTMLInputElement).focus();
+    await flushPromises();
     await input.setValue("dren");
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 50));
     expect(
-      menuOptions(wrapper, "dashboard-filter-area").map((item) => item.find("strong").text()),
+      menuOptions(wrapper, "dashboard-filter-area").map((item) => item.find(".v-list-item-title").text()),
     ).toEqual(["Todas as áreas", "Drenagem"]);
 
     await chooseOption(wrapper, "dashboard-filter-area", "Drenagem");

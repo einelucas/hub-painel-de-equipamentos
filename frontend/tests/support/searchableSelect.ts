@@ -27,9 +27,9 @@ function root(wrapper: AnyWrapper, testId: string): ElementWrapper {
   return found;
 }
 
-/** Input interno do ElSelect que recebe foco, busca e teclado. */
+/** Input interno do VAutocomplete que recebe foco, busca e teclado. */
 function control(wrapper: AnyWrapper, testId: string): ElementWrapper {
-  return root(wrapper, testId).get(".el-select__input");
+  return root(wrapper, testId).get("input[role='combobox']");
 }
 
 /** `listbox` do menu, já dentro da árvore do `document.body`. */
@@ -46,7 +46,10 @@ export function menuElement(wrapper: AnyWrapper, testId: string): Element | null
 /** Abre o menu sem fechá-lo caso ele já esteja aberto. */
 export async function openMenu(wrapper: AnyWrapper, testId: string): Promise<void> {
   const input = control(wrapper, testId);
-  if (input.attributes("aria-expanded") !== "true") await input.trigger("click");
+  if (input.attributes("aria-expanded") !== "true") {
+    await input.trigger("mousedown");
+    await input.trigger("click");
+  }
 }
 
 /** Opções visíveis no menu (inclui a opção vazia, quando houver). */
@@ -59,6 +62,8 @@ export function menuOptions(wrapper: AnyWrapper, testId: string): DOMWrapper<Ele
 }
 
 function optionLabel(option: DOMWrapper<Element>): string {
+  const title = option.find(".v-list-item-title");
+  if (title.exists()) return title.text();
   const strong = option.find("strong");
   if (strong.exists()) return strong.text();
   return option.text();
@@ -89,6 +94,7 @@ export async function chooseOption(
       `Opção '${label}' não encontrada em '${testId}'${available ? ` (opções: ${available})` : ""}`,
     );
   }
+  await option.trigger("mousedown");
   await option.trigger("click");
   await nextTick();
 }

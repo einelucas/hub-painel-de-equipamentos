@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Button from "~/components/ui/Button.vue";
+import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, ref, watch } from "vue";
 import { FlaskConical, Search, Send } from "lucide-vue-next";
 import type {
@@ -39,6 +40,19 @@ const filtered = computed(() => {
   const options = props.equipmentOptions;
   return (term ? options.filter((item) => item.name.toLowerCase().includes(term)) : options).slice(0, 80);
 });
+const providerOptions = computed(() =>
+  (props.settings?.providers ?? []).map((item) => ({
+    title: `${item.name}${item.configured ? "" : " (não configurado)"}`,
+    value: item.id,
+  })),
+);
+const equipmentSelectOptions = computed(() => [
+  { title: "Selecione um equipamento", value: "" },
+  ...filtered.value.map((item) => ({
+    title: `${item.name}${item.unit?.name ? " · " + item.unit.name : ""}`,
+    value: item.id,
+  })),
+]);
 const disabled = computed(
   () =>
     !props.settings?.testInbox ||
@@ -75,11 +89,17 @@ watch(
     <div class="tpl-test-grid">
       <label class="field">
         <span>Provedor para este teste</span>
-        <select v-model="provider">
-          <option v-for="item in settings?.providers" :key="item.id" :value="item.id">
-            {{ item.name }}{{ item.configured ? "" : " (não configurado)" }}
-          </option>
-        </select>
+        <VAutocomplete
+          v-model="provider"
+          :items="providerOptions"
+          item-title="title"
+          item-value="value"
+          variant="outlined"
+          color="primary"
+          density="comfortable"
+          hide-details="auto"
+          label="Provedor para este teste"
+        />
       </label>
     </div>
 
@@ -103,15 +123,18 @@ watch(
       </label>
       <label class="field">
         <span>Equipamento para pré-visualização e teste</span>
-        <select
-          :value="equipmentId ?? ''"
-          @change="emit('update:equipmentId', ($event.target as HTMLSelectElement).value || null)"
-        >
-          <option value="">Selecione um equipamento</option>
-          <option v-for="item in filtered" :key="item.id" :value="item.id">
-            {{ item.name }}{{ item.unit?.name ? " · " + item.unit.name : "" }}
-          </option>
-        </select>
+        <VAutocomplete
+          :model-value="equipmentId ?? ''"
+          :items="equipmentSelectOptions"
+          item-title="title"
+          item-value="value"
+          variant="outlined"
+          color="primary"
+          density="comfortable"
+          hide-details="auto"
+          label="Equipamento para pré-visualização e teste"
+          @update:model-value="emit('update:equipmentId', String($event || '') || null)"
+        />
       </label>
     </template>
 

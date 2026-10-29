@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { AlertTriangle, CheckCircle2, CircleHelp, Clock3, MailCheck, RefreshCw, Send, Settings2 } from "lucide-vue-next";
 import EmailTemplateEditor from "~/components/admin/EmailTemplateEditor.vue";
@@ -382,11 +383,17 @@ onMounted(load);
           <strong>Enviar teste para caixa autorizada</strong>
           <label class="field">
             <span>Provedor para este teste</span>
-            <select v-model="testProvider">
-              <option v-for="provider in settings?.providers" :key="provider.id" :value="provider.id">
-                {{ provider.name }}{{ provider.configured ? "" : " (não configurado)" }}
-              </option>
-            </select>
+            <VAutocomplete
+              v-model="testProvider"
+              :items="(settings?.providers ?? []).map((p) => ({ title: `${p.name}${p.configured ? '' : ' (não configurado)'}`, value: p.id }))"
+              item-title="title"
+              item-value="value"
+              variant="outlined"
+              color="primary"
+              density="comfortable"
+              hide-details="auto"
+              label="Provedor para este teste"
+            />
           </label>
           <p>O destino é fixo: {{ settings?.testInbox || "caixa ainda não configurada" }}. No modo sandbox todos os envios, inclusive alertas operacionais, são redirecionados para ela.</p>
           <label class="field"><span>Assunto</span><input v-model="mailSubject" maxlength="200" /></label>
@@ -398,9 +405,18 @@ onMounted(load);
       <div v-else-if="tab === 'rules' || tab === 'recipients'" class="notify-panel stack">
         <label class="field">
           <span>Evento</span>
-          <select :value="selectedKind" @change="chooseRule(($event.target as HTMLSelectElement).value as Kind)">
-            <option v-for="(label, kind) in names" :key="kind" :value="kind">{{ label }}</option>
-          </select>
+          <VAutocomplete
+            :model-value="selectedKind"
+            :items="Object.entries(names).map(([kind, label]) => ({ title: label, value: kind }))"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            color="primary"
+            density="comfortable"
+            hide-details="auto"
+            label="Evento"
+            @update:model-value="chooseRule($event as Kind)"
+          />
         </label>
         <template v-if="selected">
           <template v-if="tab === 'rules'">
@@ -422,9 +438,18 @@ onMounted(load);
         <div class="tpl-workspace-head">
           <label class="field">
             <span>Tipo de notificação</span>
-            <select :value="selectedKind" @change="chooseRule(($event.target as HTMLSelectElement).value as Kind)">
-              <option v-for="(label, kind) in names" :key="kind" :value="kind">{{ label }}</option>
-            </select>
+            <VAutocomplete
+              :model-value="selectedKind"
+              :items="Object.entries(names).map(([kind, label]) => ({ title: label, value: kind }))"
+              item-title="title"
+              item-value="value"
+              variant="outlined"
+              color="primary"
+              density="comfortable"
+              hide-details="auto"
+              label="Tipo de notificação"
+              @update:model-value="chooseRule($event as Kind)"
+            />
           </label>
           <p class="notify-hint"><CircleHelp :size="15" /> O modelo salvo vale para todos os envios deste tipo. A pré-visualização e o teste usam exatamente o HTML que será enviado; o teste nunca atinge destinatários operacionais.</p>
         </div>

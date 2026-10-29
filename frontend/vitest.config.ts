@@ -5,5 +5,6 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [vue()],
   resolve: { alias: { "~": fileURLToPath(new URL(".", import.meta.url)) } },
+  ssr: { noExternal: ["vuetify"] },
   test: { environment: "happy-dom", include: ["tests/**/*.test.ts"], setupFiles: ["tests/support/setup.ts"] },
 });

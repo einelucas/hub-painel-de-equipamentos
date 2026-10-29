@@ -88,6 +88,12 @@ export default defineNuxtConfig({
           density: "comfortable",
           hideDetails: "auto",
         },
+        VAutocomplete: {
+          variant: "outlined",
+          color: "primary",
+          density: "comfortable",
+          hideDetails: "auto",
+        },
       },
     },
   },
