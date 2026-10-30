@@ -54,3 +54,55 @@ Final result: **passed**.
 **Passed** — no actionable P0, P1, or P2 visual issues remain in the requested button/filter states.
 
 The QA browser could not download Google Fonts because of the environment network policy; the configured system-font fallback was used without geometry or readability regressions.
+
+---
+
+# Design QA — inputs do formulário de equipamentos
+
+Status: **aprovado** em 2026-10-30.
+
+Final result: **passed**.
+
+## Visual truth
+
+- Source: screenshots anexados pelo usuário na solicitação, com rótulos flutuantes integrados ao contorno e campo de data arredondado com ícone de calendário.
+- Implementation screenshot: `/tmp/equipment-form-vuetify-inputs.png`.
+- Browser: Chromium headless, device scale factor 1.
+
+## Viewport and state checked
+
+| Viewport | State | Result |
+| --- | --- | --- |
+| 1280 × 1000 | Modal “Novo equipamento” aberto, nome e Startup preenchidos | Campos contornados, rótulos flutuantes e calendário visíveis; modal sem overflow horizontal |
+
+## Focused comparison
+
+- Nome, CAPEX e valor total agora usam o mesmo campo Vuetify outlined dos seletores.
+- Startup e as duas datas contratuais usam rótulo flutuante, ícone de calendário nativo, 49 px de altura e raio de 16 px.
+- O formulário não contém mais inputs nativos diretamente sob `.field`.
+- Ações administrativas de EAP e criticidade foram preservadas, assim como validação, máscara monetária e submissão.
+
+## Issue history
+
+1. **P1 — campos misturavam controles nativos e Vuetify**
+   - Cause: nome, moedas e datas ainda eram renderizados com `<input>` nativo e títulos externos.
+   - Fix: migração para `VTextField`; `CurrencyInput` passou a usar o campo Vuetify sem alterar seu contrato de valor.
+   - Recheck: 13 campos Vuetify encontrados, zero inputs nativos diretos e zero overflow horizontal.
+2. **P2 — Startup era esticado pela linha da ação de criticidade**
+   - Cause: alinhamento stretch do grid fazia o campo ocupar toda a altura da linha vizinha.
+   - Fix: alinhamento próprio no início da célula e largura integral.
+   - Recheck: Startup e datas contratuais medem 49 px de altura.
+
+## Required surfaces
+
+- Typography: preservada pela configuração do tema Vuetify e CSS corporativo.
+- Spacing: grid de duas colunas e gaps originais preservados.
+- Colors: contorno neutro e primary do Hub preservados.
+- Images/assets: nenhuma imagem nova necessária.
+- Copy: rótulos e textos funcionais preservados.
+
+## Final result
+
+**Passed** — nenhuma divergência P0, P1 ou P2 permanece nos campos solicitados.
+
+O único erro de console observado foi o bloqueio de rede ao carregar Google Fonts; o fallback local não alterou a geometria validada.

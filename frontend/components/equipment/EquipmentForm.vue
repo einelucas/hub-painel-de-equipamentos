@@ -260,11 +260,14 @@ onMounted(loadCatalogs);
     </p>
 
     <div class="form-grid">
-      <label class="field field-wide">
-        <span>Equipamento *</span>
-
-        <input v-model="form.name" maxlength="200" required />
-      </label>
+      <div class="field field-wide">
+        <VTextField
+          v-model="form.name"
+          label="Equipamento *"
+          maxlength="200"
+          required
+        />
+      </div>
 
       <div class="field">
 
@@ -348,11 +351,14 @@ onMounted(loadCatalogs);
         />
       </div>
 
-      <label class="field">
-        <span>Startup</span>
-
-        <input v-model="form.startupAt" type="date" />
-      </label>
+      <div class="field">
+        <VTextField
+          v-model="form.startupAt"
+          class="hub-date-field"
+          label="Startup"
+          type="date"
+        />
+      </div>
 
       <div class="field">
         <div class="field-label-row">
@@ -378,15 +384,13 @@ onMounted(loadCatalogs);
         />
       </div>
 
-      <label class="field">
-        <span>CAPEX estimado</span>
-
+      <div class="field">
         <CurrencyInput
           v-model="form.capexEstimated"
           label="CAPEX estimado"
           test-id="capex-input"
         />
-      </label>
+      </div>
 
       <div class="field">
         <SearchableSelect
@@ -400,27 +404,31 @@ onMounted(loadCatalogs);
         />
       </div>
 
-      <label class="field">
-        <span>Valor total do projeto</span>
-
+      <div class="field">
         <CurrencyInput
           v-model="form.projectTotalValue"
           label="Valor total do projeto"
           test-id="project-total-input"
         />
-      </label>
+      </div>
 
-      <label class="field">
-        <span>Entrega contratual · de</span>
+      <div class="field">
+        <VTextField
+          v-model="form.contractualDeliveryStart"
+          class="hub-date-field"
+          label="Entrega contratual · de"
+          type="date"
+        />
+      </div>
 
-        <input v-model="form.contractualDeliveryStart" type="date" />
-      </label>
-
-      <label class="field">
-        <span>Entrega contratual · até</span>
-
-        <input v-model="form.contractualDeliveryEnd" type="date" />
-      </label>
+      <div class="field">
+        <VTextField
+          v-model="form.contractualDeliveryEnd"
+          class="hub-date-field"
+          label="Entrega contratual · até"
+          type="date"
+        />
+      </div>
 
       <p v-if="equipment" class="stage-note field-wide">
         A etapa atual é alterada pelo fluxo do processo, na aba Processo.
@@ -477,7 +485,6 @@ onMounted(loadCatalogs);
   grid-column: 1 / -1;
 }
 
-.field > span,
 .field-label-row > span {
   color: #56657a;
   font-size: 11px;
@@ -487,6 +494,15 @@ onMounted(loadCatalogs);
   text-transform: uppercase;
 }
 .field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: flex-end; gap: 8px; }
+
+.hub-date-field :deep(.v-field) {
+  border-radius: 16px;
+}
+
+.hub-date-field {
+  align-self: start;
+  width: 100%;
+}
 
 .stage-note {
   margin: 0;

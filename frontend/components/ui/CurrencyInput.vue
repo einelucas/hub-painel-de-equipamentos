@@ -37,43 +37,38 @@ watch(
   },
 );
 
-function onFocus(event: FocusEvent): void {
+function onFocus(): void {
   focused.value = true;
-  const input = event.target as HTMLInputElement;
   display.value = editableCurrencyInput(props.modelValue);
-  input.value = display.value;
 }
 
-function onInput(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  const raw = input.value.replace(/[^\d,.]/g, "");
-  input.value = raw;
+function onInput(value: string | null): void {
+  const raw = String(value ?? "").replace(/[^\d,.]/g, "");
   display.value = raw;
   emit("update:modelValue", parseCurrencyInput(raw));
 }
 
-function onBlur(event: FocusEvent): void {
+function onBlur(): void {
   focused.value = false;
-  const input = event.target as HTMLInputElement;
-  const normalized = parseCurrencyInput(input.value);
+  const normalized = parseCurrencyInput(display.value);
   display.value = formatCurrencyInput(normalized);
-  input.value = display.value;
 }
 </script>
 
 <template>
-  <input
-    :value="display"
+  <VTextField
+    :model-value="display"
     type="text"
     inputmode="decimal"
     autocomplete="off"
-    :aria-label="label"
+    :label="label"
     :data-testid="testId"
     :disabled="disabled"
     :required="required"
     :placeholder="placeholder"
+    persistent-placeholder
     @focus="onFocus"
-    @input="onInput"
+    @update:model-value="onInput"
     @blur="onBlur"
-  >
+  />
 </template>

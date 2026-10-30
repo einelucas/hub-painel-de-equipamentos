@@ -207,8 +207,8 @@ describe("EquipmentForm", () => {
     const current = { ...equipment(), capexEstimated: "483600.00" };
     const { wrapper, patch } = await mountForm(current);
 
-    const capex = wrapper.get("[data-testid='capex-input']");
-    const projectTotal = wrapper.get("[data-testid='project-total-input']");
+    const capex = wrapper.get("[data-testid='capex-input'] input");
+    const projectTotal = wrapper.get("[data-testid='project-total-input'] input");
     expect((capex.element as HTMLInputElement).value).toContain("483.600,00");
     expect((projectTotal.element as HTMLInputElement).value).toBe("");
 

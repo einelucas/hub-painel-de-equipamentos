@@ -21,7 +21,7 @@
   padding-inline: 14px;
 }
 
-.v-autocomplete .v-field {
+.v-text-field .v-field {
   --v-field-padding-start: 16px;
   --v-field-padding-end: 16px;
 
@@ -30,11 +30,11 @@
   letter-spacing: 0.009375em;
 }
 
-.v-autocomplete .v-field.v-field--prepended {
+.v-text-field .v-field.v-field--prepended {
   --v-field-padding-start: 10px;
 }
 
-.v-autocomplete .v-field.v-field--appended {
+.v-text-field .v-field.v-field--appended {
   --v-field-padding-end: 10px;
 }
 
