@@ -138,7 +138,7 @@ describe("seletores pesquisáveis de catálogo", () => {
     wrapper.unmount();
   });
 
-  it("mantém múltiplos valores em chips e permite adicionar/remover", async () => {
+  it("resume múltiplos valores sem expandir o campo e permite adicionar/remover", async () => {
     const wrapper = mount(SearchableMultiSelect, {
       props: { options, modelValue: ["a"], label: "Work Packages", testId: "catalog-multi", "onUpdate:modelValue": (value: string[]) => wrapper.setProps({ modelValue: value }) },
       attachTo: document.body,
@@ -150,11 +150,16 @@ describe("seletores pesquisáveis de catálogo", () => {
     await chooseOption(wrapper, "catalog-multi", "B · Beta");
     await flushPromises();
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([["a", "b"]]);
+    expect(wrapper.get(".selection-summary").text()).toBe("2 selecionados");
+
+    await chooseOption(wrapper, "catalog-multi", "A · Alfa");
+    await flushPromises();
+    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([["b"]]);
 
     const closeBtn = wrapper.find(".v-chip__close");
     await closeBtn.trigger("click");
     await flushPromises();
-    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([["b"]]);
+    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([[]]);
     wrapper.unmount();
   });
 });

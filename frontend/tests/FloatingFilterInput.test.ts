@@ -13,17 +13,17 @@ describe("FloatingFilterInput", () => {
         "onUpdate:modelValue": (value: string) => wrapper.setProps({ modelValue: value }),
       },
     });
-    const input = wrapper.get("[data-testid='supplier-search']");
+    const input = wrapper.get("[data-testid='supplier-search'] input");
 
-    expect(wrapper.classes()).not.toContain("is-floating");
+    expect(wrapper.find(".v-field--focused").exists()).toBe(false);
     await input.trigger("focus");
-    expect(wrapper.classes()).toContain("is-floating");
+    expect(wrapper.find(".v-field--focused").exists()).toBe(true);
     expect(input.attributes("placeholder")).toBe("Código ou razão social");
 
     await input.setValue("ACME");
     await input.trigger("blur");
-    expect(wrapper.classes()).toContain("is-filled");
-    expect(wrapper.classes()).toContain("is-floating");
+    expect(wrapper.find(".v-field--dirty").exists()).toBe(true);
+    expect(wrapper.find(".v-field-label--floating").text()).toBe("Busca");
   });
 
   it("limpa o valor pelo mesmo affordance dos selects", async () => {
@@ -35,7 +35,7 @@ describe("FloatingFilterInput", () => {
       },
     });
 
-    await wrapper.get(".floating-filter-input__clear").trigger("click");
+    await wrapper.get(".v-field__clearable [role='button']").trigger("click");
     expect(wrapper.props("modelValue")).toBe("");
     expect(wrapper.emitted("clear")).toHaveLength(1);
   });

@@ -162,7 +162,11 @@ onMounted(async () => {
         </label>
       </template>
 
-      <EngineeringTable :rows="queue.items.value" :grouped="groupEnabled" />
+      <EngineeringTable
+        :rows="queue.items.value"
+        :grouped="groupEnabled"
+        :loading="queue.loading.value || queue.refreshing.value"
+      />
     </QueueShell>
   </ModuleWorkspace>
 </template>

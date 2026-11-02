@@ -86,15 +86,14 @@ function submit(): void {
           <input v-model="form.equalized" type="checkbox">
           <span>Negociação equalizada</span>
         </label>
-        <label class="field">
-          <span>Data da negociação</span>
-          <input v-model="form.negotiatedAt" type="date">
-        </label>
+        <div class="field">
+          <VTextField v-model="form.negotiatedAt" label="Data da negociação" type="date" />
+        </div>
       </div>
 
       <div v-else class="form-grid">
-        <label class="field"><span>Data de abertura</span><input v-model="form.openedAt" type="date"></label>
-        <label class="field"><span>Número do chamado</span><input v-model="form.ticketNumber" maxlength="80"></label>
+        <div class="field"><VTextField v-model="form.openedAt" label="Data de abertura" type="date" /></div>
+        <div class="field"><VTextField v-model="form.ticketNumber" label="Número do chamado" maxlength="80" /></div>
         <label class="field field-check"><input v-model="form.draftPrepared" type="checkbox"><span>Minuta elaborada</span></label>
         <label class="field field-check"><input v-model="form.draftApproved" type="checkbox"><span>Minuta aprovada</span></label>
       </div>

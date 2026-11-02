@@ -204,19 +204,12 @@ onBeforeUnmount(() => {
             </p>
           </div>
         </div>
-        <div
-          v-if="loading && !suppliers.length"
-          class="list-state"
-          role="status"
-        >
-          <span class="spinner" /> Carregando fornecedores...
-        </div>
-        <div v-else-if="error" class="empty-state table-empty" role="alert">
+        <div v-if="error && !loading" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2>
           <p>{{ error }}</p>
           <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
         </div>
-        <div v-else-if="suppliers.length === 0" class="empty-state table-empty">
+        <div v-else-if="!loading && suppliers.length === 0" class="empty-state table-empty">
           <h2>Nenhum fornecedor cadastrado</h2>
           <p>Cadastre o primeiro fornecedor para vinculá-lo a equipamentos.</p>
         </div>
@@ -228,8 +221,8 @@ onBeforeUnmount(() => {
           :aria-busy="loading"
           data-testid="supplier-scroll"
         >
-          <Table>
-            <TableHeader>
+          <Table :loading="loading">
+            <TableHeader :loading="loading">
               <TableRow>
                 <TableHead>Código</TableHead>
                 <TableHead>Razão social</TableHead>
@@ -239,7 +232,7 @@ onBeforeUnmount(() => {
                 <TableHead />
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody :loading="loading && visibleSuppliers.length === 0">
               <TableRow v-for="supplier in visibleSuppliers" :key="supplier.id">
                 <TableCell
                   ><span class="supplier-code">{{

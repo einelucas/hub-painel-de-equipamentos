@@ -252,7 +252,7 @@ void load();
 
     <label v-if="nodes.length" class="eap-search">
       <Search :size="14" aria-hidden="true" />
-      <input v-model="search" type="search" placeholder="Buscar por código ou nome" aria-label="Buscar na Árvore EAP">
+      <VTextField v-model="search" type="search" label="Buscar na Árvore EAP" placeholder="Buscar por código ou nome" clearable />
     </label>
 
     <p v-if="loading" class="eap-hint"><span class="spinner spinner-small" /> Carregando árvore...</p>
@@ -322,14 +322,12 @@ void load();
           @update:model-value="form.level = $event as EapLevel"
         />
       </div>
-      <label class="field">
-        <span>Código *</span>
-        <input v-model="form.code" maxlength="20" required :disabled="Boolean(editingId)" data-testid="eap-code">
-      </label>
-      <label class="field eap-name-field">
-        <span>Nome *</span>
-        <input v-model="form.name" maxlength="160" required data-testid="eap-name">
-      </label>
+      <div class="field">
+        <VTextField v-model="form.code" label="Código *" maxlength="20" required :disabled="Boolean(editingId)" data-testid="eap-code" />
+      </div>
+      <div class="field eap-name-field">
+        <VTextField v-model="form.name" label="Nome *" maxlength="160" required data-testid="eap-name" />
+      </div>
       <div v-if="form.level !== 'ISLAND'" class="field eap-parent-field">
         <SearchableSelect
           v-model="form.parentId"

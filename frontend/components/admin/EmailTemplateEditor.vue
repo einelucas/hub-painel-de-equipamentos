@@ -83,24 +83,24 @@ function toggleAdvanced(): void {
 
     <template v-if="mode === 'visual'">
       <div class="tpl-editor-grid">
-        <label class="field">
-          <span>Título principal</span>
-          <input
-            :value="modelValue.title"
+        <div class="field">
+          <VTextField
+            :model-value="modelValue.title"
+            label="Título principal"
             maxlength="160"
             @focus="activeField = 'title'"
-            @input="setField('title', ($event.target as HTMLInputElement).value)"
+            @update:model-value="setField('title', String($event ?? ''))"
           />
-        </label>
-        <label class="field">
-          <span>Assunto do e-mail</span>
-          <input
-            :value="modelValue.subject"
+        </div>
+        <div class="field">
+          <VTextField
+            :model-value="modelValue.subject"
+            label="Assunto do e-mail"
             maxlength="200"
             @focus="activeField = 'subject'"
-            @input="setField('subject', ($event.target as HTMLInputElement).value)"
+            @update:model-value="setField('subject', String($event ?? ''))"
           />
-        </label>
+        </div>
         <label class="field tpl-span-2">
           <span>Texto introdutório</span>
           <textarea
@@ -121,15 +121,15 @@ function toggleAdvanced(): void {
             @input="setField('body', ($event.target as HTMLTextAreaElement).value)"
           />
         </label>
-        <label class="field">
-          <span>Texto do botão de ação</span>
-          <input
-            :value="modelValue.buttonLabel"
+        <div class="field">
+          <VTextField
+            :model-value="modelValue.buttonLabel"
+            label="Texto do botão de ação"
             maxlength="80"
             @focus="activeField = 'buttonLabel'"
-            @input="setField('buttonLabel', ($event.target as HTMLInputElement).value)"
+            @update:model-value="setField('buttonLabel', String($event ?? ''))"
           />
-        </label>
+        </div>
         <label class="field tpl-span-2">
           <span>Rodapé</span>
           <textarea

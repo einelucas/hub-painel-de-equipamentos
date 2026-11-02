@@ -132,12 +132,12 @@ const groups = computed(() => [
             <input v-model="forms.negotiation.equalized" type="checkbox">
             <span>Negociação equalizada</span>
           </label>
-          <label class="field"><span>Data da negociação</span><input v-model="forms.negotiation.negotiatedAt" type="date"></label>
+          <div class="field"><VTextField v-model="forms.negotiation.negotiatedAt" label="Data da negociação" type="date" /></div>
         </div>
 
         <div v-else class="edit-grid">
-          <label class="field"><span>Data de abertura</span><input v-model="forms.legal.openedAt" type="date"></label>
-          <label class="field"><span>Número do chamado</span><input v-model="forms.legal.ticketNumber" maxlength="80"></label>
+          <div class="field"><VTextField v-model="forms.legal.openedAt" label="Data de abertura" type="date" /></div>
+          <div class="field"><VTextField v-model="forms.legal.ticketNumber" label="Número do chamado" maxlength="80" /></div>
           <label class="field field-check"><input v-model="forms.legal.draftPrepared" type="checkbox"><span>Minuta elaborada</span></label>
           <label class="field field-check"><input v-model="forms.legal.draftApproved" type="checkbox"><span>Minuta aprovada</span></label>
         </div>

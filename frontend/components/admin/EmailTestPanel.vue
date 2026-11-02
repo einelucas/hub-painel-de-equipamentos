@@ -113,10 +113,11 @@ watch(
     </label>
 
     <template v-if="!useSample">
-      <label class="field">
-        <span><Search :size="12" /> Buscar equipamento (dados reais)</span>
-        <input v-model="search" placeholder="Nome do equipamento" />
-      </label>
+      <div class="field">
+        <VTextField v-model="search" label="Buscar equipamento (dados reais)" placeholder="Nome do equipamento" clearable>
+          <template #prepend-inner><Search :size="14" /></template>
+        </VTextField>
+      </div>
       <div class="field">
         <VAutocomplete
           data-testid="email-test-equipment"

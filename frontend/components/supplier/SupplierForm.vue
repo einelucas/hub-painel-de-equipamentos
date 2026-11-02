@@ -69,8 +69,8 @@ const preview = computed(() =>
   }),
 );
 
-function onTaxIdInput(event: Event): void {
-  form.taxId = maskCnpjInput((event.target as HTMLInputElement).value);
+function onTaxIdInput(value: unknown): void {
+  form.taxId = maskCnpjInput(String(value ?? ""));
 }
 
 function submit(): void {
@@ -104,37 +104,34 @@ function submit(): void {
     <p v-else class="compact-title">{{ editing ? `Editar ${props.supplier?.legalName}` : "Novo fornecedor" }}</p>
 
     <div class="row row--ids">
-      <label class="field">
-        <span>Código <em>opcional</em></span>
-        <input v-model="form.corporateCode" class="mono" maxlength="20" placeholder="Ex.: 9001" data-testid="supplier-code">
-      </label>
-      <label class="field">
-        <span>CNPJ</span>
-        <input
-          :value="form.taxId"
+      <div class="field">
+        <VTextField v-model="form.corporateCode" label="Código (opcional)" class="mono" maxlength="20" placeholder="Ex.: 9001" data-testid="supplier-code" />
+      </div>
+      <div class="field">
+        <VTextField
+          :model-value="form.taxId"
+          label="CNPJ"
           class="mono"
           inputmode="numeric"
           maxlength="18"
           placeholder="00.000.000/0000-00"
           :aria-describedby="statusId"
-          @input="onTaxIdInput"
-        >
+          @update:model-value="onTaxIdInput"
+        />
         <small :id="statusId" class="cnpj-status" :class="`cnpj-status--${status}`" data-testid="cnpj-status">
           <CheckCircle2 v-if="status === 'valid'" :size="12" aria-hidden="true" />
           <AlertTriangle v-else-if="status === 'invalid' || status === 'other'" :size="12" aria-hidden="true" />
           {{ STATUS_TEXT[status] }}
         </small>
-      </label>
+      </div>
     </div>
 
-    <label class="field">
-      <span>Razão social *</span>
-      <input v-model="form.legalName" maxlength="200" required placeholder="Como consta no CNPJ">
-    </label>
-    <label class="field">
-      <span>Nome fantasia <em>opcional</em></span>
-      <input v-model="form.tradeName" maxlength="200">
-    </label>
+    <div class="field">
+      <VTextField v-model="form.legalName" label="Razão social *" maxlength="200" required placeholder="Como consta no CNPJ" />
+    </div>
+    <div class="field">
+      <VTextField v-model="form.tradeName" label="Nome fantasia (opcional)" maxlength="200" />
+    </div>
 
     <label v-if="editing" class="active-tile" :class="{ on: form.active }">
       <input v-model="form.active" type="checkbox">

@@ -261,6 +261,7 @@ onMounted(load);
     <AppModal
       :open="showEdit"
       title="Editar equipamento"
+      size="wide"
       @close="showEdit = false"
       ><EquipmentForm
         v-if="showEdit && detail"

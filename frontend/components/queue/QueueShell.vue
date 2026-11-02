@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { mdiMagnify } from "@mdi/js";
-import SkeletonBlock from "~/components/ui/SkeletonBlock.vue";
 import { VBtn } from "vuetify/components";
 import type { Pagination } from "~/types/equipment";
 
@@ -35,9 +34,8 @@ const term = ref("");
         @refresh="emit('refresh')"
       >
         <form v-if="props.showSearch" class="field field-wide queue-search" @submit.prevent="emit('search', term)">
-          <span>Busca</span>
           <div class="search-control">
-            <input v-model="term" placeholder="Nome do equipamento">
+            <VTextField v-model="term" label="Busca" placeholder="Nome do equipamento" clearable />
             <VBtn type="submit" variant="outlined" :prepend-icon="mdiMagnify"> Buscar</VBtn>
           </div>
         </form>
@@ -55,12 +53,11 @@ const term = ref("");
         </div>
         <p class="queue-criteria">{{ props.criteria }}</p>
 
-        <div v-if="props.loading" class="queue-state" data-testid="queue-loading" role="status" aria-busy="true"><span class="sr-only">Carregando fila...</span><SkeletonBlock :rows="6" /></div>
-        <div v-else-if="props.error" class="empty-state table-empty" role="alert" data-testid="queue-error">
+        <div v-if="props.error && !props.loading" class="empty-state table-empty" role="alert" data-testid="queue-error">
           <h2>Não foi possível carregar</h2><p>{{ props.error }}</p>
           <VBtn variant="outlined" @click="emit('reload')">Tentar novamente</VBtn>
         </div>
-        <div v-else-if="props.empty" class="empty-state table-empty" data-testid="queue-empty">
+        <div v-else-if="props.empty && !props.loading" class="empty-state table-empty" data-testid="queue-empty">
           <h2>Nenhum equipamento nesta fila</h2>
           <p>Nada pendente para o recorte selecionado.</p>
         </div>
@@ -87,7 +84,6 @@ const term = ref("");
 .search-control input { flex: 1; min-width: 0; min-height: 46px; }
 .search-control .v-btn { flex: none; }
 .queue-criteria { margin: 0; padding: 0 18px 12px; color: #8b96a5; font-size: 11.5px; }
-.queue-state { display: block; padding: 18px; min-height: 220px; align-items: center; justify-content: center; gap: 12px; color: #748197; }
 .table-wrap { padding: 0 18px 18px; overflow-x: auto; }
 .table-empty { margin: auto; padding-bottom: 28px; }
 .refresh-label { display: inline-flex; align-items: center; gap: 7px; color: #748197; font-size: 12px; }

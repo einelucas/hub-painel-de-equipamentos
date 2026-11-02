@@ -31,9 +31,9 @@ const form = reactive<EquipmentPurchaseOrderFormValues>({
 
 <template>
   <form class="item-form" @submit.prevent="emit('submit', { ...form })">
-    <label class="field"><span>Número da OC</span><input v-model="form.orderNumber" maxlength="80"></label>
-    <label class="field"><span>Data da OC</span><input v-model="form.orderedAt" type="date"></label>
-    <label class="field"><span>Valor</span><input v-model="form.amount" type="number" min="0" step="0.01"></label>
+    <div class="field"><VTextField v-model="form.orderNumber" label="Número da OC" maxlength="80" /></div>
+    <div class="field"><VTextField v-model="form.orderedAt" label="Data da OC" type="date" /></div>
+    <div class="field"><VTextField v-model="form.amount" label="Valor" type="number" min="0" step="0.01" /></div>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <div class="form-actions">
       <VBtn variant="outlined" @click="emit('cancel')">Cancelar</VBtn>

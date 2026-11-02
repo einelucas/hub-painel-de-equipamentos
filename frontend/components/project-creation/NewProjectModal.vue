@@ -168,16 +168,20 @@ async function submit(): Promise<void> {
               label="Unidade"
             />
           </div>
-          <label>Nome da obra
-            <input v-model="name" maxlength="160" placeholder="Ex.: Ampliação da unidade" data-testid="new-project-name" />
-          </label>
-          <label>Código (opcional)
-            <input v-model="code" maxlength="60" placeholder="Código da obra" />
-          </label>
+          <div>
+            <VTextField v-model="name" label="Nome da obra" maxlength="160" placeholder="Ex.: Ampliação da unidade" data-testid="new-project-name" />
+          </div>
+          <div>
+            <VTextField v-model="code" label="Código (opcional)" maxlength="60" placeholder="Código da obra" />
+          </div>
         </section>
         <section v-else-if="step === 1" class="step-body">
           <div class="section-title"><div><h3>Selecione os equipamentos</h3><p>Um mesmo modelo pode aparecer em várias áreas sem ser duplicado.</p></div><strong>{{ selectedIds.length }} selecionados</strong></div>
-          <div class="search"><Search :size="16" /><input v-model="search" placeholder="Buscar por nome do equipamento" aria-label="Buscar equipamento" /></div>
+          <div class="search">
+            <VTextField v-model="search" label="Buscar equipamento" placeholder="Buscar por nome do equipamento" clearable>
+              <template #prepend-inner><Search :size="16" /></template>
+            </VTextField>
+          </div>
           <div v-if="!catalog.equipments.length" class="empty">
             <p>O Catálogo Mestre ainda não possui equipamentos.</p>
             <NuxtLink to="/administracao/catalogo-mestre" @click="close">Administrar catálogo e carregar seed</NuxtLink>

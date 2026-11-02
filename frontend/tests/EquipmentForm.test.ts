@@ -150,8 +150,7 @@ describe("EquipmentForm", () => {
     expect(eapMenu?.textContent).toContain("04.A · Casa de Força");
     expect(eapMenu?.textContent).not.toContain("UTI · Utilidades");
 
-    expect(wrapper.findAll(".v-chip").filter(tag => tag.text().startsWith("CAL"))).toHaveLength(3);
-    expect(wrapper.findAll(".v-chip").filter(tag => tag.text().startsWith("CIV"))).toHaveLength(3);
+    expect(wrapper.get("[data-selected-count='6']").text()).toContain("6 selecionados");
 
     await wrapper.get("form").trigger("submit");
     expect(patch).toHaveBeenCalledWith(

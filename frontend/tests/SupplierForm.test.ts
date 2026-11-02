@@ -19,7 +19,7 @@ describe("SupplierForm", () => {
     const wrapper = mount(SupplierForm, { props: { supplier: null, saving: false } });
     expect(wrapper.get("[data-testid='supplier-preview']").text()).toContain("sem CNPJ");
 
-    await wrapper.get("[data-testid='supplier-code']").setValue("9001");
+    await wrapper.get("[data-testid='supplier-code'] input").setValue("9001");
     await wrapper.get("input[maxlength='200'][required]").setValue("Nova Indústria SA");
     expect(wrapper.get("[data-testid='supplier-preview'] strong").text()).toBe("9001 · Nova Indústria SA");
   });
@@ -60,6 +60,6 @@ describe("SupplierForm", () => {
     const wrapper = mount(SupplierForm, { props: { supplier: null, saving: false } });
     await wrapper.get("form").trigger("submit");
     expect(wrapper.emitted("submit")).toBeUndefined();
-    expect(wrapper.get("[role='alert']").text()).toBe("Informe a razão social.");
+    expect(wrapper.get(".form-error[role='alert']").text()).toBe("Informe a razão social.");
   });
 });

@@ -4,11 +4,11 @@
  * a única diferença entre elas é a coluna "Responsável", que só faz
  * sentido fora do agrupamento (o nome já vira o título do grupo).
  */
-defineProps<{ showResponsible: boolean }>();
+defineProps<{ showResponsible: boolean; loading?: boolean }>();
 </script>
 
 <template>
-  <TableHeader>
+  <TableHeader :loading="loading">
     <TableRow>
       <TableHead>Equipamento</TableHead>
       <TableHead>Unidade</TableHead>

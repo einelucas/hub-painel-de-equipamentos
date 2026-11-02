@@ -228,7 +228,7 @@ watch(
     <template v-else>
       <label v-if="items.length" class="catalog-search">
         <Search :size="14" aria-hidden="true" />
-        <input v-model="search" type="search" :placeholder="`Buscar em ${props.label}`" :aria-label="`Buscar em ${props.label}`">
+        <VTextField v-model="search" type="search" :label="`Buscar em ${props.label}`" clearable />
       </label>
 
       <p v-if="loading" class="catalog-hint"><span class="spinner spinner-small" /> Carregando...</p>
@@ -279,8 +279,8 @@ watch(
     @close="cancel"
   >
     <form :id="formId" class="catalog-form" @submit.prevent="submit">
-      <label v-if="props.hasCode" class="field"><span>Código *</span><input v-model="form.code" maxlength="60" required></label>
-      <label class="field" :class="{ 'full': !props.hasCode }"><span>Nome *</span><input v-model="form.name" maxlength="200" required></label>
+      <div v-if="props.hasCode" class="field"><VTextField v-model="form.code" label="Código *" maxlength="60" required /></div>
+      <div class="field" :class="{ 'full': !props.hasCode }"><VTextField v-model="form.name" label="Nome *" maxlength="200" required /></div>
       <label v-if="props.hasColor" class="field color-field">
         <span>Cor *</span>
         <span class="color-control"><input v-model="form.color" type="color" required><code>{{ form.color }}</code></span>

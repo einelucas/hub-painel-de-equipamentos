@@ -57,7 +57,10 @@ onMounted(async () => {
         </VBtn>
       </template>
 
-      <ProcurementTable :rows="queue.items.value" />
+      <ProcurementTable
+        :rows="queue.items.value"
+        :loading="queue.loading.value || queue.refreshing.value"
+      />
     </QueueShell>
 
     <SupplierAdmin

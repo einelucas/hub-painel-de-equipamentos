@@ -8,18 +8,18 @@ import CriticalityBadge from "~/components/equipment/CriticalityBadge.vue";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { Eye } from "lucide-vue-next";
 
-defineProps<{ equipments: Equipment[] }>();
+defineProps<{ equipments: Equipment[]; loading?: boolean }>();
 </script>
 
 <template>
-  <div v-if="equipments.length === 0" class="empty-state table-empty" data-testid="equipment-empty">
+  <div v-if="!loading && equipments.length === 0" class="empty-state table-empty" data-testid="equipment-empty">
     <h2>Nenhum equipamento encontrado</h2>
     <p>Não há registros para os filtros selecionados. Ajuste os filtros ou cadastre o primeiro equipamento da unidade.</p>
   </div>
   <div v-else class="table-wrap">
-    <Table>
-      <TableHeader><TableRow><TableHead>Equipamento</TableHead><TableHead class="col-obra">Obra</TableHead><TableHead>Área</TableHead><TableHead>Disciplina</TableHead><TableHead>Work Packages</TableHead><TableHead>Responsável</TableHead><TableHead>Etapa atual</TableHead><TableHead>Startup</TableHead><TableHead>Criticidade</TableHead><TableHead class="text-center">Componentes</TableHead><TableHead /></TableRow></TableHeader>
-      <TableBody>
+    <Table :loading="loading">
+      <TableHeader :loading="loading"><TableRow><TableHead>Equipamento</TableHead><TableHead class="col-obra">Obra</TableHead><TableHead>Área</TableHead><TableHead>Disciplina</TableHead><TableHead>Work Packages</TableHead><TableHead>Responsável</TableHead><TableHead>Etapa atual</TableHead><TableHead>Startup</TableHead><TableHead>Criticidade</TableHead><TableHead class="text-center">Componentes</TableHead><TableHead /></TableRow></TableHeader>
+      <TableBody :loading="loading && equipments.length === 0">
         <TableRow v-for="equipment in equipments" :key="equipment.id">
           <TableCell class="font-semibold text-[#213758]"><NuxtLink class="name-link" :to="`/equipamentos/${equipment.id}`"><TruncatedText :text="equipment.name" /></NuxtLink></TableCell>
           <TableCell>{{ equipment.projectContext.code ?? equipment.projectContext.name }}</TableCell>

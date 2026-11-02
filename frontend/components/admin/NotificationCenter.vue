@@ -397,7 +397,7 @@ onMounted(load);
             />
           </div>
           <p>O destino é fixo: {{ settings?.testInbox || "caixa ainda não configurada" }}. No modo sandbox todos os envios, inclusive alertas operacionais, são redirecionados para ela.</p>
-          <label class="field"><span>Assunto</span><input v-model="mailSubject" maxlength="200" /></label>
+          <div class="field"><VTextField v-model="mailSubject" label="Assunto" maxlength="200" /></div>
           <label class="field"><span>Mensagem</span><textarea v-model="mailBody" rows="4" maxlength="4000" /></label>
           <VBtn size="small" variant="tonal" :disabled="busy || !settings?.testInbox || (settings?.mode !== 'log' && !testProviderStatus?.configured)" :prepend-icon="mdiSendOutline" @click="sendTest"> {{ busy ? "Enviando..." : "Enviar teste" }}</VBtn>
         </div>
@@ -418,7 +418,7 @@ onMounted(load);
           <template v-if="tab === 'rules'">
             <label class="notify-check"><input v-model="selected.enabled" type="checkbox" /> Regra ativa</label>
             <label class="notify-check"><input v-model="selected.includeResponsible" type="checkbox" /> Incluir automaticamente o responsável cadastrado no equipamento</label>
-            <label v-if="(selected.kind === 'STARTUP_REMINDER' || selected.kind === 'DELIVERY_REMINDER')" class="field"><span>Dias antes do startup (0 a 365)</span><input v-model.number="selected.daysBefore" type="number" min="0" max="365" /></label>
+            <div v-if="(selected.kind === 'STARTUP_REMINDER' || selected.kind === 'DELIVERY_REMINDER')" class="field"><VTextField v-model.number="selected.daysBefore" label="Dias antes do startup (0 a 365)" type="number" min="0" max="365" /></div>
             <p class="notify-hint">Kickoff: conclusão da fase 5. FUP e conclusão: fase 7→8. Lembretes de startup, negociação vencida e entrega próxima são gerados pelo worker usando as fórmulas já existentes no Hub. Todas as regras começam desativadas.</p>
           </template>
           <template v-else>

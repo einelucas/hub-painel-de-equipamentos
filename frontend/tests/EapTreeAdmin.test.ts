@@ -56,20 +56,21 @@ describe("EapTreeAdmin", () => {
     const { wrapper } = setup();
     await settle(wrapper);
 
-    await wrapper.get("[aria-label='Buscar na Árvore EAP']").setValue("01.a");
+    const search = wrapper.get("input[placeholder='Buscar por código ou nome']");
+    await search.setValue("01.a");
     expect(wrapper.findAll("[role='treeitem']").map((row) => row.attributes("data-testid"))).toEqual([
       "eap-node-i1",
       "eap-node-p1",
       "eap-node-a1",
     ]);
 
-    await wrapper.get("[aria-label='Buscar na Árvore EAP']").setValue("processo");
+    await search.setValue("processo");
     expect(wrapper.findAll("[role='treeitem']").map((row) => row.attributes("data-testid"))).toEqual([
       "eap-node-i1",
       "eap-node-p1",
     ]);
 
-    await wrapper.get("[aria-label='Buscar na Árvore EAP']").setValue("inexistente");
+    await search.setValue("inexistente");
     expect(wrapper.findAll("[role='treeitem']")).toHaveLength(0);
     expect(wrapper.text()).toContain("Nenhum nó corresponde à busca.");
   });
@@ -81,8 +82,8 @@ describe("EapTreeAdmin", () => {
     await wrapper.get("[data-testid='eap-new']").trigger("click");
     expect(portal().get(".modal-card h2").text()).toBe("Novo nó da Árvore EAP");
     await chooseOption(portal(), "eap-level", "Área");
-    await portal().get("[data-testid='eap-code']").setValue("01.b");
-    await portal().get("[data-testid='eap-name']").setValue("Área Sintética B");
+    await portal().get("[data-testid='eap-code'] input").setValue("01.b");
+    await portal().get("[data-testid='eap-name'] input").setValue("Área Sintética B");
     await chooseOption(portal(), "eap-parent", "01 · Processo Sintético");
     await portal().get("[data-testid='eap-form']").trigger("submit");
     await settle(wrapper);
@@ -102,8 +103,8 @@ describe("EapTreeAdmin", () => {
 
     await wrapper.get("[data-testid='eap-edit-a1']").trigger("click");
     expect(portal().get(".modal-card h2").text()).toBe("Editar nó da Árvore EAP");
-    expect((portal().get("[data-testid='eap-code']").element as HTMLInputElement).disabled).toBe(true);
-    await portal().get("[data-testid='eap-name']").setValue("Área revisada");
+    expect((portal().get("[data-testid='eap-code'] input").element as HTMLInputElement).disabled).toBe(true);
+    await portal().get("[data-testid='eap-name'] input").setValue("Área revisada");
     await portal().get("[data-testid='eap-active']").setValue(false);
     await portal().get("[data-testid='eap-form']").trigger("submit");
     await settle(wrapper);

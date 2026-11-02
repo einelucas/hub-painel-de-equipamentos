@@ -35,11 +35,12 @@ const { store } = useAuth();
 
     <label class="relative mx-auto hidden w-[480px] max-w-full shrink items-center sm:flex">
       <Search class="pointer-events-none absolute left-3.5 size-4 text-muted-foreground" />
-      <input
+      <VTextField
         type="search"
-        placeholder="Buscar"
+        label="Buscar"
         aria-label="Buscar no módulo"
-        class="h-10 w-full rounded-full bg-white pl-10 pr-4 text-[15px] text-foreground shadow-[0_2px_4px_rgba(15,23,42,0.12)] outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
+        hide-details
+        class="w-full"
       />
     </label>
 

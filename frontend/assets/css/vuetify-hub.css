@@ -160,7 +160,7 @@
   border-color: rgba(var(--v-border-color), var(--v-border-opacity));
   border-style: solid;
   border-width: 1px;
-  border-radius: 5px;
+  border-radius: 7px;
   display: inline-grid;
   flex-shrink: 0;
   font-weight: 500;

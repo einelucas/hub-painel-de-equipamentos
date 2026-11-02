@@ -3,6 +3,7 @@ import {
   mdiAccount,
   mdiAlertCircleOutline,
   mdiEarth,
+  mdiContentSaveOutline,
   mdiMapMarker,
   mdiOfficeBuilding,
   mdiPackageVariant,
@@ -259,188 +260,212 @@ onMounted(loadCatalogs);
       {{ error }}
     </p>
 
-    <div class="form-grid">
-      <div class="field field-wide">
+    <div class="form-sections">
+      <section class="form-section" aria-labelledby="equipment-identification-title">
+        <div class="section-heading">
+          <span>Cadastro</span>
+          <h3 id="equipment-identification-title">Identificação</h3>
+        </div>
+
+        <div class="form-grid form-grid--three">
+          <div class="field field-span-3">
         <VTextField
           v-model="form.name"
           label="Equipamento *"
           maxlength="200"
           required
         />
-      </div>
+          </div>
 
-      <div class="field">
+          <div class="field field-span-2">
+            <SearchableSelect
+              v-model="form.projectContextId"
+              :options="contextOptions"
+              :clearable="false"
+              required
+              label="Obra *"
+              :icon="mdiOfficeBuilding"
+              placeholder="Buscar por código ou nome"
+              empty-label="Selecione"
+              test-id="project-context-select"
+            />
+          </div>
 
-        <SearchableSelect
-          v-model="form.projectContextId"
-          :options="contextOptions"
-          :clearable="false"
-          required
-          label="Obra *"
-          :icon="mdiOfficeBuilding"
-          placeholder="Buscar por código ou nome"
-          empty-label="Selecione"
-          test-id="project-context-select"
-        />
-      </div>
+          <div class="field">
+            <SearchableSelect
+              v-model="form.origin"
+              :options="originSelectOptions"
+              :clearable="false"
+              :sorted="false"
+              label="Origem"
+              :icon="mdiEarth"
+              placeholder="Selecione a origem"
+              empty-label="Selecione"
+              test-id="origin-select"
+            />
+          </div>
+        </div>
+      </section>
 
-      <div class="field">
+      <section class="form-section" aria-labelledby="equipment-classification-title">
+        <div class="section-heading">
+          <span>Organização</span>
+          <h3 id="equipment-classification-title">Classificação e responsabilidade</h3>
+        </div>
 
-        <SearchableSelect
-          v-model="form.origin"
-          :options="originSelectOptions"
-          :clearable="false"
-          :sorted="false"
-          label="Origem"
-          :icon="mdiEarth"
-          placeholder="Selecione a origem"
-          empty-label="Selecione"
-          test-id="origin-select"
-        />
-      </div>
-
-      <div class="field">
-        <div class="field-label-row">
-          <span>Localização EAP</span>
+        <div class="form-grid form-grid--three">
+          <div class="field field-with-action">
           <VBtn
             v-if="auth.can('catalogs:manage')"
+            class="field-action"
             type="button"
             data-testid="edit-eaps"
-            variant="text"
+            variant="tonal"
+            color="primary"
+            size="x-small"
+            density="compact"
+            height="24"
+            rounded="lg"
+            slim
             :prepend-icon="mdiPencilOutline"
-           @click="showEapAdmin = true">
-             Editar EAPs
+            @click="showEapAdmin = true"
+          >
+            Editar EAPs
           </VBtn>
-        </div>
-        <SearchableSelect
-          v-model="form.eapNodeId"
-          :options="eapOptions"
-          label="Localização EAP"
-          :icon="mdiMapMarker"
-          placeholder="Buscar por código ou nome"
-          empty-label="Não informada"
-          test-id="eap-node-select"
-        />
-      </div>
+            <SearchableSelect
+              v-model="form.eapNodeId"
+              :options="eapOptions"
+              label="Localização EAP"
+              :icon="mdiMapMarker"
+              placeholder="Buscar por código ou nome"
+              empty-label="Não informada"
+              test-id="eap-node-select"
+            />
+          </div>
 
-      <div class="field">
-        <SearchableSelect
-          v-model="form.disciplineId"
-          :options="disciplineOptions"
-          label="Disciplina"
-          :icon="mdiTag"
-          placeholder="Buscar disciplina"
-          empty-label="Não informada"
-        />
-      </div>
+          <div class="field">
+            <SearchableSelect
+              v-model="form.disciplineId"
+              :options="disciplineOptions"
+              label="Disciplina"
+              :icon="mdiTag"
+              placeholder="Buscar disciplina"
+              empty-label="Não informada"
+            />
+          </div>
 
-      <!-- WORK PACKAGES -->
-      <div class="field field-wide work-package-field">
-        <div v-if="form.workPackageIds.length" class="wp-header">
-          <span class="wp-count">
-            {{ form.workPackageIds.length }}
-            {{ form.workPackageIds.length === 1 ? "selecionado" : "selecionados" }}
-          </span>
-        </div>
-        <SearchableMultiSelect
-          v-model="form.workPackageIds"
-          :options="workPackageOptions"
-          label="Work Packages"
-          :icon="mdiPackageVariant"
-          placeholder="Buscar por código, nome ou descrição"
-        />
-      </div>
-
-      <div class="field">
-        <VTextField
-          v-model="form.startupAt"
-          class="hub-date-field"
-          label="Startup"
-          type="date"
-        />
-      </div>
-
-      <div class="field">
-        <div class="field-label-row">
-          <span>Criticidade</span>
+          <div class="field field-with-action">
           <VBtn
             v-if="auth.can('catalogs:manage')"
+            class="field-action"
             type="button"
             data-testid="edit-criticalities"
-            variant="text"
+            variant="tonal"
+            color="primary"
+            size="x-small"
+            density="compact"
+            height="24"
+            rounded="lg"
+            slim
             :prepend-icon="mdiPencilOutline"
-           @click="showCriticalityAdmin = true">
-             Editar etiquetas
+            @click="showCriticalityAdmin = true"
+          >
+            Editar etiquetas
           </VBtn>
+            <SearchableSelect
+              v-model="form.criticalityLabelId"
+              :options="criticalityOptions"
+              label="Criticidade"
+              :icon="mdiAlertCircleOutline"
+              placeholder="Buscar criticidade"
+              empty-label="Não informada"
+              test-id="criticality-select"
+            />
+          </div>
+
+          <div class="field field-span-2 work-package-field">
+            <SearchableMultiSelect
+              v-model="form.workPackageIds"
+              :options="workPackageOptions"
+              label="Work Packages"
+              :icon="mdiPackageVariant"
+              placeholder="Buscar por código, nome ou descrição"
+            />
+          </div>
+
+          <div class="field">
+            <SearchableSelect
+              v-model="form.responsibleUserId"
+              :options="responsibleOptions"
+              label="Responsável"
+              :icon="mdiAccount"
+              placeholder="Buscar por nome ou e-mail"
+              empty-label="Não atribuído"
+              test-id="responsible-select"
+            />
+          </div>
         </div>
-        <SearchableSelect
-          v-model="form.criticalityLabelId"
-          :options="criticalityOptions"
-          label="Criticidade"
-          :icon="mdiAlertCircleOutline"
-          placeholder="Buscar criticidade"
-          empty-label="Não informada"
-          test-id="criticality-select"
-        />
-      </div>
+      </section>
 
-      <div class="field">
-        <CurrencyInput
-          v-model="form.capexEstimated"
-          label="CAPEX estimado"
-          test-id="capex-input"
-        />
-      </div>
+      <section class="form-section" aria-labelledby="equipment-planning-title">
+        <div class="section-heading">
+          <span>Prazos e orçamento</span>
+          <h3 id="equipment-planning-title">Planejamento</h3>
+        </div>
 
-      <div class="field">
-        <SearchableSelect
-          v-model="form.responsibleUserId"
-          :options="responsibleOptions"
-          label="Responsável"
-          :icon="mdiAccount"
-          placeholder="Buscar por nome ou e-mail"
-          empty-label="Não atribuído"
-          test-id="responsible-select"
-        />
-      </div>
+        <div class="form-grid form-grid--three">
+          <div class="field">
+            <VTextField v-model="form.startupAt" label="Startup" type="date" />
+          </div>
+          <div class="field">
+            <CurrencyInput
+              v-model="form.capexEstimated"
+              label="CAPEX estimado"
+              test-id="capex-input"
+            />
+          </div>
+          <div class="field">
+            <CurrencyInput
+              v-model="form.projectTotalValue"
+              label="Valor total do projeto"
+              test-id="project-total-input"
+            />
+          </div>
+          <div class="field">
+            <VTextField
+              v-model="form.contractualDeliveryStart"
+              label="Entrega contratual · início"
+              type="date"
+            />
+          </div>
+          <div class="field">
+            <VTextField
+              v-model="form.contractualDeliveryEnd"
+              label="Entrega contratual · fim"
+              type="date"
+            />
+          </div>
 
-      <div class="field">
-        <CurrencyInput
-          v-model="form.projectTotalValue"
-          label="Valor total do projeto"
-          test-id="project-total-input"
-        />
-      </div>
-
-      <div class="field">
-        <VTextField
-          v-model="form.contractualDeliveryStart"
-          class="hub-date-field"
-          label="Entrega contratual · de"
-          type="date"
-        />
-      </div>
-
-      <div class="field">
-        <VTextField
-          v-model="form.contractualDeliveryEnd"
-          class="hub-date-field"
-          label="Entrega contratual · até"
-          type="date"
-        />
-      </div>
-
-      <p v-if="equipment" class="stage-note field-wide">
-        A etapa atual é alterada pelo fluxo do processo, na aba Processo.
-      </p>
+          <p v-if="equipment" class="stage-note">
+            A etapa atual é alterada pelo fluxo do processo, na aba Processo.
+          </p>
+        </div>
+      </section>
     </div>
 
     <div class="form-actions">
-      <VBtn variant="outlined" @click="emit('cancel')">
+      <VBtn type="button" variant="text" color="secondary" @click="emit('cancel')">
         Cancelar
       </VBtn>
 
-      <VBtn type="submit" variant="tonal" :loading="saving" :disabled="saving">
+      <VBtn
+        type="submit"
+        variant="flat"
+        color="primary"
+        :prepend-icon="mdiContentSaveOutline"
+        :loading="saving"
+        :disabled="saving"
+      >
         {{ saving ? "Salvando..." : "Salvar equipamento" }}
       </VBtn>
     </div>
@@ -472,49 +497,123 @@ onMounted(loadCatalogs);
 
 .equipment-form {
   display: grid;
-  gap: 18px;
+  gap: 14px;
+}
+
+.form-sections {
+  display: grid;
+  gap: 16px;
+}
+
+.form-section {
+  min-width: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e9edf3;
+}
+
+.form-section:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-bottom: 11px;
+}
+
+.section-heading > span {
+  color: #1f5aa9;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section-heading h3 {
+  margin: 0;
+  color: #263a59;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
-.field-wide {
+.form-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.field-span-3 {
   grid-column: 1 / -1;
 }
 
-.field-label-row > span {
-  color: #56657a;
+.field-span-2 {
+  grid-column: span 2;
+}
+
+.field-with-action {
+  position: relative;
+  min-width: 0;
+}
+
+.field-action {
+  position: absolute;
+  z-index: 2;
+  top: -11px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: #f5f8fd;
+  box-shadow: 0 0 0 3px #fff;
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  line-height: 20px;
-  text-transform: uppercase;
-}
-.field-label-row { display: flex; min-height: 20px; align-items: center; justify-content: flex-end; gap: 8px; }
-
-.hub-date-field :deep(.v-field) {
-  border-radius: 16px;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
 }
 
-.hub-date-field {
-  align-self: start;
-  width: 100%;
+.field-action:hover {
+  border-color: rgba(31, 90, 169, 0.3);
+  background: #eaf1fb;
+  box-shadow: 0 0 0 3px #fff, 0 2px 7px rgba(31, 58, 92, 0.13);
+  color: #184a8a;
+}
+
+.field-action :deep(.v-icon) {
+  font-size: 14px;
+}
+
+.field-action :deep(.v-btn__prepend),
+.field-action :deep(.v-btn__content) {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.field-action :deep(.v-btn__prepend) {
+  margin-inline: 0 2px;
 }
 
 .stage-note {
+  align-self: center;
   margin: 0;
+  padding: 0 8px;
   color: #8b96a5;
   font-size: 11px;
+  line-height: 1.45;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 9px;
-  padding-top: 4px;
+  padding-top: 13px;
+  border-top: 1px solid #e9edf3;
 }
 
 /* =========================================================
@@ -525,45 +624,34 @@ onMounted(loadCatalogs);
   min-width: 0;
 }
 
-.wp-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-bottom: 7px;
+@media (max-width: 800px) {
+  .form-grid--three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field-span-3 {
+    grid-column: 1 / -1;
+  }
 }
-
-.wp-count {
-  display: inline-flex;
-  align-items: center;
-  min-height: 20px;
-  padding: 2px 8px;
-
-  border: 1px solid #d9e0ec;
-  border-radius: 999px;
-
-  background: #f5f7fb;
-  color: #68758c;
-
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* Responsividade */
 
 @media (max-width: 620px) {
-  .form-grid {
+  .form-grid,
+  .form-grid--three {
     grid-template-columns: 1fr;
   }
 
-  .field-wide {
+  .field-span-2,
+  .field-span-3 {
     grid-column: auto;
   }
 
-  .wp-header {
-    align-items: flex-start;
+  .section-heading {
+    display: grid;
+    gap: 2px;
   }
 
+  .stage-note {
+    padding: 2px 0;
+  }
 }
 </style>

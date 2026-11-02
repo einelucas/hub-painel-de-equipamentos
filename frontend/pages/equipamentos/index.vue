@@ -21,7 +21,7 @@ import { formatDateOnly } from "~/utils/format";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
-import { VBtn, VProgress } from "vuetify/components";
+import { VBtn } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
@@ -428,28 +428,16 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div
-          v-if="loading"
-          class="initial-table-loading"
-          role="status"
-          aria-busy="true"
-        >
-          <span class="sr-only">Carregando equipamentos...</span
-          ><SkeletonBlock :rows="6" />
-        </div>
-        <div v-else-if="error" class="empty-state table-empty" role="alert">
+        <div v-if="error && !loading" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2>
           <p>{{ error }}</p>
           <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
         </div>
         <template v-else>
-          <VProgress
-            v-if="refreshing"
-            color="primary"
-            indeterminate
-            aria-label="Atualizando equipamentos"
+          <EquipmentTable
+            :equipments="equipments"
+            :loading="loading || refreshing"
           />
-          <EquipmentTable :equipments="equipments" :aria-busy="refreshing" />
           <AppPagination
             v-if="pagination && pagination.totalPages > 1"
             class="pagination"
@@ -473,6 +461,7 @@ onMounted(async () => {
     <AppModal
       :open="showForm"
       title="Novo equipamento"
+      size="wide"
       @close="showForm = false"
     >
       <EquipmentForm
@@ -486,10 +475,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.initial-table-loading {
-  padding: 18px;
-  min-height: 260px;
-}
 .state-card {
   max-width: none;
 }

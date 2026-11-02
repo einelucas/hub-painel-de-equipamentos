@@ -146,16 +146,13 @@ onMounted(load);
           </div>
         </header>
 
-        <div v-if="loading && !users.length" class="list-state" role="status">
-          <span class="spinner" /> Carregando usuários...
-        </div>
-        <div v-else-if="!users.length && !error" class="empty-state">
+        <div v-if="!loading && !users.length && !error" class="empty-state">
           <h2>Nenhum usuário cadastrado</h2>
           <p>Crie o primeiro usuário para iniciar os testes.</p>
         </div>
         <div v-else class="table-wrap" :class="{ refreshing: loading }" :aria-busy="loading">
-          <Table>
-            <TableHeader>
+          <Table :loading="loading">
+            <TableHeader :loading="loading">
               <TableRow>
                 <TableHead>Usuário</TableHead>
                 <TableHead>Perfil</TableHead>
@@ -165,7 +162,7 @@ onMounted(load);
                 <TableHead />
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody :loading="loading && users.length === 0">
               <TableRow v-for="user in users" :key="user.id" :data-testid="`user-row-${user.id}`">
                 <TableCell>
                   <strong class="user-name">{{ user.name }}</strong>
@@ -214,14 +211,12 @@ onMounted(load);
     <AppModal :open="showCreate" title="Novo usuário" @close="showCreate = false">
       <form id="create-user-form" class="user-form" :aria-busy="saving" @submit.prevent="createUser">
         <p>O usuário receberá a senha padrão e deverá definir uma nova senha no primeiro acesso.</p>
-        <label class="field">
-          <span>Nome</span>
-          <input v-model="form.name" required minlength="1" autocomplete="off" autofocus />
-        </label>
-        <label class="field">
-          <span>E-mail</span>
-          <input v-model="form.email" required type="email" autocomplete="off" />
-        </label>
+        <div class="field">
+          <VTextField v-model="form.name" label="Nome *" required minlength="1" autocomplete="off" autofocus />
+        </div>
+        <div class="field">
+          <VTextField v-model="form.email" label="E-mail *" required type="email" autocomplete="off" />
+        </div>
         <div class="field">
           <VAutocomplete
             v-model="form.role"

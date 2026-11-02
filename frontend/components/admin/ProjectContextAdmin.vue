@@ -430,14 +430,12 @@ watch(selectedId, loadSummary);
       data-testid="project-form"
       @submit.prevent="submit"
     >
-      <label class="field">
-        <span>Código (opcional)</span>
-        <input v-model="form.code" maxlength="60" data-testid="project-code">
-      </label>
-      <label class="field">
-        <span>Nome *</span>
-        <input v-model="form.name" maxlength="160" required data-testid="project-name">
-      </label>
+      <div class="field">
+        <VTextField v-model="form.code" label="Código (opcional)" maxlength="60" data-testid="project-code" />
+      </div>
+      <div class="field">
+        <VTextField v-model="form.name" label="Nome *" maxlength="160" required data-testid="project-name" />
+      </div>
       <label v-if="mode === 'edit'" class="project-active">
         <input v-model="form.active" type="checkbox" data-testid="project-active">
         <span>Ativo</span>

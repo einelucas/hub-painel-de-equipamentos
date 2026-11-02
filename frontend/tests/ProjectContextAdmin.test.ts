@@ -149,7 +149,7 @@ describe("ProjectContextAdmin", () => {
     await wrapper.get("[data-testid='project-new']").trigger("click");
     expect(portal().get(".modal-card h2").text()).toBe("Novo contexto de projeto");
     expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
-    await portal().get("[data-testid='project-name']").setValue("Projeto Novo");
+    await portal().get("[data-testid='project-name'] input").setValue("Projeto Novo");
     await portal().get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
 
@@ -245,8 +245,8 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     await wrapper.get("[data-testid='project-new']").trigger("click");
-    await portal().get("[data-testid='project-code']").setValue("PC");
-    await portal().get("[data-testid='project-name']").setValue("Projeto Sintético C");
+    await portal().get("[data-testid='project-code'] input").setValue("PC");
+    await portal().get("[data-testid='project-name'] input").setValue("Projeto Sintético C");
     await portal().get("[data-testid='project-form']").trigger("submit");
     await settle(wrapper);
     expect(wrapper.get("[data-testid='project-item-pc-new']").text()).toContain("Ativo");

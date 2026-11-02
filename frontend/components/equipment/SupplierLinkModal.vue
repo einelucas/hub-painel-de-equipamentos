@@ -106,10 +106,9 @@ function cnpj(supplier: Pick<Supplier, "taxId">): string | null {
       </p>
 
       <div class="link-grid">
-        <label class="field">
-          <span>Papel <em>opcional</em></span>
-          <input v-model="role" maxlength="80" placeholder="Ex.: Fabricante">
-        </label>
+        <div class="field">
+          <VTextField v-model="role" label="Papel (opcional)" maxlength="80" placeholder="Ex.: Fabricante" />
+        </div>
         <label class="field reason-field">
           <span>
             {{ replacing ? "Motivo da substituição" : "Observação" }} <em>opcional</em>

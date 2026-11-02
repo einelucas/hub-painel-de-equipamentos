@@ -10,7 +10,7 @@ import { groupByResponsible } from "~/utils/engineering";
  * continua responsável por carregar a fila, os catálogos e os filtros;
  * aqui chegam só as linhas já filtradas e o modo de exibição.
  */
-const props = defineProps<{ rows: EngineeringRow[]; grouped: boolean }>();
+const props = defineProps<{ rows: EngineeringRow[]; grouped: boolean; loading?: boolean }>();
 
 const groups = computed(() => groupByResponsible(props.rows));
 
@@ -46,25 +46,34 @@ const minWidth = computed(() => `${columns.value.reduce((total, width) => total 
 </script>
 
 <template>
-  <Table v-if="!grouped" class="table-fixed" :style="{ minWidth }">
+  <Table v-if="!grouped" class="table-fixed" :style="{ minWidth }" :loading="loading">
     <colgroup>
       <col v-for="(width, index) in columns" :key="index" :style="{ width: `${width}px` }">
     </colgroup>
-    <EngineeringTableHeader :show-responsible="true" />
-    <TableBody>
+    <EngineeringTableHeader :show-responsible="true" :loading="loading" />
+    <TableBody :loading="loading && rows.length === 0">
       <EngineeringTableRow v-for="row in rows" :key="row.equipmentId" :row="row" :show-responsible="true" />
     </TableBody>
   </Table>
 
   <div v-else class="grouped" data-testid="engineering-grouped">
-    <section v-for="group in groups" :key="group.key" class="group-block">
-      <h3 class="group-title">{{ group.label }} <span class="group-count">({{ group.rows.length }})</span></h3>
-      <Table class="table-fixed" :style="{ minWidth }">
+    <section v-if="loading && groups.length === 0" class="group-block">
+      <Table class="table-fixed" :style="{ minWidth }" :loading="true">
         <colgroup>
           <col v-for="(width, index) in columns" :key="index" :style="{ width: `${width}px` }">
         </colgroup>
-        <EngineeringTableHeader :show-responsible="false" />
-        <TableBody>
+        <EngineeringTableHeader :show-responsible="false" :loading="true" />
+        <TableBody :loading="true" />
+      </Table>
+    </section>
+    <section v-for="group in groups" :key="group.key" class="group-block">
+      <h3 class="group-title">{{ group.label }} <span class="group-count">({{ group.rows.length }})</span></h3>
+      <Table class="table-fixed" :style="{ minWidth }" :loading="loading">
+        <colgroup>
+          <col v-for="(width, index) in columns" :key="index" :style="{ width: `${width}px` }">
+        </colgroup>
+        <EngineeringTableHeader :show-responsible="false" :loading="loading" />
+        <TableBody :loading="loading && group.rows.length === 0">
           <EngineeringTableRow v-for="row in group.rows" :key="row.equipmentId" :row="row" :show-responsible="false" />
         </TableBody>
       </Table>

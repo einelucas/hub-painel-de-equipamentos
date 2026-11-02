@@ -190,12 +190,15 @@ watch(
       <div class="supplier-toolbar">
         <label class="supplier-search">
           <Search :size="14" aria-hidden="true" />
-          <input
+          <VTextField
             v-model="search"
             type="search"
+            label="Buscar fornecedores"
             placeholder="Buscar por razão social ou nome fantasia"
             aria-label="Buscar fornecedores"
-          >
+            hide-details
+            clearable
+          />
         </label>
         <label class="inactive-toggle" :class="{ on: includeInactive }">
           <input v-model="includeInactive" type="checkbox" @change="load">

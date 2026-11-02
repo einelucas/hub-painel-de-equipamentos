@@ -60,14 +60,14 @@ async function submit(): Promise<void> {
   <form class="equipment-form" @submit.prevent="submit">
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <div class="form-grid">
-      <label class="field field-wide"><span>Componente *</span><input v-model="form.name" required maxlength="500"></label>
-      <label class="field"><span>Tag</span><input v-model="form.tag" maxlength="100"></label>
-      <label class="field"><span>Startup</span><input v-model="form.startupAt" type="date"></label>
-      <label class="field"><span>Setor</span><input v-model="form.sector" maxlength="120"></label>
-      <label class="field"><span>Lead time (dias)</span><input v-model="form.leadTimeDays" type="number" min="0"></label>
-      <label class="field"><span>Pré-start (dias)</span><input v-model="form.preStartDays" type="number" min="0"></label>
-      <label class="field"><span>Entrega contratual</span><input v-model="form.contractDeliveryAt" type="date"></label>
-      <label class="field"><span>Frete (dias)</span><input v-model="form.freightDays" type="number" min="0"></label>
+      <div class="field field-wide"><VTextField v-model="form.name" label="Componente *" required maxlength="500" /></div>
+      <div class="field"><VTextField v-model="form.tag" label="Tag" maxlength="100" /></div>
+      <div class="field"><VTextField v-model="form.startupAt" label="Startup" type="date" /></div>
+      <div class="field"><VTextField v-model="form.sector" label="Setor" maxlength="120" /></div>
+      <div class="field"><VTextField v-model="form.leadTimeDays" label="Lead time (dias)" type="number" min="0" /></div>
+      <div class="field"><VTextField v-model="form.preStartDays" label="Pré-start (dias)" type="number" min="0" /></div>
+      <div class="field"><VTextField v-model="form.contractDeliveryAt" label="Entrega contratual" type="date" /></div>
+      <div class="field"><VTextField v-model="form.freightDays" label="Frete (dias)" type="number" min="0" /></div>
     </div>
     <div class="form-actions"><VBtn variant="outlined" @click="emit('cancel')">Cancelar</VBtn><VBtn type="submit" variant="tonal" :loading="saving" :disabled="saving">{{ saving ? "Salvando..." : "Salvar componente" }}</VBtn></div>
   </form>

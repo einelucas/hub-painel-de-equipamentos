@@ -1,5 +1,9 @@
+<script setup lang="ts">
+defineProps<{ loading?: boolean }>();
+</script>
+
 <template>
-  <TableHeader>
+  <TableHeader :loading="loading">
     <TableRow>
       <TableHead>Equipamento</TableHead>
       <TableHead>Unidade</TableHead>

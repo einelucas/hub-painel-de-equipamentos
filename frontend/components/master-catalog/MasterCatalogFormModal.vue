@@ -67,18 +67,18 @@ function submit(): void {
 <template>
   <AppModal :open="props.open" :title="props.title" :busy="props.busy" @close="cancel">
     <form :id="formId" class="modal-form" @submit.prevent="submit">
-      <label class="field">
-        <span>{{ props.label }} *</span>
-        <input
+      <div class="field">
+        <VTextField
           v-model="value"
+          :label="`${props.label} *`"
           :maxlength="props.maxLength"
           :placeholder="props.placeholder"
           :disabled="props.busy"
           required
           autocomplete="off"
-          @input="localError = ''"
+          @update:model-value="localError = ''"
         />
-      </label>
+      </div>
       <p v-if="props.hint" class="modal-hint">
         <Info :size="14" aria-hidden="true" />
         <span>{{ props.hint }}</span>

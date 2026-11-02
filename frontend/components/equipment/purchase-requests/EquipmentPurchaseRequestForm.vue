@@ -48,8 +48,8 @@ const form = reactive<EquipmentPurchaseRequestFormValues>({
         @update:model-value="form.kind = $event as EquipmentPurchaseRequestFormValues['kind']"
       />
     </div>
-    <label class="field"><span>Número</span><input v-model="form.requestNumber" maxlength="80"></label>
-    <label class="field"><span>Data</span><input v-model="form.requestedAt" type="date"></label>
+    <div class="field"><VTextField v-model="form.requestNumber" label="Número" maxlength="80" /></div>
+    <div class="field"><VTextField v-model="form.requestedAt" label="Data" type="date" /></div>
     <p v-if="error" class="notice error" role="alert">{{ error }}</p>
     <div class="form-actions">
       <VBtn type="button" variant="outlined" @click="emit('cancel')">Cancelar</VBtn>

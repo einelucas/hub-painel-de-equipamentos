@@ -153,13 +153,9 @@ onMounted(async () => {
     </div>
 
     <p v-if="message" class="text-sm text-danger">{{ message }}</p>
-    <div v-else-if="loading && !items.length" class="space-y-2" role="status" aria-label="Carregando auditoria">
-      <SkeletonBlock :rows="6" />
-    </div>
-
     <template v-else>
-      <Table :class="loading ? 'opacity-60 transition-opacity' : ''" :aria-busy="loading">
-        <TableHeader>
+      <Table :loading="loading">
+        <TableHeader :loading="loading">
           <TableRow>
             <TableHead>Quando</TableHead>
             <TableHead>Usuário</TableHead>
@@ -169,8 +165,8 @@ onMounted(async () => {
             <TableHead>Alteração</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          <TableRow v-if="!items.length">
+        <TableBody :loading="loading && items.length === 0">
+          <TableRow v-if="!loading && !items.length">
             <TableCell colspan="6" class="py-8 text-center text-neutralbrand">
               Nenhum evento de auditoria encontrado.
             </TableCell>

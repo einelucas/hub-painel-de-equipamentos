@@ -42,7 +42,10 @@ onMounted(async () => {
       @refresh="queue.load"
       @page="queue.goToPage"
     >
-      <LegalTable :rows="queue.items.value" />
+      <LegalTable
+        :rows="queue.items.value"
+        :loading="queue.loading.value || queue.refreshing.value"
+      />
     </QueueShell>
   </ModuleWorkspace>
 </template>

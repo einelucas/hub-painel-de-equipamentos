@@ -96,14 +96,12 @@ async function submit() {
 
       <p v-if="checking" class="login-checking" role="status"><span class="spinner-small" aria-hidden="true" /> Verificando sessão...</p>
       <form class="grid gap-3" :aria-busy="loading" @submit.prevent="submit">
-        <label class="field">
-          <span>E-mail</span>
-          <input v-model="email" type="email" autocomplete="username" required autofocus />
-        </label>
-        <label class="field">
-          <span>Senha</span>
-          <input v-model="password" type="password" autocomplete="current-password" required />
-        </label>
+        <div class="field">
+          <VTextField v-model="email" label="E-mail" type="email" autocomplete="username" required autofocus />
+        </div>
+        <div class="field">
+          <VTextField v-model="password" label="Senha" type="password" autocomplete="current-password" required />
+        </div>
         <VBtn type="submit" variant="tonal" class="mt-1" block :disabled="checking" :loading="loading">
           {{ loading ? "Entrando..." : "Entrar" }}
         </VBtn>
@@ -124,14 +122,12 @@ async function submit() {
     <AppModal :open="changeOpen" title="Defina sua nova senha" @close="closeChange">
       <form id="first-access-form" class="grid gap-3" :aria-busy="loading" @submit.prevent="submitNewPassword">
         <p class="text-sm">Este é o seu primeiro acesso (ou a senha padrão ainda está ativa). Escolha uma nova senha para continuar.</p>
-        <label class="field">
-          <span>Nova senha</span>
-          <input v-model="newPassword" type="password" autocomplete="new-password" minlength="8" required />
-        </label>
-        <label class="field">
-          <span>Confirmar nova senha</span>
-          <input v-model="confirmPassword" type="password" autocomplete="new-password" minlength="8" required />
-        </label>
+        <div class="field">
+          <VTextField v-model="newPassword" label="Nova senha" type="password" autocomplete="new-password" minlength="8" required />
+        </div>
+        <div class="field">
+          <VTextField v-model="confirmPassword" label="Confirmar nova senha" type="password" autocomplete="new-password" minlength="8" required />
+        </div>
         <small>Mínimo de 8 caracteres, com letras e números, diferente da senha padrão.</small>
         <p v-if="changeError" class="login-error" role="alert">{{ changeError }}</p>
       </form>

@@ -52,14 +52,12 @@ function submit(): void {
 
 <template>
   <form class="item-form" @submit.prevent="submit">
-    <label class="field"
-      ><span>Número do contrato</span
-      ><input v-model="form.contractNumber" maxlength="80" :disabled="props.busy"
-    /></label>
-    <label class="field"
-      ><span>Data de escrituração</span
-      ><input v-model="form.executedAt" type="date" :disabled="props.busy"
-    /></label>
+    <div class="field">
+      <VTextField v-model="form.contractNumber" label="Número do contrato" maxlength="80" :disabled="props.busy" />
+    </div>
+    <div class="field">
+      <VTextField v-model="form.executedAt" label="Data de escrituração" type="date" :disabled="props.busy" />
+    </div>
     <label class="field">
       <span>Arquivo do contrato</span>
       <FilePicker
