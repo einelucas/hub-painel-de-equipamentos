@@ -104,7 +104,7 @@ onMounted(load);
     </header>
 
     <p v-if="loading" class="access-hint"><span class="spinner spinner-small" /> Carregando usuários...</p>
-    <p v-else-if="error" class="access-error" role="alert">{{ error }}</p>
+    <VAlert v-else-if="error" type="error" role="alert">{{ error }}</VAlert>
     <template v-else>
       <div class="field access-user">
         <SearchableSelect
@@ -121,9 +121,9 @@ onMounted(load);
 
       <p v-if="loadingUser" class="access-hint"><span class="spinner spinner-small" /> Carregando acessos...</p>
       <template v-else-if="current">
-        <p v-if="isAdminUser" class="access-admin" data-testid="access-admin-notice">
+        <VAlert v-if="isAdminUser" type="info" role="status" data-testid="access-admin-notice">
           Este usuário é ADMIN e enxerga todas as unidades por perfil. Acesso individual não se aplica.
-        </p>
+        </VAlert>
         <template v-else>
           <p v-if="units.length" class="access-count">{{ checked.size }} de {{ units.length }} unidades liberadas</p>
           <ul class="access-list">
@@ -142,7 +142,7 @@ onMounted(load);
           <p v-if="units.length === 0" class="access-hint">Nenhuma unidade cadastrada ainda.</p>
           <div class="access-actions">
             <span v-if="feedback" class="access-feedback">{{ feedback }}</span>
-            <VBtn size="small" variant="tonal" :loading="saving" data-testid="access-save" :prepend-icon="!saving ? mdiContentSaveOutline : undefined" :disabled="saving" @click="save">
+            <VBtn size="small" variant="flat" color="primary" :loading="saving" data-testid="access-save" :prepend-icon="!saving ? mdiContentSaveOutline : undefined" :disabled="saving" @click="save">
                {{ saving ? "Salvando..." : "Salvar acessos" }}
             </VBtn>
           </div>
@@ -159,8 +159,6 @@ onMounted(load);
 .access-head p { margin: 2px 0 0; color: var(--muted, #6b7a8f); font-size: 12px; }
 .access-user { max-width: 420px; }
 .access-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
-.access-error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
-.access-admin { margin: 0; border-left: 3px solid var(--steel, #304f7e); border-radius: 8px; background: #e8f1fc; padding: 10px 12px; color: #27456f; font-size: 12px; font-weight: 700; }
 .access-count { margin: 0; color: var(--muted, #6b7a8f); font-family: var(--mono, monospace); font-size: 11px; }
 .access-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin: 0; padding: 0; gap: 8px; list-style: none; }
 .access-list label {

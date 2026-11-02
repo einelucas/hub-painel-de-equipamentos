@@ -145,6 +145,14 @@ describe("EquipmentProcessTab", () => {
     expect(reloadProcess).toHaveBeenCalledTimes(1);
   });
 
+  it("mantém o processo visível quando uma atualização falha após a carga inicial", () => {
+    const { wrapper } = mountTab({ error: "Falha ao atualizar" });
+
+    expect(wrapper.text()).toContain("Falha ao atualizar");
+    expect(wrapper.text()).not.toContain("Processo indisponível");
+    expect(wrapper.find("[data-testid='stub-stage-form']").exists()).toBe(true);
+  });
+
   it("repassa o grupo de requisito da fase atual (primeiro da lista) para EquipmentStageForm", () => {
     const { wrapper } = mountTab();
     expect(wrapper.get("[data-testid='stub-stage-form']").text()).toContain("NEGOTIATION_EQUALIZATION");

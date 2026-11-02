@@ -128,6 +128,7 @@ async function apply(): Promise<void> {
       <div class="import-actions">
         <VBtn
           variant="outlined"
+        color="info"
           size="small"
           class="validate-button"
           :disabled="!file || busy"
@@ -138,7 +139,7 @@ async function apply(): Promise<void> {
         </VBtn>
       </div>
 
-      <p v-if="error" class="notice error" role="alert">{{ error }}</p>
+      <VAlert v-if="error" type="error" role="alert">{{ error }}</VAlert>
 
       <section v-if="preview" class="preview" aria-live="polite">
         <div class="preview-head">
@@ -157,6 +158,8 @@ async function apply(): Promise<void> {
         <VBtn
           size="small"
           class="preview-apply"
+        variant="flat"
+        color="info"
           :disabled="busy || !file"
           :loading="running === 'apply'"
           :prepend-icon="running !== 'apply' ? mdiUpload : undefined"

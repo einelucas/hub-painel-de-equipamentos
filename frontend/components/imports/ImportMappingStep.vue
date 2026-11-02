@@ -120,7 +120,8 @@ function automaticLabel(location: ImportLocationValue): string {
 
     <div class="import-actions">
       <VBtn
-        variant="tonal"
+        variant="flat"
+        color="primary"
         :loading="busy"
         data-testid="import-build-plan"
         :disabled="busy"

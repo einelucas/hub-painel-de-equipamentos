@@ -75,12 +75,16 @@ describe("SupplierLinkModal", () => {
     const wrapper = mountModal(current);
     const submit = wrapper.get("button[type='submit']");
     expect(submit.attributes("disabled")).toBeDefined();
+    expect(wrapper.find(".v-textarea").exists()).toBe(true);
 
     await choose(wrapper, "Secundária SA");
     await wrapper.get("input[maxlength='80']").setValue("  Integrador ");
+    await wrapper.get("textarea[maxlength='500']").setValue("  Prazo incompatível ");
     await wrapper.get("form").trigger("submit");
 
-    expect(wrapper.emitted("submit")).toEqual([[{ supplierId: "s-2", role: "Integrador", changeReason: null }]]);
+    expect(wrapper.emitted("submit")).toEqual([[
+      { supplierId: "s-2", role: "Integrador", changeReason: "Prazo incompatível" },
+    ]]);
   });
 
   it("no primeiro vínculo mostra só o fornecedor que entra", () => {

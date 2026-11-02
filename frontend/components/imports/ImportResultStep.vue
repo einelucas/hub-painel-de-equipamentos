@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { AlertTriangle, CheckCircle2 } from "lucide-vue-next";
 import { VBtn } from "vuetify/components";
 import { useImportState } from "~/composables/useImportState";
 
@@ -10,22 +9,21 @@ const { result } = useImportState();
 
 <template>
   <div v-if="result" class="import-step" data-testid="import-step-result">
-    <div class="result-banner" :class="result.hasDivergences ? 'result-banner--warn' : 'result-banner--ok'">
-      <AlertTriangle v-if="result.hasDivergences" :size="22" aria-hidden="true" />
-      <CheckCircle2 v-else :size="22" aria-hidden="true" />
-      <div>
-        <p role="status" data-testid="import-result-title">
+    <VAlert
+      :type="result.hasDivergences ? 'warning' : 'success'"
+      role="status"
+    >
+      <template #title>
+        <span data-testid="import-result-title">
           {{ result.hasDivergences ? "Importação aplicada com divergências" : "Importação concluída" }}
-        </p>
-        <small>
-          {{
-            result.hasDivergences
-              ? "Os valores abaixo ficaram diferentes entre o Hub e o Monday. Revise-os nos equipamentos."
-              : "O Hub confere com as planilhas enviadas."
-          }}
-        </small>
-      </div>
-    </div>
+        </span>
+      </template>
+      {{
+        result.hasDivergences
+          ? "Os valores abaixo ficaram diferentes entre o Hub e o Monday. Revise-os nos equipamentos."
+          : "O Hub confere com as planilhas enviadas."
+      }}
+    </VAlert>
     <dl class="import-ledger">
       <div class="is-go"><dt>Criados</dt><dd data-testid="result-created">{{ result.created }}</dd></div>
       <div><dt>Atualizados</dt><dd data-testid="result-updated">{{ result.updated }}</dd></div>
@@ -44,17 +42,12 @@ const { result } = useImportState();
       </ul>
     </section>
     <div class="import-actions">
-      <VBtn variant="tonal" data-testid="import-finish" @click="emit('close')">Concluir</VBtn>
+      <VBtn variant="flat" color="success" data-testid="import-finish" @click="emit('close')">Concluir</VBtn>
     </div>
   </div>
 </template>
 
 <style scoped>
-.result-banner { display: flex; align-items: flex-start; gap: 12px; border-radius: 12px; padding: 14px 16px; }
-.result-banner p { margin: 0; font-size: 15px; font-weight: 800; }
-.result-banner small { color: inherit; font-size: 12px; opacity: 0.85; }
-.result-banner--ok { background: var(--go-wash); color: var(--go); }
-.result-banner--warn { background: var(--caution-wash); color: var(--caution); }
 .divergences { display: grid; gap: 8px; border-left: 3px solid #d4a24c; border-radius: 10px; padding: 11px 14px; background: var(--caution-wash); }
 .divergences h4 { margin: 0; color: var(--ink); font-size: 12.5px; font-weight: 800; }
 .divergences ul { display: grid; margin: 0; padding: 0; gap: 5px; list-style: none; max-height: 220px; overflow-y: auto; color: var(--ink); font-size: 12px; }

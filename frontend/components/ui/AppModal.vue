@@ -26,7 +26,7 @@ const props = withDefaults(
     closeOnEscape: true,
   },
 );
-const emit = defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: []; opened: [] }>();
 const titleId = `app-modal-title-${useId()}`;
 const bodyEl = ref<InstanceType<typeof VCardText> | null>(null);
 
@@ -55,6 +55,11 @@ function focusFirstField(): void {
     ?.focus();
 }
 
+function afterEnter(): void {
+  focusFirstField();
+  emit("opened");
+}
+
 watch(
   () => props.open,
   async (open) => {
@@ -74,7 +79,7 @@ watch(
     :max-width="size === 'wide' ? 1040 : 680"
     :aria-labelledby="titleId"
     class="app-modal-overlay"
-    @after-enter="focusFirstField"
+    @after-enter="afterEnter"
   >
     <VCard
       class="modal-card"

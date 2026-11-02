@@ -1,5 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
+import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import {
@@ -15,6 +16,27 @@ const options = [
 ];
 
 describe("seletores pesquisáveis de catálogo", () => {
+  it("limita o menu à mesma largura do seletor", async () => {
+    const wrapper = mount(SearchableSelect, {
+      props: { options, modelValue: "", label: "Fornecedor" },
+    });
+    Object.defineProperty(wrapper.element, "getBoundingClientRect", {
+      value: () => ({ width: 480 }),
+    });
+
+    const autocomplete = wrapper.getComponent(VAutocomplete);
+    autocomplete.vm.$emit("update:menu", true);
+    await wrapper.vm.$nextTick();
+
+    expect(autocomplete.props("menuProps")).toMatchObject({
+      width: 480,
+      minWidth: 480,
+      maxWidth: 480,
+      contentClass: "hub-searchable-select-menu",
+    });
+    wrapper.unmount();
+  });
+
   it("ordena, busca e seleciona uma opção mantendo o menu", async () => {
     const wrapper = mount(SearchableSelect, {
       props: {

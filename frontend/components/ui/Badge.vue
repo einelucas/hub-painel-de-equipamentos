@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { ElTag } from "element-plus";
+import { VChip } from "vuetify/components";
 
 /**
- * Badge construído sobre o `ElTag` do Element Plus (pill, `effect="light"`).
- * Os tokens de cor vêm do tema EP (`assets/css/element-plus.css`); as variantes
- * neutras do Hub (`secondary`, `outline`) recebem classes próprias porque o
- * `--el-color-info` do Hub é azul.
+ * Rótulo informativo do Hub sobre o `VChip`. Não recebe comportamento de link
+ * ou seleção; as variantes públicas continuam mapeadas aos tokens semânticos.
  */
 const props = withDefaults(
   defineProps<{
@@ -16,46 +14,34 @@ const props = withDefaults(
   { variant: "default", class: undefined },
 );
 
-const TYPE_BY_VARIANT = {
+const COLOR_BY_VARIANT = {
   default: "primary",
-  secondary: "info",
+  secondary: "secondary",
   success: "success",
-  destructive: "danger",
+  destructive: "error",
   warning: "warning",
-  outline: "info",
+  outline: "secondary",
 } as const;
 
-const type = computed(() => TYPE_BY_VARIANT[props.variant ?? "default"]);
-const effect = computed(() => (props.variant === "outline" ? "plain" : "light"));
-const badgeClass = computed(() => {
-  if (props.variant === "secondary") return "hub-badge--secondary";
-  if (props.variant === "outline") return "hub-badge--outline";
-  return undefined;
+const color = computed(() => COLOR_BY_VARIANT[props.variant ?? "default"]);
+const chipVariant = computed(() => {
+  if (props.variant === "outline") return "outlined" as const;
+  if (props.variant === "secondary") return "flat" as const;
+  return "tonal" as const;
 });
 </script>
 
 <template>
-  <ElTag
-    round
+  <VChip
     size="small"
-    :type="type"
-    :effect="effect"
-    :class="[badgeClass, props.class]"
+    density="compact"
+    rounded="pill"
+    :color="color"
+    :variant="chipVariant"
+    :class="props.class"
   >
+    <template v-if="$slots.prepend" #prepend><slot name="prepend" /></template>
     <slot />
-  </ElTag>
+    <template v-if="$slots.append" #append><slot name="append" /></template>
+  </VChip>
 </template>
-
-<style scoped>
-.hub-badge--secondary {
-  background: hsl(var(--secondary));
-  border-color: transparent;
-  color: hsl(var(--secondary-foreground));
-}
-
-.hub-badge--outline {
-  background: transparent;
-  border-color: hsl(var(--border));
-  color: hsl(var(--foreground));
-}
-</style>

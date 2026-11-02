@@ -31,6 +31,7 @@ const emit = defineEmits<{ click: [event: MouseEvent] }>();
   <VBtn
     v-else
     variant="outlined"
+    color="secondary"
     type="button"
     :size="compact ? 'x-small' : 'small'"
     :prepend-icon="mdiArrowLeft"

@@ -176,6 +176,7 @@ onBeforeUnmount(() => {
             <VBtn
               v-if="canWrite"
               variant="tonal"
+              color="primary"
               :prepend-icon="mdiPlus"
              @click="openCreate">
                Novo fornecedor
@@ -183,6 +184,7 @@ onBeforeUnmount(() => {
             <VBtn
               v-if="canWrite"
               variant="outlined"
+              color="info"
               :prepend-icon="mdiUpload"
              @click="showImport = true">
                Importar planilha
@@ -259,6 +261,7 @@ onBeforeUnmount(() => {
                     v-if="canWrite"
                     class="text-button"
                     variant="text"
+                    color="secondary"
                     size="small"
                     :prepend-icon="mdiPencilOutline"
                    @click="openEdit(supplier)">

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Check, LockKeyhole } from "lucide-vue-next";
+import type { OperationalStatus } from "~/types/equipment";
 import { formatTimestampDate } from "~/utils/format";
 import { stepStates } from "~/utils/workflow";
 
 const props = defineProps<{
   currentStage: number;
   nextStageBlocked?: boolean;
+  operationalStatus?: OperationalStatus;
   /** Data (timestamp da API) em que a etapa atual começou; `null` quando o
    * equipamento não tem marco conhecido (ver `currentStageEnteredAt`). */
   stageEnteredAt?: string | null;
@@ -35,11 +37,16 @@ const progress = computed(() => {
 const currentStep = computed(() =>
   steps.value.find((step) => step.state === "current"),
 );
+
+const hasOperationalAttention = computed(() =>
+  props.operationalStatus === "STANDBY" || props.operationalStatus === "IN_SANITATION",
+);
 </script>
 
 <template>
   <section
     class="workflow"
+    :class="{ 'workflow--attention': hasOperationalAttention }"
     data-testid="workflow-stepper"
     aria-label="Progresso do processo de aquisição"
   >
@@ -344,6 +351,18 @@ const currentStep = computed(() =>
   box-shadow:
     0 0 0 4px var(--workflow-blue-light),
     0 3px 9px rgb(41 78 124 / 18%);
+}
+
+.workflow--attention .step--current .step-marker {
+  border-color: var(--workflow-amber);
+  background: #eaa239;
+  box-shadow:
+    0 0 0 4px var(--workflow-amber-light),
+    0 3px 9px rgb(166 107 23 / 20%);
+}
+
+.workflow--attention .step-status {
+  color: var(--workflow-amber);
 }
 
 .step--current .step-label {

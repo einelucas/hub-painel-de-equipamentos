@@ -99,7 +99,7 @@ function submit(): void {
       </div>
     </fieldset>
     <div v-if="editable" class="form-actions">
-      <VBtn type="submit" variant="outlined" :loading="saving" data-testid="save-process" :disabled="saving">
+      <VBtn type="submit" variant="flat" color="primary" :loading="saving" data-testid="save-process" :disabled="saving">
         {{ saving ? "Salvando..." : "Salvar alterações" }}
       </VBtn>
     </div>

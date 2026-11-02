@@ -135,12 +135,12 @@ function openChild(section: AdminPanelSection, child: AdminPanelItem): void {
 }
 /* Contido: altura do modal; índice (quando houver) parado, só o conteúdo rola. */
 .admin-panel--contained { height: 100%; grid-template-rows: auto minmax(0, 1fr); }
-.admin-panel--indexed { grid-template-rows: none; grid-template-columns: 232px minmax(0, 1fr); align-items: stretch; gap: 22px; }
+.admin-panel--indexed { grid-template-rows: none; grid-template-columns: 248px minmax(0, 1fr); align-items: stretch; gap: 20px; }
 /*
  * Coluna flex: seções comuns crescem e o corpo rola; seções de lista
  * (`.admin-fill`) ocupam a altura restante e rolam só a própria lista.
  */
-.admin-panel--contained .admin-body { display: flex; min-height: 0; flex-direction: column; overflow-y: auto; padding: 0 6px 20px 2px; }
+.admin-panel--contained .admin-body { display: flex; min-height: 0; flex-direction: column; overflow-y: auto; padding: 8px 6px 20px 2px; }
 .admin-panel--contained .admin-body > :deep(.admin-fill) { min-height: 0; flex: 1 1 0; }
 
 .admin-description { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
@@ -150,29 +150,35 @@ function openChild(section: AdminPanelSection, child: AdminPanelItem): void {
 .admin-index {
   display: grid;
   align-content: start;
-  gap: 14px;
+  gap: 12px;
   min-height: 0;
   overflow-y: auto;
-  padding: 2px 18px 20px 0;
-  border-right: 1px solid var(--rule);
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: #f8fafc;
 }
-.admin-index-list { display: grid; gap: 2px; }
+.admin-index .admin-description {
+  border-bottom: 1px solid var(--rule);
+  padding: 0 2px 12px;
+}
+.admin-index-list { display: grid; gap: 4px; }
 .admin-index-item {
   position: relative;
+  min-height: 42px;
+  border-color: transparent;
   text-align: left;
 }
-/* Descrição do item via CSS: não entra no nome acessível da aba. */
-.admin-index-item[data-hint]::after {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-  content: attr(data-hint);
+.admin-index-item :deep(.v-btn__content),
+.admin-index-child :deep(.v-btn__content) {
+  width: 100%;
+  justify-content: flex-start;
 }
 .admin-index-item::before {
   position: absolute;
   top: 10px;
   bottom: 10px;
-  left: 0;
+  left: 2px;
   width: 3px;
   border-radius: 3px;
   background: transparent;
@@ -180,16 +186,20 @@ function openChild(section: AdminPanelSection, child: AdminPanelItem): void {
 }
 .admin-index-item.active::before { background: var(--steel); }
 
-.admin-index-children { display: grid; gap: 1px; margin: 2px 0 6px 14px; padding-left: 10px; border-left: 1px solid var(--rule); }
+.admin-index-children { display: grid; gap: 2px; margin: 2px 0 8px 16px; padding-left: 10px; border-left: 1px solid var(--rule); }
 .admin-index-child {
+  min-height: 34px;
+  border-color: transparent;
   text-align: left;
 }
+.admin-index-child.active { font-weight: 700; }
 
 .admin-body { min-width: 0; }
 
 @media (max-width: 820px) {
   .admin-panel--indexed { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
-  .admin-index { overflow: visible; padding: 0 0 12px; border-right: 0; border-bottom: 1px solid var(--rule); }
+  .admin-index { overflow: visible; padding: 12px; }
+  .admin-index .admin-description { grid-column: 1 / -1; }
   .admin-index-list { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 }
 </style>

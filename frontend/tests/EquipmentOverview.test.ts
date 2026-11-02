@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import EquipmentOverview from "~/components/equipment/EquipmentOverview.vue";
-import type { Equipment } from "~/types/equipment";
+import type { Equipment, OperationalStatus, OperationalStatusEvent } from "~/types/equipment";
 
 const equipment = {
   id: "eq-1",
@@ -48,14 +48,18 @@ const equipment = {
   updatedAt: "2026-10-07T00:00:00Z",
 } satisfies Equipment;
 
-function overview(overrides: Partial<Equipment> = {}) {
+function overview(
+  overrides: Partial<Equipment> = {},
+  operationalStatus: OperationalStatus = "ACTIVE",
+  lastOperationalEvent: OperationalStatusEvent | null = null,
+) {
   return mount(EquipmentOverview, {
     props: {
       equipment: { ...equipment, ...overrides },
       currentStage: 0,
       currentStageLabel: "Nova demanda",
-      operationalStatus: "ACTIVE",
-      lastOperationalEvent: null,
+      operationalStatus,
+      lastOperationalEvent,
       nextStageBlocked: false,
       canEdit: false,
     },
@@ -131,4 +135,23 @@ describe("EquipmentOverview", () => {
       "Origem",
     ]);
   });
+
+  it.each(["STANDBY", "IN_SANITATION"] as const)(
+    "destaca em amarelo a mensagem operacional quando o estado é %s",
+    (status) => {
+      const wrapper = overview({}, status, {
+        id: "event-1",
+        kind: status === "STANDBY" ? "STANDBY_ENTERED" : "SANITATION_ENTERED",
+        resultingStatus: status,
+        stageAtEvent: 0,
+        justification: "Aguardando regularização.",
+        actor: null,
+        occurredAt: "2026-11-02T16:03:00Z",
+      });
+
+      expect(wrapper.get("[data-testid='operational-note']").classes()).toContain(
+        "operational-note--attention",
+      );
+    },
+  );
 });

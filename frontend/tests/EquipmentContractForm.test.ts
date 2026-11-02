@@ -47,6 +47,16 @@ describe("EquipmentContractForm", () => {
     expect((number!.element as HTMLInputElement).value).toBe("CT-0001");
     expect((date!.element as HTMLInputElement).value).toBe("2026-03-01");
     expect(wrapper.get(".file-picker").text()).toBe("contrato.pdf");
+    expect(wrapper.get("[data-testid='remove-contract-file']").text()).toContain("Remover anexo");
+  });
+
+  it("permite solicitar a remoção apenas de um arquivo existente", async () => {
+    const wrapper = mountForm(existing);
+    await wrapper.get("[data-testid='remove-contract-file']").trigger("click");
+
+    expect(wrapper.emitted("remove-file")).toHaveLength(1);
+    expect(wrapper.emitted("submit")).toBeUndefined();
+    expect(mountForm(null).find("[data-testid='remove-contract-file']").exists()).toBe(false);
   });
 
   it("submit emite os valores digitados e o arquivo escolhido", async () => {
@@ -145,6 +155,39 @@ describe("EquipmentContractsList (container)", () => {
     expect(patch).toHaveBeenCalledWith("/equipments/eq-1/contracts/ct-1", { contractNumber: "CT-0001", executedAt: "2026-03-01" });
     expect(upload).not.toHaveBeenCalled();
     expect(wrapper.emitted("changed")).toHaveLength(1);
+  });
+
+  it("remove somente o anexo do contrato e atualiza a lista", async () => {
+    const del = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("useApi", () => ({ post: vi.fn(), patch: vi.fn(), delete: del, upload: vi.fn() }));
+    const wrapper = mount(EquipmentContractsList, {
+      props: { equipmentId: "eq-1", contracts: [existing], editable: true },
+      global: { stubs: listStubs },
+    });
+
+    await wrapper.findAll("button").find((item) => item.text().includes("Editar"))!.trigger("click");
+    await wrapper.get("[data-testid='remove-contract-file']").trigger("click");
+    await flushPromises();
+
+    expect(del).toHaveBeenCalledWith("/equipments/eq-1/contracts/ct-1/file");
+    expect(wrapper.emitted("changed")).toHaveLength(1);
+    expect(wrapper.find(".modal").exists()).toBe(false);
+  });
+
+  it("mantém o modal aberto e mostra o erro quando a remoção do anexo falha", async () => {
+    const del = vi.fn().mockRejectedValue(new Error("Falha ao remover anexo"));
+    vi.stubGlobal("useApi", () => ({ post: vi.fn(), patch: vi.fn(), delete: del, upload: vi.fn() }));
+    const wrapper = mount(EquipmentContractsList, {
+      props: { equipmentId: "eq-1", contracts: [existing], editable: true },
+      global: { stubs: listStubs },
+    });
+
+    await wrapper.findAll("button").find((item) => item.text().includes("Editar"))!.trigger("click");
+    await wrapper.get("[data-testid='remove-contract-file']").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get(".modal .notice.error").text()).toBe("Falha ao remover anexo");
+    expect(wrapper.emitted("changed")).toBeUndefined();
   });
 
   it("exclui via DELETE e mostra o erro da API na seção quando falha", async () => {

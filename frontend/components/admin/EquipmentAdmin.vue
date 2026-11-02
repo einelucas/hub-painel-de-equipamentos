@@ -106,9 +106,14 @@ watch(
         />
         <div v-else-if="catalog === 'masterEquipments'" class="stack">
           <p>Modelos reutilizáveis de equipamentos e componentes para novas obras.</p>
-          <NuxtLink class="btn primary" to="/administracao/catalogo-mestre" @click="emit('close')">
+          <VBtn
+            to="/administracao/catalogo-mestre"
+            variant="flat"
+            color="primary"
+            @click="emit('close')"
+          >
             Gerenciar Catálogo Mestre
-          </NuxtLink>
+          </VBtn>
         </div>
         <EapTreeAdmin
           v-else-if="catalog === 'areas'"

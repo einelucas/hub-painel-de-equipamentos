@@ -31,6 +31,7 @@ const emit = defineEmits<{
         :disabled="downloadingId === contract.id"
         :loading="downloadingId === contract.id"
         variant="text"
+        color="info"
         size="small"
         :prepend-icon="!(downloadingId === contract.id) ? mdiDownload : undefined"
        @click="emit('download', contract)">
@@ -43,6 +44,7 @@ const emit = defineEmits<{
         v-if="editable"
         class="text-button"
         variant="text"
+        color="secondary"
         size="small"
         :prepend-icon="mdiPencilOutline"
        @click="emit('edit', contract)">

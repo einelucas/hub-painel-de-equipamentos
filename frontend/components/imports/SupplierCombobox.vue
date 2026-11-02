@@ -11,9 +11,15 @@ const props = withDefaults(
     label: string;
     emptyLabel?: string;
     emptyValue?: string;
+    disabled?: boolean;
     testId?: string;
   }>(),
-  { emptyLabel: "Manter sem fornecedor", emptyValue: "__NONE__", testId: undefined },
+  {
+    emptyLabel: "Manter sem fornecedor",
+    emptyValue: "__NONE__",
+    disabled: false,
+    testId: undefined,
+  },
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
@@ -37,6 +43,7 @@ const options = computed(() =>
     placeholder="Digite o código ou nome"
     :empty-label="emptyLabel"
     :empty-value="emptyValue"
+    :disabled="disabled"
     :test-id="testId"
     @update:model-value="emit('update:modelValue', $event)"
   />

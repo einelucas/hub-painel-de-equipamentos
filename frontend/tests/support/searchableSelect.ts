@@ -13,7 +13,7 @@ type AnyWrapper = VueWrapper | ElementWrapper;
 /**
  * O dropdown de `VAutocomplete` é renderizado por um `VMenu` teleportado.
  * O helper localiza as opções pelo `aria-controls` do input combobox,
- * sem depender de classes antigas de Element Plus.
+ * sem depender de classes internas da biblioteca visual.
  */
 function root(wrapper: AnyWrapper, testId: string): ElementWrapper {
   const found = wrapper

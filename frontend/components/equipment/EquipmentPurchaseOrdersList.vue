@@ -90,12 +90,12 @@ async function removeItem(item: PurchaseOrder): Promise<void> {
         <h2>Ordens de compra</h2>
         <p>Um equipamento pode ter várias OCs. O Valor Total do Projeto não é a soma automática delas.</p>
       </div>
-      <VBtn v-if="editable" variant="tonal" :disabled="busy" data-testid="add-purchase-order" :prepend-icon="mdiPlus" @click="openCreate">
+      <VBtn v-if="editable" variant="tonal" color="primary" :disabled="busy" data-testid="add-purchase-order" :prepend-icon="mdiPlus" @click="openCreate">
          Adicionar
       </VBtn>
     </div>
 
-    <p v-if="actionError" class="notice error list-notice" role="alert">{{ actionError }}</p>
+    <VAlert v-if="actionError" class="notice error list-notice" type="error" role="alert">{{ actionError }}</VAlert>
 
     <EquipmentPurchaseOrdersTable
       :items="sorted"

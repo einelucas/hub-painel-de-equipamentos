@@ -108,6 +108,7 @@ describe("EquipmentOperationalActions", () => {
     const { wrapper, enterStandby } = mountActions("ACTIVE");
     await wrapper.get("[data-testid='standby-button']").trigger("click");
     expect(wrapper.find(".modal-stub").exists()).toBe(true);
+    expect(wrapper.find(".v-textarea").exists()).toBe(true);
 
     await fillAndSubmit(wrapper, "Pausa temporária do fornecedor.");
 

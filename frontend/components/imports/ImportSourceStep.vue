@@ -139,7 +139,8 @@ function size(bytes: number): string {
 
     <div class="import-actions">
       <VBtn
-        variant="tonal"
+        variant="flat"
+        color="info"
         :disabled="!canAnalyze"
         :loading="busy"
         data-testid="import-analyze"

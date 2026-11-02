@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, provide, watch } from "vue";
-import { Check } from "lucide-vue-next";
 import { IMPORT_STEPS, useEquipmentImport, type ImportStep } from "~/composables/useEquipmentImport";
 import { IMPORT_KEY } from "~/composables/useImportState";
-import { VProgress } from "vuetify/components";
+import { VProgress, VStepper } from "vuetify/components";
 
 /** Wizard "Importar equipamentos": estado local enquanto o modal está aberto (sem store global). */
 const props = defineProps<{ open: boolean; unitId?: string }>();
@@ -11,7 +10,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const state = useEquipmentImport();
 provide(IMPORT_KEY, state);
-const { step, error, busy, statusMessage, locked, hasProgress, result, batches, totals, plan, selectedContext, files } = state;
+const { step, error, busy, statusMessage, locked, hasProgress, result } = state;
 
 watch(
   () => props.open,
@@ -37,40 +36,25 @@ function stepIndex(key: string): number {
 }
 
 const currentIndex = computed(() => stepIndex(step.value));
+const stepperIndex = computed({
+  get: () => currentIndex.value + 1,
+  set: (value: number) => {
+    const selectedStep = IMPORT_STEPS[value - 1];
+    if (selectedStep) step.value = selectedStep.key;
+  },
+});
 
 function isDone(key: ImportStep, index: number): boolean {
   return index < currentIndex.value || (result.value !== null && key !== "result");
 }
 
-function plural(count: number, singular: string, pluralForm: string): string {
-  return `${count} ${count === 1 ? singular : pluralForm}`;
-}
-
-/**
- * Cada estação da linha mostra o que aquela etapa já produziu; antes disso,
- * o que ela pede. É o resumo da importação sempre à vista.
- */
-const stationNotes = computed<Record<ImportStep, string>>(() => {
-  const groups = plan.value?.groups ?? [];
-  const create = groups.reduce((sum, group) => sum + group.create, 0);
-  const blocked = groups.reduce((sum, group) => sum + group.blocked, 0);
-  const context = selectedContext.value;
-  return {
-    source: context
-      ? `${context.code ?? context.name}${files.value.length ? ` · ${plural(files.value.length, "arquivo", "arquivos")}` : ""}`
-      : "Destino e planilhas",
-    analysis: batches.value.length
-      ? `${plural(batches.value.length, "arquivo", "arquivos")} · ${totals.value.equipments} equip.`
-      : "Leitura e validação",
-    mapping: "Cadastros do Hub · opcional",
-    plan: plan.value ? `${create} a criar · ${blocked} bloq.` : "Revisão antes de gravar",
-    result: result.value
-      ? result.value.hasDivergences
-        ? "Com divergências"
-        : `${result.value.created + result.value.updated} gravados`
-      : "Gravação e conferência",
-  };
-});
+const stepperItems = computed(() =>
+  IMPORT_STEPS.map((item, index) => ({
+    title: item.label,
+    value: index + 1,
+    complete: isDone(item.key, index),
+  })),
+);
 
 const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
   source: {
@@ -99,23 +83,15 @@ const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
 <template>
   <AppModal :open="props.open" title="Importar equipamentos" size="wide" @close="close">
     <div class="import-wizard" data-testid="import-wizard">
-      <ol class="import-line" aria-label="Etapas da importação">
-        <li
-          v-for="(item, index) in IMPORT_STEPS"
-          :key="item.key"
-          class="station"
-          :class="{ current: item.key === step, done: isDone(item.key, index) }"
-          :aria-current="item.key === step ? 'step' : undefined"
-          :data-testid="`import-stepper-${item.key}`"
-        >
-          <span class="station-marker" aria-hidden="true">
-            <Check v-if="isDone(item.key, index)" :size="13" :stroke-width="3" />
-            <template v-else>{{ index + 1 }}</template>
-          </span>
-          <span class="station-label">{{ item.label }}</span>
-          <span class="station-note">{{ stationNotes[item.key] }}</span>
-        </li>
-      </ol>
+      <VStepper
+        v-model="stepperIndex"
+        :items="stepperItems"
+        class="import-steps"
+        color="primary"
+        aria-label="Etapas da importação"
+        hide-actions
+        flat
+      />
 
       <header class="step-intro">
         <span class="step-kicker">Etapa {{ currentIndex + 1 }} de {{ IMPORT_STEPS.length }}</span>
@@ -128,7 +104,7 @@ const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
         <span><span class="spinner-small" aria-hidden="true" /> {{ statusMessage }}</span>
       </div>
 
-      <p v-if="error" class="import-error" role="alert" data-testid="import-error">{{ error }}</p>
+      <VAlert v-if="error" type="error" role="alert" data-testid="import-error">{{ error }}</VAlert>
 
       <ImportSourceStep v-if="step === 'source'" />
       <ImportAnalysisStep v-else-if="step === 'analysis'" />
@@ -159,70 +135,14 @@ const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
   gap: 18px;
 }
 
-/* ---------- Linha de processo (assinatura) ---------- */
-.import-line {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  margin: -4px 0 0;
-  padding: 16px 18px 14px;
-  border: 1px solid var(--rule);
-  border-radius: 14px;
-  background: var(--wash);
-  list-style: none;
-}
-.station {
-  position: relative;
-  display: grid;
-  justify-items: start;
-  gap: 3px;
-  min-width: 0;
-  padding-right: 10px;
-}
-/* trilho até a próxima estação; preenchido quando a etapa já passou */
-.station:not(:last-child)::after {
-  position: absolute;
-  top: 12px;
-  left: 30px;
-  right: 4px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--rule);
-  content: "";
-}
-.station.done:not(:last-child)::after { background: var(--steel); }
-.station-marker {
-  position: relative;
-  z-index: 1;
-  display: inline-grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  border: 2px solid var(--rule);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 11.5px;
-  font-weight: 700;
-}
-.station.done .station-marker { border-color: var(--steel); background: var(--steel); color: #fff; }
-.station.current .station-marker {
-  border-color: var(--steel);
-  color: var(--steel);
-  box-shadow: 0 0 0 4px rgb(48 79 126 / 14%);
-}
-.station-label { margin-top: 5px; color: var(--muted); font-size: 12px; font-weight: 800; }
-.station.current .station-label, .station.done .station-label { color: var(--ink); }
-.station-note {
-  max-width: 100%;
-  overflow: hidden;
-  color: #8b96a5;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.station.done .station-note { color: var(--steel); }
+.import-steps { flex: 0 0 auto; border: 1px solid var(--rule); border-radius: 14px; background: var(--wash); }
+.import-steps :deep(.v-stepper-header) { min-height: 68px; box-shadow: none; }
+.import-steps :deep(.v-stepper-item) { min-width: 0; padding: 14px 16px; color: var(--steel); font-size: 12px; font-weight: 750; }
+.import-steps :deep(.v-stepper-item__content) { min-width: 0; }
+.import-steps :deep(.v-stepper-item__title) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-steps :deep(.v-stepper-item__avatar) { flex: 0 0 auto; }
+.import-steps :deep(.v-divider) { border-color: #cbd7e5; opacity: 1; }
+.import-steps :deep(.v-stepper-window) { display: none; }
 
 /* ---------- Abertura de cada etapa ---------- */
 .step-intro { display: grid; gap: 3px; }
@@ -232,8 +152,6 @@ const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
 
 .import-status { display: grid; gap: 8px; border: 1px solid var(--rule); border-radius: 10px; background: var(--wash); padding: 10px 12px; color: var(--ink); font-size: 12.5px; font-weight: 700; }
 .import-status .spinner-small { margin-right: 6px; vertical-align: -2px; }
-.import-error { margin: 0; border-left: 3px solid var(--stop); border-radius: 8px; background: var(--stop-wash); padding: 9px 12px; color: var(--stop); font-size: 12px; font-weight: 700; }
-
 /* ---------- Peças compartilhadas pelas etapas ---------- */
 .import-wizard :deep(.import-step) { display: grid; gap: 14px; }
 .import-wizard :deep(.import-hint) { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
@@ -285,14 +203,6 @@ const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
 }
 
 @media (max-width: 760px) {
-  .import-line { grid-template-columns: 1fr; gap: 10px; }
-  .station { grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 10px; }
-  .station:not(:last-child)::after { display: none; }
-  .station-label { margin-top: 0; }
-  .station-note { grid-column: 2; }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .station-marker { transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
-  .station:not(:last-child)::after { transition: background-color 0.3s ease; }
+  .import-steps :deep(.v-stepper-item) { padding-inline: 10px; }
 }
 </style>

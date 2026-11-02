@@ -112,7 +112,7 @@ async function submit(): Promise<void> {
         test-id="supplier-import-progress"
       />
 
-      <p v-if="error" class="error" role="alert">{{ error }}</p>
+      <VAlert v-if="error" type="error" role="alert">{{ error }}</VAlert>
 
       <div v-if="result" class="result" data-testid="supplier-import-result">
         <ul>
@@ -136,6 +136,7 @@ async function submit(): Promise<void> {
         <VBtn
           type="submit"
           variant="tonal"
+          color="info"
           :prepend-icon="mdiFileImportOutline"
           :loading="uploading"
           :disabled="!file || uploading"
@@ -157,7 +158,6 @@ async function submit(): Promise<void> {
 .file-info { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12.5px; }
 .file-name { font-weight: 700; overflow-wrap: anywhere; }
 .file-size { color: var(--muted, #6b7a8f); }
-.error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
 .result { border: 1px solid var(--rule, #dde5ef); border-radius: 10px; padding: 12px 14px; font-size: 12.5px; }
 .result > ul { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; }
 .total { margin: 8px 0 0; color: var(--muted, #6b7a8f); font-size: 11.5px; }

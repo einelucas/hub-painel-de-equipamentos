@@ -57,7 +57,7 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
         <h2>Componentes</h2>
         <p>{{ components.length }} subitem(ns) cadastrado(s).</p>
       </div>
-      <VBtn v-if="canEdit" variant="tonal" :prepend-icon="mdiPlus" @click="openCreate">
+      <VBtn v-if="canEdit" variant="tonal" color="primary" :prepend-icon="mdiPlus" @click="openCreate">
          Adicionar componente
       </VBtn>
     </div>
@@ -101,7 +101,7 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
                 >
                   {{ expandedComponentId === component.id ? "Ocultar prazos" : "Prazos calculados" }}
                 </VBtn>
-                <VBtn v-if="canEdit" class="text-button" variant="text" size="small" @click="editComponent(component)">Editar</VBtn>
+                <VBtn v-if="canEdit" class="text-button" variant="text" color="secondary" size="small" @click="editComponent(component)">Editar</VBtn>
               </TableCell>
             </TableRow>
             <TableRow v-if="expandedComponentId === component.id" class="deadlines-row">

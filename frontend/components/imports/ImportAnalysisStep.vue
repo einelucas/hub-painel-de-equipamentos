@@ -74,13 +74,14 @@ const standby = computed(() =>
       <ul><li v-for="name in unknownFields" :key="name" class="mono">{{ name }}</li></ul>
     </details>
 
-    <p v-if="!canProceed" class="blocked" role="alert" data-testid="import-cannot-proceed">
+    <VAlert v-if="!canProceed" type="error" role="alert" data-testid="import-cannot-proceed">
       Há arquivo com erro. Corrija no Monday e envie o conjunto novamente; nada é importado parcialmente.
-    </p>
+    </VAlert>
     <div class="import-actions">
       <VBtn variant="outlined" @click="reset">Enviar outros arquivos</VBtn>
       <VBtn
-        variant="tonal"
+        variant="flat"
+        color="primary"
         :disabled="!canProceed"
         :loading="busy"
         data-testid="import-to-mapping"
@@ -102,5 +103,4 @@ const standby = computed(() =>
 .import-details li { display: grid; gap: 1px; color: var(--ink); }
 .import-details li.error strong { color: var(--stop); }
 .issue-meta { color: var(--muted); font-size: 11px; }
-.blocked { margin: 0; border-left: 3px solid var(--stop); border-radius: 8px; background: var(--stop-wash); padding: 9px 12px; color: var(--stop); font-size: 12px; font-weight: 700; }
 </style>

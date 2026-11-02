@@ -138,6 +138,7 @@ watch(
       :disabled="disabled"
 
       variant="tonal"
+    color="info"
 
       size="small"
       data-testid="email-test-send"

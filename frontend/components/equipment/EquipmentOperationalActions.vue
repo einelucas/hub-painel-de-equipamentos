@@ -82,6 +82,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
             :disabled="busy"
             data-testid="standby-button"
             variant="outlined"
+            color="warning"
             :prepend-icon="mdiPause"
            @click="showStandby = true">
 
@@ -93,6 +94,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
             :disabled="busy"
             data-testid="sanitation-button"
             variant="outlined"
+            color="warning"
             :prepend-icon="mdiWrenchOutline"
            @click="showSanitation = true">
 
@@ -124,6 +126,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
           :disabled="busy"
           data-testid="lift-standby-button"
           variant="tonal"
+          color="success"
           :prepend-icon="mdiPlay"
          @click="showLiftStandby = true">
 
@@ -148,6 +151,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
           :disabled="busy"
           data-testid="end-sanitation-button"
           variant="tonal"
+          color="success"
           :prepend-icon="mdiRestore"
          @click="showEndSanitation = true">
 
@@ -177,6 +181,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
       :busy="busy"
       :error="actionError"
       confirm-label="Confirmar Standby"
+      confirm-color="warning"
       @confirm="confirmStandby"
       @close="showStandby = false"
     />
@@ -188,6 +193,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
       :busy="busy"
       :error="actionError"
       confirm-label="Retomar processo"
+      confirm-color="success"
       @confirm="confirmLiftStandby"
       @close="showLiftStandby = false"
     />
@@ -200,6 +206,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
       :busy="busy"
       :error="actionError"
       confirm-label="Confirmar cancelamento"
+      confirm-color="error"
       @confirm="confirmCancel"
       @close="showCancel = false"
     />
@@ -212,6 +219,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
       :busy="busy"
       :error="actionError"
       confirm-label="Confirmar Saneamento"
+      confirm-color="warning"
       @confirm="confirmSanitation"
       @close="showSanitation = false"
     />
@@ -223,6 +231,7 @@ async function confirmEndSanitation(text: string): Promise<void> {
       :busy="busy"
       :error="actionError"
       confirm-label="Encerrar Saneamento"
+      confirm-color="success"
       @confirm="confirmEndSanitation"
       @close="showEndSanitation = false"
     />

@@ -79,6 +79,23 @@ const active = computed(() => activeNavPath(items.value, route.path));
 .module-nav-item:hover { background: #f2f6fb; color: #2b3e58; }
 .module-nav-item:focus-visible { outline: 2px solid #304f7e; outline-offset: 2px; }
 .module-nav-item.is-active { border-color: #d5e2f3; background: #e8f1fc; color: #27456f; }
+.module-nav :deep(.module-action) {
+  position: relative;
+  flex: 0 0 auto;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  /* O VBtn usa overflow hidden por padrão e recortava o tooltip das ações. */
+  overflow: visible;
+  border-color: transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: #5d6b80;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.module-nav :deep(.module-action .v-icon) { font-size: 18px; }
+.module-nav :deep(.module-action:hover) { border-color: transparent; background: #f2f6fb; color: #2b3e58; }
+.module-nav :deep(.module-action:focus-visible) { outline: 2px solid #304f7e; outline-offset: 2px; }
 .module-nav-divider { width: 1px; height: 26px; margin: 0 6px; background: #e4e9f0; }
 .module-nav-divider:last-child { display: none; }
 
@@ -93,6 +110,7 @@ const active = computed(() => activeNavPath(items.value, route.path));
   color: #fff;
   font-size: 11.5px;
   font-weight: 700;
+  line-height: normal;
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
@@ -109,19 +127,49 @@ const active = computed(() => activeNavPath(items.value, route.path));
   transform: translateX(-50%);
 }
 .module-nav-item:hover .module-nav-tip,
-.module-nav-item:focus-visible .module-nav-tip {
+.module-nav-item:focus-visible .module-nav-tip,
+.module-nav :deep(.module-action:hover .module-nav-tip),
+.module-nav :deep(.module-action:focus-visible .module-nav-tip) {
   opacity: 1;
   transform: translate(-50%, 0);
 }
+.module-nav :deep(.module-action .module-nav-tip) {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 50%;
+  z-index: 30;
+  border-radius: 9px;
+  padding: 5px 10px;
+  background: #2b3e58;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: normal;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -3px);
+  transition: opacity .14s ease, transform .14s ease;
+}
+.module-nav :deep(.module-action .module-nav-tip::before) {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  border: 5px solid transparent;
+  border-bottom-color: #2b3e58;
+  content: "";
+  transform: translateX(-50%);
+}
 @media (prefers-reduced-motion: reduce) {
-  .module-nav-tip { transition: none; }
+  .module-nav-tip,
+  .module-nav :deep(.module-action .module-nav-tip) { transition: none; }
 }
 /* Em janelas estreitas, a barra com todas as ações precisa caber sem cortar
    o último atalho; a redução mantém a mesma altura visual. */
 @media (max-width: 560px) {
   .module-nav { gap: 2px; padding: 12px 10px; }
   .module-nav .module-nav-item,
-  .module-nav :deep(.module-action) { width: 36px; height: 36px; }
+  .module-nav :deep(.module-action) { width: 36px; min-width: 36px; height: 36px; }
   .module-nav .module-nav-divider { margin: 0 3px; }
 }
 </style>

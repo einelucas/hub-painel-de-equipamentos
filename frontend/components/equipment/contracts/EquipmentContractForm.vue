@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mdiDeleteOutline } from "@mdi/js";
 import { computed, reactive, ref } from "vue";
 import { VBtn } from "vuetify/components";
 import FilePicker from "~/components/ui/FilePicker.vue";
@@ -16,14 +17,15 @@ export interface EquipmentContractFormValues {
 const props = defineProps<{
   contract: Contract | null;
   busy: boolean;
-  /** Fase do container: salvando o contrato ou enviando o anexo. */
-  phase?: "saving" | "uploading" | null;
+  /** Fase do container: salvando o contrato, enviando ou removendo o anexo. */
+  phase?: "saving" | "uploading" | "removing-file" | null;
   /** Progresso do envio do anexo (null = total desconhecido). */
   uploadPercent?: number | null;
   error: string;
 }>();
 const emit = defineEmits<{
   submit: [values: EquipmentContractFormValues];
+  "remove-file": [];
   cancel: [];
 }>();
 
@@ -39,7 +41,11 @@ const uploading = computed(() => props.phase === "uploading");
 const uploadKnownPercent = computed(() =>
   typeof props.uploadPercent === "number" ? props.uploadPercent : null,
 );
-const busyLabel = computed(() => (uploading.value ? "Enviando arquivo..." : "Salvando..."));
+const busyLabel = computed(() => {
+  if (uploading.value) return "Enviando arquivo...";
+  if (props.phase === "removing-file") return "Removendo arquivo...";
+  return "Salvando...";
+});
 
 function submit(): void {
   emit("submit", {
@@ -58,15 +64,29 @@ function submit(): void {
     <div class="field">
       <VTextField v-model="form.executedAt" label="Data de escrituração" type="date" :disabled="props.busy" />
     </div>
-    <label class="field">
+    <div class="field">
       <span>Arquivo do contrato</span>
-      <FilePicker
-        v-model="pendingFile"
-        :current-label="props.contract?.file?.fileName ?? ''"
-        label="Selecionar arquivo"
-        :disabled="props.busy"
-      />
-    </label>
+      <div class="attachment-actions">
+        <FilePicker
+          v-model="pendingFile"
+          :current-label="props.contract?.file?.fileName ?? ''"
+          label="Selecionar arquivo"
+          :disabled="props.busy"
+        />
+        <VBtn
+          v-if="props.contract?.file"
+          type="button"
+          variant="text"
+          color="error"
+          :prepend-icon="mdiDeleteOutline"
+          :disabled="props.busy"
+          data-testid="remove-contract-file"
+          @click="emit('remove-file')"
+        >
+          Remover anexo
+        </VBtn>
+      </div>
+    </div>
 
     <UploadProgress
       v-if="uploading"
@@ -77,14 +97,15 @@ function submit(): void {
       test-id="contract-upload-progress"
     />
 
-    <p v-if="error" class="notice error" role="alert">
+    <VAlert v-if="error" class="notice error" type="error" role="alert">
       {{ error }}
-    </p>
+    </VAlert>
     <div class="form-actions">
-      <VBtn variant="outlined" :disabled="props.busy" @click="emit('cancel')">Cancelar</VBtn>
+      <VBtn variant="outlined" color="secondary" :disabled="props.busy" @click="emit('cancel')">Cancelar</VBtn>
       <VBtn
         type="submit"
-        variant="tonal"
+        variant="flat"
+        color="primary"
         :loading="props.busy"
        :disabled="props.busy">
         {{ props.busy ? busyLabel : "Salvar" }}
@@ -115,6 +136,13 @@ function submit(): void {
   border-radius: 6px;
   padding: 7px 9px;
   font-size: 13px;
+}
+.attachment-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 .form-actions {
   display: flex;

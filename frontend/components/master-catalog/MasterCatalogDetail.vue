@@ -108,10 +108,10 @@ function isComponentDeleting(component: MasterComponent): boolean {
         </div>
 
         <div class="detail-actions">
-          <VBtn variant="outlined" size="small" :disabled="props.busy" :prepend-icon="mdiPencilOutline" @click="emit('renameEquipment')">
+          <VBtn variant="outlined" color="secondary" size="small" :disabled="props.busy" :prepend-icon="mdiPencilOutline" @click="emit('renameEquipment')">
              Renomear
           </VBtn>
-          <VBtn variant="outlined" size="small" :disabled="props.busy" :prepend-icon="mdiPower" @click="emit('toggleEquipment')">
+          <VBtn variant="outlined" :color="props.equipment.active ? 'secondary' : 'success'" size="small" :disabled="props.busy" :prepend-icon="mdiPower" @click="emit('toggleEquipment')">
 
             {{ props.equipment.active ? "Desativar" : "Reativar" }}
           </VBtn>
@@ -196,6 +196,8 @@ function isComponentDeleting(component: MasterComponent): boolean {
               </VBtn>
               <VBtn
                 size="small"
+                variant="flat"
+                color="primary"
                 :disabled="props.busy"
                 :loading="props.savingAreas"
                 @click="emit('saveAreas')"
@@ -228,6 +230,8 @@ function isComponentDeleting(component: MasterComponent): boolean {
             <VBtn
               type="submit"
               size="small"
+              variant="flat"
+              color="primary"
               :disabled="props.busy || !newComponentName.trim()"
              :prepend-icon="mdiPlus">
                Adicionar
@@ -265,6 +269,7 @@ function isComponentDeleting(component: MasterComponent): boolean {
                     <div class="row-actions">
                       <VBtn
                         variant="text"
+                        color="secondary"
                         size="x-small"
                         :disabled="props.busy"
                         :aria-label="`Renomear ${component.name}`"
@@ -275,6 +280,7 @@ function isComponentDeleting(component: MasterComponent): boolean {
                       </VBtn>
                       <VBtn
                         variant="text"
+                        :color="component.active ? 'secondary' : 'success'"
                         size="x-small"
                         :disabled="props.busy"
                         :aria-label="`${component.active ? 'Desativar' : 'Reativar'} ${component.name}`"

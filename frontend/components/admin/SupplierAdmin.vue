@@ -176,10 +176,10 @@ watch(
           </p>
         </div>
         <div class="supplier-header-actions">
-          <VBtn size="small" variant="outlined" :disabled="saving" data-testid="supplier-import-open" :prepend-icon="mdiUpload" @click="showImport = true">
+          <VBtn size="small" variant="outlined" color="info" :disabled="saving" data-testid="supplier-import-open" :prepend-icon="mdiUpload" @click="showImport = true">
              Importar planilha
           </VBtn>
-          <VBtn size="small" variant="tonal" :disabled="saving" :prepend-icon="mdiPlus" @click="startCreate">
+          <VBtn size="small" variant="tonal" color="primary" :disabled="saving" :prepend-icon="mdiPlus" @click="startCreate">
              Novo
           </VBtn>
         </div>
@@ -207,7 +207,7 @@ watch(
       </div>
 
       <p v-if="loading && !suppliers.length" class="supplier-hint"><span class="spinner spinner-small" /> Carregando...</p>
-      <p v-else-if="error" class="supplier-error" role="alert">{{ error }}</p>
+      <VAlert v-else-if="error" type="error" role="alert">{{ error }}</VAlert>
       <p v-else-if="suppliers.length === 0" class="supplier-empty" data-testid="supplier-admin-empty">
         {{ search.trim() ? "Nenhum fornecedor corresponde à busca." : "Nenhum fornecedor cadastrado. Use \"Novo\" para criar o primeiro." }}
       </p>
@@ -243,6 +243,7 @@ watch(
               :disabled="saving"
               :loading="togglingId === supplier.id"
               variant="text"
+            :color="supplier.active ? 'secondary' : 'success'"
               size="small"
               @click="toggleActive(supplier)"
             >
@@ -300,7 +301,6 @@ watch(
 
 
 .supplier-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
-.supplier-error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
 .supplier-empty { margin: 0; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 22px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
 
 /* Encolhe até caber no painel e rola; lista curta continua curta. */

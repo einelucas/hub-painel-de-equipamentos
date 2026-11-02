@@ -17,7 +17,7 @@ const emit = defineEmits<{
     <TableCell>{{ item.requestNumber ?? "—" }}</TableCell>
     <TableCell>{{ formatDateOnly(item.requestedAt) }}</TableCell>
     <TableCell class="row-actions">
-      <VBtn v-if="editable" class="text-button" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="emit('edit', item)"> Editar</VBtn>
+      <VBtn v-if="editable" class="text-button" variant="text" color="secondary" size="small" :prepend-icon="mdiPencilOutline" @click="emit('edit', item)"> Editar</VBtn>
       <VBtn v-if="editable" class="text-button" :disabled="busy" :loading="activeId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(activeId === item.id) ? mdiTrashCanOutline : undefined" @click="emit('delete', item)">
 
         {{ activeId === item.id ? "Excluindo..." : "Excluir" }}

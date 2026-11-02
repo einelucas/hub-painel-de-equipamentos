@@ -58,7 +58,7 @@ async function submit(): Promise<void> {
 
 <template>
   <form class="equipment-form" @submit.prevent="submit">
-    <p v-if="error" class="notice error" role="alert">{{ error }}</p>
+    <VAlert v-if="error" type="error" role="alert">{{ error }}</VAlert>
     <div class="form-grid">
       <div class="field field-wide"><VTextField v-model="form.name" label="Componente *" required maxlength="500" /></div>
       <div class="field"><VTextField v-model="form.tag" label="Tag" maxlength="100" /></div>
@@ -69,7 +69,7 @@ async function submit(): Promise<void> {
       <div class="field"><VTextField v-model="form.contractDeliveryAt" label="Entrega contratual" type="date" /></div>
       <div class="field"><VTextField v-model="form.freightDays" label="Frete (dias)" type="number" min="0" /></div>
     </div>
-    <div class="form-actions"><VBtn variant="outlined" @click="emit('cancel')">Cancelar</VBtn><VBtn type="submit" variant="tonal" :loading="saving" :disabled="saving">{{ saving ? "Salvando..." : "Salvar componente" }}</VBtn></div>
+    <div class="form-actions"><VBtn variant="outlined" color="secondary" @click="emit('cancel')">Cancelar</VBtn><VBtn type="submit" variant="flat" color="primary" :loading="saving" :disabled="saving">{{ saving ? "Salvando..." : "Salvar componente" }}</VBtn></div>
   </form>
 </template>
 

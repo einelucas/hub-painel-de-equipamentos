@@ -95,10 +95,16 @@ describe("EquipmentReopenPanel", () => {
 
   it("mostra os dados da solicitação pendente", () => {
     const { wrapper } = mountPanel({ pendingReopenRequest: pendingRequest() });
-    const text = wrapper.get("[data-testid='pending-reopen-request']").text();
-    expect(text).toContain("2 · Equalização");
+    const pending = wrapper.get("[data-testid='pending-reopen-request']");
+    const text = pending.text();
+    expect(pending.find(".reopen-target").text()).toContain("2");
+    expect(pending.find(".reopen-target").text()).toContain("Equalização");
     expect(text).toContain("Analista Sintético A");
     expect(text).toContain("Fornecedor trocado, negociação precisa ser refeita.");
+    expect(wrapper.text()).toContain("Aguardando aprovação");
+    expect(pending.find(".reopen-justification").text()).toContain("Justificativa da solicitação");
+    expect(pending.find(".reopen-meta").text()).toContain("Solicitado por");
+    expect(pending.find(".reopen-meta").text()).toContain("Solicitado em");
     expect(wrapper.find("[data-testid='request-reopen-button']").exists()).toBe(false);
   });
 

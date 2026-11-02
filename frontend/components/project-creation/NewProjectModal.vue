@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { mdiChevronDown, mdiChevronRight } from "@mdi/js";
-import { VBtn } from "vuetify/components";
+import { VAlert, VBtn, VStepper, VTextField } from "vuetify/components";
 import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, ref, watch } from "vue";
-import { Check, Search } from "lucide-vue-next";
+import { Search } from "lucide-vue-next";
 
 interface Area { id: string; name: string; isUnassigned: boolean; active: boolean }
 interface ComponentOption { id: string; name: string; active: boolean; requiresQuantityReview: boolean; requiresNameReview: boolean }
@@ -36,6 +36,11 @@ const expandedAreas = ref<Record<string, boolean>>({});
 const requestId = ref("");
 const created = ref<Created | null>(null);
 const STEPS = ["Dados da obra", "Equipamentos", "Componentes", "Revisão"];
+const stepperItems = computed(() => STEPS.map((title, value) => ({
+  title,
+  value,
+  complete: value < step.value,
+})));
 
 watch(() => props.open, async (open) => {
   if (!open) return;
@@ -80,6 +85,9 @@ const withoutArea = computed(() => catalog.value.equipments.filter(
   (item) => item.active && !item.areaIds.length && item.name.toLocaleLowerCase("pt-BR").includes(search.value.toLocaleLowerCase("pt-BR").trim()),
 ));
 const canContinue = computed(() => (step.value === 0 ? Boolean(unitId.value && name.value.trim()) : true));
+function activeComponents(equipment: EquipmentModel): ComponentOption[] {
+  return equipment.components.filter((component) => component.active);
+}
 function selectedEquipment(id: string): boolean { return Object.prototype.hasOwnProperty.call(selected.value, id); }
 function toggleEquipment(id: string): void {
   const next = { ...selected.value };
@@ -103,7 +111,7 @@ function toggleComponent(equipmentId: string, componentId: string): void {
 function allComponents(equipment: EquipmentModel, active: boolean): void {
   selected.value = {
     ...selected.value,
-    [equipment.id]: active ? equipment.components.filter((c) => c.active).map((c) => c.id) : [],
+    [equipment.id]: active ? activeComponents(equipment).map((component) => component.id) : [],
   };
 }
 function next(): void {
@@ -146,13 +154,16 @@ async function submit(): Promise<void> {
 <template>
   <AppModal :open="open" title="Nova obra" size="wide" :busy="saving" @close="close">
     <div class="project-wizard" data-testid="new-project-wizard">
-      <ol class="steps" aria-label="Etapas de criação de obra">
-        <li v-for="(item, index) in STEPS" :key="item" :class="{ current: index === step, done: index < step }">
-          <span class="number"><Check v-if="index < step" :size="13" /><template v-else>{{ index + 1 }}</template></span>
-          <span>{{ item }}</span>
-        </li>
-      </ol>
-      <p v-if="error" class="message error" role="alert">{{ error }}</p>
+      <VStepper
+        v-model="step"
+        :items="stepperItems"
+        class="project-steps"
+        color="primary"
+        aria-label="Etapas de criação de obra"
+        hide-actions
+        flat
+      />
+      <VAlert v-if="error" type="error" role="alert">{{ error }}</VAlert>
       <p v-if="loading" class="message" role="status">Carregando unidades e catálogo mestre...</p>
       <template v-else>
         <section v-if="step === 0" class="step-body">
@@ -177,11 +188,19 @@ async function submit(): Promise<void> {
         </section>
         <section v-else-if="step === 1" class="step-body">
           <div class="section-title"><div><h3>Selecione os equipamentos</h3><p>Um mesmo modelo pode aparecer em várias áreas sem ser duplicado.</p></div><strong>{{ selectedIds.length }} selecionados</strong></div>
-          <div class="search">
-            <VTextField v-model="search" label="Buscar equipamento" placeholder="Buscar por nome do equipamento" clearable>
-              <template #prepend-inner><Search :size="16" /></template>
-            </VTextField>
-          </div>
+          <VTextField
+            v-model="search"
+            class="search-field"
+            label="Buscar equipamento"
+            placeholder="Buscar por nome do equipamento"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            clearable
+            data-testid="new-project-equipment-search"
+          >
+            <template #prepend-inner><Search :size="16" aria-hidden="true" /></template>
+          </VTextField>
           <div v-if="!catalog.equipments.length" class="empty">
             <p>O Catálogo Mestre ainda não possui equipamentos.</p>
             <NuxtLink to="/administracao/catalogo-mestre" @click="close">Administrar catálogo e carregar seed</NuxtLink>
@@ -199,9 +218,9 @@ async function submit(): Promise<void> {
               </VBtn>
               <div v-if="expandedAreas[area.id] !== false" class="equipment-list">
                 <label v-for="equipment in area.models" :key="equipment.id" class="check-row">
-                  <input type="checkbox" :checked="selectedEquipment(equipment.id)" @change="toggleEquipment(equipment.id)" />
+                  <input type="checkbox" :checked="selectedEquipment(equipment.id)" :data-testid="`select-equipment-${equipment.id}`" @change="toggleEquipment(equipment.id)" />
                   <span>{{ equipment.name }}</span>
-                  <small>{{ equipment.components.length }} comp.</small>
+                  <small>{{ activeComponents(equipment).length }} comp.</small>
                 </label>
               </div>
             </div>
@@ -209,8 +228,9 @@ async function submit(): Promise<void> {
               <div class="area-title">Sem área definida <small>{{ withoutArea.length }}</small></div>
               <div class="equipment-list">
                 <label v-for="equipment in withoutArea" :key="equipment.id" class="check-row">
-                  <input type="checkbox" :checked="selectedEquipment(equipment.id)" @change="toggleEquipment(equipment.id)" />
+                  <input type="checkbox" :checked="selectedEquipment(equipment.id)" :data-testid="`select-equipment-${equipment.id}`" @change="toggleEquipment(equipment.id)" />
                   <span>{{ equipment.name }}</span>
+                  <small>{{ activeComponents(equipment).length }} comp.</small>
                 </label>
               </div>
             </div>
@@ -219,17 +239,22 @@ async function submit(): Promise<void> {
         <section v-else-if="step === 2" class="step-body">
           <div class="section-title"><div><h3>Escolha os componentes</h3><p>Todos começam desmarcados. Você pode criar equipamentos sem componentes.</p></div><strong>{{ totalComponents }} selecionados</strong></div>
           <p v-if="!selectedModels.length" class="empty">Nenhum equipamento selecionado. Volte para adicionar equipamentos ou prossiga com a obra vazia.</p>
-          <div v-for="equipment in selectedModels" :key="equipment.id" class="area-group">
-            <div class="area-title">{{ equipment.name }} <small>{{ (selected[equipment.id] ?? []).length }}/{{ equipment.components.length }}</small></div>
-            <div class="component-actions">
-              <VBtn type="button" variant="text" @click="allComponents(equipment, true)">Selecionar todos</VBtn>
-              <VBtn type="button" variant="text" @click="allComponents(equipment, false)">Limpar</VBtn>
+          <div v-for="equipment in selectedModels" :key="equipment.id" class="area-group component-group">
+            <div class="area-title">
+              <span>{{ equipment.name }}</span>
+              <small>{{ (selected[equipment.id] ?? []).length }}/{{ activeComponents(equipment).length }}</small>
             </div>
-            <p v-if="!equipment.components.length" class="hint">Sem componentes cadastrados no catálogo.</p>
-            <div class="equipment-list">
-              <label v-for="component in equipment.components.filter(c => c.active)" :key="component.id" class="check-row">
+            <div class="component-actions">
+              <VBtn type="button" variant="outlined" density="compact" :disabled="!activeComponents(equipment).length" @click="allComponents(equipment, true)">Selecionar todos</VBtn>
+              <VBtn type="button" variant="outlined" density="compact" :disabled="!(selected[equipment.id] ?? []).length" @click="allComponents(equipment, false)">Limpar</VBtn>
+            </div>
+            <p v-if="!activeComponents(equipment).length" class="hint">Sem componentes ativos cadastrados no catálogo.</p>
+            <div v-else class="equipment-list component-list">
+              <label v-for="component in activeComponents(equipment)" :key="component.id" class="check-row">
                 <input
-type="checkbox" :checked="componentSelected(equipment.id, component.id)"
+                  type="checkbox"
+                  :checked="componentSelected(equipment.id, component.id)"
+                  :data-testid="`select-component-${component.id}`"
                   @change="toggleComponent(equipment.id, component.id)" />
                 <span>{{ component.name }}</span>
                 <small v-if="component.requiresQuantityReview || component.requiresNameReview">Revisar</small>
@@ -250,9 +275,9 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
           <p class="hint">TAGs, EAP, prazos, fornecedores e demais informações operacionais serão preenchidos depois na obra.</p>
         </section>
         <footer class="wizard-footer">
-          <VBtn type="button" :disabled="saving" variant="outlined" @click="step === 0 ? close() : previous()">{{ step === 0 ? "Cancelar" : "Voltar" }}</VBtn>
-          <VBtn v-if="step < 3" type="button" :disabled="!canContinue" variant="tonal" @click="next">Continuar</VBtn>
-          <VBtn v-else type="button" :disabled="saving" data-testid="create-project-submit" variant="tonal" :loading="saving" @click="submit">{{ saving ? "Criando..." : "Criar obra" }}</VBtn>
+          <VBtn type="button" :disabled="saving" variant="outlined" data-testid="new-project-back" @click="step === 0 ? close() : previous()">{{ step === 0 ? "Cancelar" : "Voltar" }}</VBtn>
+          <VBtn v-if="step < 3" type="button" :disabled="!canContinue" variant="flat" color="primary" data-testid="new-project-next" @click="next">Continuar</VBtn>
+          <VBtn v-else type="button" :disabled="saving" data-testid="create-project-submit" variant="flat" color="primary" :loading="saving" @click="submit">{{ saving ? "Criando..." : "Criar obra" }}</VBtn>
         </footer>
       </template>
     </div>
@@ -261,11 +286,14 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
 
 <style scoped>
 .project-wizard { display: flex; flex-direction: column; gap: 18px; color: #273e5a; min-height: 350px; max-height: min(76vh, 730px); }
-.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.steps li { display: flex; gap: 7px; align-items: center; font-size: 12px; color: #8190a3; font-weight: 650; }
-.steps li.current, .steps li.done { color: #304f7e; }
-.number { display: grid; place-items: center; height: 24px; width: 24px; flex-shrink: 0; border-radius: 50%; border: 1px solid #dce4ef; }
-.current .number, .done .number { background: #e8f1fc; border-color: #8ca9d0; }
+.project-steps { flex: 0 0 auto; border: 1px solid #dde5ef; border-radius: 14px; background: #f3f6fb; }
+.project-steps :deep(.v-stepper-header) { min-height: 68px; box-shadow: none; }
+.project-steps :deep(.v-stepper-item) { min-width: 0; padding: 14px 16px; color: #304f7e; font-size: 12px; font-weight: 750; }
+.project-steps :deep(.v-stepper-item__content) { min-width: 0; }
+.project-steps :deep(.v-stepper-item__title) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-steps :deep(.v-stepper-item__avatar) { flex: 0 0 auto; }
+.project-steps :deep(.v-divider) { border-color: #cbd7e5; opacity: 1; }
+.project-steps :deep(.v-stepper-window) { display: none; }
 .step-body { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 2px 4px; }
 .step-body h3 { font-size: 16px; font-weight: 800; margin: 0; }
 .step-body p { margin: 0; font-size: 13px; color: #677b92; }
@@ -273,17 +301,19 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
 .step-body input:not([type=checkbox]):not([role=combobox]):not([type=hidden]), .step-body select { width: 100%; border: 1px solid #dce4ef; border-radius: 9px; padding: 10px 12px; background: #fff; color: #273e5a; }
 .section-title { display: flex; justify-content: space-between; gap: 15px; align-items: center; }
 .section-title strong { font-size: 12px; white-space: nowrap; }
-.search { position: relative; display: flex; align-items: center; gap: 8px; border: 1px solid #dce4ef; border-radius: 10px; padding-left: 10px; }
-.search input { border: none !important; outline: none; }
+.search-field { flex: 0 0 auto; }
 .areas-list { display: grid; gap: 10px; }
-.area-group { border: 1px solid #e0e7f1; border-radius: 11px; overflow: hidden; margin-bottom: 2px; }
+.area-group { flex: 0 0 auto; border: 1px solid #e0e7f1; border-radius: 11px; overflow: hidden; margin-bottom: 2px; }
 .area-title { display: flex; gap: 8px; align-items: center; width: 100%; border: 0; padding: 12px 14px; background: #f3f6fb; color: #273e5a; text-align: left; font-size: 13px; font-weight: 800; }
+.area-title > span { min-width: 0; overflow-wrap: anywhere; }
 .area-title small, .check-row small { margin-left: auto; font-size: 11px; color: #75849b; font-weight: 600; }
 .equipment-list { padding: 6px 12px; display: grid; gap: 2px; }
 .check-row { display: flex; align-items: center; gap: 10px; border-radius: 7px; padding: 7px 6px; font-size: 13px; cursor: pointer; }
 .check-row:hover { background: #f6f8fb; }
 .check-row input { width: 16px; height: 16px; accent-color: #304f7e; }
-.component-actions { display: flex; gap: 14px; padding: 8px 12px 0; }
+.check-row > span { min-width: 0; overflow-wrap: anywhere; }
+.component-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px 4px; }
+.component-list { padding-bottom: 10px; }
 
 .review-line { padding: 10px 14px; border: 1px solid #e0e7f1; border-radius: 9px; display: grid; gap: 4px; font-size: 13px; }
 .review-line > span { color: #75849b; }
@@ -291,11 +321,13 @@ type="checkbox" :checked="componentSelected(equipment.id, component.id)"
 .empty { padding: 22px; background: #f3f6fb; border-radius: 10px; }
 .hint { font-size: 12px; color: #71849a; padding: 8px 12px; }
 .message { font-size: 13px; color: #476789; }
-.error { padding: 10px; color: #a43e33; background: #fff2f0; border-radius: 9px; }
 .wizard-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; border-top: 1px solid #e0e7f1; }
 
 
 
 
-@media (max-width: 660px) { .steps { grid-template-columns: repeat(2, 1fr); } .project-wizard { max-height: 78vh; } }
+@media (max-width: 660px) {
+  .project-steps :deep(.v-stepper-item) { padding-inline: 10px; }
+  .project-wizard { max-height: 78vh; }
+}
 </style>

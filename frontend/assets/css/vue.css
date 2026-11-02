@@ -22,8 +22,8 @@
   --popover-foreground: 213 12% 15%;
   --primary: 216 45% 34%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 16% 96%;
-  --secondary-foreground: 216 45% 34%;
+  --secondary: 220 9% 46%;
+  --secondary-foreground: 0 0% 100%;
   --muted: 220 16% 96%;
   --muted-foreground: 220 9% 46%;
   --accent: 36 81% 57%;
@@ -192,7 +192,7 @@ button:disabled {
 }
 
 .field
-  input:not(.el-input__inner):not([role="combobox"]):not([type="hidden"]):not(
+  input:not([role="combobox"]):not([type="hidden"]):not(
     .searchable-select__required
   ):not([type="file"])
   .field
@@ -214,7 +214,7 @@ button:disabled {
 }
 
 .field
-  input:not(.el-input__inner):not([role="combobox"]):not([type="hidden"]):not(
+  input:not([role="combobox"]):not([type="hidden"]):not(
     .searchable-select__required
   ):not([type="file"]):focus
   .field
@@ -328,57 +328,6 @@ button:disabled {
   font-size: 13px;
 }
 
-.btn {
-  display: inline-flex;
-  min-height: 39px;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border: 1px solid #d8e0ea;
-  border-radius: 9px;
-  padding: 8px 13px;
-  background: #fff;
-  color: #34445a;
-  font-size: 13px;
-  font-weight: 700;
-  transition: 0.15s ease;
-}
-
-.btn:hover:not(:disabled) {
-  background: #f5f7fa;
-}
-
-.btn.primary {
-  border-color: #304f7e;
-  background: #304f7e;
-  color: #fff;
-}
-
-.btn.primary:hover:not(:disabled) {
-  background: #213758;
-}
-
-.btn.small {
-  min-height: 32px;
-  padding: 5px 9px;
-  font-size: 12px;
-}
-
-.notice {
-  border: 1px solid #c9dbf2;
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: #f2f7fd;
-  color: #36577e;
-  font-size: 12px;
-}
-
-.notice.error {
-  border-color: #efc7c2;
-  background: #fdf2f0;
-  color: #a6372c;
-}
-
 .spinner {
   width: 28px;
   height: 28px;
@@ -404,13 +353,6 @@ button:disabled {
   border-radius: 50%;
   vertical-align: -2px;
   animation: spin 0.8s linear infinite;
-}
-
-.btn .spinner-small {
-  border-color: currentColor;
-  border-top-color: transparent;
-  opacity: 0.85;
-  vertical-align: middle;
 }
 
 .skeleton {
@@ -556,14 +498,6 @@ button:disabled {
   color: var(--texto-suave);
   text-align: center;
   font-size: 12.5px;
-}
-
-.login-error {
-  margin: 12px 0 0 !important;
-  color: var(--vermelho) !important;
-  text-align: left !important;
-  font-size: 12px !important;
-  font-weight: 600;
 }
 
 @media (max-width: 900px) {

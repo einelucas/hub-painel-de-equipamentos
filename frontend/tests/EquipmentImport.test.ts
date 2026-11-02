@@ -231,6 +231,7 @@ describe("Importar equipamentos", () => {
     expect(button.element.tagName).toBe("BUTTON");
     expect(button.attributes("href")).toBeUndefined();
     expect(button.attributes("aria-label")).toBe("Importar equipamentos");
+    expect(button.get(".module-nav-tip").text()).toBe("Importar equipamentos");
   });
 
   it("VIEWER (sem equipments:write) não vê o botão", () => {
@@ -245,6 +246,14 @@ describe("Importar equipamentos", () => {
     await settle(wrapper);
 
     expect(wrapper.find("[data-testid='import-wizard']").exists()).toBe(true);
+    expect(wrapper.get(".import-steps .v-stepper-item--selected").text()).toContain(
+      "Obra e arquivos",
+    );
+    expect(
+      wrapper
+        .findAll(".import-steps .v-stepper-item__avatar")
+        .map((item) => item.text()),
+    ).toEqual(["1", "2", "3", "4", "5"]);
     expect(get).toHaveBeenCalledWith("/imports/monday/profiles");
     expect(shownValue(wrapper, "import-unit")).toBe("Unidade Teste");
     expect(shownValue(wrapper, "import-context")).toBe("PA · Projeto Sintético A");
@@ -289,6 +298,7 @@ describe("Importar equipamentos", () => {
     expect(form.get("profileId")).toBe("monday-equipamentos-legacy");
     expect(wrapper.get("[data-testid='import-equipments']").text()).toBe("2");
     expect(wrapper.get("[data-testid='import-components']").text()).toBe("3");
+    expect(wrapper.get(".import-steps .v-stepper-item--selected").text()).toContain("Análise");
     expect(wrapper.get("[data-testid='import-step-analysis']").text()).toContain("linha 4");
   });
 

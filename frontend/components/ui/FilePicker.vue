@@ -62,6 +62,7 @@ function onFiles(event: Event): void {
     <VBtn
       type="button"
       variant="outlined"
+    color="info"
       class="file-picker__button"
       :disabled="props.disabled"
       :prepend-icon="mdiUpload"

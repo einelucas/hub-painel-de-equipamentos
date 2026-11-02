@@ -102,7 +102,7 @@ async function submit() {
         <div class="field">
           <VTextField v-model="password" label="Senha" type="password" autocomplete="current-password" required />
         </div>
-        <VBtn type="submit" variant="tonal" class="mt-1" block :disabled="checking" :loading="loading">
+        <VBtn type="submit" variant="flat" color="primary" class="mt-1" block :disabled="checking" :loading="loading">
           {{ loading ? "Entrando..." : "Entrar" }}
         </VBtn>
       </form>
@@ -116,7 +116,7 @@ async function submit() {
         </VBtn>
       </template>
 
-      <p v-if="error" class="login-error" role="alert">{{ error }}</p>
+      <VAlert v-if="error" type="error" role="alert">{{ error }}</VAlert>
     </section>
 
     <AppModal :open="changeOpen" title="Defina sua nova senha" @close="closeChange">
@@ -129,11 +129,11 @@ async function submit() {
           <VTextField v-model="confirmPassword" label="Confirmar nova senha" type="password" autocomplete="new-password" minlength="8" required />
         </div>
         <small>Mínimo de 8 caracteres, com letras e números, diferente da senha padrão.</small>
-        <p v-if="changeError" class="login-error" role="alert">{{ changeError }}</p>
+        <VAlert v-if="changeError" type="error" role="alert">{{ changeError }}</VAlert>
       </form>
       <template #actions>
         <VBtn variant="outlined" :disabled="loading" @click="closeChange">Cancelar</VBtn>
-        <VBtn type="submit" variant="tonal" form="first-access-form" :loading="loading" :disabled="loading">
+        <VBtn type="submit" variant="flat" color="primary" form="first-access-form" :loading="loading" :disabled="loading">
           {{ loading ? "Salvando..." : "Salvar nova senha" }}
         </VBtn>
       </template>

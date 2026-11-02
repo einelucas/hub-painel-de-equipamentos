@@ -73,12 +73,12 @@ function addArea(): void {
           aria-label="Nome da nova área"
           :disabled="props.busy"
         />
-        <VBtn type="submit" size="small" :disabled="props.busy || !newAreaName.trim()" :prepend-icon="mdiPlus">
+        <VBtn type="submit" size="small" variant="flat" color="primary" :disabled="props.busy || !newAreaName.trim()" :prepend-icon="mdiPlus">
            Adicionar
         </VBtn>
       </form>
 
-      <p v-if="props.error" class="notice error" role="alert">{{ props.error }}</p>
+      <VAlert v-if="props.error" type="error" role="alert">{{ props.error }}</VAlert>
 
       <Table>
         <TableHeader>
@@ -107,6 +107,7 @@ function addArea(): void {
               <div v-if="!area.isUnassigned" class="row-actions">
                 <VBtn
                   variant="text"
+                color="secondary"
                   size="x-small"
                   :disabled="props.busy"
                   :aria-label="`Renomear ${area.name}`"
@@ -117,6 +118,7 @@ function addArea(): void {
                 </VBtn>
                 <VBtn
                   variant="text"
+                :color="area.active ? 'secondary' : 'success'"
                   size="x-small"
                   :disabled="props.busy"
                   :aria-label="`${area.active ? 'Desativar' : 'Reativar'} ${area.name}`"

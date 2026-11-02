@@ -34,8 +34,8 @@ const downloadingId = ref<string | null>(null);
 const actionError = ref("");
 const showForm = ref(false);
 const editing = ref<Contract | null>(null);
-/** Fase do formulário: salvando o contrato e, depois, enviando o anexo. */
-const savePhase = ref<"idle" | "saving" | "uploading">("idle");
+/** Fase do formulário: salvando o contrato, enviando ou removendo o anexo. */
+const savePhase = ref<"idle" | "saving" | "uploading" | "removing-file">("idle");
 const uploadPercent = ref<number | null>(null);
 
 const sorted = computed(() =>
@@ -116,6 +116,27 @@ async function submit(values: EquipmentContractFormValues): Promise<void> {
   }
 }
 
+async function removeFile(): Promise<void> {
+  if (savePhase.value !== "idle" || !editing.value?.file) return;
+  savePhase.value = "removing-file";
+  actionError.value = "";
+  try {
+    await api.delete(
+      `/equipments/${props.equipmentId}/contracts/${editing.value.id}/file`,
+    );
+    showForm.value = false;
+    editing.value = null;
+    emit("changed");
+  } catch (caught) {
+    actionError.value =
+      caught instanceof Error
+        ? caught.message
+        : "Não foi possível remover o arquivo do contrato.";
+  } finally {
+    savePhase.value = "idle";
+  }
+}
+
 async function removeContract(item: Contract): Promise<void> {
   if (busy.value) return;
   busy.value = true;
@@ -175,6 +196,7 @@ async function downloadFile(item: Contract): Promise<void> {
       <VBtn
         v-if="editable"
         variant="tonal"
+        color="primary"
         :disabled="busy"
         data-testid="add-contract"
         :prepend-icon="mdiPlus"
@@ -183,9 +205,9 @@ async function downloadFile(item: Contract): Promise<void> {
       </VBtn>
     </div>
 
-    <p v-if="actionError" class="notice error list-notice" role="alert">
+    <VAlert v-if="actionError" class="notice error list-notice" type="error" role="alert">
       {{ actionError }}
-    </p>
+    </VAlert>
 
     <RequirementWaiverBanner
       v-if="
@@ -223,6 +245,7 @@ async function downloadFile(item: Contract): Promise<void> {
         :upload-percent="uploadPercent"
         :error="actionError"
         @submit="submit"
+        @remove-file="removeFile"
         @cancel="closeForm"
       />
     </AppModal>

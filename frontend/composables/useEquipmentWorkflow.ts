@@ -35,6 +35,10 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
   const actionError = ref("");
   const actionSuccess = ref("");
 
+  function dismissActionSuccess(): void {
+    actionSuccess.value = "";
+  }
+
   const advance = computed<TransitionOption | null>(
     () => transitions.value?.transitions.find((item) => item.kind === "advance") ?? null,
   );
@@ -220,11 +224,38 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
 
   // --- Etapa 7C: reabertura com aprovação ---
 
-  function requestReopen(targetStage: number, justification: string): Promise<unknown> {
-    return run(
-      () => api.post(`/equipments/${equipmentId.value}/reopen-requests`, { targetStage, justification }),
-      "Não foi possível solicitar a reabertura.",
-    );
+  async function requestReopen(
+    targetStage: number,
+    justification: string,
+  ): Promise<ReopenRequest | null> {
+    if (busy.value) return null;
+    busy.value = true;
+    actionError.value = "";
+    actionSuccess.value = "";
+    try {
+      const created = await api.post<ReopenRequest>(
+        `/equipments/${equipmentId.value}/reopen-requests`,
+        { targetStage, justification },
+      );
+
+      // A solicitação não altera a etapa nem os dados do processo. Usar a
+      // resposta da escrita evita uma recarga ampla e impede que uma falha em
+      // uma consulta auxiliar derrube toda a aba após a criação bem-sucedida.
+      reopenRequests.value = [
+        created,
+        ...reopenRequests.value.filter((item) => item.id !== created.id),
+      ];
+      actionSuccess.value = "Solicitação de reabertura enviada para aprovação.";
+      return created;
+    } catch (caught) {
+      actionError.value =
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível solicitar a reabertura.";
+      return null;
+    } finally {
+      busy.value = false;
+    }
   }
 
   function approveReopen(requestId: string, note: string): Promise<unknown> {
@@ -262,6 +293,7 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
     error,
     actionError,
     actionSuccess,
+    dismissActionSuccess,
     advance,
     load,
     saveProcess,

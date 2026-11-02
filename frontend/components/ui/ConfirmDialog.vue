@@ -57,7 +57,7 @@ function focusCancel(): void {
           type="button"
           class="confirm-btn--cancel"
           variant="outlined"
-          color="primary"
+          color="secondary"
           rounded="lg"
           @click="cancel"
         >
@@ -66,7 +66,7 @@ function focusCancel(): void {
         <VBtn
           type="button"
           :class="state.tone === 'danger' ? 'confirm-btn--danger' : 'confirm-btn--primary'"
-          variant="tonal"
+          variant="flat"
           :color="state.tone === 'danger' ? 'error' : 'primary'"
           rounded="lg"
           @click="accept"

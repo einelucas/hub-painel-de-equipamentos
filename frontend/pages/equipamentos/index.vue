@@ -111,7 +111,7 @@ async function syncQuery(): Promise<void> {
   await router.replace({ query });
 }
 
-/** Troca de página pela paginação do Element Plus. */
+/** Troca de página pela paginação controlada do Hub. */
 function onPageChange(next: number): void {
   page.value = next;
   void load();
@@ -306,6 +306,7 @@ onMounted(async () => {
           <VBtn
             v-if="canAdminister"
             variant="outlined"
+            color="secondary"
             size="default"
             data-testid="admin-button"
             :prepend-icon="mdiTuneVariant"
@@ -315,6 +316,7 @@ onMounted(async () => {
           </VBtn>
           <VBtn
             variant="outlined"
+            color="info"
             size="default"
             :disabled="loading"
             :loading="exporting"
@@ -326,7 +328,8 @@ onMounted(async () => {
           </VBtn>
           <VBtn
             v-if="auth.can('equipments:write')"
-            variant="tonal"
+            variant="flat"
+            color="primary"
             size="default"
             :disabled="!canCreate"
             :title="

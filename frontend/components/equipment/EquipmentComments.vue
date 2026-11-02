@@ -252,7 +252,8 @@ onMounted(load);
 
               data-testid="comment-submit"
 
-              variant="tonal"
+              variant="flat"
+              color="primary"
 
              :prepend-icon="mdiSend">
 
@@ -262,9 +263,9 @@ onMounted(load);
         </form>
       </div>
 
-      <p v-if="actionError" class="action-notice" role="alert">
+      <VAlert v-if="actionError" type="error" role="alert">
         {{ actionError }}
-      </p>
+      </VAlert>
 
       <div
         v-if="comments.length === 0"
@@ -372,6 +373,7 @@ onMounted(load);
                       type="button"
                       :disabled="busy"
                       variant="outlined"
+                      color="secondary"
                       @click="cancelEdit"
                     >
                       Cancelar
@@ -383,7 +385,8 @@ onMounted(load);
 
                       :disabled="!editingText.trim() || busy"
 
-                      variant="tonal"
+                      variant="flat"
+                      color="primary"
 
                       @click="saveEdit(item)"
 
@@ -425,6 +428,7 @@ onMounted(load);
                 <VBtn
                   type="button"
                   variant="text"
+                  color="secondary"
                   size="small"
                   :prepend-icon="mdiPencilOutline"
                  @click="startEdit(item)">
@@ -463,6 +467,7 @@ onMounted(load);
                 type="button"
                 :disabled="busy"
                 variant="outlined"
+                color="secondary"
                 :prepend-icon="mdiClose"
                @click="cancelDelete">
 
@@ -789,19 +794,6 @@ onMounted(load);
 .composer-count--warning {
   color: #ffce7d;
   font-weight: 700;
-}
-
-.action-notice {
-  margin: 0;
-  padding: 11px 13px;
-
-  border: 1px solid #f0d6d1;
-  border-radius: 12px;
-
-  background: #fff8f7;
-  color: #a4453a;
-
-  font-size: 11px;
 }
 
 /* =========================================================

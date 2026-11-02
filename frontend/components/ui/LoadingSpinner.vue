@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { Loading } from "@element-plus/icons-vue";
-import { ElIcon } from "element-plus";
+import { VProgressCircular } from "vuetify/components";
 
 /**
- * Spinner construído sobre o `ElIcon` do Element Plus (ícone `Loading`).
- * Os tamanhos seguem os antigos `.spinner`/`.spinner-small` do Hub
- * (28px/14px); os spinners dentro de botões continuam sendo CSS próprio.
+ * Indicador indeterminado do Hub. Os tamanhos preservam o contrato histórico
+ * de 14px/28px; animação e desenho ficam sob responsabilidade do Vuetify.
  */
 const props = withDefaults(defineProps<{ size?: "sm" | "md"; label?: string }>(), {
   size: "md",
@@ -14,21 +12,23 @@ const props = withDefaults(defineProps<{ size?: "sm" | "md"; label?: string }>()
 </script>
 
 <template>
-  <span class="loading-spinner" role="status" aria-live="polite">
-    <ElIcon
-      class="is-loading"
+  <span
+    class="loading-spinner"
+    role="status"
+    aria-live="polite"
+    :aria-label="props.label || 'Carregando'"
+  >
+    <VProgressCircular
+      indeterminate
+      color="currentColor"
       :size="props.size === 'sm' ? 14 : 28"
+      :width="props.size === 'sm' ? 2 : 3"
       aria-hidden="true"
-    >
-      <Loading />
-    </ElIcon>
-    <span v-if="props.label" class="loading-spinner-label">{{ props.label }}</span>
+    />
+    <span v-if="props.label" class="loading-spinner-label" aria-hidden="true">{{ props.label }}</span>
   </span>
 </template>
 
 <style scoped>
 .loading-spinner { display: inline-flex; align-items: center; gap: 8px; color: #748197; }
-@media (prefers-reduced-motion: reduce) {
-  .is-loading { animation-duration: 2.4s; }
-}
 </style>

@@ -50,10 +50,10 @@ const form = reactive<EquipmentPurchaseRequestFormValues>({
     </div>
     <div class="field"><VTextField v-model="form.requestNumber" label="Número" maxlength="80" /></div>
     <div class="field"><VTextField v-model="form.requestedAt" label="Data" type="date" /></div>
-    <p v-if="error" class="notice error" role="alert">{{ error }}</p>
+    <VAlert v-if="error" class="notice error" type="error" role="alert">{{ error }}</VAlert>
     <div class="form-actions">
-      <VBtn type="button" variant="outlined" @click="emit('cancel')">Cancelar</VBtn>
-      <VBtn type="submit" variant="tonal" :loading="busy" :disabled="busy">{{ busy ? "Salvando..." : "Salvar" }}</VBtn>
+      <VBtn type="button" variant="outlined" color="secondary" @click="emit('cancel')">Cancelar</VBtn>
+      <VBtn type="submit" variant="flat" color="primary" :loading="busy" :disabled="busy">{{ busy ? "Salvando..." : "Salvar" }}</VBtn>
     </div>
   </form>
 </template>

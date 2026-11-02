@@ -2,7 +2,7 @@
 import { mdiEmailCheckOutline, mdiRefresh, mdiSendOutline } from "@mdi/js";
 import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { AlertTriangle, CheckCircle2, CircleHelp, Clock3, Settings2 } from "lucide-vue-next";
+import { CircleHelp, Clock3, Settings2 } from "lucide-vue-next";
 import EmailTemplateEditor from "~/components/admin/EmailTemplateEditor.vue";
 import EmailTemplatePreview from "~/components/admin/EmailTemplatePreview.vue";
 import EmailTestPanel from "~/components/admin/EmailTestPanel.vue";
@@ -347,8 +347,22 @@ onMounted(load);
       </VBtn>
     </header>
 
-    <div v-if="error" class="notify-message notify-error" role="alert"><AlertTriangle :size="16" /> {{ error }}</div>
-    <div v-if="notice" class="notify-message notify-success" role="status"><CheckCircle2 :size="16" /> {{ notice }}</div>
+    <VAlert v-if="error" type="error" role="alert">{{ error }}</VAlert>
+    <VAlert
+      v-if="notice"
+      class="hub-action-alert"
+      type="success"
+      role="status"
+      closable
+      position="fixed"
+      location="top end"
+      :timeout="6000"
+      timer="bottom"
+      @click:close="notice = ''"
+      @update:model-value="!$event && (notice = '')"
+    >
+      {{ notice }}
+    </VAlert>
     <div v-if="loading" role="status" class="notify-empty" aria-busy="true">Carregando configuração de e-mails...</div>
 
     <template v-else>
@@ -399,7 +413,7 @@ onMounted(load);
           <p>O destino é fixo: {{ settings?.testInbox || "caixa ainda não configurada" }}. No modo sandbox todos os envios, inclusive alertas operacionais, são redirecionados para ela.</p>
           <div class="field"><VTextField v-model="mailSubject" label="Assunto" maxlength="200" /></div>
           <label class="field"><span>Mensagem</span><textarea v-model="mailBody" rows="4" maxlength="4000" /></label>
-          <VBtn size="small" variant="tonal" :disabled="busy || !settings?.testInbox || (settings?.mode !== 'log' && !testProviderStatus?.configured)" :prepend-icon="mdiSendOutline" @click="sendTest"> {{ busy ? "Enviando..." : "Enviar teste" }}</VBtn>
+          <VBtn size="small" variant="tonal" color="info" :disabled="busy || !settings?.testInbox || (settings?.mode !== 'log' && !testProviderStatus?.configured)" :prepend-icon="mdiSendOutline" @click="sendTest"> {{ busy ? "Enviando..." : "Enviar teste" }}</VBtn>
         </div>
       </div>
 
@@ -426,7 +440,7 @@ onMounted(load);
             <label class="field"><span>Destinatários fixos — um endereço por linha</span><textarea v-model="recipientsText" rows="6" placeholder="equipe@empresa.com" /></label>
             <p class="notify-hint">No modo sandbox os endereços são registrados, mas não recebem e-mails: apenas a caixa de testes recebe. Em produção, os destinatários são deduplicados.</p>
           </template>
-          <VBtn size="small" variant="tonal" :disabled="busy" :prepend-icon="mdiEmailCheckOutline" @click="save"> {{ busy ? "Salvando..." : "Salvar configuração" }}</VBtn>
+          <VBtn size="small" variant="flat" color="primary" :disabled="busy" :prepend-icon="mdiEmailCheckOutline" @click="save"> {{ busy ? "Salvando..." : "Salvar configuração" }}</VBtn>
         </template>
       </div>
 
@@ -445,7 +459,7 @@ onMounted(load);
           <p class="notify-hint"><CircleHelp :size="15" /> O modelo salvo vale para todos os envios deste tipo. A pré-visualização e o teste usam exatamente o HTML que será enviado; o teste nunca atinge destinatários operacionais.</p>
         </div>
 
-        <div v-if="previewError" class="notify-message notify-error" role="alert"><AlertTriangle :size="16" /> {{ previewError }}</div>
+        <VAlert v-if="previewError" type="error" role="alert">{{ previewError }}</VAlert>
 
         <div class="tpl-workspace-grid">
           <div class="tpl-workspace-editor">
@@ -505,7 +519,6 @@ onMounted(load);
 .notify-panel { padding: 12px 0; }
 .notify-panel :deep(.field) { max-width: 100%; }
 .notify-panel textarea { resize: vertical; min-height: 90px; width: 100%; }
-.notify-panel .btn { align-self: flex-start; }
 .notify-status { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .notify-status strong { font-size: 14px; }
 .notify-providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
@@ -530,9 +543,6 @@ onMounted(load);
 .notify-delivery { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
 .notify-delivery strong { font-size: 12px; font-weight: 700; max-width: 75%; overflow-wrap: anywhere; }
 .notify-empty { padding: 28px 12px; color: #64748b; text-align: center; font-size: 12px; }
-.notify-message { display: flex; gap: 8px; align-items: center; border-radius: 8px; padding: 10px; font-size: 12px; }
-.notify-error { background: #fff1f0; color: #a32c24; }
-.notify-success { background: #eff8ed; color: #306c2e; }
 .notify-error-text { color: #b02f20 !important; }
 .tpl-workspace { gap: 14px; }
 .tpl-workspace-head { display: grid; gap: 6px; }

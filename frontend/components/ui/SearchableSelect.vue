@@ -41,6 +41,7 @@ const emit = defineEmits<{
 }>();
 
 const root = ref<HTMLElement | null>(null);
+const menuWidth = ref<number | undefined>();
 
 const items = computed(() =>
   toAutocompleteItems(props.options, {
@@ -92,6 +93,12 @@ function onInvalid(event: Event): void {
   input?.focus();
 }
 
+function onMenuChange(open: boolean): void {
+  if (!open) return;
+  const width = root.value?.getBoundingClientRect().width;
+  if (width) menuWidth.value = Math.round(width);
+}
+
 onMounted(() => {
   void nextTick(syncAria);
 });
@@ -127,8 +134,15 @@ watch(
       :prepend-inner-icon="props.icon"
       :disabled="props.disabled"
       :clearable="props.clearable"
+      :menu-props="{
+        width: menuWidth,
+        minWidth: menuWidth,
+        maxWidth: menuWidth,
+        contentClass: 'hub-searchable-select-menu',
+      }"
       no-data-text="Nenhuma opção encontrada."
       @update:model-value="onUpdate"
+      @update:menu="onMenuChange"
     />
   </div>
 </template>

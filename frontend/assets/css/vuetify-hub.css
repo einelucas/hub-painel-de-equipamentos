@@ -16,34 +16,34 @@
   --v-theme-surface-variant: 66, 66, 66;
   --v-theme-surface-variant-overlay-multiplier: 2;
   --v-theme-on-surface-variant: 238, 238, 238;
-  --v-theme-primary: 31, 90, 169;
+  --v-theme-primary: 48, 79, 126;
   --v-theme-primary-overlay-multiplier: 2;
-  --v-theme-primary-darken-1: 24, 74, 138;
+  --v-theme-primary-darken-1: 33, 55, 88;
   --v-theme-primary-darken-1-overlay-multiplier: 2;
-  --v-theme-secondary: 95, 107, 122;
+  --v-theme-secondary: 107, 114, 128;
   --v-theme-secondary-overlay-multiplier: 2;
-  --v-theme-secondary-darken-1: 76, 86, 100;
+  --v-theme-secondary-darken-1: 75, 85, 99;
   --v-theme-secondary-darken-1-overlay-multiplier: 2;
-  --v-theme-error: 239, 68, 68;
+  --v-theme-error: 192, 57, 43;
   --v-theme-error-overlay-multiplier: 1;
-  --v-theme-info: 14, 165, 233;
+  --v-theme-info: 0, 124, 197;
   --v-theme-info-overlay-multiplier: 1;
-  --v-theme-success: 34, 197, 94;
+  --v-theme-success: 96, 147, 70;
   --v-theme-success-overlay-multiplier: 1;
-  --v-theme-warning: 245, 158, 11;
+  --v-theme-warning: 234, 162, 57;
   --v-theme-warning-overlay-multiplier: 1;
   --v-theme-on-primary: 255, 255, 255;
   --v-theme-on-secondary: 255, 255, 255;
-  --v-theme-success-darken-1: 22, 163, 74;
+  --v-theme-success-darken-1: 77, 118, 56;
   --v-theme-success-darken-1-overlay-multiplier: 1;
   --v-theme-on-success: 255, 255, 255;
-  --v-theme-info-darken-1: 2, 132, 199;
+  --v-theme-info-darken-1: 0, 99, 158;
   --v-theme-info-darken-1-overlay-multiplier: 1;
   --v-theme-on-info: 255, 255, 255;
-  --v-theme-warning-darken-1: 217, 119, 6;
-  --v-theme-warning-overlay-multiplier: 1;
+  --v-theme-warning-darken-1: 187, 130, 45;
+  --v-theme-warning-darken-1-overlay-multiplier: 1;
   --v-theme-on-warning: 255, 255, 255;
-  --v-theme-error-darken-1: 220, 38, 38;
+  --v-theme-error-darken-1: 154, 46, 34;
   --v-theme-error-darken-1-overlay-multiplier: 2;
   --v-theme-on-error: 255, 255, 255;
   --v-theme-on-background: 31, 41, 55;
@@ -137,8 +137,6 @@
   --v-btn-min-width: 68px;
   --v-btn-padding-inline: 18px;
   --v-btn-border-width: 1px;
-  --v-btn-color: rgb(var(--v-theme-primary));
-  --v-btn-text-color: rgb(var(--v-theme-on-primary));
   --v-select-height: 32px;
   --v-select-padding-inline: 12px;
 }
@@ -151,8 +149,7 @@
 }
 .v-btn--variant-outlined,
 .v-btn--variant-plain,
-.v-btn--variant-text,
-.v-btn--variant-tonal {
+.v-btn--variant-text {
   background: transparent;
 }
 .v-btn {
@@ -393,6 +390,13 @@ input.v-field__input::placeholder,
 textarea.v-field__input::placeholder {
   color: currentColor;
   opacity: var(--v-disabled-opacity);
+}
+/* Mantém o placeholder oculto enquanto a label do VTextarea ainda ocupa o
+   interior do campo. No foco, o Vuetify ativa/flutua a label e o exibe. */
+.v-textarea
+  .v-field:not(.v-field--no-label, .v-field--active)
+  textarea.v-field__input::placeholder {
+  opacity: 0;
 }
 .v-field__input:active,
 .v-field__input:focus {
@@ -943,6 +947,19 @@ textarea.v-field__input::placeholder {
     0 0 transparent;
   overflow: hidden;
 }
+/* O overlay é teleportado para o body; esta classe vem de SearchableSelect e
+   mantém opções longas dentro da mesma largura do campo ativador. */
+.hub-searchable-select-menu .v-list,
+.hub-searchable-select-menu .v-list-item,
+.hub-searchable-select-menu .v-list-item__content {
+  max-width: 100%;
+  min-width: 0;
+}
+.hub-searchable-select-menu .v-list-item-title,
+.hub-searchable-select-menu .v-list-item-subtitle {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
 .v-autocomplete__mask {
   background: rgb(var(--v-theme-surface-light));
 }
@@ -1009,4 +1026,12 @@ textarea.v-field__input::placeholder {
 .v-autocomplete--active-menu .v-autocomplete__menu-icon {
   opacity: var(--v-high-emphasis-opacity);
   transform: rotate(180deg);
+}
+
+/* Feedback temporário de ações com a API nativa do VAlert 4.3. */
+.hub-action-alert {
+  z-index: 2400;
+  width: min(420px, calc(100vw - 32px));
+  margin: 16px;
+  box-shadow: 0 10px 28px rgba(33, 55, 88, 0.18);
 }

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { mdiCheck, mdiClose, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from "@mdi/js";
+import { mdiCheck, mdiClose, mdiMagnify, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from "@mdi/js";
 import { computed, reactive, ref, useId, watch } from "vue";
-import { Search } from "lucide-vue-next";
 import type { CatalogItem, CatalogList } from "~/types/equipment";
 import { catalogColor } from "~/utils/catalogColors";
 import { useConfirm } from "~/composables/useConfirm";
@@ -219,20 +218,25 @@ watch(
           {{ activeCount }} ativo{{ activeCount === 1 ? "" : "s" }}<template v-if="inactiveCount"> · {{ inactiveCount }} inativo{{ inactiveCount === 1 ? "" : "s" }}</template>
         </p>
       </div>
-      <VBtn v-if="!blocked" size="small" variant="tonal" :disabled="saving" :prepend-icon="mdiPlus" @click="startCreate">
+      <VBtn v-if="!blocked" size="small" variant="tonal" color="primary" :disabled="saving" :prepend-icon="mdiPlus" @click="startCreate">
          Novo
       </VBtn>
     </header>
 
     <p v-if="blocked" class="catalog-hint" data-testid="catalog-blocked">{{ props.requiresParent }}</p>
     <template v-else>
-      <label v-if="items.length" class="catalog-search">
-        <Search :size="14" aria-hidden="true" />
-        <VTextField v-model="search" type="search" :label="`Buscar em ${props.label}`" clearable />
-      </label>
+      <VTextField
+        v-if="items.length"
+        v-model="search"
+        class="catalog-search"
+        type="search"
+        :label="`Buscar em ${props.label}`"
+        :prepend-inner-icon="mdiMagnify"
+        clearable
+      />
 
       <p v-if="loading" class="catalog-hint"><span class="spinner spinner-small" /> Carregando...</p>
-      <p v-else-if="error" class="catalog-error" role="alert">{{ error }}</p>
+      <VAlert v-else-if="error" type="error" role="alert">{{ error }}</VAlert>
       <p v-else-if="items.length === 0" class="catalog-empty" data-testid="catalog-empty">
         Nenhum registro cadastrado. Use "Novo" para criar o primeiro.
       </p>
@@ -259,7 +263,7 @@ watch(
             <VBtn type="button" class="text-button" :disabled="saving" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="startEdit(item)">
                Editar
             </VBtn>
-            <VBtn type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" :loading="togglingId === item.id" variant="text" size="small" @click="toggleActive(item)">
+            <VBtn type="button" class="text-button" :class="{ 'text-button--quiet': item.active }" :disabled="saving" :loading="togglingId === item.id" variant="text" :color="item.active ? 'secondary' : 'success'" size="small" @click="toggleActive(item)">
               {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
             </VBtn>
             <VBtn type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(deletingId === item.id) ? mdiTrashCanOutline : undefined" @click="remove(item)">
@@ -294,7 +298,7 @@ watch(
           placeholder="Significado da WP; deixe vazio enquanto não estiver documentado."
         />
       </label>
-      <p v-if="formError" class="catalog-error" role="alert">{{ formError }}</p>
+      <VAlert v-if="formError" type="error" role="alert">{{ formError }}</VAlert>
     </form>
 
     <template #actions>
@@ -304,7 +308,8 @@ watch(
       <VBtn
         type="submit"
         size="small"
-        variant="tonal"
+        variant="flat"
+        color="primary"
         :form="formId"
         :loading="saving"
        :prepend-icon="!saving ? mdiCheck : undefined" :disabled="saving">
@@ -324,7 +329,6 @@ watch(
 .catalog-count { margin: 2px 0 0; color: var(--muted, #6b7a8f); font-family: var(--mono, monospace); font-size: 11px; }
 .catalog-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
 .catalog-empty { margin: 0; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 22px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
-.catalog-error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
 
 .catalog-form { display: grid; grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr); gap: 14px 16px; }
 .catalog-form .full { grid-column: 1 / -1; }
@@ -333,11 +337,9 @@ watch(
 .color-control input { width: 44px; height: 34px; border: 1px solid var(--rule, #dde5ef); border-radius: 8px; padding: 3px; background: #fff; cursor: pointer; }
 .color-control code { color: var(--muted, #6b7a8f); font-size: 12px; text-transform: uppercase; }
 .description-field textarea { min-height: 88px; resize: vertical; }
-.catalog-form .catalog-error { grid-column: 1 / -1; }
+.catalog-form > .v-alert { grid-column: 1 / -1; }
 
-.catalog-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule, #dde5ef); border-radius: 9px; padding: 0 10px; background: #fff; color: var(--muted, #6b7a8f); }
-.catalog-search:focus-within { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 2px rgb(48 79 126 / 12%); }
-.catalog-search input { min-width: 0; flex: 1; border: 0; outline: 0; padding: 8px 0; background: transparent; color: var(--ink, #1f3352); font-size: 12.5px; }
+.catalog-search { width: 100%; }
 
 /* Encolhe até caber no painel, mas não estica: lista curta continua curta. */
 .catalog > .catalog-list { min-height: 0; flex: 0 1 auto; }

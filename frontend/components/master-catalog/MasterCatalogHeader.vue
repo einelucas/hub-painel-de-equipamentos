@@ -50,6 +50,7 @@ const emit = defineEmits<{
     <div class="master-hero__actions">
       <VBtn
         variant="outlined"
+        color="secondary"
         class="header-action"
         :disabled="props.busy"
         :prepend-icon="mdiLayersOutline"
@@ -58,13 +59,14 @@ const emit = defineEmits<{
       </VBtn>
       <VBtn
         variant="outlined"
+        color="info"
         class="header-action"
         :disabled="props.busy"
         :prepend-icon="mdiUpload"
        @click="emit('importSeed')">
          Importar seed
       </VBtn>
-      <VBtn class="header-action" :disabled="props.busy" :prepend-icon="mdiPlus" @click="emit('create')">
+      <VBtn class="header-action" variant="flat" color="primary" :disabled="props.busy" :prepend-icon="mdiPlus" @click="emit('create')">
          Novo equipamento
       </VBtn>
     </div>

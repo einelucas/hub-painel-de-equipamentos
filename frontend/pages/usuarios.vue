@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { mdiAccountPlusOutline, mdiRefresh } from "@mdi/js";
-import { ShieldAlert } from "lucide-vue-next";
 import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, onMounted, reactive, ref } from "vue";
 import type { AdminUser, Role, UserSummary } from "~/types/api";
@@ -116,19 +115,31 @@ onMounted(load);
     description="Ferramenta provisória para os testes de autenticação local."
   >
     <div class="stack users-page">
-      <section class="temporary-warning" role="note">
-        <ShieldAlert :size="19" aria-hidden="true" />
-        <div>
-          <strong>Página temporária e não listada no menu</strong>
-          <p>Somente administradores podem abrir esta URL. Remova a página quando os testes terminarem.</p>
-        </div>
-      </section>
+      <VAlert type="warning" role="note" title="Página temporária e não listada no menu">
+        Somente administradores podem abrir esta URL. Remova a página quando os testes terminarem.
+      </VAlert>
 
-      <div v-if="success" class="message success-message" role="status">{{ success }}</div>
-      <div v-if="error" class="message error-message" role="alert">
-        <span>{{ error }}</span>
-        <VBtn class="text-button" type="button" variant="text" size="small" @click="load">Tentar novamente</VBtn>
-      </div>
+      <VAlert
+        v-if="success"
+        class="hub-action-alert"
+        type="success"
+        role="status"
+        closable
+        position="fixed"
+        location="top end"
+        :timeout="6000"
+        timer="bottom"
+        @click:close="success = ''"
+        @update:model-value="!$event && (success = '')"
+      >
+        {{ success }}
+      </VAlert>
+      <VAlert v-if="error" type="error" role="alert">
+        {{ error }}
+        <template #append>
+          <VBtn type="button" variant="text" color="error" size="small" @click="load">Tentar novamente</VBtn>
+        </template>
+      </VAlert>
 
       <section class="surface users-card">
         <header class="users-header">
@@ -140,7 +151,7 @@ onMounted(load);
             <VBtn variant="outlined" :disabled="loading" :prepend-icon="mdiRefresh" @click="load">
                Atualizar
             </VBtn>
-            <VBtn variant="tonal" data-testid="new-user" :prepend-icon="mdiAccountPlusOutline" @click="openCreate">
+            <VBtn variant="flat" color="primary" data-testid="new-user" :prepend-icon="mdiAccountPlusOutline" @click="openCreate">
                Novo usuário
             </VBtn>
           </div>
@@ -195,6 +206,7 @@ onMounted(load);
                     type="button"
                     :disabled="updating.has(user.id) || user.id === auth.user?.id"
                     variant="text"
+                    :color="user.active ? 'secondary' : 'success'"
                     size="small"
                     @click="updateUser(user, { active: !user.active })"
                   >
@@ -227,11 +239,11 @@ onMounted(load);
             label="Perfil"
           />
         </div>
-        <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+        <VAlert v-if="formError" type="error" role="alert">{{ formError }}</VAlert>
       </form>
       <template #actions>
         <VBtn variant="outlined" :disabled="saving" @click="showCreate = false">Cancelar</VBtn>
-        <VBtn type="submit" variant="tonal" form="create-user-form" :loading="saving" :disabled="saving">
+        <VBtn type="submit" variant="flat" color="primary" form="create-user-form" :loading="saving" :disabled="saving">
           {{ saving ? "Criando..." : "Criar usuário" }}
         </VBtn>
       </template>
@@ -241,12 +253,6 @@ onMounted(load);
 
 <style scoped>
 .users-page { max-width: 1280px; margin: 0 auto; }
-.temporary-warning { display: flex; gap: 12px; align-items: flex-start; border: 1px solid #e8c979; border-radius: 12px; padding: 13px 15px; background: #fff9e8; color: #735511; }
-.temporary-warning strong { display: block; font-size: 13px; }
-.temporary-warning p { margin: 3px 0 0; font-size: 12px; }
-.message { display: flex; justify-content: space-between; gap: 12px; border-radius: 10px; padding: 11px 14px; font-size: 13px; }
-.success-message { border: 1px solid #bdd9b3; background: #eff8eb; color: #376229; }
-.error-message { border: 1px solid #edc1bc; background: #fff1ef; color: #934338; }
 .users-card { overflow: hidden; }
 .users-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border-bottom: 1px solid #e3e8ef; }
 .users-header h2 { margin: 0; color: #213857; font-size: 17px; }
@@ -268,7 +274,6 @@ onMounted(load);
 .action-cell { text-align: right; }
 .user-form { display: grid; gap: 14px; }
 .user-form > p { margin: 0; color: #65758b; font-size: 13px; line-height: 1.5; }
-.form-error { color: #a33f35 !important; }
 @media (max-width: 760px) {
   .users-header { align-items: flex-start; flex-direction: column; }
   .header-actions { width: 100%; }

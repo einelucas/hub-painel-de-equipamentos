@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { mdiCheck, mdiClose, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from "@mdi/js";
+import { mdiCheck, mdiClose, mdiMagnify, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from "@mdi/js";
 import { computed, reactive, ref, useId, watch } from "vue";
-import { Search } from "lucide-vue-next";
 import type { CatalogList, EapLevel, EapNodeItem } from "~/types/equipment";
 import { codeNameLabel, toOptions } from "~/utils/selectOptions";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
@@ -47,8 +46,18 @@ const levelCounts = computed(() => {
   return counts;
 });
 
-const ordered = (items: EapNodeItem[]) =>
-  [...items].sort((left, right) => left.code.localeCompare(right.code, "pt-BR", { numeric: true }));
+function codeOrder(left: EapNodeItem, right: EapNodeItem): number {
+  const leftNumber = left.code.match(/^(\d{1,2})(?:\.|$)/)?.[1];
+  const rightNumber = right.code.match(/^(\d{1,2})(?:\.|$)/)?.[1];
+  if (leftNumber && rightNumber && Number(leftNumber) !== Number(rightNumber)) {
+    return Number(leftNumber) - Number(rightNumber);
+  }
+  if (leftNumber && !rightNumber) return -1;
+  if (!leftNumber && rightNumber) return 1;
+  return left.code.localeCompare(right.code, "pt-BR", { numeric: true });
+}
+
+const ordered = (items: EapNodeItem[]) => [...items].sort(codeOrder);
 
 const treeRows = computed(() => {
   const children = new Map<string | null, EapNodeItem[]>();
@@ -64,13 +73,43 @@ const treeRows = computed(() => {
     rows.push({ node, depth });
     for (const child of ordered(children.get(node.id) ?? [])) visit(child, depth + 1);
   };
-  for (const root of ordered(children.get(null) ?? [])) visit(root, 0);
+
+  const branchProcessNumber = (root: EapNodeItem): number => {
+    let smallest = Number.POSITIVE_INFINITY;
+    const inspect = (node: EapNodeItem) => {
+      if (node.level === "PROCESS" && /^\d{1,2}$/.test(node.code)) {
+        const value = Number(node.code);
+        if (value >= 0 && value <= 31) smallest = Math.min(smallest, value);
+      }
+      for (const child of children.get(node.id) ?? []) inspect(child);
+    };
+    inspect(root);
+    return smallest;
+  };
+  const branchOrder = (left: EapNodeItem, right: EapNodeItem) => {
+    const difference = branchProcessNumber(left) - branchProcessNumber(right);
+    return Number.isNaN(difference) ? codeOrder(left, right) : difference || codeOrder(left, right);
+  };
+
+  // Mantém Ilha → Processo → Área e posiciona cada ramo pelo menor processo
+  // numérico que contém, garantindo a progressão visual de 00 até 31.
+  for (const root of [...(children.get(null) ?? [])].sort(branchOrder)) visit(root, 0);
   // Dados antigos inconsistentes continuam visíveis para saneamento, sem sumir da administração.
-  for (const orphan of ordered(nodes.value.filter((node) => !visited.has(node.id)))) visit(orphan, 0);
+  for (const orphan of nodes.value.filter((node) => !visited.has(node.id)).sort(branchOrder)) visit(orphan, 0);
   return rows;
 });
 
 const search = ref("");
+const processFilter = ref("");
+const processFilterOptions = computed(() =>
+  ordered(
+    nodes.value.filter((node) => {
+      if (node.level !== "PROCESS") return false;
+      const value = Number(node.code);
+      return /^\d{1,2}$/.test(node.code) && value >= 0 && value <= 31;
+    }),
+  ).map((node) => ({ id: node.id, label: `${node.code.padStart(2, "0")} · ${node.name}` })),
+);
 
 /**
  * Busca por código ou nome. Mantém os ancestrais de cada nó encontrado para
@@ -78,13 +117,35 @@ const search = ref("");
  */
 const visibleRows = computed(() => {
   const term = search.value.trim().toLocaleLowerCase("pt-BR");
-  if (!term) return treeRows.value;
   const byId = new Map(nodes.value.map((node) => [node.id, node]));
+  const children = new Map<string, EapNodeItem[]>();
+  for (const node of nodes.value) {
+    if (node.parentId) children.set(node.parentId, [...(children.get(node.parentId) ?? []), node]);
+  }
+
+  const processKeep = new Set(nodes.value.map((node) => node.id));
+  if (processFilter.value) {
+    processKeep.clear();
+    const addDescendants = (id: string) => {
+      if (processKeep.has(id)) return;
+      processKeep.add(id);
+      for (const child of children.get(id) ?? []) addDescendants(child.id);
+    };
+    addDescendants(processFilter.value);
+    let ancestor = byId.get(processFilter.value);
+    while (ancestor?.parentId) {
+      processKeep.add(ancestor.parentId);
+      ancestor = byId.get(ancestor.parentId);
+    }
+  }
+
+  if (!term) return treeRows.value.filter((row) => processKeep.has(row.node.id));
   const keep = new Set<string>();
   for (const node of nodes.value) {
+    if (!processKeep.has(node.id)) continue;
     if (!`${node.code} ${node.name}`.toLocaleLowerCase("pt-BR").includes(term)) continue;
     let current: EapNodeItem | undefined = node;
-    while (current && !keep.has(current.id)) {
+    while (current && processKeep.has(current.id) && !keep.has(current.id)) {
       keep.add(current.id);
       current = current.parentId ? byId.get(current.parentId) : undefined;
     }
@@ -245,18 +306,34 @@ void load();
           {{ levelCounts.AREA }} área{{ levelCounts.AREA === 1 ? "" : "s" }}
         </p>
       </div>
-      <VBtn size="small" variant="tonal" :disabled="saving" data-testid="eap-new" :prepend-icon="mdiPlus" @click="startCreate">
+      <VBtn size="small" variant="tonal" color="primary" :disabled="saving" data-testid="eap-new" :prepend-icon="mdiPlus" @click="startCreate">
          Novo nó
       </VBtn>
     </header>
 
-    <label v-if="nodes.length" class="eap-search">
-      <Search :size="14" aria-hidden="true" />
-      <VTextField v-model="search" type="search" label="Buscar na Árvore EAP" placeholder="Buscar por código ou nome" clearable />
-    </label>
+    <div v-if="nodes.length" class="eap-filters">
+      <VTextField
+        v-model="search"
+        class="eap-search"
+        type="search"
+        label="Buscar na Árvore EAP"
+        placeholder="Buscar por código ou nome"
+        :prepend-inner-icon="mdiMagnify"
+        clearable
+      />
+      <SearchableSelect
+        v-model="processFilter"
+        class="eap-process-filter"
+        :options="processFilterOptions"
+        label="Filtrar por processo"
+        placeholder="00 a 31"
+        empty-label="Todos os processos"
+        test-id="eap-process-filter"
+      />
+    </div>
 
     <p v-if="loading" class="eap-hint"><span class="spinner spinner-small" /> Carregando árvore...</p>
-    <p v-else-if="error" class="eap-error" role="alert">{{ error }}</p>
+    <VAlert v-else-if="error" type="error" role="alert">{{ error }}</VAlert>
     <p v-else-if="treeRows.length === 0" class="eap-empty" data-testid="eap-empty">
       Nenhum nó EAP cadastrado. Comece por uma Ilha ou Processo.
     </p>
@@ -282,10 +359,12 @@ void load();
           :aria-label="`Editar ${row.node.code}`"
           :data-testid="`eap-edit-${row.node.id}`"
           variant="text"
+          color="secondary"
+          size="x-small"
+          density="compact"
           :icon="mdiPencilOutline"
-         @click="startEdit(row.node)">
-
-        </VBtn>
+          @click="startEdit(row.node)"
+        />
         <VBtn
           type="button"
           class="eap-delete"
@@ -293,11 +372,13 @@ void load();
           :disabled="saving"
           :loading="deletingId === row.node.id"
           :data-testid="`eap-delete-${row.node.id}`"
-          variant="tonal" color="error"
+          variant="tonal"
+          color="error"
+          size="x-small"
+          density="compact"
           :icon="!(deletingId === row.node.id) ? mdiTrashCanOutline : undefined"
-         @click="remove(row.node)">
-
-        </VBtn>
+          @click="remove(row.node)"
+        />
       </li>
     </ul>
   </section>
@@ -349,7 +430,7 @@ void load();
         PROCESS usa dois dígitos (ex.: 04). AREA usa processo e sufixo (ex.: 04.A).
         Não informe prefixo da unidade ou da obra.
       </p>
-      <p v-if="formError" class="eap-error" role="alert">{{ formError }}</p>
+      <VAlert v-if="formError" type="error" role="alert">{{ formError }}</VAlert>
     </form>
 
     <template #actions>
@@ -359,7 +440,8 @@ void load();
       <VBtn
         type="submit"
         size="small"
-        variant="tonal"
+        variant="flat"
+        color="primary"
         :form="formId"
         :loading="saving"
         data-testid="eap-save"
@@ -375,9 +457,8 @@ void load();
 /* Cabeçalho e busca ficam parados; só a árvore rola (dentro do painel). */
 .eap-admin { display: flex; flex-direction: column; gap: 12px; }
 .eap-admin > * { flex: 0 0 auto; }
-.eap-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule, #dde5ef); border-radius: 9px; padding: 0 10px; background: #fff; color: var(--muted, #6b7a8f); }
-.eap-search:focus-within { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 2px rgb(48 79 126 / 12%); }
-.eap-search input { min-width: 0; flex: 1; border: 0; outline: 0; padding: 8px 0; background: transparent; color: var(--ink, #1f3352); font-size: 12.5px; }
+.eap-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 240px); gap: 10px; }
+.eap-search, .eap-process-filter { min-width: 0; }
 .eap-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--rule, #dde5ef); }
 .eap-header h3 { margin: 0; color: var(--ink, #1f3352); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
 .eap-header p { margin: 3px 0 0; color: var(--muted, #6b7a8f); font-size: 12px; }
@@ -386,7 +467,7 @@ void load();
 .eap-form { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(130px, .8fr) minmax(180px, 1.5fr); gap: 14px 16px; }
 .eap-parent-field { grid-column: 1 / span 2; }
 .eap-help { grid-column: 1 / -1; margin: 0; color: var(--muted, #6b7a8f); font-size: 11.5px; }
-.eap-error { grid-column: 1 / -1; margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
+.eap-form > .v-alert { grid-column: 1 / -1; }
 .eap-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
 .eap-empty { margin: 0; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 22px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
 
@@ -427,8 +508,11 @@ void load();
 .eap-level--area { background: #f1f4f8; color: var(--muted, #6b7a8f); }
 .eap-inactive { background: var(--stop-wash, #fbeeed); color: var(--stop, #a4453a); }
 .eap-tree li.inactive .eap-name, .eap-tree li.inactive .eap-code { color: #9aa6b5; }
+.eap-edit, .eap-delete { width: 28px; min-width: 28px; height: 28px; padding: 0; }
+.eap-edit { border-color: transparent; }
 .active-check { display: flex; align-items: center; gap: 7px; color: #526176; font-size: 12px; font-weight: 700; }
 @media (max-width: 700px) {
+  .eap-filters { grid-template-columns: 1fr; }
   .eap-form { grid-template-columns: 1fr; }
   .eap-parent-field { grid-column: auto; }
   .eap-tree li { grid-template-columns: auto minmax(90px, 1fr) auto; padding-left: calc(12px + var(--tree-depth) * 14px); }

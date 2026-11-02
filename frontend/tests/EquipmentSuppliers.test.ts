@@ -1,7 +1,8 @@
-import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { flushPromises, mount } from "@vue/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import EquipmentSuppliers from "~/components/equipment/EquipmentSuppliers.vue";
-import type { EquipmentSupplier } from "~/types/equipment";
+import { useConfirm } from "~/composables/useConfirm";
+import type { EquipmentSupplier, Supplier } from "~/types/equipment";
 import { menuOptions, openMenu } from "./support/searchableSelect";
 
 function supplier(id: string, legalName: string, isPrimary: boolean): EquipmentSupplier {
@@ -31,8 +32,12 @@ function supplier(id: string, legalName: string, isPrimary: boolean): EquipmentS
 
 const passthrough = { template: "<div><slot /></div>" };
 
-function mountWith(items: EquipmentSupplier[], can: (permission: string) => boolean) {
-  const catalog = items.map((item) => item.supplier).concat({
+function mountWith(
+  items: EquipmentSupplier[],
+  can: (permission: string) => boolean,
+  catalogRequest?: Promise<{ items: Supplier[] }>,
+) {
+  const catalog: Supplier[] = items.map((item) => item.supplier).concat({
     id: "s-2",
     legalName: "Secundária SA",
     tradeName: null,
@@ -42,7 +47,9 @@ function mountWith(items: EquipmentSupplier[], can: (permission: string) => bool
     updatedAt: "2026-09-20T00:00:00",
   });
   const get = vi.fn((path: string) =>
-    Promise.resolve(path === "/suppliers" ? { items: catalog } : { items }),
+    path === "/suppliers"
+      ? (catalogRequest ?? Promise.resolve({ items: catalog }))
+      : Promise.resolve({ items }),
   );
   const patch = vi.fn().mockResolvedValue({});
   const put = vi.fn().mockResolvedValue({});
@@ -61,7 +68,10 @@ function mountWith(items: EquipmentSupplier[], can: (permission: string) => bool
         TableHead: passthrough,
         TableBody: passthrough,
         TableCell: passthrough,
-        AppModal: passthrough,
+        AppModal: {
+          props: ["open", "title"],
+          template: "<div v-if='open' class='modal'><h2>{{ title }}</h2><slot /></div>",
+        },
         NuxtLink: { props: ["to"], template: "<a :href='to'><slot /></a>" },
       },
     },
@@ -70,14 +80,73 @@ function mountWith(items: EquipmentSupplier[], can: (permission: string) => bool
 }
 
 describe("EquipmentSuppliers", () => {
+  afterEach(() => useConfirm().cancel());
+
+  it("mostra o spinner antes de abrir o modal enquanto o catálogo carrega", async () => {
+    let resolveCatalog!: (value: { items: Supplier[] }) => void;
+    const catalogRequest = new Promise<{ items: Supplier[] }>((resolve) => {
+      resolveCatalog = resolve;
+    });
+    const { wrapper } = mountWith([], () => true, catalogRequest);
+
+    const linkButton = wrapper
+      .findAll("button")
+      .find((item) => item.text().includes("Vincular fornecedor"))!;
+    await linkButton.trigger("click");
+
+    expect(linkButton.attributes("aria-busy")).toBe("true");
+    expect(wrapper.find(".modal").exists()).toBe(false);
+    await vi.waitFor(() => {
+      expect(wrapper.get(".modal h2").text()).toBe("Vincular fornecedor");
+    });
+    expect(wrapper.get(".catalog-loading").text()).toContain("Carregando fornecedores");
+
+    resolveCatalog({
+      items: [supplier("s-1", "Fornecedor disponível", true).supplier],
+    });
+    await flushPromises();
+
+    expect(wrapper.find(".catalog-loading").exists()).toBe(false);
+  });
+
   it("lista o único fornecedor vinculado (Etapa 7A: no máximo um por equipamento)", async () => {
     const { wrapper } = mountWith([supplier("s-1", "Principal SA", true)], () => true);
     await new Promise((resolve) => setTimeout(resolve));
     await wrapper.vm.$nextTick();
 
     expect(wrapper.text()).toContain("Principal SA");
-    expect(wrapper.get("[data-testid='current-supplier']").text()).toContain("Principal SA");
+    const current = wrapper.get("[data-testid='current-supplier']");
+    expect(current.text()).toContain("Principal SA");
+    expect(current.text()).toContain("Vínculo ativo");
+    expect(current.text()).toContain("Vinculado desde");
+    expect(current.text()).toContain("Fase de entrada");
+    expect(current.text()).toContain("Papel");
     expect(wrapper.find("[data-testid='replace-supplier']").exists()).toBe(true);
+  });
+
+  it("pede confirmação e alerta sobre as consequências antes de encerrar", async () => {
+    const link = supplier("s-1", "Principal SA", true);
+    const { wrapper, del } = mountWith([link], () => true);
+    await flushPromises();
+
+    await wrapper.get("[data-testid='unlink-supplier']").trigger("click");
+
+    expect(del).not.toHaveBeenCalled();
+    expect(useConfirm().state.open).toBe(true);
+    expect(useConfirm().state.title).toBe("Encerrar vínculo");
+    expect(useConfirm().state.message).toContain("Principal SA");
+    expect(useConfirm().state.detail).toContain("ficará sem fornecedor ativo");
+    expect(useConfirm().state.icon).toBe("warning");
+
+    useConfirm().cancel();
+    await flushPromises();
+    expect(del).not.toHaveBeenCalled();
+
+    await wrapper.get("[data-testid='unlink-supplier']").trigger("click");
+    useConfirm().accept();
+    await flushPromises();
+
+    expect(del).toHaveBeenCalledWith("/equipments/eq-1/suppliers/s-1");
   });
 
   it("permite substituir o fornecedor vinculado (PUT, não outro POST)", async () => {

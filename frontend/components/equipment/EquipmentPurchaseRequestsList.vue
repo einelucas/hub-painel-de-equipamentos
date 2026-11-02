@@ -97,12 +97,12 @@ async function removeItem(item: PurchaseRequest): Promise<void> {
         <h2>SC / OCI</h2>
         <p>Solicitações de compra ou importação. Um equipamento pode ter várias.</p>
       </div>
-      <VBtn v-if="editable" variant="tonal" :disabled="busy" data-testid="add-purchase-request" :prepend-icon="mdiPlus" @click="openCreate">
+      <VBtn v-if="editable" variant="tonal" color="primary" :disabled="busy" data-testid="add-purchase-request" :prepend-icon="mdiPlus" @click="openCreate">
          Adicionar
       </VBtn>
     </div>
 
-    <p v-if="actionError" class="notice error list-notice" role="alert">{{ actionError }}</p>
+    <VAlert v-if="actionError" class="notice error list-notice" type="error" role="alert">{{ actionError }}</VAlert>
 
     <RequirementWaiverBanner
       v-if="requirementWaiver || (requirementGroup && requirementStage !== undefined)"

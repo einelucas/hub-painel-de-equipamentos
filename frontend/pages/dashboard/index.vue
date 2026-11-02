@@ -169,7 +169,9 @@ onMounted(async () => {
         <h2>Nenhum equipamento no recorte</h2>
         <p v-if="dashboard.hasActive.value">Nenhum equipamento atende à combinação de área, fase e disciplina selecionada.</p>
         <p v-else>Cadastre um equipamento ou ajuste os filtros de unidade e equipamento.</p>
-        <NuxtLink class="btn" to="/equipamentos">Ir para Equipamentos</NuxtLink>
+        <VBtn class="state-action" to="/equipamentos" variant="outlined">
+          Ir para Equipamentos
+        </VBtn>
       </div>
       <template v-else-if="summary">
         <!-- Anúncio único: as barras dentro dos cards são decorativas (aria-hidden). -->
@@ -219,7 +221,7 @@ onMounted(async () => {
    mantêm "R$ 125.000,00" em uma única linha. */
 .metric-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .metric-grid :deep(.metric-card .value) { font-size: 20px; white-space: nowrap; }
-.state-card .btn { margin-top: 18px; }
+.state-action { margin-top: 18px; }
 .skeleton-card { padding: 16px 18px; position: relative; overflow: hidden; }
 .skeleton-card.tall { min-height: 260px; }
 .loading-state { display: grid; min-height: 320px; place-items: center; align-content: center; gap: 10px; color: #748197; }

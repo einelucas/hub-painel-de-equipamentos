@@ -22,7 +22,7 @@ onMounted(async () => {
       <div v-if="!error" class="spinner mx-auto" aria-hidden="true" />
       <h1 class="mt-4 text-xl font-extrabold text-brand-dark" :role="error ? undefined : 'status'">{{ error ? "Concluindo autenticação" : "Entrando..." }}</h1>
       <p v-if="!error" class="mt-1 text-sm text-slate-500">Concluindo autenticação, aguarde.</p>
-      <p v-if="error" class="notice error mt-3">{{ error }}</p>
+      <VAlert v-if="error" class="mt-3" type="error" role="alert">{{ error }}</VAlert>
       <BackLink v-if="error" class="mt-4" to="/login">Voltar ao login</BackLink>
     </div>
   </div>

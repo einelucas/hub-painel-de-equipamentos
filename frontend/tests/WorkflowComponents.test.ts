@@ -62,7 +62,7 @@ const blockedOption = {
       label: "Contrato",
       status: "MISSING",
       waivable: true,
-      fields: ["contract.contractNumber", "contract.executedAt", "contract.file"],
+      fields: ["contract.contractNumber", "contract.executedAt"],
       message: "Informe a data de escrituração do contrato.",
       waiver: null,
     },
@@ -117,6 +117,20 @@ describe("EquipmentWorkflowStepper", () => {
     });
     expect(wrapper.find("[data-testid='step-entered-at']").exists()).toBe(false);
   });
+
+  it.each(["STANDBY", "IN_SANITATION"] as const)(
+    "usa o estado amarelo no círculo atual quando o equipamento está em %s",
+    (operationalStatus) => {
+      const wrapper = mount(EquipmentWorkflowStepper, {
+        props: { currentStage: 3, operationalStatus },
+      });
+
+      expect(wrapper.get("[data-testid='workflow-stepper']").classes()).toContain(
+        "workflow--attention",
+      );
+      expect(wrapper.get("[data-state='current'] .step-marker").classes()).toContain("step-marker");
+    },
+  );
 });
 
 describe("WorkflowRequirements", () => {

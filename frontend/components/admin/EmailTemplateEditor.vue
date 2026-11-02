@@ -183,7 +183,7 @@ function toggleAdvanced(): void {
     </template>
 
     <div class="tpl-editor-actions">
-      <VBtn type="button" :disabled="busy" variant="tonal" size="small" :prepend-icon="mdiContentSaveOutline" data-testid="template-save" @click="emit('save')">
+      <VBtn type="button" :disabled="busy" variant="flat" color="primary" size="small" :prepend-icon="mdiContentSaveOutline" data-testid="template-save" @click="emit('save')">
          {{ busy ? "Salvando..." : "Salvar alterações" }}
       </VBtn>
       <VBtn type="button" :disabled="busy" variant="outlined" size="small" :prepend-icon="mdiRestore" data-testid="template-reset" @click="emit('reset')">

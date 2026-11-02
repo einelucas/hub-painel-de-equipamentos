@@ -54,6 +54,7 @@ const groups: { name: string; items: { token: string; label: string; hint: strin
           v-for="item in group.items"
           :key="item.token"
           variant="tonal"
+          color="info"
           size="x-small"
           type="button"
           :data-testid="`template-variable-${item.token}`"

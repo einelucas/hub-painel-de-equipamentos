@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiChevronDown, mdiCancel, mdiRestore  } from "@mdi/js";
-import { VBtn } from "vuetify/components";
+import { VBtn, VTextarea } from "vuetify/components";
 import { computed, ref } from "vue";
 import { AlertTriangle, CheckCircle2, CircleOff, FileText, RotateCcw, ShieldCheck, UserRound } from "lucide-vue-next";
 
@@ -153,6 +153,7 @@ async function confirmRevoke(): Promise<void> {
           type="button"
           :data-testid="`waive-${group.code}`"
           variant="outlined"
+          color="warning"
           size="small"
           :prepend-icon="mdiCancel"
          @click="openWaive">
@@ -291,20 +292,21 @@ async function confirmRevoke(): Promise<void> {
         />
       </div>
 
-      <label class="field">
-        <span>Justificativa *</span>
-        <textarea
-          v-model="justification"
-          maxlength="1000"
-          required
-          rows="4"
-          placeholder="Explique por que este requisito não se aplica a esta aquisição."
-        />
-      </label>
+      <VTextarea
+        v-model="justification"
+        label="Justificativa *"
+        maxlength="1000"
+        :counter="1000"
+        :disabled="busy"
+        required
+        rows="4"
+        placeholder="Explique por que este requisito não se aplica a esta aquisição."
+        data-testid="waiver-justification"
+      />
 
-      <p v-if="actionError" class="notice error" role="alert">
+      <VAlert v-if="actionError" type="error" role="alert">
         {{ actionError }}
-      </p>
+      </VAlert>
 
       <div class="form-actions">
         <VBtn
@@ -325,6 +327,7 @@ async function confirmRevoke(): Promise<void> {
           :loading="busy"
 
           variant="tonal"
+          color="warning"
 
         >
           {{ busy ? "Salvando..." : "Confirmar dispensa" }}
@@ -353,19 +356,20 @@ async function confirmRevoke(): Promise<void> {
         </div>
       </div>
 
-      <label class="field">
-        <span>Motivo da revogação</span>
-        <textarea
-          v-model="revokeReason"
-          maxlength="1000"
-          rows="4"
-          placeholder="Opcional: informe por que a dispensa está sendo revogada."
-        />
-      </label>
+      <VTextarea
+        v-model="revokeReason"
+        label="Motivo da revogação (opcional)"
+        maxlength="1000"
+        :counter="1000"
+        :disabled="busy"
+        rows="4"
+        placeholder="Informe por que a dispensa está sendo revogada."
+        data-testid="waiver-revoke-reason"
+      />
 
-      <p v-if="actionError" class="notice error" role="alert">
+      <VAlert v-if="actionError" type="error" role="alert">
         {{ actionError }}
-      </p>
+      </VAlert>
 
       <div class="form-actions">
         <VBtn
@@ -687,16 +691,6 @@ async function confirmRevoke(): Promise<void> {
   justify-content: flex-end;
   gap: 9px;
   padding-top: 2px;
-}
-
-.danger-primary {
-  border-color: #a4453a !important;
-  background: #a4453a !important;
-  color: #fff !important;
-}
-
-.danger-primary:hover:not(:disabled) {
-  background: #923c33 !important;
 }
 
 @media (max-width: 760px) {

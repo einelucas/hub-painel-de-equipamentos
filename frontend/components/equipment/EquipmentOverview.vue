@@ -31,12 +31,15 @@ const props = defineProps<{
 const emit = defineEmits<{ edit: [] }>();
 
 const isActive = computed(() => props.operationalStatus === "ACTIVE");
+const isOperationalAttention = computed(() =>
+  props.operationalStatus === "STANDBY" || props.operationalStatus === "IN_SANITATION",
+);
 const stageStyle = computed(() => stageBadgeStyle(props.currentStage, props.currentStageLabel));
 </script>
 
 <template>
   <section class="surface">
-    <div class="surface-header"><div><h2>Resumo</h2><p>Identificação e posição atual no processo.</p></div><VBtn v-if="canEdit"  variant="outlined" :prepend-icon="mdiPencilOutline" @click="emit('edit')"> Editar</VBtn></div>
+    <div class="surface-header"><div><h2>Resumo</h2><p>Identificação e posição atual no processo.</p></div><VBtn v-if="canEdit" variant="outlined" color="secondary" :prepend-icon="mdiPencilOutline" @click="emit('edit')"> Editar</VBtn></div>
     <div class="surface-body detail-grid">
       <div class="detail-field"><span>Unidade</span><strong>{{ equipment.unit.name }}</strong></div>
       <div class="detail-field"><span>Obra</span><strong>{{ equipment.projectContext.code ? `${equipment.projectContext.code} · ${equipment.projectContext.name}` : equipment.projectContext.name }}</strong></div>
@@ -81,8 +84,14 @@ const stageStyle = computed(() => stageBadgeStyle(props.currentStage, props.curr
       :current-stage="currentStage"
       :stage-entered-at="stageEnteredAt"
       :next-stage-blocked="nextStageBlocked"
+      :operational-status="operationalStatus"
     />
-    <p v-if="!isActive && lastOperationalEvent" class="operational-note" data-testid="operational-note">
+    <p
+      v-if="!isActive && lastOperationalEvent"
+      class="operational-note"
+      :class="{ 'operational-note--attention': isOperationalAttention }"
+      data-testid="operational-note"
+    >
       <strong>{{ OPERATIONAL_STATUS_LABELS[operationalStatus] }}</strong> desde {{ formatDateTime(lastOperationalEvent.occurredAt) }}
       por {{ lastOperationalEvent.actor?.name ?? "usuário removido" }} — {{ lastOperationalEvent.justification }}
     </p>
@@ -101,6 +110,7 @@ const stageStyle = computed(() => stageBadgeStyle(props.currentStage, props.curr
 .operational-badge--cancelled { background: #fbe8e8; color: #a53f3f; }
 .operational-badge--in_sanitation { background: #e8f1fc; color: #2f5f9c; }
 .operational-note { margin: 0 20px 16px; padding: 9px 12px; border-radius: 8px; background: #fafbfc; border: 1px solid #edf1f5; color: #65748a; font-size: 12px; }
+.operational-note--attention { border-color: #e7c58d; background: #fff4df; color: #805416; }
 @media (max-width: 900px) { .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .detail-grid { grid-template-columns: 1fr; } }
 </style>

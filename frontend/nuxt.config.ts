@@ -32,13 +32,10 @@ export default defineNuxtConfig({
     "@nuxtjs/tailwindcss",
     "@nuxt/eslint",
     "vuetify-nuxt-module",
-    "@element-plus/nuxt",
   ],
   components: [{ path: "~/components", pathPrefix: false }],
   css: [
     "~/assets/css/vue.css",
-    "element-plus/dist/index.css",
-    "~/assets/css/element-plus.css",
     "~/assets/css/vuetify-hub.css",
   ],
   vuetify: {
@@ -79,13 +76,25 @@ export default defineNuxtConfig({
       localeMessages: ["en", "pt"],
       defaults: {
         VBtn: {
-          color: "primary",
+          // Ações neutras são secundárias por padrão. Ações semânticas
+          // (salvar, aprovar, excluir, importar etc.) declaram a cor no uso.
+          color: "secondary",
           variant: "outlined",
           rounded: "lg",
           elevation: 0,
         },
+        VAlert: {
+          density: "compact",
+          border: "start",
+          rounded: "lg",
+        },
         VCard: { rounded: "lg", elevation: 0 },
         VTextField: {
+          variant: "outlined",
+          density: "comfortable",
+          hideDetails: "auto",
+        },
+        VTextarea: {
           variant: "outlined",
           density: "comfortable",
           hideDetails: "auto",
@@ -98,12 +107,6 @@ export default defineNuxtConfig({
         VAutocomplete: hubAutocompleteDefaults,
       },
     },
-  },
-  // O CSS completo é importado manualmente para garantir a ordem dos overrides.
-  elementPlus: {
-    importStyle: false,
-    defaultLocale: "pt-br",
-    installMethods: ["ElLoading", "ElMessage", "ElMessageBox", "ElNotification"],
   },
   vite: {
     resolve: {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { VBtn } from "vuetify/components";
+import { VBtn, VTextarea } from "vuetify/components";
 
 const props = defineProps<{
   open: boolean;
@@ -8,6 +8,7 @@ const props = defineProps<{
   message?: string;
   required?: boolean;
   confirmLabel?: string;
+  confirmColor?: "primary" | "success" | "warning" | "error";
   busy?: boolean;
   error?: string;
 }>();
@@ -32,16 +33,22 @@ function submit(): void {
   <AppModal :open="open" :title="title" @close="emit('close')">
     <form class="justification-form" @submit.prevent="submit">
       <p v-if="message" class="justification-message">{{ message }}</p>
-      <label class="field">
-        <span>Justificativa{{ required ? " *" : "" }}</span>
-        <textarea v-model="text" maxlength="1000" :required="required" rows="3" />
-      </label>
-      <p v-if="error" class="notice error" role="alert">{{ error }}</p>
+      <VTextarea
+        v-model="text"
+        :label="`Justificativa${required ? ' *' : ''}`"
+        maxlength="1000"
+        :counter="1000"
+        :required="required"
+        :disabled="busy"
+        rows="3"
+      />
+      <VAlert v-if="error" type="error" role="alert">{{ error }}</VAlert>
       <div class="form-actions">
         <VBtn variant="outlined" @click="emit('close')">Cancelar</VBtn>
         <VBtn
           type="submit"
           variant="tonal"
+          :color="confirmColor ?? 'primary'"
           :loading="busy"
           :disabled="required && !text.trim()"
         >
@@ -55,8 +62,5 @@ function submit(): void {
 <style scoped>
 .justification-form { display: grid; gap: 14px; }
 .justification-message { margin: 0; color: #65748a; font-size: 12px; }
-.field { display: grid; gap: 4px; font-size: 12px; }
-.field span { color: #7a879a; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-.field textarea { border: 1px solid #d8dee7; border-radius: 6px; padding: 8px 9px; font-size: 13px; font-family: inherit; resize: vertical; }
 .form-actions { display: flex; justify-content: flex-end; gap: 9px; }
 </style>

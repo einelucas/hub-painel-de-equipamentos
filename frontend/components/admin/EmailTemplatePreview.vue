@@ -61,6 +61,7 @@ onBeforeUnmount(() => {
       <div class="tpl-device-toggle" role="group" aria-label="Visualização do e-mail">
         <VBtn
           type="button"
+          color="secondary"
           :variant="device === 'desktop' ? 'tonal' : 'text'"
           size="small"
           :aria-pressed="device === 'desktop'"
@@ -71,6 +72,7 @@ onBeforeUnmount(() => {
         </VBtn>
         <VBtn
           type="button"
+          color="secondary"
           :variant="device === 'mobile' ? 'tonal' : 'text'"
           size="small"
           :aria-pressed="device === 'mobile'"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiFileUploadOutline } from "@mdi/js";
-import { VBtn } from "vuetify/components";
+import { VBtn, VIcon } from "vuetify/components";
 import { computed, ref } from "vue";
 
 /**
@@ -17,14 +17,16 @@ const open = ref(false);
   <template v-if="canImport">
     <VBtn
       type="button"
+      class="module-action"
       variant="text"
-      size="small"
       aria-label="Importar equipamentos"
-      title="Importar equipamentos"
       data-testid="nav-import"
       :icon="mdiFileUploadOutline"
       @click="open = true"
-    />
+    >
+      <VIcon :icon="mdiFileUploadOutline" size="18" aria-hidden="true" />
+      <span class="module-nav-tip" aria-hidden="true">Importar equipamentos</span>
+    </VBtn>
     <ImportEquipmentModal :open="open" :unit-id="context.selectedUnit" @close="open = false" />
   </template>
 </template>

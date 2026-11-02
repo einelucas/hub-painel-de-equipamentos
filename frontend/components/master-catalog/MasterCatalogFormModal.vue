@@ -95,6 +95,8 @@ function submit(): void {
       <VBtn
         type="submit"
         size="small"
+        variant="flat"
+        color="primary"
         :form="formId"
         :disabled="props.busy"
         :loading="props.busy"

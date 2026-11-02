@@ -256,9 +256,9 @@ onMounted(loadCatalogs);
   </div>
 
   <form v-else class="equipment-form" @submit.prevent="submit">
-    <p v-if="error" class="notice error" role="alert">
+    <VAlert v-if="error" type="error" role="alert">
       {{ error }}
-    </p>
+    </VAlert>
 
     <div class="form-sections">
       <section class="form-section" aria-labelledby="equipment-identification-title">
@@ -321,7 +321,7 @@ onMounted(loadCatalogs);
             type="button"
             data-testid="edit-eaps"
             variant="tonal"
-            color="primary"
+            color="secondary"
             size="x-small"
             density="compact"
             height="24"
@@ -361,7 +361,7 @@ onMounted(loadCatalogs);
             type="button"
             data-testid="edit-criticalities"
             variant="tonal"
-            color="primary"
+            color="secondary"
             size="x-small"
             density="compact"
             height="24"

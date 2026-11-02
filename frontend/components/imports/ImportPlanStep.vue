@@ -62,9 +62,9 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
 
 <template>
   <div class="import-step" data-testid="import-step-plan">
-    <p v-if="stale" class="callout callout--caution" role="alert" data-testid="import-stale">
+    <VAlert v-if="stale" type="warning" role="alert" data-testid="import-stale">
       Os dados mudaram desde que o plano foi gerado. Gere o plano novamente antes de aplicar.
-    </p>
+    </VAlert>
 
     <template v-if="plan">
       <dl class="import-ledger" aria-label="Totais do plano">
@@ -130,7 +130,7 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             <VBtn type="button" :disabled="!hasRecommendations" variant="outlined" size="small" @click="useAllRecommended">
               Usar recomendado em todos
             </VBtn>
-            <NuxtLink class="btn small" to="/fornecedores">+ Cadastrar fornecedor</NuxtLink>
+            <VBtn to="/fornecedores" variant="text" color="secondary" size="small">+ Cadastrar fornecedor</VBtn>
           </div>
         </div>
         <article v-for="item in supplierSuggestions" :key="item.sourceKey" class="supplier-suggestion">
@@ -194,7 +194,8 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
     <div class="import-actions">
       <VBtn variant="outlined" :disabled="busy" @click="step = 'mapping'">Voltar ao mapeamento</VBtn>
       <VBtn
-        variant="tonal"
+        variant="flat"
+        color="info"
         :disabled="!plan?.canApply || mappingDirty"
         :loading="busy"
         data-testid="import-confirm"

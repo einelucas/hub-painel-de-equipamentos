@@ -146,7 +146,8 @@ const groups = computed(() => [
           <VBtn variant="outlined" :disabled="saving" @click="cancelEdit(group.resource)">Cancelar</VBtn>
           <VBtn
             type="submit"
-            variant="tonal"
+            variant="flat"
+            color="primary"
             :loading="saving"
             :data-testid="`save-${group.resource}`"
            :disabled="saving">

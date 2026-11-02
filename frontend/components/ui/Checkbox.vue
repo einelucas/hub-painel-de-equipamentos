@@ -1,21 +1,44 @@
 <script setup lang="ts">
-import { ElCheckbox } from "element-plus";
+import { VCheckbox } from "vuetify/components";
 
 /**
- * Checkbox construído sobre o `ElCheckbox` do Element Plus.
- * O componente é sempre usado dentro do `label.area-option` do painel de
- * áreas; o `margin-right` padrão do EP é zerado para respeitar o layout.
+ * Checkbox compacto do Hub. O wrapper mantém o contrato booleano usado pelo
+ * catálogo e deixa foco, teclado e estado indeterminado a cargo do Vuetify.
  */
 const model = defineModel<boolean>({ default: false });
+
+withDefaults(
+  defineProps<{
+    disabled?: boolean;
+    readonly?: boolean;
+    indeterminate?: boolean;
+    label?: string;
+  }>(),
+  {
+    disabled: false,
+    readonly: false,
+    indeterminate: false,
+    label: undefined,
+  },
+);
 </script>
 
 <template>
-  <ElCheckbox v-model="model" class="hub-checkbox" />
+  <VCheckbox
+    v-model="model"
+    class="hub-checkbox"
+    color="primary"
+    density="compact"
+    hide-details
+    :disabled="disabled"
+    :readonly="readonly"
+    :indeterminate="indeterminate"
+    :label="label"
+  />
 </template>
 
 <style scoped>
 .hub-checkbox {
-  height: auto;
-  margin-right: 0;
+  flex: 0 0 auto;
 }
 </style>

@@ -137,6 +137,7 @@ function clearFilters(): void {
         <li v-for="item in visibleEquipments" :key="item.id">
           <VBtn
             type="button"
+            color="secondary"
             class="model-item"
             :class="{ selected: item.id === props.selectedId }"
             :variant="item.id === props.selectedId ? 'tonal' : 'text'"
@@ -212,12 +213,6 @@ function clearFilters(): void {
   position: relative;
   display: flex;
   align-items: center;
-}
-
-/* O Input virou ElInput: o padding para os ícones vai no input nativo interno. */
-.search-box :deep(.el-input__inner) {
-  padding-right: 40px;
-  padding-left: 32px;
 }
 
 .search-box > svg {

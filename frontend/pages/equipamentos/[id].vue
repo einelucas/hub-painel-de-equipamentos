@@ -230,6 +230,7 @@ onMounted(load);
         :saving="workflow.saving.value"
         :action-error="workflow.actionError.value"
         :action-success="workflow.actionSuccess.value"
+        :dismiss-action-success="workflow.dismissActionSuccess"
         :save-process="workflow.saveProcess"
         :request-transition="workflow.requestTransition"
         :reload-process="workflow.load"

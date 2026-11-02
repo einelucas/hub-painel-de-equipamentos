@@ -257,29 +257,30 @@ watch(selectedId, loadSummary);
         <p>{{ selectedUnit ? `Obras de ${selectedUnit.name}` : "Obras cadastradas por unidade" }}</p>
       </div>
       <div class="projects-toolbar">
-      <div class="field unit-picker">
-        <SearchableSelect
-          :model-value="props.unitId"
-          :options="unitOptions"
-          :clearable="false"
-          :disabled="loadingUnits"
-          label="Unidade"
-          placeholder="Buscar unidade"
-          empty-label="Selecione"
-          test-id="project-unit"
-          @change="selectUnit"
-        />
-      </div>
-      <VBtn
-        v-if="canManage && props.unitId"
-        size="small"
-        variant="tonal"
-        :disabled="saving"
-        data-testid="project-new"
-        :prepend-icon="mdiPlus"
-       @click="startCreate">
-         Novo contexto
-      </VBtn>
+        <div class="field unit-picker">
+          <SearchableSelect
+            :model-value="props.unitId"
+            :options="unitOptions"
+            :clearable="false"
+            :disabled="loadingUnits"
+            label="Unidade"
+            placeholder="Buscar unidade"
+            empty-label="Selecione"
+            test-id="project-unit"
+            @change="selectUnit"
+          />
+        </div>
+        <VBtn
+          v-if="canManage && props.unitId"
+          variant="flat"
+          color="primary"
+          :disabled="saving"
+          data-testid="project-new"
+          :prepend-icon="mdiPlus"
+          @click="startCreate"
+        >
+          Novo contexto
+        </VBtn>
       </div>
     </header>
 
@@ -302,7 +303,7 @@ watch(selectedId, loadSummary);
 
     <template v-else>
       <p v-if="loading" class="projects-hint"><span class="spinner spinner-small" /> Carregando contextos...</p>
-      <p v-else-if="error" class="projects-error" role="alert">{{ error }}</p>
+      <VAlert v-else-if="error" class="projects-error" type="error" role="alert">{{ error }}</VAlert>
       <div v-else-if="contexts.length === 0" class="projects-empty" data-testid="project-empty">
         <p>Nenhum contexto de projeto nesta unidade.</p>
         <p v-if="canManage" class="field-help">Use "Novo contexto" para preparar uma obra.</p>
@@ -319,12 +320,16 @@ watch(selectedId, loadSummary);
             <VBtn
               type="button"
               class="project-card"
-              :variant="item.id === selectedId ? 'tonal' : 'outlined'"
+              variant="text"
               block
+              :aria-pressed="item.id === selectedId"
+              :aria-label="`Selecionar contexto ${item.name}`"
               @click="selectedId = item.id"
             >
-              <span v-if="item.code" class="project-code">{{ item.code }}</span>
-              <span class="project-name">{{ item.name }}</span>
+              <span class="project-identity">
+                <span v-if="item.code" class="project-code">{{ item.code }}</span>
+                <span class="project-name">{{ item.name }}</span>
+              </span>
               <span class="project-meta">
                 <span class="status" :class="item.active ? 'status--on' : 'status--off'">
                   {{ item.active ? "Ativo" : "Inativo" }}
@@ -335,7 +340,7 @@ watch(selectedId, loadSummary);
               <VBtn type="button" class="text-button" :disabled="saving" variant="text" size="small" :prepend-icon="mdiPencilOutline" @click="startEdit(item)">
                  Editar
               </VBtn>
-              <VBtn type="button" class="text-button" :disabled="saving" :loading="togglingId === item.id" variant="text" size="small" @click="toggleActive(item)">
+              <VBtn type="button" class="text-button" :disabled="saving" :loading="togglingId === item.id" variant="text" :color="item.active ? 'secondary' : 'success'" size="small" @click="toggleActive(item)">
                 {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
               </VBtn>
               <VBtn type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(deletingId === item.id) ? mdiTrashCanOutline : undefined" @click="remove(item)">
@@ -347,7 +352,11 @@ watch(selectedId, loadSummary);
         </ul>
 
         <aside v-if="selected" class="readiness" data-testid="project-readiness" aria-label="Preparação da obra">
-          <h4>Preparação da obra</h4>
+          <header class="readiness-head">
+            <span>Contexto selecionado</span>
+            <h4>Preparação da obra</h4>
+            <p>{{ selected.name }}</p>
+          </header>
           <dl>
             <div>
               <dt>Unidade</dt>
@@ -375,7 +384,7 @@ watch(selectedId, loadSummary);
               </div>
             </template>
           </dl>
-          <p v-if="summary.error" class="projects-error" role="alert">{{ summary.error }}</p>
+          <VAlert v-if="summary.error" class="projects-error" type="error" role="alert">{{ summary.error }}</VAlert>
           <p class="field-help">Resumo informativo. Não bloqueia o uso do contexto.</p>
           <div class="readiness-actions">
             <VBtn
@@ -441,7 +450,7 @@ watch(selectedId, loadSummary);
         <span>Ativo</span>
       </label>
       <p v-else class="field-help project-create-note">O contexto é criado ativo.</p>
-      <p v-if="formError" class="projects-error" role="alert">{{ formError }}</p>
+      <VAlert v-if="formError" class="projects-error" type="error" role="alert">{{ formError }}</VAlert>
     </form>
 
     <template #actions>
@@ -451,7 +460,8 @@ watch(selectedId, loadSummary);
       <VBtn
         type="submit"
         size="small"
-        variant="tonal"
+        variant="flat"
+        color="primary"
         :form="formId"
         :loading="saving"
         data-testid="project-save"
@@ -464,14 +474,13 @@ watch(selectedId, loadSummary);
 </template>
 
 <style scoped>
-.projects { display: grid; gap: 14px; }
+.projects { display: grid; gap: 16px; padding-top: 2px; }
 .projects-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--rule, #dde5ef); }
 .projects-head h3 { margin: 0; color: var(--ink, #1f3352); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
 .projects-head p { margin: 2px 0 0; color: var(--muted, #6b7a8f); font-size: 12px; }
-.projects-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.projects-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 4px; }
 .unit-picker { width: 260px; max-width: 100%; }
 .projects-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted, #6b7a8f); font-size: 12px; }
-.projects-error { margin: 0; color: var(--stop, #a4453a); font-size: 12px; font-weight: 700; }
 .projects-empty { display: grid; justify-items: center; gap: 6px; border: 1px dashed var(--rule, #dde5ef); border-radius: 12px; padding: 24px; color: var(--muted, #6b7a8f); font-size: 12.5px; text-align: center; }
 .projects-empty p { margin: 0; }
 
@@ -479,7 +488,7 @@ watch(selectedId, loadSummary);
 .project-form > .field:nth-of-type(2) { grid-column: span 2; }
 .project-active { display: flex; align-items: center; gap: 8px; color: var(--ink, #1f3352); font-size: 12.5px; }
 .project-create-note { align-self: center; margin: 0; }
-.project-form .projects-error { grid-column: 1 / -1; }
+.project-form > .v-alert { grid-column: 1 / -1; }
 .field-help { color: var(--muted, #6b7a8f); font-size: 11px; line-height: 1.4; }
 
 .projects-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(250px, 1fr); align-items: start; gap: 16px; }
@@ -487,37 +496,57 @@ watch(selectedId, loadSummary);
 .project-list li {
   position: relative;
   display: grid;
-  gap: 8px;
+  overflow: hidden;
   border: 1px solid var(--rule, #dde5ef);
   border-radius: 12px;
-  padding: 12px 14px;
   background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 .project-list li:hover { border-color: #c4d2e4; }
-.project-list li.selected { border-color: var(--steel, #304f7e); box-shadow: 0 0 0 3px rgb(48 79 126 / 10%); }
+.project-list li.selected { border-color: var(--steel, #304f7e); background: #f8fafc; box-shadow: 0 0 0 3px rgb(48 79 126 / 9%); }
+.project-list li.selected::before {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--steel, #304f7e);
+  content: "";
+}
 .project-list li.inactive { background: #fafbfc; }
 .project-list li.inactive .project-name { color: #9aa6b5; }
-.project-card :deep(.v-btn__content) { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; text-align: left; }
-.project-code { grid-column: 1; color: var(--steel, #304f7e); font-family: var(--mono, monospace); font-size: 11.5px; font-weight: 700; }
-.project-name { grid-column: 1; min-width: 0; overflow: hidden; color: var(--ink, #1f3352); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-.project-meta { grid-column: 2; grid-row: 1 / span 2; }
-.project-actions { display: flex; gap: 14px; border-top: 1px solid #edf1f6; padding-top: 8px; }
-.status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 750; }
+.project-card { min-height: 62px; height: auto; border-color: transparent; border-radius: 0; padding: 10px 14px; }
+.project-card :deep(.v-btn__content) { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; }
+.project-identity { display: grid; min-width: 0; gap: 2px; }
+.project-code { color: var(--steel, #304f7e); font-family: var(--mono, monospace); font-size: 10.5px; font-weight: 750; letter-spacing: 0.025em; }
+.project-name { min-width: 0; overflow: hidden; color: var(--ink, #1f3352); font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.project-actions { display: flex; flex-wrap: wrap; gap: 2px; border-top: 1px solid #e8edf4; padding: 7px 10px 8px; }
+.project-actions :deep(.v-btn) { border-color: transparent; }
+.status { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 8px; background: var(--go-wash, #eaf4e5); font-size: 10.5px; font-weight: 750; }
 .status::before { width: 7px; height: 7px; border-radius: 999px; background: currentColor; content: ""; }
 .status--on { color: var(--go, #3f7a2e); }
-.status--off { color: #9aa6b5; }
+.status--off { color: #6b7280; background: #eef0f3; }
 
 /* Preparação: checklist da obra selecionada */
-.readiness { position: sticky; top: 0; display: grid; gap: 10px; border-radius: 12px; padding: 14px 16px; background: var(--wash, #f3f6fb); }
+.readiness { position: sticky; top: 0; display: grid; gap: 10px; border: 1px solid var(--rule, #dde5ef); border-radius: 12px; padding: 15px 16px; background: #fff; box-shadow: 0 8px 24px rgb(31 51 82 / 6%); }
+.readiness-head { display: grid; gap: 2px; border-bottom: 1px solid var(--rule, #dde5ef); padding-bottom: 11px; }
+.readiness-head > span { color: var(--steel, #304f7e); font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .readiness h4 { margin: 0; color: var(--ink, #1f3352); font-size: 12.5px; font-weight: 800; }
+.readiness-head p { margin: 0; overflow: hidden; color: var(--muted, #6b7a8f); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
 .readiness dl { display: grid; margin: 0; }
 .readiness dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--rule, #dde5ef); padding: 7px 0; font-size: 12px; }
 .readiness dl > div:last-child { border-bottom: 0; }
 .readiness dt { color: var(--muted, #6b7a8f); }
 .readiness dd { margin: 0; color: var(--ink, #1f3352); font-family: var(--mono, monospace); font-size: 11.5px; font-weight: 700; text-align: right; }
-.readiness-actions { display: grid; justify-items: start; gap: 4px; border-top: 1px solid var(--rule, #dde5ef); padding-top: 10px; }
+.readiness-actions { display: grid; justify-items: stretch; gap: 2px; border-top: 1px solid var(--rule, #dde5ef); padding-top: 8px; }
+.readiness-actions :deep(.v-btn) { justify-content: flex-start; border-color: transparent; }
+.readiness-actions :deep(.v-btn__content) { width: 100%; justify-content: flex-start; }
 @media (max-width: 760px) {
+  .projects-head { align-items: stretch; }
+  .projects-toolbar, .unit-picker { width: 100%; }
+  .projects-toolbar :deep(.v-btn) { flex: 1 1 auto; }
   .projects-layout { grid-template-columns: 1fr; }
   .readiness { position: static; }
   .project-form { grid-template-columns: 1fr; }

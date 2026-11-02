@@ -532,8 +532,22 @@ async function imported(): Promise<void> {
       @import-seed="openImport"
     />
 
-    <p v-if="error" class="notice error" role="alert">{{ error }}</p>
-    <p v-if="success" class="notice" role="status">{{ success }}</p>
+    <VAlert v-if="error" type="error" role="alert">{{ error }}</VAlert>
+    <VAlert
+      v-if="success"
+      class="hub-action-alert"
+      type="success"
+      role="status"
+      closable
+      position="fixed"
+      location="top end"
+      :timeout="6000"
+      timer="bottom"
+      @click:close="success = ''"
+      @update:model-value="!$event && (success = '')"
+    >
+      {{ success }}
+    </VAlert>
 
     <div class="master-layout">
       <MasterCatalogBrowser
@@ -627,7 +641,7 @@ async function imported(): Promise<void> {
   color: #273e5a;
 }
 
-.master-admin > .notice {
+.master-admin > .v-alert {
   margin: 0;
 }
 

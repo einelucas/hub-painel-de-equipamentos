@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { ArrowRight, Building2, History } from "lucide-vue-next";
-import { VBtn } from "vuetify/components";
+import { VBtn, VProgressLinear, VTextarea, VTextField } from "vuetify/components";
 import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
 import type { EquipmentSupplier, Supplier } from "~/types/equipment";
 import { formatDateTime } from "~/utils/format";
@@ -18,15 +18,23 @@ export interface SupplierLinkValues {
  * Na substituição, mostra a troca "sai → entra" antes de confirmar; o vínculo
  * anterior é encerrado e vai para o histórico.
  */
-const props = defineProps<{
-  open: boolean;
-  /** Vínculo ativo; `null` = primeiro vínculo. */
-  current: EquipmentSupplier | null;
-  suppliers: Supplier[];
-  busy: boolean;
-  error: string;
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    /** Vínculo ativo; `null` = primeiro vínculo. */
+    current: EquipmentSupplier | null;
+    suppliers: Supplier[];
+    busy: boolean;
+    loading?: boolean;
+    error: string;
+  }>(),
+  { loading: false },
+);
+const emit = defineEmits<{
+  close: [];
+  opened: [];
+  submit: [values: SupplierLinkValues];
 }>();
-const emit = defineEmits<{ close: []; submit: [values: SupplierLinkValues] }>();
 
 const REASON_LIMIT = 500;
 const chosen = ref("");
@@ -63,7 +71,12 @@ function cnpj(supplier: Pick<Supplier, "taxId">): string | null {
 </script>
 
 <template>
-  <AppModal :open="props.open" :title="replacing ? 'Substituir fornecedor' : 'Vincular fornecedor'" @close="emit('close')">
+  <AppModal
+    :open="props.open"
+    :title="replacing ? 'Substituir fornecedor' : 'Vincular fornecedor'"
+    @close="emit('close')"
+    @opened="emit('opened')"
+  >
     <form class="link-form" @submit.prevent="submit">
       <!-- A troca, lado a lado: o que sai e o que entra. -->
       <div class="swap" :class="{ 'swap--single': !replacing }">
@@ -91,16 +104,21 @@ function cnpj(supplier: Pick<Supplier, "taxId">): string | null {
       </div>
 
       <div class="field">
+        <div v-if="props.loading" class="catalog-loading" role="status">
+          <VProgressLinear indeterminate color="primary" />
+          <span>Carregando fornecedores...</span>
+        </div>
         <SupplierCombobox
           v-model="chosen"
           :suppliers="props.suppliers"
+          :disabled="props.loading"
           label="Fornecedor *"
           empty-label="Selecione"
           empty-value=""
           test-id="supplier-link-combobox"
         />
       </div>
-      <p v-if="props.suppliers.length === 0" class="link-hint">
+      <p v-if="!props.loading && !props.error && props.suppliers.length === 0" class="link-hint">
         Nenhum fornecedor disponível. Cadastre um em
         <NuxtLink to="/fornecedores">Fornecedores</NuxtLink>.
       </p>
@@ -109,33 +127,32 @@ function cnpj(supplier: Pick<Supplier, "taxId">): string | null {
         <div class="field">
           <VTextField v-model="role" label="Papel (opcional)" maxlength="80" placeholder="Ex.: Fabricante" />
         </div>
-        <label class="field reason-field">
-          <span>
-            {{ replacing ? "Motivo da substituição" : "Observação" }} <em>opcional</em>
-            <small class="counter mono" aria-hidden="true">{{ reason.length }}/{{ REASON_LIMIT }}</small>
-          </span>
-          <textarea
+        <div class="field reason-field">
+          <VTextarea
             v-model="reason"
+            :label="`${replacing ? 'Motivo da substituição' : 'Observação'} (opcional)`"
             :maxlength="REASON_LIMIT"
+            :counter="REASON_LIMIT"
             rows="3"
             :placeholder="replacing ? 'Ex.: fornecedor anterior não atende ao prazo' : 'Registrado no histórico do vínculo'"
           />
-        </label>
+        </div>
       </div>
 
-      <p v-if="props.error" class="notice error" role="alert">{{ props.error }}</p>
+      <VAlert v-if="props.error" type="error" role="alert">{{ props.error }}</VAlert>
 
       <footer class="link-footer">
         <p v-if="replacing" class="link-note">
           <History :size="13" aria-hidden="true" /> O vínculo atual é encerrado e fica no histórico.
         </p>
         <div class="form-actions">
-          <VBtn variant="outlined" @click="emit('close')">Cancelar</VBtn>
+          <VBtn variant="outlined" color="secondary" @click="emit('close')">Cancelar</VBtn>
           <VBtn
             type="submit"
-            variant="tonal"
+            variant="flat"
+            color="primary"
             :loading="props.busy"
-            :disabled="!chosen"
+            :disabled="props.loading || !chosen"
           >
             {{ props.busy ? "Salvando..." : replacing ? "Substituir" : "Vincular" }}
           </VBtn>
@@ -176,11 +193,9 @@ function cnpj(supplier: Pick<Supplier, "taxId">): string | null {
 .party--empty .party-tag { background: #e4e9f0; color: var(--muted); }
 
 /* ---------- Campos ---------- */
-.link-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 12px; }
-.field > span em { margin-left: 4px; color: #a3adbb; font-style: normal; font-weight: 600; letter-spacing: 0; text-transform: none; }
-.reason-field > span { display: flex; align-items: baseline; }
-.counter { margin-left: auto; color: #a3adbb; font-size: 10.5px; font-weight: 600; letter-spacing: 0; text-transform: none; }
-.reason-field textarea { min-height: 84px; resize: vertical; }
+.link-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); align-items: start; gap: 12px; }
+.field { min-width: 0; }
+.catalog-loading { display: grid; gap: 7px; margin-bottom: 8px; color: var(--muted); font-size: 11.5px; }
 .link-hint { margin: -8px 0 0; color: var(--muted); font-size: 11.5px; }
 
 /* ---------- Rodapé ---------- */

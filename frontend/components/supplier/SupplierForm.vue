@@ -146,6 +146,7 @@ function submit(): void {
     <div class="form-actions">
       <VBtn
         variant="outlined"
+        color="secondary"
         :size="props.compact ? 'small' : undefined"
         :prepend-icon="props.compact ? mdiClose : undefined"
         @click="emit('cancel')"
@@ -154,7 +155,8 @@ function submit(): void {
       </VBtn>
       <VBtn
         type="submit"
-        variant="tonal"
+        variant="flat"
+        color="primary"
         :size="props.compact ? 'small' : undefined"
         :prepend-icon="props.compact && !props.saving ? mdiCheck : undefined"
         :loading="props.saving"

@@ -13,8 +13,8 @@ const nodes = [
 
 const mounted: VueWrapper[] = [];
 
-function setup() {
-  const get = vi.fn().mockResolvedValue({ items: nodes });
+function setup(items = nodes) {
+  const get = vi.fn().mockResolvedValue({ items });
   const post = vi.fn().mockResolvedValue({});
   const patch = vi.fn().mockResolvedValue({});
   const del = vi.fn().mockResolvedValue(undefined);
@@ -73,6 +73,38 @@ describe("EapTreeAdmin", () => {
     await search.setValue("inexistente");
     expect(wrapper.findAll("[role='treeitem']")).toHaveLength(0);
     expect(wrapper.text()).toContain("Nenhum nó corresponde à busca.");
+  });
+
+  it("ordena processos numericamente e permite filtrar os códigos de 00 a 31", async () => {
+    const { wrapper } = setup([
+      { id: "i0", code: "A", name: "Ilha Inicial", level: "ISLAND", parentId: null, active: true },
+      { id: "p00", code: "00", name: "Processo 00", level: "PROCESS", parentId: "i0", active: true },
+      { id: "a00", code: "00.A", name: "Área 00", level: "AREA", parentId: "p00", active: true },
+      { id: "i1", code: "D", name: "Ilha Sintética", level: "ISLAND", parentId: null, active: true },
+      { id: "p23", code: "23", name: "Processo 23", level: "PROCESS", parentId: "i1", active: true },
+      { id: "a23", code: "23.A", name: "Área 23", level: "AREA", parentId: "p23", active: true },
+      { id: "p02", code: "02", name: "Processo 02", level: "PROCESS", parentId: "i1", active: true },
+      { id: "a02", code: "02.A", name: "Área 02", level: "AREA", parentId: "p02", active: true },
+    ]);
+    await settle(wrapper);
+
+    expect(wrapper.findAll("[role='treeitem']").map((row) => row.attributes("data-testid"))).toEqual([
+      "eap-node-i0",
+      "eap-node-p00",
+      "eap-node-a00",
+      "eap-node-i1",
+      "eap-node-p02",
+      "eap-node-a02",
+      "eap-node-p23",
+      "eap-node-a23",
+    ]);
+
+    await chooseOption(wrapper, "eap-process-filter", "23 · Processo 23");
+    expect(wrapper.findAll("[role='treeitem']").map((row) => row.attributes("data-testid"))).toEqual([
+      "eap-node-i1",
+      "eap-node-p23",
+      "eap-node-a23",
+    ]);
   });
 
   it("cria uma Área informando explicitamente o PROCESS pai", async () => {

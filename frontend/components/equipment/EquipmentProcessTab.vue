@@ -44,6 +44,7 @@ const props = defineProps<{
    * novamente" deste painel. Diferente de `advanced`: avançar de etapa
    * muda `equipment.currentStage`, então a página recarrega tudo. */
   reloadProcess: () => Promise<void>;
+  dismissActionSuccess?: () => void;
   activeWaiverFor: (requirementGroupCode: string) => RequirementWaiver | null;
 }>();
 /** Emitido só após avançar de etapa com sucesso — a página recarrega o
@@ -79,12 +80,22 @@ async function advanceStage(): Promise<void> {
   <div v-if="loading" class="surface detail-state" role="status">
     <span class="spinner" /> Carregando processo...
   </div>
-  <div v-else-if="error" class="surface empty-state detail-state" role="alert">
+  <div
+    v-else-if="error && !processes"
+    class="surface empty-state detail-state"
+    role="alert"
+  >
     <h2>Processo indisponível</h2>
     <p>{{ error }}</p>
     <VBtn variant="outlined" @click="reloadProcess">Tentar novamente</VBtn>
   </div>
   <template v-else-if="processes">
+    <VAlert v-if="error" type="warning" role="alert" variant="tonal">
+      {{ error }}
+      <template #append>
+        <VBtn variant="text" @click="reloadProcess">Tentar novamente</VBtn>
+      </template>
+    </VAlert>
     <div class="process-layout">
       <section class="surface">
         <div class="surface-header">
@@ -94,21 +105,30 @@ async function advanceStage(): Promise<void> {
           </div>
         </div>
         <div class="surface-body">
-          <p
+          <VAlert
             v-if="actionError"
-            class="notice error"
+            type="error"
             role="alert"
             data-testid="action-error"
           >
             {{ actionError }}
-          </p>
-          <p
+          </VAlert>
+          <VAlert
             v-else-if="actionSuccess"
-            class="notice"
+            class="hub-action-alert"
+            type="success"
+            role="status"
+            closable
+            position="fixed"
+            location="top end"
+            :timeout="6000"
+            timer="bottom"
             data-testid="action-success"
+            @click:close="dismissActionSuccess?.()"
+            @update:model-value="!$event && dismissActionSuccess?.()"
           >
             {{ actionSuccess }}
-          </p>
+          </VAlert>
           <EquipmentStageForm
             :stage="currentStage"
             :processes="processes"
@@ -140,7 +160,8 @@ async function advanceStage(): Promise<void> {
             :disabled="!advance.canExecute || advancing"
             :loading="advancing"
             data-testid="advance-button"
-            variant="tonal"
+            variant="flat"
+            color="primary"
             :append-icon="!advancing ? mdiArrowRight : undefined"
            @click="advanceStage">
             {{ advancing ? "Processando..." : advanceLabel
