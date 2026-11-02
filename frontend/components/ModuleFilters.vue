@@ -111,6 +111,7 @@ function onEquipment(value: string): void {
             label="Unidade"
             placeholder="Buscar unidade"
             empty-label="Todas as unidades"
+            density="compact"
             test-id="filter-unit"
             @change="onUnit"
           />
@@ -126,6 +127,7 @@ function onEquipment(value: string): void {
             label="Obra"
             placeholder="Buscar obra"
             empty-label="Todas as obras"
+            density="compact"
             test-id="filter-project-context"
             @change="onProjectContext"
           />
@@ -141,6 +143,7 @@ function onEquipment(value: string): void {
             label="Equipamento"
             placeholder="Buscar equipamento"
             empty-label="Todos os equipamentos"
+            density="compact"
             test-id="filter-equipment"
             @change="onEquipment"
           />

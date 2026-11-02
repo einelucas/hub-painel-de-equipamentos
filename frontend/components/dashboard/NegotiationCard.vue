@@ -6,6 +6,7 @@ import { formatNumber } from "~/utils/format";
 
 const props = defineProps<{
   negotiation: NegotiationSummary;
+  loading?: boolean;
 }>();
 
 const total = computed(
@@ -28,6 +29,7 @@ const formattedPercentage = computed(() =>
     title="Negociação"
     subtitle="Baseado na data de negociação registrada."
     :icon="CheckCircle2"
+    :loading="loading"
   >
     <div class="negotiation-body">
       <!-- Visão principal -->

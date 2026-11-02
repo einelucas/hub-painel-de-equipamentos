@@ -3,6 +3,7 @@ import { computed, provide, watch } from "vue";
 import { Check } from "lucide-vue-next";
 import { IMPORT_STEPS, useEquipmentImport, type ImportStep } from "~/composables/useEquipmentImport";
 import { IMPORT_KEY } from "~/composables/useImportState";
+import { VProgress } from "vuetify/components";
 
 /** Wizard "Importar equipamentos": estado local enquanto o modal está aberto (sem store global). */
 const props = defineProps<{ open: boolean; unitId?: string }>();
@@ -123,8 +124,8 @@ const STEP_INTRO: Record<ImportStep, { title: string; text: string }> = {
       </header>
 
       <div v-if="busy && statusMessage" class="import-status" role="status" data-testid="import-status">
+        <VProgress color="primary" indeterminate aria-label="Processando" />
         <span><span class="spinner-small" aria-hidden="true" /> {{ statusMessage }}</span>
-        <div class="progress-indeterminate" role="progressbar" aria-label="Processando" />
       </div>
 
       <p v-if="error" class="import-error" role="alert" data-testid="import-error">{{ error }}</p>

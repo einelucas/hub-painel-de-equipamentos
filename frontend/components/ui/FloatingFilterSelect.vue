@@ -22,6 +22,8 @@ const props = withDefaults(
     testId?: string;
     noDataText?: string;
     disabledText?: string;
+    /** Altura do campo. Sem valor usa o density global do Hub (comfortable). */
+    density?: "default" | "comfortable" | "compact";
   }>(),
   {
     icon: undefined,
@@ -37,6 +39,7 @@ const props = withDefaults(
     testId: undefined,
     noDataText: "Nenhuma opção encontrada.",
     disabledText: "Nenhuma opção disponível.",
+    density: undefined,
   },
 );
 
@@ -103,7 +106,16 @@ function onUpdate(value: unknown): void {
   if (!sameValue(next, props.modelValue)) emit("change", next);
 }
 
+// Largura fixa do menu: igual à do campo. Sem isso o VOverlay recalcula a
+// max-width a cada rolagem (espaço disponível na viewport) e o menu cresce/
+// diminui conforme a página rola.
+const menuWidth = ref<number | undefined>();
+
 function onMenuChange(open: boolean): void {
+  if (open) {
+    const width = root.value?.getBoundingClientRect().width;
+    if (width) menuWidth.value = Math.round(width);
+  }
   emit("visible-change", open);
 }
 </script>
@@ -119,6 +131,7 @@ function onMenuChange(open: boolean): void {
       :ignore-accents="true"
       :no-filter="!props.filterable"
       :label="props.label"
+      :density="props.density"
       :prepend-inner-icon="props.icon"
       :disabled="props.disabled"
       :loading="props.loading"
@@ -127,6 +140,7 @@ function onMenuChange(open: boolean): void {
       :chips="props.multiple"
       :closable-chips="props.multiple"
       :no-data-text="props.disabled ? props.disabledText : props.noDataText"
+      :menu-props="{ width: menuWidth }"
       @update:model-value="onUpdate"
       @update:menu="onMenuChange"
     >

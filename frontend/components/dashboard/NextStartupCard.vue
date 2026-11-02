@@ -7,6 +7,7 @@ import { formatDateOnly } from "~/utils/format";
 defineProps<{
   startup: StartupSummary;
   label: string;
+  loading?: boolean;
 }>();
 </script>
 
@@ -15,6 +16,7 @@ defineProps<{
     title="Próxima startup"
     subtitle="Menor data futura no recorte."
     :icon="CalendarClock"
+    :loading="loading"
   >
     <div class="startup-body">
       <!-- Marco principal -->

@@ -13,10 +13,17 @@ const props = defineProps<{
 const emit = defineEmits<{ change: []; clear: [] }>();
 
 const areaId = defineModel<string | null>("areaId", { required: true });
-const disciplineId = defineModel<string | null>("disciplineId", { required: true });
+const disciplineId = defineModel<string | null>("disciplineId", {
+  required: true,
+});
 const stage = defineModel<number | null>("stage", { required: true });
 
-const hasActive = computed(() => areaId.value !== null || disciplineId.value !== null || stage.value !== null);
+const hasActive = computed(
+  () =>
+    areaId.value !== null ||
+    disciplineId.value !== null ||
+    stage.value !== null,
+);
 
 const areaOptions = computed(() => toOptions(props.areas));
 const disciplineOptions = computed(() => toOptions(props.disciplines));
@@ -47,6 +54,7 @@ function onDiscipline(value: string): void {
         label="Área"
         placeholder="Buscar por código ou nome"
         empty-label="Todas as áreas"
+        density="compact"
         test-id="dashboard-filter-area"
         @change="onArea"
       />
@@ -60,6 +68,7 @@ function onDiscipline(value: string): void {
         label="Fase"
         placeholder="Buscar fase"
         empty-label="Todas as fases"
+        density="compact"
         test-id="dashboard-filter-stage"
         @change="onStage"
       />
@@ -72,6 +81,7 @@ function onDiscipline(value: string): void {
         label="Disciplina"
         placeholder="Buscar disciplina"
         empty-label="Todas as disciplinas"
+        density="compact"
         test-id="dashboard-filter-discipline"
         @change="onDiscipline"
       />
@@ -83,15 +93,25 @@ function onDiscipline(value: string): void {
       data-testid="dashboard-filters-clear"
       variant="text"
       :prepend-icon="mdiClose"
-     @click="emit('clear')">
-       Limpar filtros
+      @click="emit('clear')"
+    >
+      Limpar filtros
     </VBtn>
   </div>
 </template>
 
 <style scoped>
 /* display: contents deixa cada campo ser um item próprio da barra de filtros (quebra de linha responsiva). */
-.dashboard-filters { display: contents; }
-.field { flex: 1 1 180px; min-width: 0; }
-@media (max-width: 640px) { .field { flex-basis: 100%; } }
+.dashboard-filters {
+  display: contents;
+}
+.field {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .field {
+    flex-basis: 100%;
+  }
+}
 </style>

@@ -21,7 +21,7 @@ import { formatDateOnly } from "~/utils/format";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
-import { VBtn } from "vuetify/components";
+import { VBtn, VProgress } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
@@ -103,7 +103,8 @@ async function syncQuery(): Promise<void> {
   };
   if (context.selectedUnit) query.unit = context.selectedUnit;
   else delete query.unit;
-  if (context.selectedProjectContext) query.project = context.selectedProjectContext;
+  if (context.selectedProjectContext)
+    query.project = context.selectedProjectContext;
   else delete query.project;
   if (context.selectedEquipment) query.equipment = context.selectedEquipment;
   else delete query.equipment;
@@ -155,7 +156,11 @@ async function load(): Promise<void> {
 
 const disciplineOptions = computed(() => toOptions(disciplines.value));
 const responsibleOptions = computed<SearchableOption[]>(() =>
-  responsibles.value.map((item) => ({ id: item.id, label: item.name, searchText: item.email })),
+  responsibles.value.map((item) => ({
+    id: item.id,
+    label: item.name,
+    searchText: item.email,
+  })),
 );
 const areaOptions = computed(() => toOptions(areas.value));
 const workPackageOptions = computed<SearchableOption[]>(() =>
@@ -206,15 +211,13 @@ async function exportAll(): Promise<void> {
   try {
     // Percorre as páginas do recorte para não exportar só o que está na tela.
     const rows = await collectAllPages<Equipment>(
-      (page) => api.get<EquipmentList>(
-        "/equipments",
-        currentQuery(100, page),
-      ),
+      (page) => api.get<EquipmentList>("/equipments", currentQuery(100, page)),
       {
         onProgress: (currentPage, totalPages) => {
-          exportProgress.value = totalPages > 1
-            ? `Exportando página ${currentPage} de ${totalPages}...`
-            : "";
+          exportProgress.value =
+            totalPages > 1
+              ? `Exportando página ${currentPage} de ${totalPages}...`
+              : "";
         },
       },
     );
@@ -260,9 +263,7 @@ onMounted(async () => {
   await context.initialize({
     unit: typeof route.query.unit === "string" ? route.query.unit : undefined,
     project:
-      typeof route.query.project === "string"
-        ? route.query.project
-        : undefined,
+      typeof route.query.project === "string" ? route.query.project : undefined,
     equipment:
       typeof route.query.equipment === "string"
         ? route.query.equipment
@@ -305,24 +306,28 @@ onMounted(async () => {
           <VBtn
             v-if="canAdminister"
             variant="outlined"
+            size="default"
             data-testid="admin-button"
             :prepend-icon="mdiTuneVariant"
-           @click="showAdmin = true">
-             Administração
+            @click="showAdmin = true"
+          >
+            Administração
           </VBtn>
           <VBtn
             variant="outlined"
+            size="default"
             :disabled="loading"
             :loading="exporting"
             data-testid="export-button"
             :prepend-icon="!exporting ? mdiCloudDownloadOutline : undefined"
-           @click="exportAll">
-
-            {{ exporting ? (exportProgress || "Exportando...") : "Exportar" }}
+            @click="exportAll"
+          >
+            {{ exporting ? exportProgress || "Exportando..." : "Exportar" }}
           </VBtn>
           <VBtn
             v-if="auth.can('equipments:write')"
             variant="tonal"
+            size="default"
             :disabled="!canCreate"
             :title="
               !context.selectedUnit
@@ -330,8 +335,9 @@ onMounted(async () => {
                 : undefined
             "
             :prepend-icon="mdiPlus"
-           @click="showForm = true">
-             Novo equipamento
+            @click="showForm = true"
+          >
+            Novo equipamento
           </VBtn>
         </template>
       </ModuleFilters>
@@ -353,6 +359,7 @@ onMounted(async () => {
               label="Etapa"
               placeholder="Buscar etapa"
               empty-label="Todas"
+              density="compact"
               @change="reload"
             />
           </div>
@@ -364,6 +371,7 @@ onMounted(async () => {
               label="Disciplina"
               placeholder="Buscar disciplina"
               empty-label="Todas"
+              density="compact"
               @change="reload"
             />
           </div>
@@ -381,6 +389,7 @@ onMounted(async () => {
               label="Responsável"
               placeholder="Buscar responsável"
               empty-label="Todos"
+              density="compact"
               test-id="responsible-filter"
               @change="reload"
             />
@@ -393,6 +402,7 @@ onMounted(async () => {
               label="Área"
               placeholder="Buscar por código ou nome"
               empty-label="Todas"
+              density="compact"
               test-id="area-filter"
               @change="reload"
             />
@@ -411,14 +421,21 @@ onMounted(async () => {
               label="Work Package"
               placeholder="Buscar por código ou descrição"
               empty-label="Todos"
+              density="compact"
               test-id="work-package-filter"
               @change="reload"
             />
           </div>
         </div>
 
-        <div v-if="loading" class="initial-table-loading" role="status" aria-busy="true">
-          <span class="sr-only">Carregando equipamentos...</span><SkeletonBlock :rows="6" />
+        <div
+          v-if="loading"
+          class="initial-table-loading"
+          role="status"
+          aria-busy="true"
+        >
+          <span class="sr-only">Carregando equipamentos...</span
+          ><SkeletonBlock :rows="6" />
         </div>
         <div v-else-if="error" class="empty-state table-empty" role="alert">
           <h2>Não foi possível carregar</h2>
@@ -426,7 +443,12 @@ onMounted(async () => {
           <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
         </div>
         <template v-else>
-          <div v-if="refreshing" class="progress-indeterminate" role="progressbar" aria-label="Atualizando equipamentos" />
+          <VProgress
+            v-if="refreshing"
+            color="primary"
+            indeterminate
+            aria-label="Atualizando equipamentos"
+          />
           <EquipmentTable :equipments="equipments" :aria-busy="refreshing" />
           <AppPagination
             v-if="pagination && pagination.totalPages > 1"
@@ -464,7 +486,10 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.initial-table-loading { padding: 18px; min-height: 260px; }
+.initial-table-loading {
+  padding: 18px;
+  min-height: 260px;
+}
 .state-card {
   max-width: none;
 }

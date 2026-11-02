@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { mdiCubeOutline, mdiHistory, mdiMessageTextOutline, mdiOfficeBuildingOutline, mdiTimelineOutline } from "@mdi/js";
 import type { Equipment, EquipmentDetail } from "~/types/equipment";
-import { VBtn } from "vuetify/components";
+import { VBtn, VProgress } from "vuetify/components";
 import { currentStageEnteredAt } from "~/utils/workflow";
 
 definePageMeta({ middleware: "auth" });
@@ -109,7 +109,7 @@ onMounted(load);
       <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
     </div>
     <div v-else-if="detail" class="stack" :aria-busy="loading">
-      <div v-if="loading" class="progress-indeterminate" role="progressbar" aria-label="Atualizando" />
+      <VProgress v-if="loading" color="primary" indeterminate aria-label="Atualizando" />
       <EquipmentOverview
         :equipment="detail.equipment"
         :current-stage="currentStage"

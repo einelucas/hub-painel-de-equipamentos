@@ -191,8 +191,12 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.field input:not(.el-input__inner):not([role='combobox']):not([type='hidden']):not(.searchable-select__required):not([type="file"])
-.field textarea,
+.field
+  input:not(.el-input__inner):not([role="combobox"]):not([type="hidden"]):not(
+    .searchable-select__required
+  ):not([type="file"])
+  .field
+  textarea,
 .input {
   width: 100%;
   min-height: 39px;
@@ -209,8 +213,12 @@ button:disabled {
   resize: vertical;
 }
 
-.field input:not(.el-input__inner):not([role='combobox']):not([type='hidden']):not(.searchable-select__required):not([type="file"]):focus
-.field textarea:focus,
+.field
+  input:not(.el-input__inner):not([role="combobox"]):not([type="hidden"]):not(
+    .searchable-select__required
+  ):not([type="file"]):focus
+  .field
+  textarea:focus,
 .input:focus {
   border-color: #6687b8;
   box-shadow: 0 0 0 3px rgba(48, 79, 126, 0.12);
@@ -408,7 +416,12 @@ button:disabled {
 .skeleton {
   display: block;
   border-radius: 8px;
-  background: linear-gradient(90deg, hsl(var(--muted)) 25%, #e9edf3 50%, hsl(var(--muted)) 75%);
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    #e9edf3 50%,
+    hsl(var(--muted)) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
@@ -432,33 +445,10 @@ button:disabled {
   }
 }
 
-.progress-indeterminate {
-  position: relative;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e4eaf2;
-}
-
-.progress-indeterminate::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -35%;
-  width: 35%;
-  border-radius: 999px;
-  background: #304f7e;
-  animation: progress-slide 1.2s ease-in-out infinite;
-}
-
-@keyframes progress-slide {
-  from {
-    left: -35%;
-  }
-  to {
-    left: 100%;
-  }
+/* VProgress de carregamento: sempre no topo do bloco de skeleton, mesmo
+   quando o markup o declara depois do conteúdo (o order vale em flex/grid). */
+.stack > .v-progress {
+  order: -1;
 }
 
 [aria-busy="true"] {
@@ -473,13 +463,6 @@ button:disabled {
 
   .skeleton {
     animation: none;
-  }
-
-  .progress-indeterminate::after {
-    left: 0;
-    width: 100%;
-    animation: none;
-    opacity: 0.55;
   }
 }
 

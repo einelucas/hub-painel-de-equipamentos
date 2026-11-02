@@ -4,7 +4,7 @@ import { Building2, CalendarClock, ChevronRight, Eye, Layers3, MapPin, UserRound
 import type { Equipment, EquipmentList } from "~/types/equipment";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { formatDateOnly } from "~/utils/format";
-import { VBtn } from "vuetify/components";
+import { VBtn, VProgress } from "vuetify/components";
 import { EQUIPMENT_STAGES } from "~/utils/stages";
 import { OPERATIONAL_STATUS_LABELS } from "~/utils/workflow";
 import { collectAllPages } from "~/utils/pagination";
@@ -246,10 +246,10 @@ onMounted(async () => {
         @refresh="refreshQuietly"
       />
 
-      <div
+      <VProgress
         v-if="refreshing"
-        class="progress-indeterminate"
-        role="progressbar"
+        color="primary"
+        indeterminate
         aria-label="Atualizando kanban"
       />
 

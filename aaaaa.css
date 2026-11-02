@@ -1,0 +1,167 @@
+:root {
+  --v-theme-background: 245, 247, 251;
+  --v-theme-background-overlay-multiplier: 1;
+  --v-theme-surface: 255, 255, 255;
+  --v-theme-surface-overlay-multiplier: 1;
+  --v-theme-surface-bright: 255, 255, 255;
+  --v-theme-surface-bright-overlay-multiplier: 1;
+  --v-theme-surface-light: 238, 238, 238;
+  --v-theme-surface-light-overlay-multiplier: 1;
+  --v-theme-surface-variant: 66, 66, 66;
+  --v-theme-surface-variant-overlay-multiplier: 2;
+  --v-theme-on-surface-variant: 238, 238, 238;
+  --v-theme-primary: 31, 90, 169;
+  --v-theme-primary-overlay-multiplier: 2;
+  --v-theme-primary-darken-1: 24, 74, 138;
+  --v-theme-primary-darken-1-overlay-multiplier: 2;
+  --v-theme-secondary: 95, 107, 122;
+  --v-theme-secondary-overlay-multiplier: 2;
+  --v-theme-secondary-darken-1: 76, 86, 100;
+  --v-theme-secondary-darken-1-overlay-multiplier: 2;
+  --v-theme-error: 239, 68, 68;
+  --v-theme-error-overlay-multiplier: 1;
+  --v-theme-info: 14, 165, 233;
+  --v-theme-info-overlay-multiplier: 1;
+  --v-theme-success: 34, 197, 94;
+  --v-theme-success-overlay-multiplier: 1;
+  --v-theme-warning: 245, 158, 11;
+  --v-theme-warning-overlay-multiplier: 1;
+  --v-theme-on-primary: 255, 255, 255;
+  --v-theme-on-secondary: 255, 255, 255;
+  --v-theme-success-darken-1: 22, 163, 74;
+  --v-theme-success-darken-1-overlay-multiplier: 1;
+  --v-theme-on-success: 255, 255, 255;
+  --v-theme-info-darken-1: 2, 132, 199;
+  --v-theme-info-darken-1-overlay-multiplier: 1;
+  --v-theme-on-info: 255, 255, 255;
+  --v-theme-warning-darken-1: 217, 119, 6;
+  --v-theme-warning-darken-1-overlay-multiplier: 1;
+  --v-theme-on-warning: 255, 255, 255;
+  --v-theme-error-darken-1: 220, 38, 38;
+  --v-theme-error-darken-1-overlay-multiplier: 2;
+  --v-theme-on-error: 255, 255, 255;
+  --v-theme-on-background: 31, 41, 55;
+  --v-theme-on-surface: 31, 41, 55;
+  --v-theme-grey-50: 248, 250, 252;
+  --v-theme-grey-50-overlay-multiplier: 1;
+  --v-theme-grey-100: 241, 245, 249;
+  --v-theme-grey-100-overlay-multiplier: 1;
+  --v-theme-grey-200: 226, 232, 240;
+  --v-theme-grey-200-overlay-multiplier: 1;
+  --v-theme-grey-300: 203, 213, 225;
+  --v-theme-grey-300-overlay-multiplier: 1;
+  --v-theme-grey-400: 148, 163, 184;
+  --v-theme-grey-400-overlay-multiplier: 1;
+  --v-theme-grey-500: 100, 116, 139;
+  --v-theme-grey-500-overlay-multiplier: 2;
+  --v-theme-grey-600: 71, 85, 105;
+  --v-theme-grey-600-overlay-multiplier: 2;
+  --v-theme-grey-700: 51, 65, 85;
+  --v-theme-grey-700-overlay-multiplier: 2;
+  --v-theme-grey-800: 31, 41, 55;
+  --v-theme-grey-800-overlay-multiplier: 2;
+  --v-theme-grey-900: 15, 23, 42;
+  --v-theme-grey-900-overlay-multiplier: 2;
+  --v-theme-perfect-scrollbar-thumb: 200, 206, 216;
+  --v-theme-perfect-scrollbar-thumb-overlay-multiplier: 1;
+  --v-theme-skin-bordered-background: 255, 255, 255;
+  --v-theme-skin-bordered-background-overlay-multiplier: 1;
+  --v-theme-skin-bordered-surface: 255, 255, 255;
+  --v-theme-skin-bordered-surface-overlay-multiplier: 1;
+  --v-theme-expansion-panel-text-custom-bg: 248, 250, 252;
+  --v-theme-expansion-panel-text-custom-bg-overlay-multiplier: 1;
+  --v-theme-track-bg: 238, 242, 247;
+  --v-theme-track-bg-overlay-multiplier: 1;
+  --v-theme-chat-bg: 246, 247, 251;
+  --v-theme-chat-bg-overlay-multiplier: 1;
+  --v-theme-on-surface-bright: 0, 0, 0;
+  --v-theme-on-surface-light: 0, 0, 0;
+  --v-theme-on-primary-darken-1: 255, 255, 255;
+  --v-theme-on-secondary-darken-1: 255, 255, 255;
+  --v-theme-on-success-darken-1: 255, 255, 255;
+  --v-theme-on-info-darken-1: 255, 255, 255;
+  --v-theme-on-warning-darken-1: 255, 255, 255;
+  --v-theme-on-error-darken-1: 255, 255, 255;
+  --v-theme-on-grey-50: 0, 0, 0;
+  --v-theme-on-grey-100: 0, 0, 0;
+  --v-theme-on-grey-200: 0, 0, 0;
+  --v-theme-on-grey-300: 0, 0, 0;
+  --v-theme-on-grey-400: 255, 255, 255;
+  --v-theme-on-grey-500: 255, 255, 255;
+  --v-theme-on-grey-600: 255, 255, 255;
+  --v-theme-on-grey-700: 255, 255, 255;
+  --v-theme-on-grey-800: 255, 255, 255;
+  --v-theme-on-grey-900: 255, 255, 255;
+  --v-theme-on-perfect-scrollbar-thumb: 0, 0, 0;
+  --v-theme-on-skin-bordered-background: 0, 0, 0;
+  --v-theme-on-skin-bordered-surface: 0, 0, 0;
+  --v-theme-on-expansion-panel-text-custom-bg: 0, 0, 0;
+  --v-theme-on-track-bg: 0, 0, 0;
+  --v-theme-on-chat-bg: 0, 0, 0;
+  --v-border-color: 148, 163, 184;
+  --v-border-opacity: 0.18;
+  --v-high-emphasis-opacity: 0.9;
+  --v-medium-emphasis-opacity: 0.7;
+  --v-disabled-opacity: 0.4;
+  --v-idle-opacity: 0.04;
+  --v-hover-opacity: 0.04;
+  --v-focus-opacity: 0.1;
+  --v-selected-opacity: 0.08;
+  --v-activated-opacity: 0.16;
+  --v-pressed-opacity: 0.14;
+  --v-dragged-opacity: 0.1;
+  --v-theme-kbd: 33, 37, 41;
+  --v-theme-on-kbd: 255, 255, 255;
+  --v-theme-code: 245, 245, 245;
+  --v-theme-on-code: 0, 0, 0;
+  --v-code-color: 15, 23, 42;
+  --v-overlay-scrim-background: 15, 23, 42;
+  --v-tooltip-background: 17, 24, 39;
+  --v-overlay-scrim-opacity: 0.5;
+  --v-table-header-color: 241, 245, 249;
+  --v-shadow-key-umbra-color: 15, 23, 42;
+  --v-shadow-xs-opacity: 0.12;
+  --v-shadow-sm-opacity: 0.14;
+  --v-shadow-md-opacity: 0.16;
+  --v-shadow-lg-opacity: 0.18;
+  --v-shadow-xl-opacity: 0.2;
+}
+:root {
+  --v-theme-overlay-multiplier: 1;
+  --v-scrollbar-offset: 0px;
+}
+:root {
+  --app-font: "Manrope", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --app-shadow-sm: 0 6px 18px rgba(15, 23, 42, 0.08);
+  --app-shadow-md: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+html {
+  font-family:
+    Inter,
+    sans-serif,
+    -apple-system,
+    blinkmacsystemfont,
+    Segoe UI,
+    roboto,
+    Helvetica Neue,
+    arial,
+    Apple Color Emoji,
+    Segoe UI Emoji,
+    Segoe UI Symbol;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+html {
+  box-sizing: border-box;
+  overflow-y: scroll;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  word-break: normal;
+}

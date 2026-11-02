@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import type { Component } from "vue";
+import CardProgress from "~/components/ui/CardProgress.vue";
 
 withDefaults(
   defineProps<{
     title: string;
     subtitle?: string;
     icon?: Component;
+    loading?: boolean;
   }>(),
-  { subtitle: "", icon: undefined },
+  { subtitle: "", icon: undefined, loading: false },
 );
 </script>
 
 <template>
-  <section class="surface dashboard-card">
+  <section class="surface dashboard-card" :aria-busy="loading || undefined">
+    <CardProgress v-if="loading" />
     <div class="surface-header">
       <div>
         <h2><component :is="icon" v-if="icon" :size="15" /> {{ title }}</h2>
@@ -33,6 +36,9 @@ withDefaults(
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* Relativo + sem transbordo: a barra no topo acompanha os cantos arredondados. */
+  position: relative;
+  overflow: hidden;
 }
 .dashboard-card .surface-header h2 {
   display: inline-flex;

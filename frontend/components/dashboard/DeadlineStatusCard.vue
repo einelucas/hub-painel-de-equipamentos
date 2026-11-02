@@ -6,6 +6,7 @@ import { workNeedStatusLabel } from "~/utils/workNeedStatus";
 
 const props = defineProps<{
   deadlines: DeadlinesSummary;
+  loading?: boolean;
 }>();
 
 interface DeadlineRow {
@@ -87,6 +88,7 @@ function percentage(value: number): number {
     title="Situação de prazos"
     subtitle="Status necessidade da obra (limite de entrega em obra)."
     :icon="Clock"
+    :loading="loading"
   >
     <p
       v-if="!deadlines.available"

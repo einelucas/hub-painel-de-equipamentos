@@ -2,6 +2,7 @@
 import { Boxes, Layers } from "lucide-vue-next";
 import type { CatalogItem, CatalogList, DashboardSummary } from "~/types/equipment";
 import { VBtn } from "vuetify/components";
+import CardProgress from "~/components/ui/CardProgress.vue";
 import { situationDonut, stageChartPoints, startupLabel } from "~/utils/dashboard";
 import { formatCurrency, formatNumber } from "~/utils/format";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
@@ -144,13 +145,21 @@ onMounted(async () => {
       <div v-if="loading" class="stack" data-testid="dashboard-loading" role="status" aria-busy="true">
         <p class="sr-only">Carregando painel...</p>
         <section class="metric-grid" aria-hidden="true">
-          <div v-for="n in 5" :key="n" class="surface skeleton-card"><SkeletonBlock :lines="3" /></div>
+          <div v-for="n in 5" :key="n" class="surface skeleton-card">
+            <CardProgress />
+            <SkeletonBlock :lines="3" />
+          </div>
         </section>
         <div class="chart-row" aria-hidden="true">
-          <div class="surface skeleton-card tall"><SkeletonBlock :lines="6" /></div>
-          <div class="surface skeleton-card tall"><SkeletonBlock :lines="6" /></div>
+          <div class="surface skeleton-card tall">
+            <CardProgress />
+            <SkeletonBlock :lines="6" />
+          </div>
+          <div class="surface skeleton-card tall">
+            <CardProgress />
+            <SkeletonBlock :lines="6" />
+          </div>
         </div>
-        <div class="progress-indeterminate" role="progressbar" aria-label="Carregando painel" />
       </div>
       <div v-else-if="error" class="surface empty-state state-card" role="alert" data-testid="dashboard-error">
         <h2>Não foi possível carregar o painel</h2><p>{{ error }}</p>
@@ -163,38 +172,41 @@ onMounted(async () => {
         <NuxtLink class="btn" to="/equipamentos">Ir para Equipamentos</NuxtLink>
       </div>
       <template v-else-if="summary">
-        <div v-if="refreshing" class="progress-indeterminate" role="progressbar" aria-label="Atualizando painel" />
+        <!-- Anúncio único: as barras dentro dos cards são decorativas (aria-hidden). -->
+        <p v-if="refreshing" class="sr-only" role="status">Atualizando painel...</p>
         <section class="metric-grid" :aria-busy="refreshing" aria-label="Indicadores do recorte atual">
-          <MetricCard label="Equipamentos" :value="formatNumber(summary.totals.equipments, 0)" detail="No recorte atual" />
-          <MetricCard label="Componentes" :value="formatNumber(summary.totals.components, 0)" detail="Subitens cadastrados" />
-          <MetricCard label="Em andamento" :value="formatNumber(summary.totals.inProgress, 0)" detail="Etapas 0 a 7" />
-          <MetricCard label="Concluídos" :value="formatNumber(summary.totals.completed, 0)" detail="Etapa 8" tone="good" />
-          <MetricCard label="Valor emitido em OC" :value="formatCurrency(summary.totals.purchaseOrderAmount)" :detail="`${formatNumber(summary.totals.purchaseOrders, 0)} OC(s) emitida(s)`" />
+          <MetricCard label="Equipamentos" :value="formatNumber(summary.totals.equipments, 0)" detail="No recorte atual" :loading="refreshing" />
+          <MetricCard label="Componentes" :value="formatNumber(summary.totals.components, 0)" detail="Subitens cadastrados" :loading="refreshing" />
+          <MetricCard label="Em andamento" :value="formatNumber(summary.totals.inProgress, 0)" detail="Etapas 0 a 7" :loading="refreshing" />
+          <MetricCard label="Concluídos" :value="formatNumber(summary.totals.completed, 0)" detail="Etapa 8" tone="good" :loading="refreshing" />
+          <MetricCard label="Valor emitido em OC" :value="formatCurrency(summary.totals.purchaseOrderAmount)" :detail="`${formatNumber(summary.totals.purchaseOrders, 0)} OC(s) emitida(s)`" :loading="refreshing" />
           <!-- desativado temporariamente: dashboard será repensado
-          <MetricCard label="CAPEX estimado" :value="formatCurrency(summary.totals.capexEstimated)" detail="Soma dos valores informados" />
+          <MetricCard label="CAPEX estimado" :value="formatCurrency(summary.totals.capexEstimated)" detail="Soma dos valores informados" :loading="refreshing" />
           -->
         </section>
 
         <div class="chart-row">
-          <section class="surface chart-surface">
+          <section class="surface chart-surface" :aria-busy="refreshing || undefined">
+            <CardProgress v-if="refreshing" />
             <div class="surface-header"><div><h2><Layers :size="15" /> Distribuição por etapa</h2><p>Quantidade de equipamentos em cada estágio do fluxo 0–8.</p></div></div>
             <div class="surface-body"><BarChart :points="chartPoints" suffix="" series-label="Equipamentos" :show-legend="false" /></div>
           </section>
 
-          <section class="surface chart-surface">
+          <section class="surface chart-surface" :aria-busy="refreshing || undefined">
+            <CardProgress v-if="refreshing" />
             <div class="surface-header"><div><h2><Boxes :size="15" /> Situação geral</h2><p>Agrupamento do mesmo catálogo de etapas.</p></div></div>
             <div class="surface-body"><DonutChart :items="donutItems" suffix="" :show-legend-values="true" /></div>
           </section>
         </div>
 
         <div class="dashboard-cards-grid">
-          <NegotiationCard :negotiation="summary.negotiation" />
-          <DeadlineStatusCard :deadlines="summary.deadlines" />
-          <NextStartupCard :startup="summary.startup" :label="startupLabel(summary)" />
+          <NegotiationCard :negotiation="summary.negotiation" :loading="refreshing" />
+          <DeadlineStatusCard :deadlines="summary.deadlines" :loading="refreshing" />
+          <NextStartupCard :startup="summary.startup" :label="startupLabel(summary)" :loading="refreshing" />
         </div>
 
         <div class="dashboard-cards-grid">
-          <NegotiationDeadlineStatusCard :summary="summary.negotiationDeadlineStatus" />
+          <NegotiationDeadlineStatusCard :summary="summary.negotiationDeadlineStatus" :loading="refreshing" />
         </div>
       </template>
     </div>
@@ -208,11 +220,12 @@ onMounted(async () => {
 .metric-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .metric-grid :deep(.metric-card .value) { font-size: 20px; white-space: nowrap; }
 .state-card .btn { margin-top: 18px; }
-.skeleton-card { padding: 16px 18px; }
+.skeleton-card { padding: 16px 18px; position: relative; overflow: hidden; }
 .skeleton-card.tall { min-height: 260px; }
 .loading-state { display: grid; min-height: 320px; place-items: center; align-content: center; gap: 10px; color: #748197; }
 .chart-row { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .surface-header h2 { display: inline-flex; align-items: center; gap: 7px; }
+.chart-surface { position: relative; overflow: hidden; }
 .chart-surface .surface-body { padding: 8px 20px 2px; }
 /* Grid dos 3 cards (Negociação / Situação de prazos / Próxima startup):
    align-items: stretch garante que os três acompanhem a altura do maior

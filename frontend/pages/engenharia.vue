@@ -125,6 +125,7 @@ onMounted(async () => {
             label="Disciplina"
             placeholder="Buscar disciplina"
             empty-label="Todas"
+            density="compact"
             test-id="filter-discipline"
             @change="applyFieldFilters"
           />
@@ -143,6 +144,7 @@ onMounted(async () => {
             label="Responsável"
             placeholder="Buscar responsável"
             empty-label="Todos"
+            density="compact"
             test-id="filter-responsible"
             @change="applyFieldFilters"
           />

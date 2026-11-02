@@ -5,7 +5,10 @@ import type { NegotiationDeadlineStatusSummary } from "~/types/equipment";
 import { negotiationDeadlineStatusDonut } from "~/utils/dashboard";
 import { formatNumber } from "~/utils/format";
 
-const props = defineProps<{ summary: NegotiationDeadlineStatusSummary }>();
+const props = defineProps<{
+  summary: NegotiationDeadlineStatusSummary;
+  loading?: boolean;
+}>();
 
 const items = computed(() => negotiationDeadlineStatusDonut(props.summary));
 </script>
@@ -15,6 +18,7 @@ const items = computed(() => negotiationDeadlineStatusDonut(props.summary));
     title="Status dos prazos de negociação"
     subtitle="Distribuição das negociações conforme o prazo calculado."
     :icon="Hourglass"
+    :loading="loading"
   >
     <DonutChart :items="items" suffix="" :show-legend-values="true" />
     <p v-if="summary.notCalculable" class="not-calculable">
