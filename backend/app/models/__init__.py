@@ -36,6 +36,7 @@ from app.models.notification import (
     EmailTemplate,
     NotificationEvent,
     NotificationRule,
+    UserNotification,
 )
 from app.models.process import (
     Contract,
@@ -83,6 +84,7 @@ __all__ = [
     "Negotiation",
     "NotificationEvent",
     "NotificationRule",
+    "UserNotification",
     "EmailDelivery",
     "EmailTemplate",
     "OperationalStatusEvent",

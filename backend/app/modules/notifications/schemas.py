@@ -8,6 +8,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
+from app.modules.equipments.schemas import UserRefOut
 from app.shared.schema import CamelModel
 
 _KIND = Literal[
@@ -161,3 +162,61 @@ class EmailTemplateTestOut(CamelModel):
 class MailProcessOut(CamelModel):
     scheduled: int
     processed: int
+
+
+class NotificationPaginationOut(CamelModel):
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
+class UserNotificationOut(CamelModel):
+    id: str
+    module_key: Literal["EQUIPMENT_PANEL"]
+    event_type: str
+    equipment_id: str | None
+    equipment_name: str | None
+    project_context_name: str | None
+    unit_name: str | None
+    reopen_request_id: str | None
+    actor: UserRefOut | None
+    title: str
+    message: str
+    target_url: str | None
+    created_at: datetime
+    read_at: datetime | None
+
+
+class UserNotificationListOut(CamelModel):
+    items: list[UserNotificationOut]
+    pagination: NotificationPaginationOut
+
+
+class UserNotificationUnreadCountOut(CamelModel):
+    count: int
+
+
+class UserNotificationReadAllOut(CamelModel):
+    updated: int
+
+
+class PendingReopenApprovalOut(CamelModel):
+    id: str
+    equipment_id: str
+    equipment_name: str
+    project_context_name: str
+    unit_name: str
+    source_stage: int
+    source_stage_label: str
+    target_stage: int
+    target_stage_label: str
+    justification: str
+    requested_by: UserRefOut | None
+    requested_at: datetime
+    target_url: str
+
+
+class PendingReopenApprovalListOut(CamelModel):
+    items: list[PendingReopenApprovalOut]
+    pagination: NotificationPaginationOut

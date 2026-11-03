@@ -17,6 +17,7 @@ from app.core.auth import CurrentUser
 from app.core.scope import assert_equipment_allowed
 from app.models.equipment import Equipment, WorkflowTransition
 from app.models.notification import NotificationEvent
+from app.modules.notifications import inbox
 from app.modules.notifications.schemas import NotificationEventListOut, NotificationEventOut
 
 logger = logging.getLogger("app.notifications")
@@ -37,9 +38,21 @@ async def trigger_for_transition(
 
     try:
         event = await enqueue_transition(session, equipment, transition, kind)
+        await inbox.notify_operational_event(
+            session,
+            equipment=equipment,
+            event_type=kind,
+            event_key=f"transition:{transition.id}:{kind}",
+        )
         if transition.from_stage == 7:
             await enqueue_equipment(
                 session, equipment, "COMPLETED", f"transition:{transition.id}:COMPLETED"
+            )
+            await inbox.notify_operational_event(
+                session,
+                equipment=equipment,
+                event_type="COMPLETED",
+                event_key=f"transition:{transition.id}:COMPLETED",
             )
         await session.commit()
     except Exception:

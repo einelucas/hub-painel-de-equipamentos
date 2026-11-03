@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditLog
+from app.models.equipment import Equipment, EquipmentComponent, ProjectContext
+from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
 from app.models.user import User
 from app.shared.audit import equipment_audit_conditions
 
@@ -23,8 +25,37 @@ async def list_audit_logs(
     user_id: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    allowed_units: set[str] | None = None,
 ) -> tuple[list[AuditLog], int, dict[str, User]]:
     filters = []
+    if allowed_units is not None:
+        equipment_ids = (
+            select(Equipment.id)
+            .join(ProjectContext, Equipment.project_context_id == ProjectContext.id)
+            .where(ProjectContext.unit_id.in_(allowed_units))
+        )
+        scoped_conditions = [
+            and_(AuditLog.entity == "Equipment", AuditLog.entityId.in_(equipment_ids)),
+            AuditLog.metadata_["equipmentId"].astext.in_(equipment_ids),
+            and_(
+                AuditLog.entity == "EquipmentComponent",
+                AuditLog.entityId.in_(
+                    select(EquipmentComponent.id).where(
+                        EquipmentComponent.equipment_id.in_(equipment_ids)
+                    )
+                ),
+            ),
+        ]
+        for model in (Negotiation, LegalProcess, Contract, PurchaseRequest, PurchaseOrder):
+            scoped_conditions.append(
+                and_(
+                    AuditLog.entity == model.__name__,
+                    AuditLog.entityId.in_(
+                        select(model.id).where(model.equipment_id.in_(equipment_ids))
+                    ),
+                )
+            )
+        filters.append(or_(*scoped_conditions))
     if entity:
         filters.append(AuditLog.entity == entity)
     if action:

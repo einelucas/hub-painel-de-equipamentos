@@ -68,14 +68,14 @@ async def test_include_inactive_requires_catalogs_manage(client, auth_header) ->
     admin = auth_header("ADMIN")
     unit_id, _, _ = await _unit_and_contexts(client, admin)
 
-    # 3. sem catalogs:manage a visão administrativa é negada; a listagem padrão segue liberada
+    # ANALYST gerencia catálogos operacionais; VIEWER continua somente leitura.
     for role in ("ANALYST", "VIEWER"):
         await _grant(client, auth_header, role, unit_id)
         headers = auth_header(role)
         denied = await client.get(
             f"/api/v1/units/{unit_id}/project-contexts", params={"include_inactive": "true"}, headers=headers
         )
-        assert denied.status_code == 403, (role, denied.text)
+        assert denied.status_code == (200 if role == "ANALYST" else 403), (role, denied.text)
         allowed = await client.get(f"/api/v1/units/{unit_id}/project-contexts", headers=headers)
         assert allowed.status_code == 200
 
@@ -136,8 +136,18 @@ async def test_other_catalogs_follow_the_same_rule(client, auth_header) -> None:
         target = item_url.rsplit("/", 1)[1]
         assert target not in default_ids, list_url
         assert admin_ids.get(target) is False, list_url
-        denied = await client.get(list_url, params={**params, "include_inactive": "true"}, headers=analyst)
-        assert denied.status_code == 403, list_url
+        analyst_view = await client.get(
+            list_url,
+            params={**params, "include_inactive": "true"},
+            headers=analyst,
+        )
+        assert analyst_view.status_code == 200, list_url
+        analyst_ids = {i["id"]: i["active"] for i in analyst_view.json()["items"]}
+        if list_url == "/api/v1/units":
+            # Gerenciar catálogos não amplia o escopo de unidades do analista.
+            assert target not in analyst_ids
+        else:
+            assert analyst_ids.get(target) is False
 
 
 async def test_work_package_description_can_be_edited_and_cleared(client, auth_header) -> None:

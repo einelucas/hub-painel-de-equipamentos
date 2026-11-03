@@ -158,12 +158,12 @@ async def test_admin_edits_eap_name_and_status_without_changing_identity(
         "Caldeira revisada",
         False,
     )
-    forbidden = await client.patch(
+    analyst_update = await client.patch(
         f"/api/v1/eap-nodes/{ids['area']}",
-        json={"name": "Sem permissão"},
+        json={"name": "Atualização operacional"},
         headers=auth_header("ANALYST"),
     )
-    assert forbidden.status_code == 403
+    assert analyst_update.status_code == 200
 
 
 async def test_project_eap_nodes_respect_context_scope(client, auth_header, db_session) -> None:

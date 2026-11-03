@@ -10,8 +10,45 @@ O backend possui um módulo de notificações com **regras editáveis, templates
 | `notification_rule` | Ativação, antecedência, destinatários, inclusão do responsável e textos de regra |
 | `email_template` | Assunto, título, introdução, corpo, botão, rodapé, HTML personalizado e opções visuais |
 | `email_delivery` | Outbox: destinatários, provedor, modo, texto/HTML, status, tentativas e resultado |
+| `user_notification` | Caixa interna persistente e individual do Painel de Equipamentos; leitura independente do evento e do e-mail |
 
 As migrations `0024_notification_delivery`, `0025_email_delivery_provider` e `0026_email_templates` criam/evoluem essas estruturas. Consulte a versão efetivamente aplicada em cada banco antes de ativar a funcionalidade.
+
+## Caixa interna do Painel de Equipamentos
+
+A migration `0028_user_notifications` adiciona a caixa interna identificada por
+`module_key=EQUIPMENT_PANEL`. Ela não substitui a outbox de e-mail. As operações
+de regressão e suas notificações P0 são gravadas na mesma transação; a chave
+única `(recipient_user_id, event_key)` evita avisos repetidos.
+
+Rotas autenticadas, sempre resolvendo o destinatário pela sessão:
+
+- `GET /notifications/inbox`
+- `GET /notifications/unread-count`
+- `GET /notifications/pending-approvals` (somente quem pode decidir regressão)
+- `PATCH /notifications/{id}/read`
+- `POST /notifications/read-all`
+
+O escopo atual de unidades é reaplicado na listagem, contagem e marcação. Perder
+o acesso a uma unidade não apaga o histórico, mas impede sua exposição. Marcar
+um aviso como lido não decide uma solicitação de regressão.
+
+Eventos internos ativos:
+
+- P0: `REOPEN_REQUESTED`, `REOPEN_APPROVED`, `REOPEN_REJECTED`;
+- P1: `KICKOFF`, `FUP`, `COMPLETED` e, quando as regras existentes os geram,
+  `STARTUP_REMINDER`, `NEGOTIATION_OVERDUE`, `DELIVERY_REMINDER`.
+
+Os eventos P1 são direcionados prioritariamente ao responsável ativo do
+equipamento e reutilizam os gatilhos, cálculos e chaves existentes. Não há nova
+regra de prazo nem ativação automática de envio externo.
+
+Evoluções P2 mapeadas, ainda não ativadas: troca de responsável, comentário
+direcionado, entrada/saída de Standby, cancelamento/reativação, alteração crítica
+de fornecedor, marcos adicionais de contrato/OC, falha de importação e pendência
+de reconciliação. Cada uma deve ganhar um evento de domínio estável, destinatário
+explícito e chave de deduplicação antes de ser materializada; mudanças genéricas
+de campos não devem gerar notificações.
 
 ## Painel administrativo
 

@@ -10,7 +10,7 @@ from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
 from app.models.notification import EmailDelivery
-from app.modules.notifications import mail_service, services, template_service
+from app.modules.notifications import inbox, mail_service, services, template_service
 from app.modules.notifications.schemas import (
     EmailTemplateContent,
     EmailTemplateListOut,
@@ -28,6 +28,11 @@ from app.modules.notifications.schemas import (
     MailSettingsOut,
     MailTestIn,
     NotificationEventListOut,
+    PendingReopenApprovalListOut,
+    UserNotificationListOut,
+    UserNotificationOut,
+    UserNotificationReadAllOut,
+    UserNotificationUnreadCountOut,
 )
 
 router = APIRouter(tags=["notificacoes"])
@@ -41,6 +46,64 @@ async def get_notifications(
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
 ) -> NotificationEventListOut:
     return await services.list_notifications(session, equipment_id, actor)
+
+
+@router.get("/notifications/inbox", response_model=UserNotificationListOut)
+async def notification_inbox(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100, alias="pageSize"),
+    unread_only: bool = Query(default=False, alias="unreadOnly"),
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+) -> UserNotificationListOut:
+    return await inbox.list_user_notifications(
+        session, actor, page=page, page_size=page_size, unread_only=unread_only
+    )
+
+
+@router.get(
+    "/notifications/unread-count", response_model=UserNotificationUnreadCountOut
+)
+async def notification_unread_count(
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+) -> UserNotificationUnreadCountOut:
+    return UserNotificationUnreadCountOut(count=await inbox.unread_count(session, actor))
+
+
+@router.get(
+    "/notifications/pending-approvals", response_model=PendingReopenApprovalListOut
+)
+async def pending_reopen_approvals(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100, alias="pageSize"),
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(
+        require_permission(Permission.WORKFLOW_REOPEN_APPROVE)
+    ),
+) -> PendingReopenApprovalListOut:
+    return await inbox.list_pending_approvals(
+        session, actor, page=page, page_size=page_size
+    )
+
+
+@router.patch(
+    "/notifications/{notification_id}/read", response_model=UserNotificationOut
+)
+async def read_notification(
+    notification_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+) -> UserNotificationOut:
+    return await inbox.mark_read(session, actor, notification_id)
+
+
+@router.post("/notifications/read-all", response_model=UserNotificationReadAllOut)
+async def read_all_notifications(
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_READ)),
+) -> UserNotificationReadAllOut:
+    return UserNotificationReadAllOut(updated=await inbox.mark_all_read(session, actor))
 
 
 @router.get("/notifications/settings", response_model=MailSettingsOut)

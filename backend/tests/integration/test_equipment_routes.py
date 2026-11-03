@@ -187,12 +187,12 @@ async def test_equipment_rejects_island_and_accepts_global_eap(
 
 
 async def test_catalog_creation_and_read_permissions(client, auth_header) -> None:
-    forbidden = await client.post(
+    created_by_analyst = await client.post(
         "/api/v1/units",
-        json={"code": "NO", "name": "Sem permissão"},
+        json={"code": "OP", "name": "Catálogo operacional"},
         headers=auth_header("ANALYST"),
     )
-    assert forbidden.status_code == 403
+    assert created_by_analyst.status_code == 201
 
     ids = await _catalogs(client, auth_header)
     units = await client.get("/api/v1/units", headers=auth_header("VIEWER"))

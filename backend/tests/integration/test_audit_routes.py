@@ -31,9 +31,11 @@ async def _new_equipment(client, auth_header, suffix: str) -> str:
     return str(created.json()["id"])
 
 
-async def test_audit_requires_admin(client, auth_header) -> None:
-    forbidden = await client.get("/api/v1/auditoria", headers=auth_header("ANALYST"))
-    assert forbidden.status_code == 403
+async def test_audit_is_available_to_analyst_but_not_viewer(client, auth_header) -> None:
+    analyst = await client.get("/api/v1/auditoria", headers=auth_header("ANALYST"))
+    assert analyst.status_code == 200
+    viewer = await client.get("/api/v1/auditoria", headers=auth_header("VIEWER"))
+    assert viewer.status_code == 403
 
 
 async def test_audit_lists_entries_produced_by_user_changes(client, auth_header) -> None:

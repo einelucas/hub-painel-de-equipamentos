@@ -15,12 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser
 from app.core.errors import ConflictError, DomainError, NotFoundError
-from app.core.permissions import Permission, assert_can
+from app.core.permissions import Permission, Role, assert_can
 from app.models.common import utcnow
 from app.models.equipment import STAGES, WorkflowTransition
 from app.models.user import User
 from app.models.workflow_extras import ReopenRequest
 from app.modules.equipments.schemas import UserRefOut
+from app.modules.notifications import inbox as notification_inbox
 from app.modules.workflow.schemas import ReopenRequestListOut, ReopenRequestOut
 from app.modules.workflow.services import _get_equipment
 from app.shared.audit import record_audit
@@ -64,7 +65,9 @@ async def request_reopen(
     actor: CurrentUser,
 ) -> ReopenRequestOut:
     assert_can(actor.role, Permission.WORKFLOW_REOPEN_REQUEST)
-    equipment = await _get_equipment(session, equipment_id, lock=False, actor=actor)
+    # Serializa duas solicitações simultâneas do mesmo equipamento antes da
+    # consulta da pendência; o índice parcial continua como segunda barreira.
+    equipment = await _get_equipment(session, equipment_id, lock=True, actor=actor)
     if equipment.operational_status != "ACTIVE":
         raise DomainError(
             "O equipamento não está ativo — normalize o estado operacional antes de "
@@ -110,18 +113,22 @@ async def request_reopen(
         },
         metadata={"equipmentId": equipment.id},
     )
+    await notification_inbox.notify_reopen_requested(
+        session, equipment=equipment, request=item, actor=actor
+    )
     await session.commit()
     return await _out(session, item)
 
 
-async def _get_request(session: AsyncSession, equipment_id: str, request_id: str) -> ReopenRequest:
-    item = (
-        await session.execute(
-            select(ReopenRequest).where(
-                ReopenRequest.id == request_id, ReopenRequest.equipment_id == equipment_id
-            )
-        )
-    ).scalar_one_or_none()
+async def _get_request(
+    session: AsyncSession, equipment_id: str, request_id: str, *, lock: bool
+) -> ReopenRequest:
+    stmt = select(ReopenRequest).where(
+        ReopenRequest.id == request_id, ReopenRequest.equipment_id == equipment_id
+    )
+    if lock:
+        stmt = stmt.with_for_update().execution_options(populate_existing=True)
+    item = (await session.execute(stmt)).scalar_one_or_none()
     if item is None:
         raise NotFoundError("Solicitação de reabertura não encontrada")
     return item
@@ -137,11 +144,15 @@ async def approve_reopen(
 ) -> ReopenRequestOut:
     assert_can(actor.role, Permission.WORKFLOW_REOPEN_APPROVE)
     equipment = await _get_equipment(session, equipment_id, lock=True, actor=actor)
-    item = await _get_request(session, equipment_id, request_id)
+    item = await _get_request(session, equipment_id, request_id, lock=True)
     if item.status != "PENDING":
         raise DomainError("Esta solicitação de reabertura já foi decidida.")
-    if item.requested_by_id == actor.id:
+    if item.requested_by_id == actor.id and actor.role is not Role.ADMIN:
         raise DomainError("Quem solicita a reabertura não pode aprovar a própria solicitação.")
+    if equipment.current_stage != item.source_stage:
+        raise ConflictError(
+            "A fase do equipamento mudou após a solicitação. Recarregue e crie uma nova solicitação."
+        )
 
     from_stage = equipment.current_stage
     session.add(
@@ -169,6 +180,9 @@ async def approve_reopen(
         new_data={"current_stage": item.target_stage, "decisionNote": note},
         metadata={"equipmentId": equipment.id},
     )
+    await notification_inbox.notify_reopen_decided(
+        session, equipment=equipment, request=item, actor=actor, approved=True
+    )
     await session.commit()
     return await _out(session, item)
 
@@ -182,11 +196,11 @@ async def reject_reopen(
     actor: CurrentUser,
 ) -> ReopenRequestOut:
     assert_can(actor.role, Permission.WORKFLOW_REOPEN_APPROVE)
-    await _get_equipment(session, equipment_id, lock=False, actor=actor)
-    item = await _get_request(session, equipment_id, request_id)
+    equipment = await _get_equipment(session, equipment_id, lock=True, actor=actor)
+    item = await _get_request(session, equipment_id, request_id, lock=True)
     if item.status != "PENDING":
         raise DomainError("Esta solicitação de reabertura já foi decidida.")
-    if item.requested_by_id == actor.id:
+    if item.requested_by_id == actor.id and actor.role is not Role.ADMIN:
         raise DomainError("Quem solicita a reabertura não pode decidir a própria solicitação.")
 
     item.status = "REJECTED"
@@ -202,6 +216,9 @@ async def reject_reopen(
         entity_id=item.id,
         new_data={"decisionNote": note},
         metadata={"equipmentId": equipment_id},
+    )
+    await notification_inbox.notify_reopen_decided(
+        session, equipment=equipment, request=item, actor=actor, approved=False
     )
     await session.commit()
     return await _out(session, item)

@@ -31,7 +31,7 @@ from app.models.common import utcnow
 from app.models.equipment import Equipment, WorkflowTransition
 from app.models.notification import EmailDelivery, NotificationEvent, NotificationRule
 from app.models.user import User
-from app.modules.notifications import template_service
+from app.modules.notifications import inbox, template_service
 from app.modules.notifications.adapter import (
     DeliveryError,
     MailProvider,
@@ -246,6 +246,13 @@ async def enqueue_startup_reminders(session: AsyncSession) -> int:
         )).scalar_one_or_none():
             continue
         if await enqueue_equipment(session, equipment, "STARTUP_REMINDER", key):
+            await inbox.notify_operational_event(
+                session,
+                equipment=equipment,
+                event_type="STARTUP_REMINDER",
+                event_key=key,
+                event_date=target,
+            )
             created += 1
     await session.commit()
     return created
@@ -298,11 +305,25 @@ async def enqueue_deadline_alerts(session: AsyncSession) -> int:
                 if await enqueue_equipment(
                     session, equipment, "NEGOTIATION_OVERDUE", key, negotiation_deadline
                 ):
+                    await inbox.notify_operational_event(
+                        session,
+                        equipment=equipment,
+                        event_type="NEGOTIATION_OVERDUE",
+                        event_key=key,
+                        event_date=negotiation_deadline,
+                    )
                     created += 1
         delivery = deadlines.min_delivery_deadline
         if delivery_rule.enabled and delivery == today + timedelta(days=delivery_rule.days_before):
             key = f"delivery:{equipment.id}:{delivery.isoformat()}:{delivery_rule.days_before}"
             if await enqueue_equipment(session, equipment, "DELIVERY_REMINDER", key, delivery):
+                await inbox.notify_operational_event(
+                    session,
+                    equipment=equipment,
+                    event_type="DELIVERY_REMINDER",
+                    event_key=key,
+                    event_date=delivery,
+                )
                 created += 1
     await session.commit()
     return created

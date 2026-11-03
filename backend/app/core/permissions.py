@@ -39,7 +39,9 @@ _READ = {
     Permission.SUPPLIERS_READ,
 }
 _WRITE = _READ | {
+    Permission.AUDIT_READ,
     Permission.EQUIPMENTS_WRITE,
+    Permission.CATALOGS_MANAGE,
     Permission.PROCESS_WRITE,
     Permission.WORKFLOW_TRANSITION,
     Permission.SUPPLIERS_WRITE,
@@ -54,8 +56,6 @@ _MATRIX: dict[Role, set[Permission]] = {
     Role.ADMIN: _WRITE
     | {
         Permission.USERS_MANAGE,
-        Permission.AUDIT_READ,
-        Permission.CATALOGS_MANAGE,
         Permission.WORKFLOW_REOPEN,
         # Etapa 7C: aprovação exige permissão "superior" — hierarquia
         # corporativa real (Microsoft/Automação) ainda não definida; no

@@ -552,10 +552,10 @@ async def test_catalog_patch_deactivates_and_audits(client, auth_header, db_sess
         )
     ).json()
 
-    forbidden = await client.patch(
+    analyst_update = await client.patch(
         f"/api/v1/areas/{area['id']}", json={"name": "X"}, headers=auth_header("ANALYST")
     )
-    assert forbidden.status_code == 403
+    assert analyst_update.status_code == 200
 
     renamed = await client.patch(
         f"/api/v1/areas/{area['id']}",
@@ -581,7 +581,7 @@ async def test_catalog_patch_deactivates_and_audits(client, auth_header, db_sess
             )
         )
     ).scalars().all()
-    assert len(audits) >= 2
+    assert len(audits) >= 3
 
 
 async def test_catalog_patch_rejects_duplicate_code(client, auth_header) -> None:

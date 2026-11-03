@@ -189,9 +189,14 @@ async def test_delete_requires_manage_permission_and_reports_missing(client, aut
     ids = await _catalogs(client, auth_header, "PERM")
 
     forbidden = await client.delete(
-        f"/api/v1/disciplines/{ids['discipline']}", headers=auth_header("ANALYST")
+        f"/api/v1/disciplines/{ids['discipline']}", headers=auth_header("VIEWER")
     )
     assert forbidden.status_code == 403
+
+    analyst_delete = await client.delete(
+        f"/api/v1/disciplines/{ids['discipline']}", headers=auth_header("ANALYST")
+    )
+    assert analyst_delete.status_code == 204
 
     missing = await client.delete("/api/v1/disciplines/nao-existe", headers=admin)
     assert missing.status_code == 404
