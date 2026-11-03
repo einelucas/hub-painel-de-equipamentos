@@ -22,15 +22,21 @@ describe("hasPermission (GAP-016 — fonte única é o backend, sem matriz local
       "workflow:read",
       "suppliers:read",
       "equipments:write",
+      "audit:read",
+      "catalogs:manage",
       "process:write",
       "workflow:transition",
+      "workflow:reopen_request",
       "suppliers:write",
     ]);
     expect(hasPermission(analyst, "equipments:write")).toBe(true);
     expect(hasPermission(analyst, "workflow:transition")).toBe(true);
     expect(hasPermission(analyst, "workflow:reopen")).toBe(false);
     expect(hasPermission(analyst, "users:manage")).toBe(false);
-    expect(hasPermission(analyst, "audit:read")).toBe(false);
+    expect(hasPermission(analyst, "audit:read")).toBe(true);
+    expect(hasPermission(analyst, "catalogs:manage")).toBe(true);
+    expect(hasPermission(analyst, "workflow:reopen_request")).toBe(true);
+    expect(hasPermission(analyst, "workflow:reopen_approve")).toBe(false);
   });
 
   it("ADMIN tem tudo, incluindo administração", () => {

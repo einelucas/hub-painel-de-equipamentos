@@ -22,7 +22,7 @@ import {
   isAreaDraftDirty,
 } from "~/utils/masterCatalog";
 
-definePageMeta({ middleware: "admin" });
+definePageMeta({ middleware: "catalog-manager" });
 
 const api = useApi();
 const { confirm } = useConfirm();

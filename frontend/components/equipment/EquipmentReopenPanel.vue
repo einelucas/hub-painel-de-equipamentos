@@ -78,6 +78,7 @@ async function confirmReopenDecision(): Promise<void> {
 
 <template>
   <section
+    id="reabertura"
     class="surface reopen-surface"
     :class="{ 'reopen-surface--pending': pendingReopenRequest }"
   >

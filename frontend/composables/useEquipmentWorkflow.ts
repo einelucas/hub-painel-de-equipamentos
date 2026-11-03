@@ -8,6 +8,7 @@ import type {
   TransitionOption,
 } from "~/types/equipment";
 import type { ProcessResource } from "~/utils/workflow";
+import { signalEquipmentNotificationsRefresh } from "~/composables/useEquipmentNotifications";
 
 interface ReopenRequestList {
   items: ReopenRequest[];
@@ -246,6 +247,7 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
         ...reopenRequests.value.filter((item) => item.id !== created.id),
       ];
       actionSuccess.value = "Solicitação de reabertura enviada para aprovação.";
+      signalEquipmentNotificationsRefresh();
       return created;
     } catch (caught) {
       actionError.value =
@@ -258,24 +260,28 @@ export function useEquipmentWorkflow(equipmentId: Ref<string>) {
     }
   }
 
-  function approveReopen(requestId: string, note: string): Promise<unknown> {
-    return run(
+  async function approveReopen(requestId: string, note: string): Promise<unknown> {
+    const result = await run(
       () =>
         api.post(`/equipments/${equipmentId.value}/reopen-requests/${requestId}/approve`, {
           note: note || null,
         }),
       "Não foi possível aprovar a reabertura.",
     );
+    if (result) signalEquipmentNotificationsRefresh();
+    return result;
   }
 
-  function rejectReopen(requestId: string, note: string): Promise<unknown> {
-    return run(
+  async function rejectReopen(requestId: string, note: string): Promise<unknown> {
+    const result = await run(
       () =>
         api.post(`/equipments/${equipmentId.value}/reopen-requests/${requestId}/reject`, {
           note: note || null,
         }),
       "Não foi possível rejeitar a reabertura.",
     );
+    if (result) signalEquipmentNotificationsRefresh();
+    return result;
   }
 
   return {
