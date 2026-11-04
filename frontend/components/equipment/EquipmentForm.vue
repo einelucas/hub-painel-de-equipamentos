@@ -10,7 +10,7 @@ import {
   mdiPencilOutline,
   mdiTag,
 } from "@mdi/js";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { VBtn } from "vuetify/components";
 import CurrencyInput from "~/components/ui/CurrencyInput.vue";
 import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
@@ -32,6 +32,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   saved: [equipment: Equipment];
   cancel: [];
+  dirty: [dirty: boolean];
 }>();
 
 const api = useApi();
@@ -69,6 +70,19 @@ const form = reactive({
   contractualDeliveryStart: props.equipment?.contractualDeliveryStart ?? "",
   contractualDeliveryEnd: props.equipment?.contractualDeliveryEnd ?? "",
 });
+let initialSnapshot = JSON.stringify(form);
+
+watch(
+  form,
+  () => emit("dirty", JSON.stringify(form) !== initialSnapshot),
+  { deep: true },
+);
+
+function protectDraft(event: BeforeUnloadEvent): void {
+  if (JSON.stringify(form) === initialSnapshot) return;
+  event.preventDefault();
+  event.returnValue = "";
+}
 
 const contextOptions = computed(() =>
   contexts.value.map((item) => ({
@@ -199,6 +213,9 @@ async function loadCatalogs(): Promise<void> {
         : "Não foi possível carregar os catálogos.";
   } finally {
     loading.value = false;
+    await nextTick();
+    initialSnapshot = JSON.stringify(form);
+    emit("dirty", false);
   }
 }
 
@@ -229,6 +246,7 @@ async function submit(): Promise<void> {
     contractualDeliveryStart: form.contractualDeliveryStart || null,
     contractualDeliveryEnd: form.contractualDeliveryEnd || null,
   };
+  if (props.equipment) payload.expectedUpdatedAt = props.equipment.updatedAt;
 
   try {
     const result = props.equipment
@@ -246,7 +264,11 @@ async function submit(): Promise<void> {
   }
 }
 
-onMounted(loadCatalogs);
+onMounted(() => {
+  window.addEventListener("beforeunload", protectDraft);
+  void loadCatalogs();
+});
+onBeforeUnmount(() => window.removeEventListener("beforeunload", protectDraft));
 </script>
 
 <template>

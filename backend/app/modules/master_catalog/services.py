@@ -33,6 +33,7 @@ from app.modules.master_catalog.schemas import (
     MasterProjectCreatedOut,
 )
 from app.shared.audit import record_audit
+from app.modules.sync.services import record_sync_event
 
 
 def key_for(value: str) -> str:
@@ -244,6 +245,16 @@ async def create_project_from_master(
         entity="ProjectContext", entity_id=context.id,
         new_data={"unitId": body.unit_id, "name": context.name,
                   "equipmentsCreated": len(ids), "componentsCreated": count},
+    )
+    await record_sync_event(
+        session,
+        event_type="created",
+        entity_type="project_context",
+        entity_id=context.id,
+        unit_id=context.unit_id,
+        project_context_id=context.id,
+        actor_user_id=actor.id,
+        payload={"name": context.name, "equipmentsCreated": len(ids)},
     )
     await session.commit()
     return MasterProjectCreatedOut(

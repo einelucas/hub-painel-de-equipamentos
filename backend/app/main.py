@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, install_correlation_id_middleware
 from app.modules.imports.apply_jobs import recover_apply_jobs
+from app.modules.sync.storage_cleanup import recover_contract_file_cleanups
 
 settings = get_settings()
 configure_logging()
@@ -28,6 +29,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             logger.info("recovered %s interrupted Monday apply job(s)", recovered)
     except Exception:
         logger.exception("could not inspect interrupted Monday apply jobs on startup")
+    try:
+        cleaned = await recover_contract_file_cleanups()
+        if cleaned:
+            logger.info("recovered %s pending contract file cleanup(s)", cleaned)
+    except Exception:
+        logger.exception("could not inspect pending contract file cleanups on startup")
     yield
 
 app = FastAPI(

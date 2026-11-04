@@ -93,7 +93,7 @@ class ProjectEap(Base):
 
     id: Mapped[str] = uuid_pk()
     project_context_id: Mapped[str] = mapped_column(
-        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("project_context.id", ondelete="CASCADE"), nullable=False
     )
     eap_node_id: Mapped[str] = mapped_column(ForeignKey("eap_node.id", ondelete="RESTRICT"), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -124,7 +124,9 @@ class ProjectContext(Base):
     updated_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow, onupdate=utcnow)
 
     unit: Mapped[Unit] = relationship(back_populates="project_contexts")
-    equipments: Mapped[list[Equipment]] = relationship(back_populates="project_context")
+    equipments: Mapped[list[Equipment]] = relationship(
+        back_populates="project_context", passive_deletes=True
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -235,7 +237,7 @@ class Equipment(Base):
 
     id: Mapped[str] = uuid_pk()
     project_context_id: Mapped[str] = mapped_column(
-        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("project_context.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     origin: Mapped[str | None] = mapped_column(String(160), nullable=True)

@@ -22,6 +22,7 @@ from app.models.user import User
 from app.models.workflow_extras import ReopenRequest
 from app.modules.equipments.schemas import UserRefOut
 from app.modules.notifications import inbox as notification_inbox
+from app.modules.sync.services import record_equipment_sync_event
 from app.modules.workflow.schemas import ReopenRequestListOut, ReopenRequestOut
 from app.modules.workflow.services import _get_equipment
 from app.shared.audit import record_audit
@@ -116,6 +117,10 @@ async def request_reopen(
     await notification_inbox.notify_reopen_requested(
         session, equipment=equipment, request=item, actor=actor
     )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment.id, actor_user_id=actor.id,
+        changed_fields=["reopenRequests"],
+    )
     await session.commit()
     return await _out(session, item)
 
@@ -183,6 +188,10 @@ async def approve_reopen(
     await notification_inbox.notify_reopen_decided(
         session, equipment=equipment, request=item, actor=actor, approved=True
     )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment.id, actor_user_id=actor.id,
+        changed_fields=["currentStage", "history", "reopenRequests"],
+    )
     await session.commit()
     return await _out(session, item)
 
@@ -219,6 +228,10 @@ async def reject_reopen(
     )
     await notification_inbox.notify_reopen_decided(
         session, equipment=equipment, request=item, actor=actor, approved=False
+    )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment.id, actor_user_id=actor.id,
+        changed_fields=["reopenRequests"],
     )
     await session.commit()
     return await _out(session, item)

@@ -6,6 +6,7 @@ import CardProgress from "~/components/ui/CardProgress.vue";
 import { situationDonut, stageChartPoints, startupLabel } from "~/utils/dashboard";
 import { formatCurrency, formatNumber } from "~/utils/format";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
+import type { RealtimeChangeEvent } from "~/composables/useRealtimeSync";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -22,6 +23,9 @@ const loading = ref(true);
 const refreshing = ref(false);
 const error = ref("");
 let requestVersion = 0;
+let quietRefresh = false;
+let unsubscribeSync: (() => void) | null = null;
+const realtime = useRealtimeSync();
 
 const allowed = computed(() => auth.can("equipments:read"));
 const chartPoints = computed(() => stageChartPoints(summary.value?.workflow ?? []));
@@ -61,13 +65,16 @@ async function loadAreas(): Promise<void> {
 
 async function load(): Promise<void> {
   const version = ++requestVersion;
-  refreshing.value = true;
+  const quiet = quietRefresh;
+  quietRefresh = false;
+  if (!quiet) refreshing.value = true;
   error.value = "";
   try {
-    const result = await api.get<DashboardSummary>("/dashboard/summary", {
-      ...context.apiQuery,
-      ...dashboard.apiQuery.value,
-    });
+    const result = await api.get<DashboardSummary>(
+      "/dashboard/summary",
+      { ...context.apiQuery, ...dashboard.apiQuery.value },
+      { force: true },
+    );
     if (version !== requestVersion) return;
     summary.value = result;
   } catch (caught) {
@@ -98,7 +105,19 @@ async function clearDashboardFilters(): Promise<void> {
   await applyDashboardFilters();
 }
 
+async function realtimeChanged(event: RealtimeChangeEvent): Promise<void> {
+  const relevant =
+    event.eventType === "revalidate" ||
+    ((event.entityType === "equipment" || event.entityType === "project_context") &&
+      (!context.selectedUnit || event.unitId === context.selectedUnit) &&
+      (!context.selectedProjectContext || event.projectContextId === context.selectedProjectContext));
+  if (!relevant || loading.value) return;
+  quietRefresh = true;
+  await load();
+}
+
 onMounted(async () => {
+  unsubscribeSync = realtime.subscribe(realtimeChanged);
   if (!allowed.value) {
     loading.value = false;
     return;
@@ -113,6 +132,7 @@ onMounted(async () => {
   await syncQuery();
   await load();
 });
+onBeforeUnmount(() => unsubscribeSync?.());
 </script>
 
 <template>

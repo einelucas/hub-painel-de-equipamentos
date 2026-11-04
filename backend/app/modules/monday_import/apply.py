@@ -44,6 +44,7 @@ from app.models.equipment import (
     Equipment,
     EquipmentComponent,
     EquipmentWorkPackage,
+    ProjectContext,
     ProjectEap,
     WorkPackage,
 )
@@ -55,6 +56,7 @@ from app.models.monday_import import (
 )
 from app.models.process import Contract, LegalProcess, Negotiation, PurchaseOrder, PurchaseRequest
 from app.models.supplier import EquipmentSupplier
+from app.models.sync import SyncEvent
 from app.models.workflow_extras import OperationalStatusEvent
 from app.modules.monday_import.catalog_taxonomy import CatalogAction
 from app.modules.monday_import.mappings import SOURCE_SYSTEM
@@ -246,7 +248,14 @@ class _ApplyContext:
     active_supplier: dict[str, tuple[str, str] | None] = field(default_factory=dict)
     sub_entities: dict[type[Any], dict[str, Any]] = field(default_factory=dict)
     components: dict[str, EquipmentComponent] = field(default_factory=dict)
+    # equipamento -> tipo do evento; CREATE prevalece caso os filhos também
+    # sejam gravados durante o mesmo apply.
+    sync_events: dict[str, str] = field(default_factory=dict)
     identity_map: Any = None
+
+    def mark_equipment_changed(self, equipment_id: str, *, created: bool = False) -> None:
+        if created or equipment_id not in self.sync_events:
+            self.sync_events[equipment_id] = "created" if created else "updated"
 
 
 def _plan_metadata(
@@ -1050,6 +1059,8 @@ async def apply_plan(
                 equipment_id = await _apply_equipment(ctx, item)
                 equipment_ids[item.source_key] = equipment_id
                 resolutions[item.source_key] = ("Equipment", equipment_id)
+                if item.action != "NOOP":
+                    ctx.mark_equipment_changed(equipment_id, created=item.action == "CREATE")
 
             for list_name, kind in _SUB_ENTITY_LIST_KINDS.items():
                 model = _SUB_ENTITY_MODELS[kind]
@@ -1059,6 +1070,8 @@ async def apply_plan(
                     if parent_equipment_id is None:
                         raise RuntimeError(f"equipamento pai não resolvido para {item.source_key}")
                     await _apply_sub_entity(ctx, item=item, model=model, equipment_id=parent_equipment_id)
+                    if item.action != "NOOP":
+                        ctx.mark_equipment_changed(parent_equipment_id)
 
             for item in plan.components:
                 assert item.parent_source_key is not None
@@ -1067,6 +1080,7 @@ async def apply_plan(
                     raise RuntimeError(f"equipamento pai não resolvido para componente {item.source_key}")
                 component_id = await _apply_component(ctx, item=item, equipment_id=component_parent_id)
                 if item.action != "NOOP":
+                    ctx.mark_equipment_changed(component_parent_id)
                     component_id = component_id or item.target_entity_id
                     if not component_id:
                         raise RuntimeError(f"componente sem id resolvido para {item.source_key}")
@@ -1075,6 +1089,32 @@ async def apply_plan(
             # Fase 2 — escrita em lote, uma tabela por vez na ordem das FKs.
             await _write(session, ctx.writes)
             _sync_session_state(session, ctx.writes)
+
+            if ctx.sync_events:
+                context = await session.get(ProjectContext, plan.project_context_id)
+                if context is None:
+                    raise RuntimeError("obra ausente durante apply da importação")
+                await _bulk_insert(
+                    session,
+                    SyncEvent,
+                    [
+                        _new_row(
+                            SyncEvent,
+                            {
+                                "event_type": event_type,
+                                "entity_type": "equipment",
+                                "entity_id": equipment_id,
+                                "unit_id": context.unit_id,
+                                "project_context_id": context.id,
+                                "equipment_id": equipment_id,
+                                "actor_user_id": actor.id,
+                                "payload": {"source": "monday_import"},
+                            },
+                        )
+                        for equipment_id, event_type in sorted(ctx.sync_events.items())
+                    ],
+                    preferred=_DEFAULT_ROWS_PER_STATEMENT,
+                )
 
             await _stamp_final_entities(session, plan=plan, resolutions=resolutions)
 

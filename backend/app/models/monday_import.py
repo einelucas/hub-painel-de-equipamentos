@@ -18,7 +18,7 @@ class MondayImportBatch(Base):
 
     id: Mapped[str] = uuid_pk()
     project_context_id: Mapped[str] = mapped_column(
-        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("project_context.id", ondelete="CASCADE"), nullable=False
     )
     source_system: Mapped[str] = mapped_column(String(40), nullable=False, default="monday")
     source_filename: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -115,7 +115,7 @@ class MondayMigrationRun(Base):
 
     id: Mapped[str] = uuid_pk()
     project_context_id: Mapped[str] = mapped_column(
-        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("project_context.id", ondelete="CASCADE"), nullable=False
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PLANNED")
     batch_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
@@ -152,7 +152,7 @@ class MondayApplyJob(Base):
 
     id: Mapped[str] = uuid_pk()
     project_context_id: Mapped[str] = mapped_column(
-        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("project_context.id", ondelete="CASCADE"), nullable=False
     )
     actor_id: Mapped[str] = mapped_column(
         String, ForeignKey("User.id", ondelete="RESTRICT"), nullable=False

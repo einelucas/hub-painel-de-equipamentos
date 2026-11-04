@@ -19,6 +19,7 @@ from app.core.scope import assert_equipment_allowed
 from app.models.workflow_extras import Comment
 from app.modules.comments.schemas import CommentListOut, CommentOut
 from app.modules.equipments.schemas import UserRefOut
+from app.modules.sync.services import record_equipment_sync_event
 
 
 def _out(item: Comment) -> CommentOut:
@@ -62,6 +63,10 @@ async def create_comment(
     item = Comment(equipment_id=equipment_id, text=text.strip(), author_user_id=actor.id)
     session.add(item)
     await session.flush()
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=["comments"],
+    )
     await session.commit()
     row = (
         await session.execute(
@@ -93,6 +98,10 @@ async def update_comment(
         raise DomainError("Você só pode editar os próprios comentários.")
     item.text = text.strip()
     await session.flush()
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=["comments"],
+    )
     await session.commit()
     return _out(item)
 
@@ -105,4 +114,8 @@ async def delete_comment(
     if item.author_user_id != actor.id and actor.role != Role.ADMIN:
         raise DomainError("Você só pode excluir os próprios comentários.")
     await session.delete(item)
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=["comments"],
+    )
     await session.commit()

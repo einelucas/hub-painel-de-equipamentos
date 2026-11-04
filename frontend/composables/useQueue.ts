@@ -1,4 +1,6 @@
 import type { Pagination, QueueList } from "~/types/equipment";
+import { useRealtimeSync, type RealtimeChangeEvent } from "~/composables/useRealtimeSync";
+import { getCurrentScope, onScopeDispose } from "vue";
 
 export type QueueEndpoint = "engineering" | "legal" | "procurement";
 
@@ -20,8 +22,10 @@ export function useQueue<T>(endpoint: QueueEndpoint) {
   // snake_case, como o restante da query desta store.
   const filters = reactive<Record<string, string>>({});
   let requestVersion = 0;
+  let unsubscribeSync: (() => void) | null = null;
+  const realtime = useRealtimeSync();
 
-  async function load(): Promise<void> {
+  async function load(force = false): Promise<void> {
     const version = ++requestVersion;
     refreshing.value = true;
     error.value = "";
@@ -35,7 +39,9 @@ export function useQueue<T>(endpoint: QueueEndpoint) {
       for (const [key, value] of Object.entries(filters)) {
         if (value) query[key] = value;
       }
-      const result = await api.get<QueueList<T>>(`/queues/${endpoint}`, query);
+      const result = force
+        ? await api.get<QueueList<T>>(`/queues/${endpoint}`, query, { force: true })
+        : await api.get<QueueList<T>>(`/queues/${endpoint}`, query);
       if (version !== requestVersion) return;
       items.value = result.items;
       pagination.value = result.pagination;
@@ -80,6 +86,19 @@ export function useQueue<T>(endpoint: QueueEndpoint) {
     page.value = next;
     await load();
   }
+
+  async function syncChanged(event: RealtimeChangeEvent): Promise<void> {
+    const relevant =
+      event.eventType === "revalidate" ||
+      ((event.entityType === "equipment" || event.entityType === "project_context") &&
+        (!context.selectedUnit || event.unitId === context.selectedUnit) &&
+        (!context.selectedProjectContext ||
+          event.projectContextId === context.selectedProjectContext));
+    if (relevant && !loading.value) await load(true);
+  }
+
+  unsubscribeSync = realtime.subscribe(syncChanged);
+  if (getCurrentScope()) onScopeDispose(() => unsubscribeSync?.());
 
   return {
     items,

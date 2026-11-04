@@ -25,6 +25,7 @@ import { VBtn } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
+import type { RealtimeChangeEvent } from "~/composables/useRealtimeSync";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -53,6 +54,9 @@ const error = ref("");
 const showForm = ref(false);
 const showAdmin = ref(false);
 let requestVersion = 0;
+let quietRefresh = false;
+let unsubscribeSync: (() => void) | null = null;
+const realtime = useRealtimeSync();
 
 const allowed = computed(() => auth.can("equipments:read"));
 const canCreate = computed(
@@ -119,7 +123,9 @@ function onPageChange(next: number): void {
 
 async function load(): Promise<void> {
   const version = ++requestVersion;
-  refreshing.value = true;
+  const quiet = quietRefresh;
+  quietRefresh = false;
+  if (!quiet) refreshing.value = true;
   error.value = "";
   try {
     const query: Record<string, unknown> = {
@@ -134,7 +140,7 @@ async function load(): Promise<void> {
       query.responsible_user_id = responsibleUserId.value;
     if (areaId.value) query.eap_node_id = areaId.value;
     if (workPackageId.value) query.work_package_id = workPackageId.value;
-    const result = await api.get<EquipmentList>("/equipments", query);
+    const result = await api.get<EquipmentList>("/equipments", query, { force: true });
     if (version !== requestVersion) return;
     equipments.value = result.items;
     pagination.value = result.pagination;
@@ -255,7 +261,21 @@ async function saved(_equipment: Equipment): Promise<void> {
   await load();
 }
 
+async function realtimeChanged(event: RealtimeChangeEvent): Promise<void> {
+  const relevantEquipment =
+    event.entityType === "equipment" &&
+    (!context.selectedUnit || event.unitId === context.selectedUnit) &&
+    (!context.selectedProjectContext || event.projectContextId === context.selectedProjectContext);
+  const relevantProject =
+    event.entityType === "project_context" &&
+    (!context.selectedUnit || event.unitId === context.selectedUnit);
+  if (event.eventType !== "revalidate" && !relevantEquipment && !relevantProject) return;
+  quietRefresh = true;
+  await load();
+}
+
 onMounted(async () => {
+  unsubscribeSync = realtime.subscribe(realtimeChanged);
   if (!allowed.value) {
     loading.value = false;
     return;
@@ -283,6 +303,7 @@ onMounted(async () => {
   await syncQuery();
   await load();
 });
+onBeforeUnmount(() => unsubscribeSync?.());
 </script>
 
 <template>

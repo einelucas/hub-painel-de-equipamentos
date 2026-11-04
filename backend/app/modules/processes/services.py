@@ -42,6 +42,7 @@ from app.modules.processes.schemas import (
     PurchaseOrderOut,
     PurchaseRequestOut,
 )
+from app.modules.sync.services import record_equipment_sync_event
 from app.shared.audit import record_audit
 
 ProcessModel = TypeVar("ProcessModel", Negotiation, LegalProcess)
@@ -122,6 +123,10 @@ async def update_process(
             previous_data=previous,
             new_data=changed,
             metadata={"equipmentId": equipment_id},
+        )
+        await record_equipment_sync_event(
+            session, equipment_id=equipment_id, actor_user_id=actor.id,
+            changed_fields=[entity_name],
         )
     await session.commit()
     await session.refresh(instance)
@@ -248,6 +253,10 @@ async def create_item(
         new_data={key: _json_value(value) for key, value in values.items()},
         metadata={"equipmentId": equipment_id},
     )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=[entity_name],
+    )
     await session.commit()
     await session.refresh(instance)
     return instance
@@ -284,6 +293,10 @@ async def update_item(
             new_data=changed,
             metadata={"equipmentId": equipment_id},
         )
+        await record_equipment_sync_event(
+            session, equipment_id=equipment_id, actor_user_id=actor.id,
+            changed_fields=[entity_name],
+        )
     await session.commit()
     await session.refresh(instance)
     return instance
@@ -309,6 +322,10 @@ async def delete_item(
         entity=entity_name,
         entity_id=item_id,
         metadata={"equipmentId": equipment_id},
+    )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=[entity_name],
     )
     await session.commit()
     if storage_key:
@@ -357,6 +374,10 @@ async def upload_contract_file(
             entity_id=contract.id,
             new_data={"fileName": file_name, "fileSizeBytes": len(content)},
             metadata={"equipmentId": equipment_id},
+        )
+        await record_equipment_sync_event(
+            session, equipment_id=equipment_id, actor_user_id=actor.id,
+            changed_fields=["Contract.file"],
         )
         await session.commit()
     except Exception:

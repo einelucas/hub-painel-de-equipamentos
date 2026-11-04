@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 
 from pydantic import Field, model_validator
 
@@ -202,6 +203,18 @@ class ProjectContextUpdateIn(CatalogUpdateIn):
     legada não é alterada."""
 
     code: str | None = Field(default=None, min_length=1, max_length=60)
+
+
+class ProjectContextDeleteIn(CamelModel):
+    confirmation_name: Annotated[str, Field(min_length=1, max_length=160)]
+
+
+class ProjectContextDeletionImpactOut(CamelModel):
+    project_context_id: str
+    project_context_name: str
+    records: dict[str, int]
+    total_records: int
+    contract_files: int
 
 
 class UnitUpdateIn(CamelModel):

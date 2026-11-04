@@ -23,6 +23,7 @@ from app.models.common import utcnow
 from app.models.equipment import Equipment
 from app.models.workflow_extras import OperationalStatusEvent
 from app.modules.equipments.schemas import UserRefOut
+from app.modules.sync.services import record_equipment_sync_event
 from app.modules.workflow.schemas import EquipmentOperationalStatusOut, OperationalStatusEventOut
 from app.modules.workflow.services import _get_equipment
 from app.shared.audit import build_audit_row, record_audit
@@ -141,6 +142,10 @@ async def _apply(
         justification=justification,
         actor_id=actor.id,
     )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment.id, actor_user_id=actor.id,
+        changed_fields=["operationalStatus"],
+    )
     await session.commit()
 
 
@@ -239,6 +244,10 @@ async def enter_sanitation(
             "justification": justification,
         },
         metadata={"equipmentId": equipment.id, "originStage": origin_stage},
+    )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment.id, actor_user_id=actor.id,
+        changed_fields=["operationalStatus", "currentStage", "history"],
     )
     await session.commit()
     return await get_operational_status(session, equipment_id, actor)

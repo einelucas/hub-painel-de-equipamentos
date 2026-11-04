@@ -21,6 +21,7 @@ from app.modules.suppliers.schemas import (
     EquipmentSupplierOut,
     SupplierOut,
 )
+from app.modules.sync.services import record_equipment_sync_event
 from app.shared.audit import record_audit
 
 
@@ -247,6 +248,10 @@ async def link_supplier(
         },
         metadata={"equipmentId": equipment_id},
     )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=["supplier"],
+    )
     await session.commit()
     await session.refresh(link, ["supplier"])
     return _link_out(link)
@@ -301,6 +306,10 @@ async def update_link(
             new_data=new_data,
             metadata={"equipmentId": equipment_id},
         )
+        await record_equipment_sync_event(
+            session, equipment_id=equipment_id, actor_user_id=actor.id,
+            changed_fields=["supplier"],
+        )
     await session.commit()
     await session.refresh(link, ["supplier"])
     return _link_out(link)
@@ -337,6 +346,10 @@ async def replace_supplier(
         current.change_reason = _clean(change_reason)
         current.changed_by_user_id = actor.id
         current.source = source
+        await record_equipment_sync_event(
+            session, equipment_id=equipment_id, actor_user_id=actor.id,
+            changed_fields=["supplier"],
+        )
         await session.commit()
         await session.refresh(current, ["supplier"])
         return _link_out(current)
@@ -382,6 +395,10 @@ async def replace_supplier(
         },
         metadata={"equipmentId": equipment_id},
     )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=["supplier"],
+    )
     await session.commit()
     await session.refresh(link, ["supplier"])
     return _link_out(link)
@@ -420,6 +437,10 @@ async def unlink_supplier(
             "active": False,
         },
         metadata={"equipmentId": equipment_id},
+    )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=["supplier"],
     )
     await session.commit()
 

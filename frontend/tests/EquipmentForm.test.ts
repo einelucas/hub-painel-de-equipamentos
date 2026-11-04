@@ -152,6 +152,9 @@ describe("EquipmentForm", () => {
 
     expect(wrapper.get("[data-selected-count='6']").text()).toContain("6 selecionados");
 
+    await wrapper.find("input").setValue("Isolamento térmico revisado");
+    expect(wrapper.emitted("dirty")?.at(-1)).toEqual([true]);
+
     await wrapper.get("form").trigger("submit");
     expect(patch).toHaveBeenCalledWith(
       "/equipments/eq-1",
@@ -159,6 +162,7 @@ describe("EquipmentForm", () => {
         eapNodeId: "eap-area",
         workPackageIds: workPackages.map((item) => item.id),
         criticalityLabelId: "crit-1",
+        expectedUpdatedAt: current.updatedAt,
       }),
     );
     expect(patch.mock.calls[0]![1]).not.toHaveProperty("areaId");

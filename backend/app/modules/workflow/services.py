@@ -30,6 +30,7 @@ from app.models.user import User
 from app.models.workflow_extras import OperationalStatusEvent, RequirementWaiver
 from app.modules.equipments.schemas import UserRefOut
 from app.modules.notifications.services import trigger_for_transition
+from app.modules.sync.services import record_equipment_sync_event
 from app.modules.workflow.schemas import (
     AvailableTransitionsOut,
     HistoryEntryOut,
@@ -333,6 +334,12 @@ async def execute_transition(
         previous_data={"current_stage": from_stage},
         new_data={"current_stage": target_stage, "reason": clean_reason},
         metadata={"equipmentId": equipment.id, "kind": kind},
+    )
+    await record_equipment_sync_event(
+        session,
+        equipment_id=equipment.id,
+        actor_user_id=actor.id,
+        changed_fields=["currentStage", "history"],
     )
     await session.commit()
 

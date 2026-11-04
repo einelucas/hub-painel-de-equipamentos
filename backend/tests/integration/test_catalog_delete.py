@@ -114,8 +114,15 @@ async def test_admin_deletes_unused_catalog_items(client, auth_header, db_sessio
     )
     await db_session.commit()
 
+    project_delete = await client.request(
+        "DELETE",
+        f"/api/v1/project-contexts/{ids['context']}",
+        json={"confirmationName": "Obra UNUSED"},
+        headers=admin,
+    )
+    assert project_delete.status_code == 204, project_delete.text
+
     for path in (
-        f"/project-contexts/{ids['context']}",
         f"/areas/{ids['area']}",
         f"/disciplines/{ids['discipline']}",
         f"/criticality-labels/{ids['label']}",
@@ -166,7 +173,6 @@ async def test_delete_blocks_catalogs_with_operational_links(client, auth_header
 
     blocked = {
         "unit": f"/units/{ids['unit']}",
-        "context": f"/project-contexts/{ids['context']}",
         "area": f"/areas/{ids['area']}",
         "discipline": f"/disciplines/{ids['discipline']}",
         "label": f"/criticality-labels/{ids['label']}",
@@ -178,6 +184,23 @@ async def test_delete_blocks_catalogs_with_operational_links(client, auth_header
         response = await client.delete(f"/api/v1{path}", headers=admin)
         assert response.status_code == 409, (key, response.text)
         assert "Desative o registro" in response.json()["error"]
+
+    impact = await client.get(
+        f"/api/v1/project-contexts/{ids['context']}/deletion-impact", headers=admin
+    )
+    assert impact.status_code == 200, impact.text
+    assert impact.json()["records"]["equipments"] == 1
+    deleted = await client.request(
+        "DELETE",
+        f"/api/v1/project-contexts/{ids['context']}",
+        json={"confirmationName": "Obra USED"},
+        headers=admin,
+    )
+    assert deleted.status_code == 204, deleted.text
+    removed_equipment = await client.get(
+        f"/api/v1/equipments/{equipment.json()['id']}", headers=admin
+    )
+    assert removed_equipment.status_code == 404
 
     # O nó de área não é usado: continua excluível.
     response = await client.delete(f"/api/v1/eap-nodes/{eap['area']}", headers=admin)

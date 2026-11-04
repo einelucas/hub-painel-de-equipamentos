@@ -17,6 +17,7 @@ from app.modules.notifications.controllers import router as notifications_router
 from app.modules.processes.controllers import router as processes_router
 from app.modules.queues.controllers import router as queues_router
 from app.modules.suppliers.controllers import router as suppliers_router
+from app.modules.sync.controllers import router as sync_router
 from app.modules.users.controllers import router as users_router
 from app.modules.workflow.controllers import router as workflow_router
 
@@ -37,3 +38,4 @@ api_router.include_router(suppliers_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(imports_router)
 api_router.include_router(master_catalog_router)
+api_router.include_router(sync_router)

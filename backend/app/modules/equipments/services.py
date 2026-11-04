@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.auth import CurrentUser
-from app.core.errors import DomainError, NotFoundError
+from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.scope import (
     allowed_unit_ids,
     assert_context_allowed,
@@ -59,6 +59,7 @@ from app.modules.equipments.schemas import (
     UserRefOut,
     WorkPackageRefOut,
 )
+from app.modules.sync.services import record_sync_event
 from app.shared.audit import record_audit
 from app.shared.eap_location import equipment_in_eap_subtree
 
@@ -496,7 +497,7 @@ async def list_equipments(
 async def create_equipment(
     session: AsyncSession, *, values: dict[str, Any], actor: CurrentUser
 ) -> EquipmentOut:
-    await assert_context_allowed(session, actor, values["project_context_id"])
+    context = await assert_context_allowed(session, actor, values["project_context_id"])
     work_package_ids = sorted(set(values.pop("work_package_ids", None) or []))
     await _validate_relations(
         session,
@@ -526,11 +527,25 @@ async def create_equipment(
         entity_id=equipment.id,
         new_data=_json_dict({**values, "current_stage": 0, "work_package_ids": work_package_ids}),
     )
+    await record_sync_event(
+        session,
+        event_type="created",
+        entity_type="equipment",
+        entity_id=equipment.id,
+        unit_id=context.unit_id,
+        project_context_id=context.id,
+        equipment_id=equipment.id,
+        actor_user_id=actor.id,
+        payload={"name": equipment.name},
+    )
     await session.commit()
+    await session.refresh(equipment, ["created_at", "updated_at"])
     return await get_equipment_out(session, equipment.id)
 
 
-async def get_equipment_model(session: AsyncSession, equipment_id: str) -> Equipment:
+async def get_equipment_model(
+    session: AsyncSession, equipment_id: str, *, for_update: bool = False
+) -> Equipment:
     stmt = (
         select(Equipment)
         .where(Equipment.id == equipment_id)
@@ -540,6 +555,10 @@ async def get_equipment_model(session: AsyncSession, equipment_id: str) -> Equip
             selectinload(Equipment.transitions).joinedload(WorkflowTransition.actor),
         )
     )
+    if for_update:
+        # O SELECT carrega relações opcionais por LEFT JOIN; no PostgreSQL um
+        # FOR UPDATE irrestrito tentaria bloquear também o lado anulável.
+        stmt = stmt.with_for_update(of=Equipment)
     equipment = (await session.execute(stmt)).scalar_one_or_none()
     if equipment is None:
         raise NotFoundError("Equipamento não encontrado")
@@ -587,11 +606,26 @@ async def update_equipment(
     session: AsyncSession, *, equipment_id: str, changes: dict[str, Any], actor: CurrentUser
 ) -> EquipmentOut:
     await assert_equipment_allowed(session, actor, equipment_id)
-    equipment = await get_equipment_model(session, equipment_id)
+    equipment = await get_equipment_model(session, equipment_id, for_update=True)
+    expected_updated_at = changes.pop("expected_updated_at", None)
+    if expected_updated_at is not None:
+        expected_naive = expected_updated_at.replace(tzinfo=None)
+        # A coluna Timestamp3 persiste milissegundos. O objeto recém-criado
+        # pode ter sido serializado antes de expirar a precisão em memória.
+        expected_ms = expected_naive.replace(
+            microsecond=(expected_naive.microsecond // 1000) * 1000
+        )
+        stored_ms = equipment.updated_at.replace(
+            microsecond=(equipment.updated_at.microsecond // 1000) * 1000
+        )
+        if stored_ms != expected_ms:
+            raise ConflictError(
+                "Este equipamento foi atualizado por outra pessoa. "
+                "Revise a versão mais recente antes de salvar."
+            )
     new_context = changes.get("project_context_id", equipment.project_context_id)
     eap_node_id_provided = "eap_node_id" in changes
-    if new_context != equipment.project_context_id:
-        await assert_context_allowed(session, actor, new_context)
+    context = await assert_context_allowed(session, actor, new_context)
 
     # Ausente no PATCH (chave fora de `changes`) -> vínculos não são tocados.
     # `[]` explícito -> `work_package_ids_provided` é True e o conjunto some.
@@ -650,7 +684,19 @@ async def update_equipment(
             previous_data=previous,
             new_data=changed,
         )
+        await record_sync_event(
+            session,
+            event_type="updated",
+            entity_type="equipment",
+            entity_id=equipment.id,
+            unit_id=context.unit_id,
+            project_context_id=new_context,
+            equipment_id=equipment.id,
+            actor_user_id=actor.id,
+            payload={"changedFields": sorted(changed)},
+        )
     await session.commit()
+    await session.refresh(equipment, ["updated_at"])
     if work_package_ids_provided:
         # GAP-001: `expire_on_commit=False` + `work_package_links` já carregada
         # por `get_equipment_model` no início desta função significam que o
@@ -704,6 +750,21 @@ async def create_component(
         entity_id=component.id,
         new_data=_json_dict({"equipment_id": equipment_id, **values}),
     )
+    equipment = await session.get(Equipment, equipment_id)
+    assert equipment is not None
+    context = await session.get(ProjectContext, equipment.project_context_id)
+    assert context is not None
+    await record_sync_event(
+        session,
+        event_type="updated",
+        entity_type="equipment",
+        entity_id=equipment_id,
+        unit_id=context.unit_id,
+        project_context_id=context.id,
+        equipment_id=equipment_id,
+        actor_user_id=actor.id,
+        payload={"changedFields": ["components"], "componentId": component.id},
+    )
     await session.commit()
     await session.refresh(component)
     return component
@@ -733,6 +794,21 @@ async def update_component(
             entity_id=component.id,
             previous_data=previous,
             new_data=changed,
+        )
+        equipment = await session.get(Equipment, component.equipment_id)
+        assert equipment is not None
+        context = await session.get(ProjectContext, equipment.project_context_id)
+        assert context is not None
+        await record_sync_event(
+            session,
+            event_type="updated",
+            entity_type="equipment",
+            entity_id=equipment.id,
+            unit_id=context.unit_id,
+            project_context_id=context.id,
+            equipment_id=equipment.id,
+            actor_user_id=actor.id,
+            payload={"changedFields": ["components"], "componentId": component.id},
         )
     await session.commit()
     await session.refresh(component)

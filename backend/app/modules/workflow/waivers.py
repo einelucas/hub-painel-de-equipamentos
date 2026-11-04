@@ -21,6 +21,7 @@ from app.models.common import utcnow
 from app.models.user import User
 from app.models.workflow_extras import RequirementWaiver
 from app.modules.equipments.schemas import UserRefOut
+from app.modules.sync.services import record_equipment_sync_event
 from app.modules.workflow.schemas import RequirementWaiverListOut, RequirementWaiverOut
 from app.modules.workflow.services import _get_equipment
 from app.modules.workflow.stages import REASON_CODES, group_spec, is_waivable_group
@@ -127,6 +128,10 @@ async def create_waiver(
         },
         metadata={"equipmentId": equipment.id},
     )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment.id, actor_user_id=actor.id,
+        changed_fields=["requirementWaivers"],
+    )
     await session.commit()
     creator = UserRefOut(id=actor.id, name=actor.name, email=actor.email)
     return _out(item, creator, None)
@@ -169,6 +174,10 @@ async def revoke_waiver(
         entity_id=item.id,
         new_data={"revokeReason": item.revoke_reason},
         metadata={"equipmentId": equipment_id},
+    )
+    await record_equipment_sync_event(
+        session, equipment_id=equipment_id, actor_user_id=actor.id,
+        changed_fields=["requirementWaivers"],
     )
     await session.commit()
 

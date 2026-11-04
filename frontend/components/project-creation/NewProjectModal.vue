@@ -14,7 +14,7 @@ interface CatalogList<T> { items: T[] }
 interface Created { projectContextId: string; equipmentsCreated: number; componentsCreated: number; alreadyCreated: boolean }
 
 const props = defineProps<{ open: boolean; initialUnitId?: string }>();
-const emit = defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: []; created: [projectContextId: string] }>();
 const api = useApi();
 const context = useModuleContextStore();
 const loading = ref(false);
@@ -141,6 +141,7 @@ async function submit(): Promise<void> {
     created.value = result;
     await context.setUnit(unitId.value);
     await context.setProjectContext(result.projectContextId);
+    emit("created", result.projectContextId);
     await navigateTo({ path: "/equipamentos", query: { unit: unitId.value, project: result.projectContextId } });
     emit("close");
   } catch (caught) {

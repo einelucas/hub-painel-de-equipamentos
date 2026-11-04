@@ -74,7 +74,7 @@ class MasterProjectCreation(Base):
     __tablename__ = "master_project_creation"
     request_id: Mapped[str] = mapped_column(String(80), primary_key=True)
     project_context_id: Mapped[str] = mapped_column(
-        ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("project_context.id", ondelete="CASCADE"), nullable=False
     )
     actor_id: Mapped[str] = mapped_column(String(80), nullable=False)
     created_at: Mapped[datetime] = mapped_column(Timestamp3, nullable=False, default=utcnow)

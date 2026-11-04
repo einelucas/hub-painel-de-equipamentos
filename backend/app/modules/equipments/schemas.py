@@ -153,6 +153,9 @@ class EquipmentCreateIn(CamelModel):
 
 
 class EquipmentUpdateIn(CamelModel):
+    # Versão observada quando o formulário abriu. Clientes antigos podem
+    # omitir durante a transição, mas a UI oficial sempre envia.
+    expected_updated_at: datetime | None = None
     project_context_id: str | None = None
     name: str | None = Field(default=None, min_length=1, max_length=200)
     origin: str | None = Field(default=None, max_length=160)
@@ -204,7 +207,7 @@ class EquipmentUpdateIn(CamelModel):
 
     @model_validator(mode="after")
     def has_update(self) -> EquipmentUpdateIn:
-        if not self.model_fields_set:
+        if not (self.model_fields_set - {"expected_updated_at"}):
             raise ValueError("Informe ao menos um campo para atualizar")
         if self.name is not None and not self.name.strip():
             raise ValueError("Nome obrigatório")

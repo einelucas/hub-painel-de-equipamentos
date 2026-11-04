@@ -32,6 +32,8 @@ from app.modules.catalogs.schemas import (
     EapNodeOut,
     EapNodeUpdateIn,
     ProjectContextCreateIn,
+    ProjectContextDeleteIn,
+    ProjectContextDeletionImpactOut,
     ProjectContextOut,
     ProjectContextUpdateIn,
     ProjectEapListOut,
@@ -376,10 +378,30 @@ async def delete_unit(
 @router.delete("/project-contexts/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_project_context(
     item_id: str,
+    body: ProjectContextDeleteIn,
     session: AsyncSession = Depends(get_session),
     actor: CurrentUser = Depends(_manage),
 ) -> None:
-    await services.delete_catalog(session, ProjectContext, item_id=item_id, actor=actor)
+    await services.delete_project_context_cascade(
+        session,
+        item_id=item_id,
+        confirmation_name=body.confirmation_name,
+        actor=actor,
+    )
+
+
+@router.get(
+    "/project-contexts/{item_id}/deletion-impact",
+    response_model=ProjectContextDeletionImpactOut,
+)
+async def get_project_context_deletion_impact(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(_manage),
+) -> ProjectContextDeletionImpactOut:
+    return ProjectContextDeletionImpactOut.model_validate(
+        await services.project_context_deletion_impact(session, item_id=item_id, actor=actor)
+    )
 
 
 @router.delete("/areas/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)

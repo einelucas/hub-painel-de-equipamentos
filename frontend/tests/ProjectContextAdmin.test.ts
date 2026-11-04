@@ -3,6 +3,7 @@ import { portal } from "./support/portal";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ProjectContextAdmin from "~/components/admin/ProjectContextAdmin.vue";
 import { useConfirm } from "~/composables/useConfirm";
+import { useProjectCreation } from "~/composables/useProjectCreation";
 import type { CatalogItem, Unit } from "~/types/equipment";
 import { chooseOption, optionLabels } from "./support/searchableSelect";
 
@@ -35,6 +36,10 @@ function apiMock(routes: Routes = {}) {
     "/project-contexts/pc-b/eap-nodes": { items: [] },
     "/disciplines": { items: [{ id: "d1", name: "Disciplina Sintética", code: "DS", active: true }] },
     "/work-packages": { items: [{ id: "w1", name: "Pacote Sintético", code: "WP-S1", active: true }] },
+    "/project-contexts/pc-a/deletion-impact": {
+      projectContextId: "pc-a", projectContextName: "Projeto Sintético A",
+      records: { equipments: 2, components: 4 }, totalRecords: 6, contractFiles: 0,
+    },
     ...routes,
   };
   const get = vi.fn(async (path: string) => {
@@ -46,6 +51,10 @@ function apiMock(routes: Routes = {}) {
   const patch = vi.fn().mockResolvedValue({});
   const del = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("useApi", () => ({ get, post, patch, delete: del }));
+  vi.stubGlobal("useModuleContextStore", () => ({
+    loadProjectContexts: vi.fn().mockResolvedValue(undefined),
+    loadEquipmentOptions: vi.fn().mockResolvedValue(undefined),
+  }));
   return { get, post, patch, del };
 }
 
@@ -77,6 +86,7 @@ function itemButton(wrapper: ReturnType<typeof mount>, id: string, label: string
 afterEach(() => {
   for (const wrapper of mounted.splice(0)) wrapper.unmount();
   useConfirm().cancel();
+  useProjectCreation().closeNewProject();
   vi.unstubAllGlobals();
 });
 
@@ -140,22 +150,17 @@ describe("ProjectContextAdmin", () => {
     expect(wrapper.find("[data-testid='project-readiness'] [role='alert']").exists()).toBe(false);
   });
 
-  it("cria contexto na unidade selecionada sem exigir código", async () => {
+  it("usa o mesmo wizard de Nova Obra da navbar sem acionar o POST legado", async () => {
     const { post } = apiMock();
     stubAuth();
     const wrapper = mountAdmin();
     await settle(wrapper);
 
     await wrapper.get("[data-testid='project-new']").trigger("click");
-    expect(portal().get(".modal-card h2").text()).toBe("Novo contexto de projeto");
-    expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
-    await portal().get("[data-testid='project-name'] input").setValue("Projeto Novo");
-    await portal().get("[data-testid='project-form']").trigger("submit");
-    await settle(wrapper);
-
-    expect(portal().find(".modal-card").exists()).toBe(false);
-    expect(post).toHaveBeenCalledWith("/units/u-tst/project-contexts", { name: "Projeto Novo" });
-    expect(wrapper.emitted("changed")).toBeTruthy();
+    expect(wrapper.get("[data-testid='project-new']").text()).toContain("Nova Obra");
+    expect(useProjectCreation().open.value).toBe(true);
+    expect(useProjectCreation().initialUnitId.value).toBe("u-tst");
+    expect(post).not.toHaveBeenCalled();
   });
 
   it("edita pelo endpoint do contexto e reativa pelo checkbox Ativo, sem prefixo", async () => {
@@ -165,7 +170,7 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     await itemButton(wrapper, "pc-b", "Editar")!.trigger("click");
-    expect(portal().get(".modal-card h2").text()).toBe("Editar contexto de projeto");
+    expect(portal().get(".modal-card h2").text()).toBe("Editar obra");
     expect(wrapper.find("[data-testid='project-eap-prefix']").exists()).toBe(false);
     await portal().get("[data-testid='project-active']").setValue(true);
     await portal().get("[data-testid='project-form']").trigger("submit");
@@ -205,11 +210,14 @@ describe("ProjectContextAdmin", () => {
     await settle(wrapper);
 
     await itemButton(wrapper, "pc-a", "Excluir")!.trigger("click");
-    await wrapper.vm.$nextTick();
-    expect(useConfirm().state.title).toBe("Zona de risco");
-    useConfirm().accept();
     await settle(wrapper);
-    expect(del).toHaveBeenCalledWith("/project-contexts/pc-a");
+    expect(portal().get("[data-testid='project-delete-dialog']").text()).toContain("6 registro(s)");
+    await portal().get("[data-testid='project-delete-confirmation'] input").setValue("Projeto Sintético A");
+    await portal().get("[data-testid='project-delete-confirm']").trigger("click");
+    await settle(wrapper);
+    expect(del).toHaveBeenCalledWith("/project-contexts/pc-a", {
+      confirmationName: "Projeto Sintético A",
+    });
 
     vi.unstubAllGlobals();
     apiMock();
@@ -219,7 +227,7 @@ describe("ProjectContextAdmin", () => {
     expect(readOnly.text()).not.toContain("Excluir");
   });
 
-  it("ciclo completo: criar → desativar → continua visível como Inativo → reativar → Ativo", async () => {
+  it("recarrega após o wizard compartilhado e mantém o ciclo desativar → reativar", async () => {
     // API com estado: a visão administrativa (include_inactive) devolve ativos e inativos.
     let store: CatalogItem[] = [];
     const get = vi.fn(async (path: string, query?: Record<string, string>) => {
@@ -229,25 +237,18 @@ describe("ProjectContextAdmin", () => {
       }
       return { items: [] };
     });
-    const post = vi.fn(async (_path: string, body: Record<string, unknown>) => {
-      const created = { id: "pc-new", unitId: "u-tst", active: true, ...(body as object) } as CatalogItem;
-      store = [...store, created];
-      return created;
-    });
     const patch = vi.fn(async (path: string, body: Record<string, unknown>) => {
       const id = path.split("/").pop();
       store = store.map((item) => (item.id === id ? { ...item, ...(body as object) } : item));
       return store.find((item) => item.id === id);
     });
-    vi.stubGlobal("useApi", () => ({ get, post, patch }));
+    vi.stubGlobal("useApi", () => ({ get, patch }));
     stubAuth();
     const wrapper = mountAdmin();
     await settle(wrapper);
 
-    await wrapper.get("[data-testid='project-new']").trigger("click");
-    await portal().get("[data-testid='project-code'] input").setValue("PC");
-    await portal().get("[data-testid='project-name'] input").setValue("Projeto Sintético C");
-    await portal().get("[data-testid='project-form']").trigger("submit");
+    store = [{ id: "pc-new", code: "PC", name: "Projeto Sintético C", active: true }];
+    useProjectCreation().notifyCreated();
     await settle(wrapper);
     expect(wrapper.get("[data-testid='project-item-pc-new']").text()).toContain("Ativo");
 

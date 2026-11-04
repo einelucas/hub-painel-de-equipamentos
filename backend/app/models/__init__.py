@@ -51,6 +51,7 @@ from app.models.supplier import (
     SupplierAlias,
     SupplierRecommendationEvidence,
 )
+from app.models.sync import ContractFileCleanup, SyncEvent
 from app.models.user import Account, Role, Session, User, Verification
 from app.models.workflow_extras import (
     Comment,
@@ -67,6 +68,7 @@ __all__ = [
     "Area",
     "Comment",
     "Contract",
+    "ContractFileCleanup",
     "CriticalityLabel",
     "Discipline",
     "EapNode",
@@ -97,6 +99,7 @@ __all__ = [
     "Supplier",
     "SupplierAlias",
     "SupplierRecommendationEvidence",
+    "SyncEvent",
     "Unit",
     "UserUnitAccess",
     "UserModuleContextPreference",

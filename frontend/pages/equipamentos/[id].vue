@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiCubeOutline, mdiHistory, mdiMessageTextOutline, mdiOfficeBuildingOutline, mdiTimelineOutline } from "@mdi/js";
 import type { Equipment, EquipmentDetail } from "~/types/equipment";
+import type { RealtimeChangeEvent } from "~/composables/useRealtimeSync";
 import { VBtn, VProgress } from "vuetify/components";
 import { currentStageEnteredAt } from "~/utils/workflow";
 
@@ -12,7 +13,13 @@ const detail = ref<EquipmentDetail | null>(null);
 const loading = ref(true);
 const error = ref("");
 const showEdit = ref(false);
-let loadStarted = false;
+const formDirty = ref(false);
+const externalChange = ref("");
+const deletedExternally = ref(false);
+const formKey = ref(0);
+let equipmentRequestVersion = 0;
+let unsubscribeSync: (() => void) | null = null;
+const realtime = useRealtimeSync();
 
 const tab = ref<
   "process" | "components" | "suppliers" | "comments" | "history"
@@ -57,23 +64,26 @@ const stageEnteredAt = computed(() =>
   }),
 );
 
-async function loadEquipment(): Promise<void> {
-  if (loadStarted) return;
-  loadStarted = true;
-  loading.value = true;
-  error.value = "";
+async function loadEquipment(background = false): Promise<void> {
+  const version = ++equipmentRequestVersion;
+  if (!background) loading.value = true;
+  if (version === equipmentRequestVersion) error.value = "";
   try {
-    detail.value = await api.get<EquipmentDetail>(
+    const result = await api.get<EquipmentDetail>(
       `/equipments/${equipmentId.value}`,
+      undefined,
+      { force: true },
     );
+    if (version === equipmentRequestVersion) detail.value = result;
   } catch (caught) {
-    error.value =
-      caught instanceof Error
-        ? caught.message
-        : "Não foi possível carregar o equipamento.";
+    if (version === equipmentRequestVersion) {
+      error.value =
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível carregar o equipamento.";
+    }
   } finally {
-    loading.value = false;
-    loadStarted = false;
+    if (version === equipmentRequestVersion) loading.value = false;
   }
 }
 
@@ -83,10 +93,64 @@ async function load(): Promise<void> {
 
 async function equipmentSaved(_equipment: Equipment): Promise<void> {
   showEdit.value = false;
+  formDirty.value = false;
+  externalChange.value = "";
   await loadEquipment();
 }
 
-onMounted(load);
+async function realtimeChanged(event: RealtimeChangeEvent): Promise<void> {
+  const equipmentDeleted =
+    event.eventType === "deleted" &&
+    (event.equipmentId === equipmentId.value ||
+      (event.entityType === "project_context" &&
+        event.projectContextId === detail.value?.equipment.projectContext.id));
+  if (equipmentDeleted) {
+    deletedExternally.value = true;
+    externalChange.value = formDirty.value
+      ? "Este registro foi excluído em outra sessão. Seu rascunho foi preservado, mas não poderá ser salvo."
+      : "Este registro foi excluído em outra sessão.";
+    return;
+  }
+  const relevant =
+    event.eventType === "revalidate" ||
+    (event.entityType === "equipment" && event.equipmentId === equipmentId.value);
+  if (!relevant) return;
+  if (showEdit.value && formDirty.value) {
+    externalChange.value =
+      "Existe uma versão mais recente deste equipamento. Seus campos não foram substituídos.";
+    return;
+  }
+  await loadEquipment(true);
+  if (showEdit.value) formKey.value += 1;
+}
+
+async function loadExternalVersion(): Promise<void> {
+  showEdit.value = false;
+  formDirty.value = false;
+  externalChange.value = "";
+  await loadEquipment(true);
+  formKey.value += 1;
+  showEdit.value = true;
+}
+
+function openEdit(): void {
+  if (deletedExternally.value) return;
+  formDirty.value = false;
+  externalChange.value = "";
+  showEdit.value = true;
+}
+
+function closeEdit(): void {
+  showEdit.value = false;
+  formDirty.value = false;
+  if (!deletedExternally.value) externalChange.value = "";
+}
+
+onMounted(() => {
+  unsubscribeSync = realtime.subscribe(realtimeChanged);
+  void load();
+});
+onBeforeUnmount(() => unsubscribeSync?.());
 </script>
 
 <template>
@@ -109,6 +173,14 @@ onMounted(load);
       <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
     </div>
     <div v-else-if="detail" class="stack" :aria-busy="loading">
+      <VAlert v-if="externalChange" :type="deletedExternally ? 'error' : 'warning'" variant="tonal">
+        {{ externalChange }}
+        <template v-if="showEdit && formDirty && !deletedExternally" #append>
+          <VBtn size="small" variant="outlined" @click="loadExternalVersion">
+            Carregar versão mais recente
+          </VBtn>
+        </template>
+      </VAlert>
       <VProgress v-if="loading" color="primary" indeterminate aria-label="Atualizando" />
       <EquipmentOverview
         :equipment="detail.equipment"
@@ -125,7 +197,7 @@ onMounted(load);
           )
         "
         :can-edit="auth.can('equipments:write')"
-        @edit="showEdit = true"
+        @edit="openEdit"
       />
 
       <EquipmentOperationalActions
@@ -263,13 +335,15 @@ onMounted(load);
       :open="showEdit"
       title="Editar equipamento"
       size="wide"
-      @close="showEdit = false"
+      @close="closeEdit"
       ><EquipmentForm
         v-if="showEdit && detail"
+        :key="formKey"
         :unit-id="detail.equipment.unit.id"
         :equipment="detail.equipment"
         @saved="equipmentSaved"
-        @cancel="showEdit = false"
+        @cancel="closeEdit"
+        @dirty="formDirty = $event"
     /></AppModal>
   </ModuleWorkspace>
 </template>

@@ -13,6 +13,7 @@ import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import AppModal from "~/components/ui/AppModal.vue";
 import { VBtn } from "vuetify/components";
 import { useConfirm } from "~/composables/useConfirm";
+import { useProjectCreation } from "~/composables/useProjectCreation";
 
 /**
  * Configuração da obra: ProjectContexts de uma Unidade + resumo de preparação.
@@ -30,6 +31,7 @@ const emit = defineEmits<{
 const api = useApi();
 const auth = useAuthStore();
 const { confirm } = useConfirm();
+const creation = useProjectCreation();
 const canManage = computed(() => auth.can("catalogs:manage"));
 const canManageAccess = computed(() => auth.can("users:manage"));
 
@@ -41,17 +43,26 @@ const loading = ref(false);
 const saving = ref(false);
 const togglingId = ref<string | null>(null);
 const deletingId = ref<string | null>(null);
+interface DeletionImpact {
+  projectContextId: string;
+  projectContextName: string;
+  records: Record<string, number>;
+  totalRecords: number;
+  contractFiles: number;
+}
+const deleteTarget = ref<CatalogItem | null>(null);
+const deletionImpact = ref<DeletionImpact | null>(null);
+const deletionConfirmation = ref("");
+const loadingImpact = ref(false);
 let contextsVersion = 0;
 let summaryVersion = 0;
 const error = ref("");
 const formError = ref("");
-const mode = ref<"idle" | "create" | "edit">("idle");
+const mode = ref<"idle" | "edit">("idle");
 const form = reactive({ code: "", name: "", active: true });
 const formId = `project-form-${useId()}`;
 const formOpen = computed(() => mode.value !== "idle");
-const formTitle = computed(() =>
-  mode.value === "create" ? "Novo contexto de projeto" : "Editar contexto de projeto",
-);
+const formTitle = computed(() => "Editar obra");
 
 const summary = reactive({ loading: false, error: "", eapNodes: 0, disciplines: 0, workPackages: 0 });
 
@@ -136,12 +147,6 @@ function selectUnit(value: string): void {
   emit("update:unitId", value);
 }
 
-function startCreate(): void {
-  mode.value = "create";
-  formError.value = "";
-  Object.assign(form, { code: "", name: "", active: true });
-}
-
 function startEdit(item: CatalogItem): void {
   selectedId.value = item.id;
   mode.value = "edit";
@@ -174,12 +179,9 @@ async function submit(): Promise<void> {
   if (mode.value === "edit") payload.code = code || null;
   else if (code) payload.code = code;
   try {
-    if (mode.value === "edit" && selected.value) {
+    if (selected.value) {
       if (form.active !== selected.value.active) payload.active = form.active;
       await api.patch(`/project-contexts/${selected.value.id}`, payload);
-    } else {
-      const created = await api.post<CatalogItem>(`/units/${props.unitId}/project-contexts`, payload);
-      if (created?.id) selectedId.value = created.id;
     }
     await loadContexts();
     emit("changed");
@@ -220,21 +222,56 @@ async function toggleActive(item: CatalogItem): Promise<void> {
   }
 }
 
-/** Exclui a obra fisicamente; a API bloqueia se houver equipamentos/importações. */
-async function remove(item: CatalogItem): Promise<void> {
+async function prepareRemove(item: CatalogItem): Promise<void> {
   if (saving.value) return;
-  const confirmed = await confirm({
-    message: `Deseja excluir a obra "${item.name}"?`,
-    detail:
-      "Esta ação não pode ser desfeita. Obras com equipamentos ou histórico de importação não podem ser excluídas — nesse caso, desative-as.",
-  });
-  if (!confirmed) return;
+  deleteTarget.value = item;
+  deletionConfirmation.value = "";
+  deletionImpact.value = null;
+  loadingImpact.value = true;
+  error.value = "";
+  try {
+    const impact = await api.get<DeletionImpact>(
+      `/project-contexts/${item.id}/deletion-impact`,
+      undefined,
+      { force: true },
+    );
+    deletionImpact.value = {
+      ...impact,
+      records: impact.records ?? {},
+      totalRecords: impact.totalRecords ?? 0,
+      contractFiles: impact.contractFiles ?? 0,
+    };
+  } catch (caught) {
+    deleteTarget.value = null;
+    error.value = caught instanceof Error ? caught.message : "Não foi possível calcular o impacto.";
+  } finally {
+    loadingImpact.value = false;
+  }
+}
+
+function cancelRemove(): void {
+  if (deletingId.value) return;
+  deleteTarget.value = null;
+  deletionImpact.value = null;
+  deletionConfirmation.value = "";
+}
+
+async function remove(): Promise<void> {
+  const item = deleteTarget.value;
+  if (!item || saving.value || deletionConfirmation.value !== item.name) return;
   saving.value = true;
   deletingId.value = item.id;
   error.value = "";
   try {
-    await api.delete(`/project-contexts/${item.id}`);
+    await api.delete(`/project-contexts/${item.id}`, {
+      confirmationName: deletionConfirmation.value,
+    });
+    deleteTarget.value = null;
+    deletionImpact.value = null;
+    deletionConfirmation.value = "";
     await loadContexts();
+    const moduleContext = useModuleContextStore();
+    await Promise.all([moduleContext.loadProjectContexts(), moduleContext.loadEquipmentOptions()]);
     emit("changed");
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : "Não foi possível excluir a obra.";
@@ -247,6 +284,7 @@ async function remove(item: CatalogItem): Promise<void> {
 onMounted(loadUnits);
 watch(() => props.unitId, loadContexts, { immediate: true });
 watch(selectedId, loadSummary);
+watch(creation.createdRevision, loadContexts);
 </script>
 
 <template>
@@ -277,9 +315,9 @@ watch(selectedId, loadSummary);
           :disabled="saving"
           data-testid="project-new"
           :prepend-icon="mdiPlus"
-          @click="startCreate"
+          @click="creation.openNewProject(props.unitId)"
         >
-          Novo contexto
+          Nova Obra
         </VBtn>
       </div>
     </header>
@@ -306,7 +344,7 @@ watch(selectedId, loadSummary);
       <VAlert v-else-if="error" class="projects-error" type="error" role="alert">{{ error }}</VAlert>
       <div v-else-if="contexts.length === 0" class="projects-empty" data-testid="project-empty">
         <p>Nenhum contexto de projeto nesta unidade.</p>
-        <p v-if="canManage" class="field-help">Use "Novo contexto" para preparar uma obra.</p>
+        <p v-if="canManage" class="field-help">Use "Nova Obra" para preparar uma obra.</p>
       </div>
 
       <div v-else class="projects-layout">
@@ -343,7 +381,7 @@ watch(selectedId, loadSummary);
               <VBtn type="button" class="text-button" :disabled="saving" :loading="togglingId === item.id" variant="text" :color="item.active ? 'secondary' : 'success'" size="small" @click="toggleActive(item)">
                 {{ togglingId === item.id ? "Salvando..." : item.active ? "Desativar" : "Reativar" }}
               </VBtn>
-              <VBtn type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(deletingId === item.id) ? mdiTrashCanOutline : undefined" @click="remove(item)">
+              <VBtn type="button" class="text-button text-button--danger" :disabled="saving" :loading="deletingId === item.id" variant="tonal" color="error" size="small" :prepend-icon="!(deletingId === item.id) ? mdiTrashCanOutline : undefined" @click="prepareRemove(item)">
 
                 {{ deletingId === item.id ? "Excluindo..." : "Excluir" }}
               </VBtn>
@@ -445,11 +483,10 @@ watch(selectedId, loadSummary);
       <div class="field">
         <VTextField v-model="form.name" label="Nome *" maxlength="160" required data-testid="project-name" />
       </div>
-      <label v-if="mode === 'edit'" class="project-active">
+      <label class="project-active">
         <input v-model="form.active" type="checkbox" data-testid="project-active">
         <span>Ativo</span>
       </label>
-      <p v-else class="field-help project-create-note">O contexto é criado ativo.</p>
       <VAlert v-if="formError" class="projects-error" type="error" role="alert">{{ formError }}</VAlert>
     </form>
 
@@ -471,10 +508,55 @@ watch(selectedId, loadSummary);
       </VBtn>
     </template>
   </AppModal>
+
+  <AppModal
+    :open="Boolean(deleteTarget)"
+    title="Excluir obra permanentemente"
+    :busy="Boolean(deletingId)"
+    @close="cancelRemove"
+  >
+    <div v-if="deleteTarget" class="delete-project" data-testid="project-delete-dialog">
+      <VAlert type="error" variant="tonal">
+        Esta operação é permanente. A obra <strong>{{ deleteTarget.name }}</strong> e todos os
+        dados que pertencem exclusivamente a ela serão excluídos.
+      </VAlert>
+      <p v-if="loadingImpact" role="status">Calculando registros afetados...</p>
+      <template v-else-if="deletionImpact">
+        <p>
+          <strong>{{ deletionImpact.totalRecords }}</strong> registro(s) serão afetados,
+          incluindo <strong>{{ deletionImpact.records.equipments ?? 0 }}</strong> equipamento(s)
+          e <strong>{{ deletionImpact.contractFiles }}</strong> arquivo(s) de contrato.
+        </p>
+        <VTextField
+          v-model="deletionConfirmation"
+          label="Digite o nome da obra para confirmar"
+          :placeholder="deleteTarget.name"
+          autocomplete="off"
+          data-testid="project-delete-confirmation"
+        />
+      </template>
+    </div>
+    <template #actions>
+      <VBtn variant="outlined" :disabled="Boolean(deletingId)" @click="cancelRemove">Cancelar</VBtn>
+      <VBtn
+        color="error"
+        variant="tonal"
+        :loading="Boolean(deletingId)"
+        :disabled="loadingImpact || deletionConfirmation !== deleteTarget?.name"
+        data-testid="project-delete-confirm"
+        :prepend-icon="mdiTrashCanOutline"
+        @click="remove"
+      >
+        Excluir permanentemente
+      </VBtn>
+    </template>
+  </AppModal>
 </template>
 
 <style scoped>
 .projects { display: grid; gap: 16px; padding-top: 2px; }
+.delete-project { display: grid; gap: 16px; }
+.delete-project p { margin: 0; color: var(--ink, #1f3352); line-height: 1.55; }
 .projects-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--rule, #dde5ef); }
 .projects-head h3 { margin: 0; color: var(--ink, #1f3352); font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
 .projects-head p { margin: 2px 0 0; color: var(--muted, #6b7a8f); font-size: 12px; }
