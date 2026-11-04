@@ -31,7 +31,7 @@ describe("visibleNavItems", () => {
     const visible = visibleNavItems(NAV_ITEMS, allowNone);
     expect(visible.map((item) => item.to)).not.toContain("/equipamentos/kanban");
     expect(visible.map((item) => item.to)).not.toContain("/fornecedores");
-    expect(visible).toHaveLength(NAV_ITEMS.length - 2);
+    expect(visible).toHaveLength(NAV_ITEMS.length - 3);
   });
 
   it("mostra o kanban para quem tem equipments:read", () => {
@@ -46,8 +46,15 @@ describe("visibleNavItems", () => {
     expect(paths).not.toContain("/equipamentos/kanban");
   });
 
-  it("mantém todos os itens sem permissão exigida", () => {
-    expect(visibleNavItems(NAV_ITEMS, allowAll)).toHaveLength(NAV_ITEMS.length);
+  it("mantém /juridico em NAV_ITEMS, mas não exibe a aba na navbar", () => {
+    expect(NAV_ITEMS.map((item) => item.to)).toContain("/juridico");
+    expect(visibleNavItems(NAV_ITEMS, allowAll).map((item) => item.to)).not.toContain("/juridico");
+  });
+
+  it("mostra apenas itens visíveis sem permissão exigida", () => {
+    const visible = visibleNavItems(NAV_ITEMS, allowAll);
+    expect(visible).toHaveLength(NAV_ITEMS.length - 1);
+    expect(visible.map((item) => item.to)).not.toContain("/juridico");
   });
 });
 

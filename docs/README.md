@@ -15,6 +15,7 @@ Esta é a referência de **manutenção e homologação da implementação atual
 | [Notificações](notificacoes.md) | Regras, templates HTML, provedores e outbox |
 | [Ambientes e deploy](ambientes-deploy.md) | Execução local, variáveis, migrations e homologação |
 | [Testes](testes.md) | CI, testes, proteção de banco e regressão |
+| [Pendências de verificação](pendencias.md) | Itens ocultos/adiados e checklist de revisão |
 
 O [README principal](../README.md) apresenta o módulo e oferece um início rápido.
 

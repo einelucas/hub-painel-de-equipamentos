@@ -15,13 +15,18 @@ export interface NavItem {
   icon: NavIcon;
   /** Quando presente, o item só aparece para quem tem a permissão. */
   permission?: Permission;
+  /**
+   * Mantém o item em `NAV_ITEMS` (rota viva) sem exibi-lo na navbar.
+   * Ocultação temporária, sujeita a revisão: ver `docs/pendencias.md`.
+   */
+  hidden?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: "dashboard" },
   { label: "Equipamentos", to: "/equipamentos", icon: "equipments" },
   { label: "Engenharia", to: "/engenharia", icon: "engineering" },
-  { label: "Jurídico", to: "/juridico", icon: "legal" },
+  { label: "Jurídico", to: "/juridico", icon: "legal", hidden: true }, // Oculto temporariamente: ver docs/pendencias.md.
   { label: "Suprimentos", to: "/suprimentos", icon: "procurement" },
   { label: "Fornecedores", to: "/fornecedores", icon: "suppliers", permission: "suppliers:read" },
   { label: "Kanban", to: "/equipamentos/kanban", icon: "kanban", permission: "equipments:read" },
@@ -31,7 +36,7 @@ export function visibleNavItems(
   items: NavItem[],
   can: (permission: Permission) => boolean,
 ): NavItem[] {
-  return items.filter((item) => !item.permission || can(item.permission));
+  return items.filter((item) => !item.hidden && (!item.permission || can(item.permission)));
 }
 
 /**

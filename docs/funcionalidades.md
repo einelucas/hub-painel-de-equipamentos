@@ -4,7 +4,7 @@ Este documento descreve as capacidades identificadas no frontend, nos controller
 
 ## Navegação e contexto
 
-A navegação principal definida em `frontend/utils/navigation.ts` contém Dashboard, Equipamentos, Engenharia, Jurídico, Suprimentos, Fornecedores e Kanban (os dois últimos com checagem de permissões na navegação). Há rotas adicionais para auditoria, administração, notificações, usuários e detalhes.
+A navegação principal definida em `frontend/utils/navigation.ts` contém Dashboard, Equipamentos, Engenharia, Jurídico, Suprimentos, Fornecedores e Kanban (os dois últimos com checagem de permissões na navegação). A aba **Jurídico está oculta na navbar** desde 2026-11-04 (item com `hidden: true`); a rota `/juridico` permanece ativa e acessível por URL direta. Consulte [pendências de verificação](pendencias.md). Há rotas adicionais para auditoria, administração, notificações, usuários e detalhes.
 
 O store `moduleContext` centraliza a seleção de **Unidade → Projeto/Contexto → Equipamento**, propaga filtros à API e evita manter um equipamento incompatível ao trocar de unidade/contexto. A autorização no backend sempre prevalece sobre o filtro visual.
 
