@@ -649,7 +649,7 @@ async function imported(): Promise<void> {
   display: grid;
   grid-template-columns: minmax(310px, 380px) minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 @media (max-width: 1180px) {

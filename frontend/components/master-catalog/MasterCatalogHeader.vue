@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiLayersOutline, mdiPlus, mdiUpload } from "@mdi/js";
-import { Boxes, Info, Layers, Package } from "lucide-vue-next";
+import { Boxes, Info, Layers3, Package } from "lucide-vue-next";
 import { VBtn } from "vuetify/components";
 import { plural } from "~/utils/masterCatalog";
 
@@ -11,7 +11,6 @@ const props = defineProps<{
   componentCount: number;
   busy: boolean;
 }>();
-
 const emit = defineEmits<{
   create: [];
   manageAreas: [];
@@ -20,184 +19,74 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <header class="master-hero">
-    <div class="master-hero__copy">
-      <p class="eyebrow">Administração · Equipamentos</p>
+  <header class="catalog-header">
+    <div class="header-title">
+      <p class="eyebrow">Administração <span aria-hidden="true">/</span> Equipamentos</p>
       <h1>Catálogo Mestre</h1>
-      <p class="master-hero__description">
-        Modelos reutilizáveis de equipamentos para novas obras, organizados por área e
-        componentes opcionais.
-      </p>
-      <ul class="master-facts" aria-label="Resumo do catálogo">
-        <li>
-          <Package :size="15" aria-hidden="true" />
-          <span>{{ plural(props.equipmentCount, "equipamento", "equipamentos") }}</span>
-        </li>
-        <li>
-          <Layers :size="15" aria-hidden="true" />
-          <span>{{ plural(props.areaCount, "área ativa", "áreas ativas") }}</span>
-        </li>
-        <li>
-          <Boxes :size="15" aria-hidden="true" />
-          <span>{{ plural(props.componentCount, "componente", "componentes") }}</span>
-        </li>
-        <li v-if="props.activeEquipmentCount !== props.equipmentCount" class="fact-muted">
-          {{ props.activeEquipmentCount }} ativo{{ props.activeEquipmentCount === 1 ? "" : "s" }}
-        </li>
-      </ul>
+      <p class="header-subtitle">Gerencie modelos de equipamentos e onde poderão ser usados em novas obras.</p>
     </div>
-
-    <div class="master-hero__actions">
+    <div class="header-actions">
       <VBtn
         variant="outlined"
         color="secondary"
-        class="header-action"
-        :disabled="props.busy"
+        size="small"
         :prepend-icon="mdiLayersOutline"
-       @click="emit('manageAreas')">
-         Gerenciar áreas
-      </VBtn>
+        :disabled="props.busy"
+        @click="emit('manageAreas')"
+      >Gerenciar áreas</VBtn>
       <VBtn
         variant="outlined"
-        color="info"
-        class="header-action"
-        :disabled="props.busy"
+        color="secondary"
+        size="small"
         :prepend-icon="mdiUpload"
-       @click="emit('importSeed')">
-         Importar seed
-      </VBtn>
-      <VBtn class="header-action" variant="flat" color="primary" :disabled="props.busy" :prepend-icon="mdiPlus" @click="emit('create')">
-         Novo equipamento
-      </VBtn>
+        :disabled="props.busy"
+        @click="emit('importSeed')"
+      >Importar seed</VBtn>
+      <VBtn
+        variant="flat"
+        color="primary"
+        size="small"
+        :prepend-icon="mdiPlus"
+        :disabled="props.busy"
+        @click="emit('create')"
+      >Novo equipamento</VBtn>
     </div>
   </header>
 
-  <div class="scope-note">
-    <Info :size="16" aria-hidden="true" />
-    <p>
-      Alterações aqui valem apenas para novas obras. Equipamentos e EAP de obras já
-      criadas não são modificados.
-    </p>
+  <div class="catalog-overview" aria-label="Resumo do catálogo">
+    <div class="overview-item">
+      <Package :size="17" aria-hidden="true" />
+      <span>{{ plural(props.equipmentCount, "equipamento", "equipamentos") }}</span>
+    </div>
+    <div class="overview-item">
+      <Layers3 :size="17" aria-hidden="true" />
+      <span>{{ plural(props.areaCount, "área ativa", "áreas ativas") }}</span>
+    </div>
+    <div class="overview-item">
+      <Boxes :size="17" aria-hidden="true" />
+      <span>{{ plural(props.componentCount, "componente", "componentes") }}</span>
+    </div>
+    <div v-if="props.activeEquipmentCount !== props.equipmentCount" class="overview-item overview-item--muted">
+      {{ props.activeEquipmentCount }} ativo{{ props.activeEquipmentCount === 1 ? '' : 's' }}
+    </div>
+    <p class="overview-note"><Info :size="15" aria-hidden="true" /> Alterações no catálogo não modificam obras existentes.</p>
   </div>
 </template>
 
 <style scoped>
-.master-hero {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 4px 0 2px;
-}
-
-.master-hero__copy {
-  min-width: 0;
-}
-
-.eyebrow {
-  margin: 0 0 6px;
-  color: #2e5aac;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.master-hero h1 {
-  margin: 0;
-  color: #20324a;
-  font-size: clamp(28px, 3vw, 36px);
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-}
-
-.master-hero__description {
-  max-width: 720px;
-  margin: 8px 0 0;
-  color: #6d7c92;
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-.master-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin: 14px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.master-facts li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.master-facts svg {
-  color: #5479aa;
-}
-
-.fact-muted {
-  color: #8a97a9 !important;
-  font-size: 11px !important;
-}
-
-.master-hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  flex: 0 0 auto;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.scope-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  border: 1px solid #dbe7f5;
-  border-radius: 12px;
-  padding: 10px 13px;
-  background: #f7faff;
-  color: #4b6584;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.scope-note svg {
-  flex: 0 0 auto;
-  margin-top: 1px;
-  color: #3f6ea5;
-}
-
-.scope-note p {
-  margin: 0;
-}
-
-@media (max-width: 820px) {
-  .master-hero {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .master-hero__actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .header-action {
-    flex: 1 1 150px;
-  }
-}
-
-@media (max-width: 560px) {
-  .header-action {
-    flex-basis: 100%;
-  }
-}
+.catalog-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; padding: 4px 0 0; }
+.header-title { min-width: 0; flex: 1 1 440px; }
+.eyebrow { margin: 0 0 7px; color: #5477a4; font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.eyebrow span { margin: 0 6px; color: #a3b2c4; }
+.catalog-header h1 { margin: 0; color: #20324a; font-size: clamp(26px, 2.6vw, 33px); font-weight: 800; letter-spacing: -.035em; line-height: 1.12; }
+.header-subtitle { max-width: 640px; margin: 7px 0 0; color: #6d7e95; font-size: 13px; line-height: 1.5; }
+.header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.catalog-overview { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 22px; border-bottom: 1px solid #e8edf3; padding: 12px 0 15px; }
+.overview-item { display: inline-flex; align-items: center; gap: 6px; color: #60758e; font-size: 11.5px; font-weight: 650; }
+.overview-item svg { color: #607ea4; }
+.overview-item--muted { color: #929eac; }
+.overview-note { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 0 auto; color: #8c99a8; font-size: 10.5px; }
+.overview-note svg { flex-shrink: 0; }
+@media (max-width: 920px) { .header-actions { justify-content: flex-start; } .overview-note { width: 100%; margin-left: 0; } }
+@media (max-width: 500px) { .header-actions { width: 100%; } .header-actions :deep(.v-btn) { flex: 1 1 150px; } }
 </style>
