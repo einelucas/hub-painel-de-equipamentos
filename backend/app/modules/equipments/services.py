@@ -17,6 +17,7 @@ from app.core.scope import (
     assert_equipment_allowed,
     restrict_to_units,
 )
+from app.core.search import unaccent_ilike
 from app.domain.eap import EQUIPMENT_EAP_LEVELS, EapLevel
 from app.domain.equipment_calculations import (
     ComponentDeadlineValues,
@@ -395,7 +396,7 @@ def _apply_filters(
     if equipment_id:
         stmt = stmt.where(Equipment.id == equipment_id)
     if search and search.strip():
-        stmt = stmt.where(Equipment.name.ilike(f"%{search.strip()}%"))
+        stmt = stmt.where(unaccent_ilike(Equipment.name, search))
     if stage is not None:
         stmt = stmt.where(Equipment.current_stage == stage)
     if discipline_id:

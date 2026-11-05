@@ -25,6 +25,7 @@ from app.core.scope import (
     ensure_unit_allowed,
     restrict_to_units,
 )
+from app.core.search import unaccent_ilike
 from app.models.equipment import STAGES, Equipment, EquipmentComponent, EquipmentWorkPackage, ProjectContext
 from app.models.process import (
     Contract,
@@ -108,7 +109,7 @@ def _filtered(
         low, high = stage_range
         stmt = stmt.where(Equipment.current_stage.between(low, high))
     if filters.search and filters.search.strip():
-        stmt = stmt.where(Equipment.name.ilike(f"%{filters.search.strip()}%"))
+        stmt = stmt.where(unaccent_ilike(Equipment.name, filters.search))
     return stmt
 
 

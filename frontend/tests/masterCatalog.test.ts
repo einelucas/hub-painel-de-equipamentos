@@ -76,6 +76,12 @@ describe("catálogo mestre", () => {
       "bomba",
       "avulso",
     ]);
+    expect(filterEquipments(items, areas, "centrifuga", "").map((item) => item.id)).toEqual([
+      "bomba",
+    ]);
+    expect(filterEquipments(items, areas, "ELETRICO", "").map((item) => item.id)).toEqual([
+      "painel",
+    ]);
     expect(filterEquipments(items, areas, "", "utilidades").map((item) => item.id)).toEqual([
       "bomba",
     ]);

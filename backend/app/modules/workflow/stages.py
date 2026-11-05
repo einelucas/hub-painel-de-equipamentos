@@ -153,16 +153,15 @@ GROUPS_BY_STAGE: dict[int, tuple[RequirementGroupSpec, ...]] = {
             stage=5,
             label="Contrato",
             message=(
-                "Cadastre ao menos um contrato com número, data de escrituração e "
-                "arquivo no mesmo registro para avançar."
+                "Cadastre ao menos um contrato com número e data de escrituração "
+                "para avançar. O anexo do contrato é opcional."
             ),
             waivable=True,
-            fields=("contract.contractNumber", "contract.executedAt", "contract.file"),
+            fields=("contract.contractNumber", "contract.executedAt"),
             check=lambda state: _any_complete(
                 state.contracts,
                 lambda c: c.contract_number,
                 lambda c: c.executed_at,
-                lambda c: c.file_storage_key,
             ),
         ),
     ),
@@ -256,4 +255,5 @@ def is_waivable_group(stage: int, code: str) -> bool:
     corresponde de fato à fase informada — nunca uma string arbitrária."""
     spec = _ALL_GROUPS.get(code)
     return bool(spec and spec.waivable and spec.stage == stage)
+
 

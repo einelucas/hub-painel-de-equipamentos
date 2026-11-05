@@ -6,6 +6,7 @@ import AppModal from "~/components/ui/AppModal.vue";
 import Badge from "~/components/ui/Badge.vue";
 import type { MasterArea, MasterEquipment } from "~/types/masterCatalog";
 import { areaUsage } from "~/utils/masterCatalog";
+import { matchesSearchText } from "~/utils/search";
 
 const props = defineProps<{
   open: boolean;
@@ -26,7 +27,7 @@ const emit = defineEmits<{
 const search = ref("");
 const managedAreas = computed(() =>
   [...props.areas]
-    .filter((area) => area.name.toLocaleLowerCase("pt-BR").includes(search.value.trim().toLocaleLowerCase("pt-BR")))
+    .filter((area) => matchesSearchText(area.name, search.value.trim()))
     .sort((left, right) => {
       if (left.isUnassigned !== right.isUnassigned) return left.isUnassigned ? -1 : 1;
       if (left.active !== right.active) return left.active ? -1 : 1;

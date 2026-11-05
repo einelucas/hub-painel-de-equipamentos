@@ -3,6 +3,7 @@ import { mdiCheck, mdiClose, mdiMagnify, mdiPencilOutline, mdiPlus, mdiTrashCanO
 import { computed, reactive, ref, useId, watch } from "vue";
 import type { CatalogList, EapLevel, EapNodeItem } from "~/types/equipment";
 import { codeNameLabel, toOptions } from "~/utils/selectOptions";
+import { matchesSearchText, normalizeSearchText } from "~/utils/search";
 import SearchableSelect from "~/components/ui/SearchableSelect.vue";
 import AppModal from "~/components/ui/AppModal.vue";
 import { VBtn } from "vuetify/components";
@@ -116,7 +117,7 @@ const processFilterOptions = computed(() =>
  * que o resultado continue legível como árvore (Ilha → Processo → Área).
  */
 const visibleRows = computed(() => {
-  const term = search.value.trim().toLocaleLowerCase("pt-BR");
+  const term = normalizeSearchText(search.value.trim());
   const byId = new Map(nodes.value.map((node) => [node.id, node]));
   const children = new Map<string, EapNodeItem[]>();
   for (const node of nodes.value) {
@@ -143,7 +144,7 @@ const visibleRows = computed(() => {
   const keep = new Set<string>();
   for (const node of nodes.value) {
     if (!processKeep.has(node.id)) continue;
-    if (!`${node.code} ${node.name}`.toLocaleLowerCase("pt-BR").includes(term)) continue;
+    if (!matchesSearchText(`${node.code} ${node.name}`, term)) continue;
     let current: EapNodeItem | undefined = node;
     while (current && processKeep.has(current.id) && !keep.has(current.id)) {
       keep.add(current.id);

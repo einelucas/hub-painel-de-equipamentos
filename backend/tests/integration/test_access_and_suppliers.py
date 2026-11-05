@@ -298,6 +298,25 @@ async def test_supplier_crud_and_tax_id_uniqueness(client, auth_header, db_sessi
         ).json()
         assert [item["id"] for item in found["items"]] == [supplier_id]
 
+    accented = await client.post(
+        "/api/v1/suppliers",
+        json={"legalName": "Sistema Contra Incêndio LTDA"},
+        headers=auth_header("ANALYST"),
+    )
+    assert accented.status_code == 201
+    accented_id = accented.json()["id"]
+
+    # A busca ignora acentos nas duas direções: sem acento e com acento.
+    for search in ("incendio", "INCÊNDIO"):
+        found = (
+            await client.get(
+                "/api/v1/suppliers",
+                params={"search": search},
+                headers=auth_header("VIEWER"),
+            )
+        ).json()
+        assert [item["id"] for item in found["items"]] == [accented_id]
+
     duplicated = await client.post(
         "/api/v1/suppliers",
         json={"legalName": "Outra Razao", "taxId": "11222333000199"},
@@ -514,19 +533,14 @@ async def test_procurement_queue_exposes_primary_supplier(client, auth_header) -
                 headers=auth_header("ANALYST"),
             )
         if stage == 6:
-            # O grupo CONTRACT exige número + data + arquivo no MESMO registro.
+            # O grupo CONTRACT exige número + data de escrituração no MESMO
+            # registro. O anexo do contrato é opcional.
             created = await client.post(
                 f"/api/v1/equipments/{equipment_id}/contracts",
                 json={"contractNumber": "CT-QSUP", "executedAt": "2026-03-01"},
                 headers=auth_header("ANALYST"),
             )
             assert created.status_code == 201, created.text
-            uploaded = await client.put(
-                f"/api/v1/equipments/{equipment_id}/contracts/{created.json()['id']}/file",
-                files={"file": ("contrato.pdf", b"conteudo fake de teste", "application/pdf")},
-                headers=auth_header("ANALYST"),
-            )
-            assert uploaded.status_code == 200, uploaded.text
         moved = await client.post(
             f"/api/v1/equipments/{equipment_id}/transitions",
             json={"targetStage": stage},

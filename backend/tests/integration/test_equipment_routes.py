@@ -303,6 +303,12 @@ async def test_equipment_defaults_filters_search_and_pagination(client, auth_hea
     assert [item["id"] for item in specific.json()["items"]] == [equipment_id]
     assert searched.json()["items"][0]["name"] == "Ventilador auxiliar"
 
+    await _equipment(client, auth_header, first, "Sistema contra incêndios")
+    accented = await client.get(
+        "/api/v1/equipments", params={"search": "incendio"}, headers=auth_header("VIEWER")
+    )
+    assert [item["name"] for item in accented.json()["items"]] == ["Sistema contra incêndios"]
+
 
 async def test_equipment_filters_by_area_id(client, auth_header) -> None:
     """GAP-010 (Etapa 6D): `Equipment.area_id == area_id`, direto."""

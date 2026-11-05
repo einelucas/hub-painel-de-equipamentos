@@ -4,6 +4,7 @@ import { VAlert, VBtn, VStepper, VTextField } from "vuetify/components";
 import { VAutocomplete } from "vuetify/components/VAutocomplete";
 import { computed, ref, watch } from "vue";
 import { Search } from "lucide-vue-next";
+import { matchesSearchText } from "~/utils/search";
 
 interface Area { id: string; name: string; isUnassigned: boolean; active: boolean }
 interface ComponentOption { id: string; name: string; active: boolean; requiresQuantityReview: boolean; requiresNameReview: boolean }
@@ -78,11 +79,11 @@ const areasWithResults = computed(() => areas.value.map((area) => ({
   ...area,
   models: catalog.value.equipments.filter((model) =>
     model.active && model.areaIds.includes(area.id)
-    && model.name.toLocaleLowerCase("pt-BR").includes(search.value.toLocaleLowerCase("pt-BR").trim()),
+    && matchesSearchText(model.name, search.value.trim()),
   ),
 })).filter((area) => area.models.length));
 const withoutArea = computed(() => catalog.value.equipments.filter(
-  (item) => item.active && !item.areaIds.length && item.name.toLocaleLowerCase("pt-BR").includes(search.value.toLocaleLowerCase("pt-BR").trim()),
+  (item) => item.active && !item.areaIds.length && matchesSearchText(item.name, search.value.trim()),
 ));
 const canContinue = computed(() => (step.value === 0 ? Boolean(unitId.value && name.value.trim()) : true));
 function activeComponents(equipment: EquipmentModel): ComponentOption[] {

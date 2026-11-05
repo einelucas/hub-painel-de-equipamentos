@@ -99,14 +99,8 @@ async def _advance_to(client, auth_header, equipment_id: str, target: int) -> No
                 headers=auth_header("ANALYST"),
             )
             assert created.status_code == 201, created.text
-            # Etapa 7.1: o grupo CONTRACT exige número + data + arquivo no
-            # MESMO registro — sem waiver, o fluxo normal precisa do arquivo.
-            uploaded = await client.put(
-                f"/api/v1/equipments/{equipment_id}/contracts/{created.json()['id']}/file",
-                files={"file": ("contrato.pdf", b"conteudo fake de teste", "application/pdf")},
-                headers=auth_header("ANALYST"),
-            )
-            assert uploaded.status_code == 200, uploaded.text
+            # Etapa 7.1: o grupo CONTRACT exige número + data de escrituração no
+            # MESMO registro. O anexo do contrato é opcional.
         if stage == 7:
             created = await client.post(
                 f"/api/v1/equipments/{equipment_id}/purchase-requests",

@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload
 from app.core.auth import CurrentUser
 from app.core.errors import ConflictError, DomainError, NotFoundError
 from app.core.scope import assert_equipment_allowed
+from app.core.search import unaccent_ilike
 from app.models.common import utcnow
 from app.models.supplier import EquipmentSupplier, Supplier
 from app.modules.suppliers.schemas import (
@@ -39,13 +40,12 @@ async def list_suppliers(
     if not include_inactive:
         stmt = stmt.where(Supplier.active.is_(True))
     if search and search.strip():
-        term = f"%{search.strip()}%"
         stmt = stmt.where(
             or_(
-                Supplier.corporate_code.ilike(term),
-                Supplier.legal_name.ilike(term),
-                Supplier.trade_name.ilike(term),
-                Supplier.tax_id.ilike(term),
+                unaccent_ilike(Supplier.corporate_code, search),
+                unaccent_ilike(Supplier.legal_name, search),
+                unaccent_ilike(Supplier.trade_name, search),
+                unaccent_ilike(Supplier.tax_id, search),
             )
         )
     stmt = stmt.order_by(Supplier.legal_name.asc())

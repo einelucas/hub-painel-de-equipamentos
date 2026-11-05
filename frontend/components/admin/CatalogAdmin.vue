@@ -3,6 +3,7 @@ import { mdiCheck, mdiClose, mdiMagnify, mdiPencilOutline, mdiPlus, mdiTrashCanO
 import { computed, reactive, ref, useId, watch } from "vue";
 import type { CatalogItem, CatalogList } from "~/types/equipment";
 import { catalogColor } from "~/utils/catalogColors";
+import { matchesSearchText, normalizeSearchText } from "~/utils/search";
 import { useConfirm } from "~/composables/useConfirm";
 import AppModal from "~/components/ui/AppModal.vue";
 import { VBtn } from "vuetify/components";
@@ -52,12 +53,12 @@ const search = ref("");
 const activeCount = computed(() => items.value.filter((item) => item.active).length);
 const inactiveCount = computed(() => items.value.length - activeCount.value);
 const visibleItems = computed(() => {
-  const term = search.value.trim().toLocaleLowerCase("pt-BR");
+  const term = normalizeSearchText(search.value.trim());
   if (!term) return items.value;
   return items.value.filter((item) =>
     [item.code, item.name, item.description]
       .filter(Boolean)
-      .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(term)),
+      .some((value) => matchesSearchText(String(value), term)),
   );
 });
 

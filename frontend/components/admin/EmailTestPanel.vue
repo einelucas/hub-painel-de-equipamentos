@@ -8,6 +8,7 @@ import type {
   MailProviderId,
   NotificationEquipmentOption,
 } from "~/types/notifications";
+import { matchesSearchText } from "~/utils/search";
 
 type SettingsPanel = {
   mode: "log" | "sandbox" | "live";
@@ -37,9 +38,9 @@ const selectedProvider = computed(() =>
   props.settings?.providers.find((item) => item.id === provider.value),
 );
 const filtered = computed(() => {
-  const term = search.value.trim().toLowerCase();
+  const term = search.value.trim();
   const options = props.equipmentOptions;
-  return (term ? options.filter((item) => item.name.toLowerCase().includes(term)) : options).slice(0, 80);
+  return (term ? options.filter((item) => matchesSearchText(item.name, term)) : options).slice(0, 80);
 });
 const providerOptions = computed(() =>
   (props.settings?.providers ?? []).map((item) => ({

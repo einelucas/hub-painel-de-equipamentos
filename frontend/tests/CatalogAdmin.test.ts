@@ -50,6 +50,16 @@ describe("CatalogAdmin", () => {
     expect(wrapper.get("[data-testid='catalog-item-c-2']").text()).toContain("Inativo");
   });
 
+  it("busca ignorando acentos e caixa", async () => {
+    const { wrapper } = mountAdmin();
+    await settle(wrapper);
+
+    await wrapper.get(".catalog-search input").setValue("mecanica");
+
+    expect(wrapper.find("[data-testid='catalog-item-c-2']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='catalog-item-c-1']").exists()).toBe(false);
+  });
+
   it("edita um registro pelo endpoint existente, sem criar rota nova", async () => {
     const { wrapper, patch } = mountAdmin();
     await settle(wrapper);

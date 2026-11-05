@@ -11,4 +11,6 @@ export const hubAutocompleteDefaults = {
   rounded: "lg",
   density: "comfortable",
   hideDetails: "auto",
+  // Busca dos selects ignora acentos: `incendio` encontra `Incêndio`.
+  ignoreAccents: true,
 } as const;

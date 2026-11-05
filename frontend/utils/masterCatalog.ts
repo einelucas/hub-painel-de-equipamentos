@@ -1,4 +1,5 @@
 import type { MasterArea, MasterEquipment } from "~/types/masterCatalog";
+import { matchesSearchText, normalizeSearchText } from "~/utils/search";
 
 export function buildAreaMap(areas: MasterArea[]): Map<string, MasterArea> {
   return new Map(areas.map((area) => [area.id, area]));
@@ -53,7 +54,7 @@ export function equipmentMatchesFilter(
       : equipment.areaIds.includes(areaFilter));
   if (!matchesArea) return false;
   if (!term) return true;
-  return equipment.name.toLocaleLowerCase("pt-BR").includes(term);
+  return matchesSearchText(equipment.name, term);
 }
 
 export function filterEquipments(
@@ -62,7 +63,7 @@ export function filterEquipments(
   search: string,
   areaFilter: string,
 ): MasterEquipment[] {
-  const term = search.trim().toLocaleLowerCase("pt-BR");
+  const term = normalizeSearchText(search.trim());
   const areaMap = buildAreaMap(areas);
   return equipments.filter((equipment) =>
     equipmentMatchesFilter(equipment, term, areaFilter, areaMap),
