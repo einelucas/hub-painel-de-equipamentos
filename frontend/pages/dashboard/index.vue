@@ -5,7 +5,7 @@ import type { DashboardAnalytics } from "~/types/dashboardAnalytics";
 import CardProgress from "~/components/ui/CardProgress.vue";
 import { situationDonut, startupLabel } from "~/utils/dashboard";
 import DashboardSituationDonut from "~/components/dashboard/DashboardSituationDonut.vue";
-import DashboardAnalyticsNavigation from "~/components/dashboard/DashboardAnalyticsNavigation.vue";
+import NavigationMenu from "~/components/ui/NavigationMenu.vue";
 import { formatCurrency, formatNumber } from "~/utils/format";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import type { RealtimeChangeEvent } from "~/composables/useRealtimeSync";
@@ -261,7 +261,7 @@ onBeforeUnmount(() => unsubscribeSync?.());
               <p>Os gráficos abaixo respeitam os mesmos filtros dos indicadores acima.</p>
             </div>
           </div>
-          <DashboardAnalyticsNavigation v-model="analysisTab" />
+          <NavigationMenu v-model="analysisTab" />
 
           <div v-if="analyticsError" class="surface analytics-error" role="alert">
             <p>Não foi possível carregar as análises complementares: {{ analyticsError }}</p>

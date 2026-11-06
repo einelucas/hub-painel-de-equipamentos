@@ -3,7 +3,7 @@ import { mdiFilterOutline, mdiMagnify, mdiPackageVariantClosed } from "@mdi/js";
 import { computed, ref } from "vue";
 import { VAutocomplete, VBtn, VIcon, VList, VListItem, VTextField } from "vuetify/components";
 import Badge from "~/components/ui/Badge.vue";
-import DashboardAnalyticsNavigation from "~/components/dashboard/DashboardAnalyticsNavigation.vue";
+import NavigationMenu from "~/components/ui/NavigationMenu.vue";
 import LoadingSpinner from "~/components/ui/LoadingSpinner.vue";
 import type { MasterArea, MasterEquipment } from "~/types/masterCatalog";
 import {
@@ -111,7 +111,7 @@ function resetFilters(): void {
         @update:model-value="updateArea"
         @click:clear="updateArea('')"
       />
-      <DashboardAnalyticsNavigation
+      <NavigationMenu
         v-model="statusFilter"
         :items="statusNavItems"
         :distributed="true"
