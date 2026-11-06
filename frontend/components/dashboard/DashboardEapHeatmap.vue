@@ -40,7 +40,10 @@ const options = computed<ApexOptions>(() => ({
       style: { fontSize: "10px", fontFamily: FONT_FAMILY, fontWeight: 700, colors: "#2b3e58" },
     },
   },
-  grid: { padding: { left: 8, right: 5 } },
+  // O eixo categórico do heatmap posiciona os rótulos ~9px mais perto da grade
+  // que o eixo invertido do gráfico de barras horizontais; o padding extra
+  // iguala o espaço entre o badge EAP e as células nos dois gráficos.
+  grid: { padding: { left: 17, right: 5 } },
   tooltip: { y: { formatter: (value) => `${value} equipamento(s)` } },
   legend: { show: false },
 }));
