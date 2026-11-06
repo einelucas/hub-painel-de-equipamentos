@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ChartNoAxesCombined, CalendarDays, MapPinned } from "lucide-vue-next";
-import { VBtn, VTab, VTabs } from "vuetify/components";
+import { VBtn } from "vuetify/components";
 import type { CatalogItem, CatalogList, DashboardSummary } from "~/types/equipment";
 import type { DashboardAnalytics } from "~/types/dashboardAnalytics";
 import CardProgress from "~/components/ui/CardProgress.vue";
 import { situationDonut, startupLabel } from "~/utils/dashboard";
 import DashboardSituationDonut from "~/components/dashboard/DashboardSituationDonut.vue";
+import DashboardAnalyticsNavigation from "~/components/dashboard/DashboardAnalyticsNavigation.vue";
 import { formatCurrency, formatNumber } from "~/utils/format";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import type { RealtimeChangeEvent } from "~/composables/useRealtimeSync";
@@ -261,11 +261,7 @@ onBeforeUnmount(() => unsubscribeSync?.());
               <p>Os gráficos abaixo respeitam os mesmos filtros dos indicadores acima.</p>
             </div>
           </div>
-          <VTabs v-model="analysisTab" color="primary" density="compact" show-arrows class="analytics-tabs">
-            <VTab value="eap"><MapPinned :size="15" aria-hidden="true" /> Áreas e projetos</VTab>
-            <VTab value="schedule"><CalendarDays :size="15" aria-hidden="true" /> Entregas</VTab>
-            <VTab value="finance"><ChartNoAxesCombined :size="15" aria-hidden="true" /> Financeiro e evolução</VTab>
-          </VTabs>
+          <DashboardAnalyticsNavigation v-model="analysisTab" />
 
           <div v-if="analyticsError" class="surface analytics-error" role="alert">
             <p>Não foi possível carregar as análises complementares: {{ analyticsError }}</p>
@@ -327,8 +323,6 @@ onBeforeUnmount(() => unsubscribeSync?.());
 .analytics-head h2 { margin: 0 0 4px; font-size: 20px; font-weight: 800; color: #213758; }
 .analytics-head p { margin: 0; color: #7d8a9e; font-size: 12px; }
 .analytics-head .section-kicker { margin-bottom: 6px; color: #52709a; font-weight: 800; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
-.analytics-tabs { background: #fff; border: 1px solid #e9eef4; border-radius: 12px; padding: 2px 7px; }
-.analytics-tabs :deep(.v-btn__content) { gap: 7px; }
 .analytics-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; align-items: stretch; }
 .analytics-grid__full { grid-column: 1 / -1; }
 .analytics-grid--single { grid-template-columns: 1fr; }
