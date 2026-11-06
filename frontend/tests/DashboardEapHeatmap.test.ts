@@ -38,7 +38,7 @@ const items = [
 describe("DashboardEapHeatmap", () => {
   it("revela o nome completo ao passar o mouse no badge da legenda EAP", async () => {
     const wrapper = mount(DashboardEapHeatmap, { props: { items }, global });
-    const root = wrapper.get(".eap-heatmap").element;
+    const root = wrapper.get(".eap-chart").element;
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("data-eap-name", "Caldeira");
     root.appendChild(label);
