@@ -15,7 +15,7 @@ const defaultItems: NavItem[] = [
   { value: "finance", label: "Financeiro e evolução", icon: ChartNoAxesCombined },
 ];
 
-const props = defineProps<{ modelValue: string; items?: NavItem[] }>();
+const props = defineProps<{ modelValue: string; items?: NavItem[]; distributed?: boolean }>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
 const resolvedItems = computed(() => props.items ?? defaultItems);
@@ -26,7 +26,7 @@ function select(value: string): void {
 </script>
 
 <template>
-  <nav class="analysis-nav" role="tablist" aria-label="Análises complementares">
+  <nav class="analysis-nav" :class="{ 'analysis-nav--distributed': props.distributed }" role="tablist" aria-label="Análises complementares">
     <button
       v-for="item in resolvedItems"
       :key="item.value"
@@ -99,5 +99,15 @@ function select(value: string): void {
 .analysis-nav__item:focus-visible {
   outline: 2px solid #304f7e;
   outline-offset: 2px;
+}
+
+.analysis-nav--distributed {
+  justify-content: stretch;
+}
+
+.analysis-nav--distributed .analysis-nav__item {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
 }
 </style>

@@ -114,6 +114,7 @@ function resetFilters(): void {
       <DashboardAnalyticsNavigation
         v-model="statusFilter"
         :items="statusNavItems"
+        :distributed="true"
         aria-label="Filtrar situação dos modelos"
       />
       <div class="result-row">
