@@ -22,6 +22,12 @@ export function shortEapLabel(label: string): string {
   return label.split(" · ")[0] ?? label;
 }
 
+/** Nome da EAP sem o código, que já aparece no badge compacto. */
+export function eapNameLabel(label: string): string {
+  const parts = label.split(" · ");
+  return parts.length > 1 ? parts.slice(1).join(" · ") : label;
+}
+
 export function monthCaption(month: string): string {
   const match = /^(\d{4})-(\d{2})$/.exec(month);
   return match ? `${match[2]}/${match[1]?.slice(-2)}` : month;

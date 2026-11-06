@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dateUtc,
+  eapNameLabel,
   hasDistributionData,
   hasEapStageData,
   hasRiskData,
@@ -15,6 +16,11 @@ describe("dashboard analytics", () => {
   it("mantém códigos EAP, inclusive os não classificados", () => {
     expect(shortEapLabel("01.A · Caldeira")).toBe("01.A");
     expect(shortEapLabel("Sem EAP")).toBe("Sem EAP");
+  });
+
+  it("separa o nome da EAP do código do badge", () => {
+    expect(eapNameLabel("01.A · Caldeira")).toBe("Caldeira");
+    expect(eapNameLabel("Sem EAP")).toBe("Sem EAP");
   });
 
   it("não transforma valores inválidos em números não finitos", () => {
