@@ -273,20 +273,15 @@ onBeforeUnmount(() => unsubscribeSync?.());
           </div>
           <template v-else>
             <div v-if="analysisTab === 'eap'" class="analytics-grid">
+              <DashboardEapHeatmap :items="analytics?.byEapStage ?? []" :loading="analyticsLoading" />
+              <DashboardEapRiskBars :items="analytics?.riskByEap ?? []" :loading="analyticsLoading" />
               <DashboardDistributionBars
+                class="analytics-grid__full"
                 title="Equipamentos por disciplina"
                 subtitle="Quantidade por disciplina cadastrada, inclusive não classificados."
                 :items="analytics?.byDiscipline ?? []"
                 :loading="analyticsLoading"
               />
-              <DashboardDistributionBars
-                title="Equipamentos por obra"
-                subtitle="Projetos separados por unidade, dentro das permissões do usuário."
-                :items="analytics?.byProject ?? []"
-                :loading="analyticsLoading"
-              />
-              <DashboardEapHeatmap :items="analytics?.byEapStage ?? []" :loading="analyticsLoading" />
-              <DashboardEapRiskBars :items="analytics?.riskByEap ?? []" :loading="analyticsLoading" />
             </div>
             <div v-else-if="analysisTab === 'schedule'" class="analytics-grid analytics-grid--single">
               <DashboardTimeline
@@ -335,6 +330,7 @@ onBeforeUnmount(() => unsubscribeSync?.());
 .analytics-tabs { background: #fff; border: 1px solid #e9eef4; border-radius: 12px; padding: 2px 7px; }
 .analytics-tabs :deep(.v-btn__content) { gap: 7px; }
 .analytics-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; align-items: stretch; }
+.analytics-grid__full { grid-column: 1 / -1; }
 .analytics-grid--single { grid-template-columns: 1fr; }
 .analytics-error { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 18px; }
 .analytics-error p { margin: 0; color: #ab443f; font-size: 12px; }
