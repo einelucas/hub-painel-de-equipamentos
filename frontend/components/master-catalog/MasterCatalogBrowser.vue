@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { mdiFilterOutline, mdiMagnify, mdiPackageVariantClosed } from "@mdi/js";
 import { computed, ref } from "vue";
-import { VAutocomplete, VBtn, VBtnToggle, VIcon, VList, VListItem, VTextField } from "vuetify/components";
+import { VAutocomplete, VBtn, VIcon, VList, VListItem, VTextField } from "vuetify/components";
 import Badge from "~/components/ui/Badge.vue";
+import DashboardAnalyticsNavigation from "~/components/dashboard/DashboardAnalyticsNavigation.vue";
 import LoadingSpinner from "~/components/ui/LoadingSpinner.vue";
 import type { MasterArea, MasterEquipment } from "~/types/masterCatalog";
 import {
@@ -37,6 +38,7 @@ const statusOptions = [
   { value: "active", label: "Ativos" },
   { value: "inactive", label: "Inativos" },
 ] as const;
+const statusNavItems = statusOptions.map((option) => ({ value: option.value, label: option.label }));
 const areaMap = computed(() => buildAreaMap(props.areas));
 const realAreas = computed(() => activeRealAreas(props.areas));
 const unassignedArea = computed(() => findUnassignedArea(props.areas));
@@ -109,19 +111,11 @@ function resetFilters(): void {
         @update:model-value="updateArea"
         @click:clear="updateArea('')"
       />
-      <VBtnToggle
+      <DashboardAnalyticsNavigation
         v-model="statusFilter"
-        class="status-filter"
-        mandatory
-        density="compact"
-        color="primary"
-        variant="tonal"
+        :items="statusNavItems"
         aria-label="Filtrar situação dos modelos"
-      >
-        <VBtn v-for="option in statusOptions" :key="option.value" :value="option.value" size="small">
-          {{ option.label }}
-        </VBtn>
-      </VBtnToggle>
+      />
       <div class="result-row">
         <span aria-live="polite">{{ resultsLabel }}</span>
         <VBtn v-if="hasFilters" size="x-small" variant="text" @click="resetFilters">

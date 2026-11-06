@@ -1,14 +1,24 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import type { Component } from "vue";
 import { CalendarDays, ChartNoAxesCombined, MapPinned } from "lucide-vue-next";
 
-defineProps<{ modelValue: string }>();
-const emit = defineEmits<{ "update:modelValue": [value: string] }>();
+interface NavItem {
+  value: string;
+  label: string;
+  icon?: Component;
+}
 
-const items = [
+const defaultItems: NavItem[] = [
   { value: "eap", label: "Áreas e projetos", icon: MapPinned },
   { value: "schedule", label: "Entregas", icon: CalendarDays },
   { value: "finance", label: "Financeiro e evolução", icon: ChartNoAxesCombined },
 ];
+
+const props = defineProps<{ modelValue: string; items?: NavItem[] }>();
+const emit = defineEmits<{ "update:modelValue": [value: string] }>();
+
+const resolvedItems = computed(() => props.items ?? defaultItems);
 
 function select(value: string): void {
   emit("update:modelValue", value);
@@ -18,7 +28,7 @@ function select(value: string): void {
 <template>
   <nav class="analysis-nav" role="tablist" aria-label="Análises complementares">
     <button
-      v-for="item in items"
+      v-for="item in resolvedItems"
       :key="item.value"
       type="button"
       role="tab"
