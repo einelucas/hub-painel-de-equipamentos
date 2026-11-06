@@ -14,7 +14,7 @@ const series = computed(() => display.value.visible.map((item) => ({
 })));
 // Altura proporcional à quantidade de áreas: evita células esticadas quando há
 // poucas linhas, mas cresce conforme mais áreas aparecem no recorte.
-const height = computed(() => Math.max(150, display.value.visible.length * 34 + 90));
+const height = computed(() => Math.max(160, display.value.visible.length * 34 + 90));
 
 const { chartRoot, axisTip, chartEvents, showAxisTip, hideAxisTip } =
   useEapAxisBadges(() => display.value.visible);
@@ -45,9 +45,9 @@ const options = computed<ApexOptions>(() => ({
   // O eixo categórico do heatmap posiciona os rótulos ~9px mais perto da grade
   // que o eixo invertido do gráfico de barras horizontais; o padding extra
   // iguala o espaço entre o badge EAP e as células nos dois gráficos.
-  // top/bottom centralizam a linha única verticalmente e mantêm o título
-  // "Fases do processo" sempre na base do gráfico.
-  grid: { padding: { top: 10, bottom: 15, left: 17, right: 5 } },
+  // top centraliza a célula quando há poucas áreas; bottom: 0 mantém o título
+  // "Fases do processo" junto ao rodapé, como com várias áreas.
+  grid: { padding: { top: 25, bottom: 0, left: 17, right: 5 } },
   tooltip: { y: { formatter: (value) => `${value} equipamento(s)` } },
   legend: { show: false },
 }));
