@@ -36,15 +36,16 @@ function select(value: string): void {
 .analysis-nav {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
+  align-items: center;
   gap: 4px;
-  padding: 4px;
+  padding: 6px;
   border: 1px solid #e9eef4;
   border-radius: 12px;
   background: #f4f7fb;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .analysis-nav__item {
