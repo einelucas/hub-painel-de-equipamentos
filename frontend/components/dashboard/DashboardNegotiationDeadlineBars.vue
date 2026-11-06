@@ -16,10 +16,16 @@ const series = computed(() => [{ name: "Equipamentos", data: points.value.map((i
 const options = computed<ApexOptions>(() => ({
   chart: { type: "bar" },
   colors: [CHART_COLORS.critical, "#cc5121", CHART_COLORS.warning, CHART_COLORS.primary, CHART_COLORS.safe],
-  plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 5, barHeight: "57%" } },
+  plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 5, barHeight: "57%", dataLabels: { position: "top" } } },
   xaxis: { categories: points.value.map((item) => item.label), labels: { formatter: (v) => String(Math.round(Number(v))) } },
   yaxis: { labels: { style: { fontSize: "10px" } } },
-  dataLabels: { enabled: true, formatter: (v) => String(v), style: { colors: ["#304f7e"] }, background: { enabled: false }, offsetX: 6 },
+  dataLabels: {
+    enabled: true,
+    formatter: (v) => String(Math.round(Number(v))),
+    offsetX: 16,
+    style: { fontSize: "11px", fontWeight: 700, colors: ["#000000"] },
+    background: { enabled: false },
+  },
   legend: { show: false },
   grid: { borderColor: CHART_COLORS.border },
 }));
