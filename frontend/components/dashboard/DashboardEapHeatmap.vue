@@ -12,7 +12,9 @@ const series = computed(() => display.value.visible.map((item) => ({
   name: shortEapLabel(item.label),
   data: Array.from({ length: 9 }, (_, stage) => ({ x: `F${stage}`, y: item.counts[stage] ?? 0 })),
 })));
-const height = computed(() => Math.max(280, display.value.visible.length * 34 + 90));
+// Altura proporcional à quantidade de áreas: evita células esticadas quando há
+// poucas linhas, mas cresce conforme mais áreas aparecem no recorte.
+const height = computed(() => Math.max(120, display.value.visible.length * 34 + 60));
 
 const { chartRoot, axisTip, chartEvents, showAxisTip, hideAxisTip } =
   useEapAxisBadges(() => display.value.visible);
