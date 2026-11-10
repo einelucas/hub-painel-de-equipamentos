@@ -49,7 +49,12 @@ class SupplierSuggestionResolver:
         self.evidence = evidence
 
     @classmethod
-    async def load(cls, session: AsyncSession) -> SupplierSuggestionResolver:
+    async def load(
+        cls,
+        session: AsyncSession,
+        *,
+        project_context_id: str | None = None,
+    ) -> SupplierSuggestionResolver:
         supplier_rows = list(
             (await session.scalars(select(Supplier).where(Supplier.active.is_(True)))).all()
         )
@@ -75,12 +80,15 @@ class SupplierSuggestionResolver:
         unique_names = {key: items[0] for key, items in grouped_names.items() if len(items) == 1}
 
         history: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
-        history_rows = await session.execute(
+        history_query = (
             select(Equipment.name, EquipmentSupplier.equipment_id, EquipmentSupplier.supplier_id)
             .join(EquipmentSupplier, EquipmentSupplier.equipment_id == Equipment.id)
             .join(Supplier, Supplier.id == EquipmentSupplier.supplier_id)
             .where(Supplier.active.is_(True))
         )
+        if project_context_id is not None:
+            history_query = history_query.where(Equipment.project_context_id == project_context_id)
+        history_rows = await session.execute(history_query)
         for equipment_name, equipment_id, supplier_id in history_rows.all():
             history[canonical_text(equipment_name)][supplier_id].add(equipment_id)
 

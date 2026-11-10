@@ -397,9 +397,11 @@ class _RecordSuggestion:
 
 
 async def _resolve_supplier_suggestions(
-    session: AsyncSession, records: list[MondayImportRecord]
+    session: AsyncSession, records: list[MondayImportRecord], project_context_id: str | None = None
 ) -> list[_RecordSuggestion]:
-    resolver = await SupplierSuggestionResolver.load(session)
+    resolver = await SupplierSuggestionResolver.load(
+        session, project_context_id=project_context_id
+    )
     result: list[_RecordSuggestion] = []
     equipments = [record for record in records if record.record_kind == "equipment"]
     for record in sorted(equipments, key=lambda item: item.source_key):
@@ -471,7 +473,7 @@ async def plan_batches(
     [project_context_id] = contexts
     # Registros carregados uma vez (sem raw_payload) e reaproveitados por plan, rótulos e sugestões.
     records = await load_batch_records(session, unique_ids)
-    suggestion_items = await _resolve_supplier_suggestions(session, records)
+    suggestion_items = await _resolve_supplier_suggestions(session, records, project_context_id)
     # Opt-in: fornecedor sugerido por evidência da própria planilha é selecionado
     # (sem sobrescrever escolha explícita) neste plano; o cliente mescla no mapping do apply.
     automatic = (

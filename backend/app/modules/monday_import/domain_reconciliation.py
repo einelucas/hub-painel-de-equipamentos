@@ -15,7 +15,6 @@ from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
 
 from app.models.equipment import Equipment
 from app.models.monday_import import ExternalMapping, MondayImportBatch, MondayImportRecord
@@ -169,6 +168,10 @@ async def _latest_normalized(
 
 
 async def _load_equipments(session: AsyncSession, equipment_ids: Iterable[str]) -> dict[str, Equipment]:
+    """Carrega equipamentos em lotes sem joinedload múltiplo (evita join explosion
+    em obras grandes). Relacionamentos 1:N/N:N vêm em consultas separadas por lote."""
+    from sqlalchemy.orm import joinedload, selectinload
+
     equipments: dict[str, Equipment] = {}
     for chunk in _chunks(equipment_ids):
         rows = (
@@ -180,8 +183,8 @@ async def _load_equipments(session: AsyncSession, equipment_ids: Iterable[str]) 
                         joinedload(Equipment.discipline),
                         joinedload(Equipment.responsible_user),
                         selectinload(Equipment.work_package_links),
-                        joinedload(Equipment.negotiation),
-                        joinedload(Equipment.legal_process),
+                        selectinload(Equipment.negotiation),
+                        selectinload(Equipment.legal_process),
                         selectinload(Equipment.contracts),
                         selectinload(Equipment.purchase_requests),
                         selectinload(Equipment.purchase_orders),
@@ -189,9 +192,7 @@ async def _load_equipments(session: AsyncSession, equipment_ids: Iterable[str]) 
                     )
                 )
             )
-            .unique()
-            .all()
-        )
+        ).all()
         for equipment in rows:
             equipments[equipment.id] = equipment
     return equipments
