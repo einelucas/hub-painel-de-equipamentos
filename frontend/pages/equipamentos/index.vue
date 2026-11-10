@@ -21,6 +21,7 @@ import { formatDateOnly } from "~/utils/format";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
+import { Sparkles } from "lucide-vue-next";
 import { VBtn } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
@@ -140,7 +141,9 @@ async function load(): Promise<void> {
       query.responsible_user_id = responsibleUserId.value;
     if (areaId.value) query.eap_node_id = areaId.value;
     if (workPackageId.value) query.work_package_id = workPackageId.value;
-    const result = await api.get<EquipmentList>("/equipments", query, { force: true });
+    const result = await api.get<EquipmentList>("/equipments", query, {
+      force: true,
+    });
     if (version !== requestVersion) return;
     equipments.value = result.items;
     pagination.value = result.pagination;
@@ -265,11 +268,17 @@ async function realtimeChanged(event: RealtimeChangeEvent): Promise<void> {
   const relevantEquipment =
     event.entityType === "equipment" &&
     (!context.selectedUnit || event.unitId === context.selectedUnit) &&
-    (!context.selectedProjectContext || event.projectContextId === context.selectedProjectContext);
+    (!context.selectedProjectContext ||
+      event.projectContextId === context.selectedProjectContext);
   const relevantProject =
     event.entityType === "project_context" &&
     (!context.selectedUnit || event.unitId === context.selectedUnit);
-  if (event.eventType !== "revalidate" && !relevantEquipment && !relevantProject) return;
+  if (
+    event.eventType !== "revalidate" &&
+    !relevantEquipment &&
+    !relevantProject
+  )
+    return;
   quietRefresh = true;
   await load();
 }
@@ -363,6 +372,9 @@ onBeforeUnmount(() => unsubscribeSync?.());
           >
             Novo equipamento
           </VBtn>
+          <VBtn variant="outlined" size="default">
+            <Sparkles class="text-[12px] opacity-60 mr-1" /> Gerar Report
+          </VBtn>
         </template>
       </ModuleFilters>
 
@@ -452,7 +464,11 @@ onBeforeUnmount(() => unsubscribeSync?.());
           </div>
         </div>
 
-        <div v-if="error && !loading" class="empty-state table-empty" role="alert">
+        <div
+          v-if="error && !loading"
+          class="empty-state table-empty"
+          role="alert"
+        >
           <h2>Não foi possível carregar</h2>
           <p>{{ error }}</p>
           <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
