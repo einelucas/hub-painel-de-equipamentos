@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref } from "vue";
 import type { ApexOptions } from "apexcharts";
 import { mdiFilePdfBox, mdiImageOutline, mdiRefresh } from "@mdi/js";
+import { CalendarClock, Clock3 } from "lucide-vue-next";
 import {
   VAlert,
   VBtn,
@@ -47,8 +48,8 @@ const generatedAt = ref(new Date());
 const metrics = computed<EquipmentReportMetrics>(() =>
   buildEquipmentReport(rows.value, generatedAt.value),
 );
-const overduePages = computed(() => chunks(metrics.value.overdueEquipments, 6));
-const pageCount = computed(() => 2 + overduePages.value.length);
+const overduePages = computed(() => chunks(metrics.value.overdueEquipments, 10));
+const pageCount = computed(() => 1 + overduePages.value.length);
 const busy = computed(() => loading.value || downloading.value !== null);
 const totalLabel = computed(() => number(metrics.value.total));
 const generatedLabel = computed(() =>
@@ -65,39 +66,49 @@ const fileBase = computed(
 );
 
 const statusSeries = computed(() => [
-  metrics.value.completed,
-  metrics.value.onTime,
-  metrics.value.overdue,
-  metrics.value.unclassified,
+  { name: "Concluído", data: [metrics.value.completed] },
+  { name: "No prazo", data: [metrics.value.onTime] },
+  { name: "Atrasado", data: [metrics.value.overdue] },
+  { name: "Sem classificação", data: [metrics.value.unclassified] },
 ]);
 const statusChartOptions = computed<ApexOptions>(() => ({
-  labels: ["Concluído", "Dentro do prazo", "Atrasado", "Sem classificação"],
-  colors: ["#609346", "#5b83b4", "#c26850", "#aab4c0"],
-  legend: {
-    // A legenda HTML do Apex não faz parte do SVG. A versão visível abaixo é
-    // construída com VChip para permanecer também no PDF/PNG.
-    show: false,
+  chart: {
+    animations: { enabled: false },
+    stacked: true,
+    stackType: "100%",
+    toolbar: { show: false },
   },
+  colors: ["#609346", "#5b83b4", "#c26850", "#aab4c0"],
+  legend: { show: false },
   dataLabels: {
     enabled: true,
-    formatter: (value: number) => `${value.toFixed(1).replace(".", ",")}%`,
+    formatter: (value: number) => value > 0 ? `${value.toFixed(1).replace(".", ",")}%` : "",
+    style: { colors: ["#ffffff"], fontSize: "8px", fontWeight: 700 },
+    dropShadow: { enabled: false },
   },
   plotOptions: {
-    pie: {
-      donut: {
-        size: "66%",
-        labels: {
-          show: true,
-          total: {
-            show: true,
-            label: "Equipamentos",
-            formatter: () => number(metrics.value.total),
-          },
-        },
+    bar: {
+      horizontal: true,
+      barHeight: "56%",
+      borderRadius: 4,
+      borderRadiusApplication: "around",
+      borderRadiusWhenStacked: "all",
+      dataLabels: {
+        position: "center",
+        hideOverflowingLabels: false,
       },
     },
   },
-  stroke: { colors: ["#ffffff"], width: 2 },
+  grid: { show: false, padding: { top: -16, right: 0, bottom: -18, left: 0 } },
+  stroke: { colors: ["#ffffff"], width: 1 },
+  xaxis: {
+    categories: ["Carteira"],
+    max: 100,
+    labels: { show: false },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+  },
+  yaxis: { show: false },
   tooltip: {
     y: { formatter: (value: number) => `${number(value)} equipamento(s)` },
   },
@@ -116,13 +127,25 @@ const pipelineChartOptions = computed<ApexOptions>(() => ({
   chart: { animations: { enabled: false } },
   colors: ["#304f7e"],
   grid: { borderColor: "#e7ebf0", strokeDashArray: 4 },
-  dataLabels: { enabled: true, style: { fontSize: "10px" } },
+  dataLabels: {
+    enabled: true,
+    formatter: (value: number) => value > 0 ? number(value) : "",
+    textAnchor: "start",
+    offsetX: 7,
+    style: {
+      colors: ["#304f7e"],
+      fontSize: "10px",
+      fontWeight: 700,
+    },
+    background: { enabled: false },
+  },
   plotOptions: {
     bar: {
       borderRadius: 4,
       borderRadiusApplication: "end",
       horizontal: true,
       barHeight: "58%",
+      dataLabels: { position: "top" },
     },
   },
   xaxis: {
@@ -134,23 +157,6 @@ const pipelineChartOptions = computed<ApexOptions>(() => ({
     y: { formatter: (value: number) => `${number(value)} equipamento(s)` },
   },
 }));
-
-const riskNarrative = computed(() => {
-  const { overdue, earlyStage, unclassified } = metrics.value;
-  const parts: string[] = [];
-  if (overdue) {
-    parts.push(`${number(overdue)} equipamento(s) com prazo de negociação vencido`);
-  }
-  if (earlyStage) {
-    parts.push(`${number(earlyStage)} em Nova Demanda, Negociação ou Equalização`);
-  }
-  if (unclassified) {
-    parts.push(`${number(unclassified)} sem classificação de prazo disponível`);
-  }
-  return parts.length
-    ? `Pontos de atenção: ${parts.join("; ")}. Os registros exigem acompanhamento conforme seu estágio.`
-    : "Não foram identificados atrasos ou pendências de classificação no recorte disponível.";
-});
 
 function slug(value: string): string {
   return value
@@ -438,10 +444,6 @@ onMounted(() => void loadReport());
                 <h1>{{ projectName }}</h1>
                 <p class="paper-subtitle">{{ unitName }} · Emitido em {{ generatedLabel }}</p>
               </div>
-              <div class="cover-stamp" aria-hidden="true">
-                <span>VISÃO</span>
-                <strong>EXECUTIVA</strong>
-              </div>
             </div>
 
             <section class="paper-section">
@@ -450,25 +452,10 @@ onMounted(() => void loadReport());
                 <h2>Resumo executivo</h2>
               </div>
               <p class="paper-paragraph">
-                A carteira da obra possui <b>{{ totalLabel }} equipamentos</b> e
-                <b>{{ number(metrics.components) }} componentes/subitens</b>. Desse total,
-                <b>{{ number(metrics.completed) }}</b> têm negociação concluída,
-                equivalente a <b>{{ percent(metrics.completedPercent) }}</b>.
+                A carteira da obra possui <b>{{ totalLabel }} Aquisições previstas</b>. Desse total,
+                <b>{{ number(metrics.completed) }}</b> negociações já foram con cluídas,
+                representando aproximadamente <b>{{ percent(metrics.completedPercent) }}</b> de avanço da carteira.
               </p>
-              <div class="metric-grid">
-                <VCard class="metric metric-primary" variant="outlined" rounded="lg">
-                  <span>Equipamentos</span><strong>{{ totalLabel }}</strong><small>Carteira da obra</small>
-                </VCard>
-                <VCard class="metric metric-success" variant="outlined" rounded="lg">
-                  <span>Negociação concluída</span><strong>{{ number(metrics.completed) }}</strong><small>{{ percent(metrics.completedPercent) }} do total</small>
-                </VCard>
-                <VCard class="metric metric-warning" variant="outlined" rounded="lg">
-                  <span>Em atraso</span><strong>{{ number(metrics.overdue) }}</strong><small>{{ percent(metrics.overduePercent) }} do total</small>
-                </VCard>
-                <VCard class="metric metric-neutral" variant="outlined" rounded="lg">
-                  <span>Componentes</span><strong>{{ number(metrics.components) }}</strong><small>Indicador técnico</small>
-                </VCard>
-              </div>
             </section>
 
             <section class="paper-section overview-grid">
@@ -478,14 +465,17 @@ onMounted(() => void loadReport());
                     <span>STATUS DA CARTEIRA</span>
                     <h3 class="minor-heading">Situação das negociações</h3>
                   </div>
-                  <strong>{{ percent(metrics.completedPercent) }}</strong>
+                  <div class="completion-total">
+                    <strong>{{ number(metrics.completed) }}</strong>
+                    <small>de {{ totalLabel }} concluídas</small>
+                  </div>
                 </div>
                 <ChartCanvas
-                  class="report-chart"
-                  type="donut"
+                  class="report-chart status-chart"
+                  type="bar"
                   :options="statusChartOptions"
                   :series="statusSeries"
-                  :height="245"
+                  :height="105"
                   label="Distribuição da situação das negociações"
                 />
                 <div class="status-chips" aria-label="Legenda da situação das negociações">
@@ -497,15 +487,60 @@ onMounted(() => void loadReport());
               </VCard>
               <div class="overview-side">
                 <VCard class="startup-card" variant="tonal" color="primary" rounded="lg">
-                  <span>PRÓXIMO STARTUP CADASTRADO</span>
+                  <div class="startup-card-heading">
+                    <span>PRÓXIMO STARTUP CADASTRADO</span>
+                    <span class="startup-icon" aria-hidden="true">
+                      <CalendarClock :size="18" :stroke-width="1.8" />
+                    </span>
+                  </div>
                   <strong>{{ metrics.nextStartup ? formatReportDate(metrics.nextStartup) : "Não informado" }}</strong>
-                  <small>{{ metrics.daysToNextStartup ?? "—" }} dias restantes</small>
+                  <div class="startup-countdown">
+                    <Clock3 :size="12" :stroke-width="2" aria-hidden="true" />
+                    <small>{{ metrics.daysToNextStartup ?? "—" }} dias restantes</small>
+                  </div>
                 </VCard>
                 <VCard class="attention-card" variant="outlined" rounded="lg">
                   <strong>Principais pontos de atenção</strong>
-                  <p>{{ riskNarrative }}</p>
+                  <p>
+                    Os principais riscos da carteira estão concentrados nos equipamentos que permanecem
+                    nas etapas de Nova Demanda, Negociação e Equalização, uma vez que ainda não iniciaram
+                    o processo formal de aquisição.
+                  </p>
                 </VCard>
               </div>
+            </section>
+
+            <section class="paper-section pipeline-section">
+              <div class="pipeline-heading">
+                <div class="section-title">
+                  <span class="section-index">02</span>
+                  <div>
+                    <h2>Pipeline de aquisição</h2>
+                    <p>Distribuição por etapa após Negociação e Equalização</p>
+                  </div>
+                </div>
+                <div class="pipeline-total">
+                  <strong>{{ number(pipelineTotal) }}</strong>
+                  <span>nas etapas posteriores</span>
+                </div>
+              </div>
+              <VCard class="chart-panel pipeline-panel" variant="outlined" rounded="lg">
+                <ChartCanvas
+                  class="report-chart pipeline-chart"
+                  type="bar"
+                  :options="pipelineChartOptions"
+                  :series="pipelineSeries"
+                  :height="190"
+                  label="Distribuição de equipamentos por etapa do pipeline"
+                />
+              </VCard>
+              <VAlert class="table-commentary pipeline-commentary" type="info" variant="tonal" density="compact">
+                <strong>Comentário executivo</strong>
+                <p>
+                  Os equipamentos que já concluíram a negociação seguem o fluxo normal de aquisição,
+                  contratação e emissão de ordem de compra, sendo monitorados pelas áreas responsáveis.
+                </p>
+              </VAlert>
             </section>
           </VCardText>
           <footer class="paper-footer">
@@ -530,7 +565,7 @@ onMounted(() => void loadReport());
           <VCardText class="paper-content">
             <div class="risk-heading">
               <div class="section-title report-table-title">
-                <span class="section-index">02</span>
+                <span class="section-index">03</span>
                 <div>
                   <h2>Equipamentos em atraso na negociação</h2>
                   <p>Prioridades para acompanhamento · {{ number(metrics.overdue) }} equipamentos</p>
@@ -569,9 +604,24 @@ onMounted(() => void loadReport());
             <VAlert class="table-commentary" type="info" variant="tonal" density="compact">
               <strong>Comentário executivo</strong>
               <p v-if="metrics.overdue">
-                Os equipamentos listados possuem negociação classificada como atrasada pelo Hub e precisam de acompanhamento para regularização.
+                Os equipamentos listados acima possuem prazo de negociação vencido e estão sendo acompanhados
+                junto aos responsáveis para a conclusão das tratativas e avanço ao processo de aquisição.
               </p>
               <p v-else>Não há registros classificados como atrasados no momento da emissão.</p>
+            </VAlert>
+            <VAlert
+              v-if="metrics.overdue"
+              class="final-consideration"
+              type="warning"
+              variant="tonal"
+              density="compact"
+            >
+              <strong>Consideração final</strong>
+              <p>
+                O principal ponto de atenção da carteira permanece nos equipamentos com negociação em atraso,
+                uma vez que estes ainda não ingressaram no fluxo formal de aquisição e podem impactar o cronograma
+                do projeto caso não sejam regularizados dentro do prazo.
+              </p>
             </VAlert>
           </VCardText>
           <footer class="paper-footer">
@@ -580,64 +630,6 @@ onMounted(() => void loadReport());
           </footer>
         </VCard>
 
-        <VCard class="report-page" elevation="1" rounded="lg">
-          <div class="report-accent" />
-          <header class="paper-header">
-            <img class="paper-logo" src="/brand/logo-inpasa.png" alt="Inpasa" crossorigin="anonymous">
-            <span class="paper-label">{{ unitName }} · {{ projectName }}</span>
-          </header>
-          <VDivider />
-          <VCardText class="paper-content">
-            <section class="paper-section">
-              <div class="pipeline-hero">
-                <div>
-                  <span>FLUXO DE AQUISIÇÃO</span>
-                  <strong>{{ number(pipelineTotal) }}</strong>
-                  <small>equipamentos nas etapas posteriores</small>
-                </div>
-                <p>Visão consolidada do avanço da carteira após as etapas iniciais de negociação.</p>
-              </div>
-              <div class="section-title">
-                <span class="section-index">03</span>
-                <h2>Pipeline de aquisição</h2>
-              </div>
-              <p class="paper-paragraph">
-                Distribuição por etapa corrente dos equipamentos que avançaram além de Negociação e Equalização.
-              </p>
-              <VCard class="chart-panel pipeline-panel" variant="outlined" rounded="lg">
-                <ChartCanvas
-                  class="report-chart pipeline-chart"
-                  type="bar"
-                  :options="pipelineChartOptions"
-                  :series="pipelineSeries"
-                  :height="350"
-                  label="Distribuição de equipamentos por etapa do pipeline"
-                />
-              </VCard>
-              <p class="paper-caption">
-                Equipamentos em Nova Demanda, Negociação e Equalização não aparecem nas barras acima.
-              </p>
-              <VAlert class="table-commentary" type="info" variant="tonal" density="compact">
-                O pipeline usa a fase corrente registrada no Hub e preserva a distinção entre equipamento e componente.
-              </VAlert>
-            </section>
-            <section class="paper-section closing-section">
-              <div class="section-title">
-                <span class="section-index">04</span>
-                <h2>Considerações finais</h2>
-              </div>
-              <p class="paper-paragraph">
-                {{ metrics.overdue
-                  ? `O principal ponto de atenção está nos ${number(metrics.overdue)} equipamentos com prazo de negociação vencido. Recomenda-se acompanhar as tratativas para reduzir riscos ao cronograma.`
-                  : "Não foram identificados equipamentos com negociação atrasada nesta consulta. Recomenda-se manter o monitoramento periódico dos prazos e do pipeline." }}
-              </p>
-            </section>
-          </VCardText>
-          <footer class="paper-footer">
-            <span>INPASA · Planejamento / Painel de Equipamentos</span>
-            <span>{{ pageCount }} / {{ pageCount }}</span>
-          </footer>
-        </VCard>
       </div>
 
       <p v-if="rows.length" class="preview-note">
@@ -663,7 +655,7 @@ onMounted(() => void loadReport());
 .paper-header { display: flex; align-items: center; justify-content: space-between; min-height: 68px; padding: 12px 36px; }
 .paper-logo { display: block; width: auto; max-width: 150px; height: 39px; object-fit: contain; }
 .paper-label { color: #718096; font-size: 9px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
-.paper-content { flex: 1 1 auto; padding: 30px 38px 20px !important; }
+.paper-content { flex: 1 1 auto; padding: 30px 38px 60px !important; }
 .paper-heading { margin-bottom: 28px; }
 .paper-kicker { margin: 0 0 7px; color: #5f7d9f; font-size: 9px; font-weight: 800; letter-spacing: .15em; }
 .paper-heading h1 { margin: 0; color: #203b5d; font-size: 30px; line-height: 1.15; }
@@ -671,23 +663,22 @@ onMounted(() => void loadReport());
 .paper-section { margin-bottom: 24px; }
 .section-title { display: flex; align-items: center; gap: 11px; margin-bottom: 13px; }
 .section-title h2 { margin: 0; color: #263f5f; font-size: 16px; }
-.section-index { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: #fff; background: #304f7e; font-size: 9px; font-weight: 800; }
+.section-index { display: inline-flex; align-items: center; width: auto; height: 22px; padding-right: 10px; border-right: 1px solid #d4dde8; color: #304f7e; background: transparent; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
 .paper-paragraph { margin: 0; color: #607086; font-size: 11px; line-height: 1.65; }
-.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
-.metric { display: grid; gap: 4px; min-height: 95px; padding: 13px !important; border-color: #dfe6ee !important; }
-.metric span { color: #77869a; font-size: 9px; font-weight: 700; text-transform: uppercase; }
-.metric strong { color: #2c4f75; font-size: 24px; line-height: 1; }
-.metric small { color: #9aa5b2; font-size: 8px; }
-.metric-warning { border-color: #e5c1b7 !important; background: #fff9f7; }
-.metric-warning strong { color: #b25d49; }
-.overview-grid { display: grid; grid-template-columns: 1.16fr .84fr; gap: 22px; align-items: start; }
+.overview-grid { display: grid; grid-template-columns: 1fr; gap: 11px; align-items: start; }
 .minor-heading { margin: 0 0 5px; color: #405a78; font-size: 12px; }
-.status-chips { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-top: -5px; }
-.overview-side { display: grid; gap: 12px; padding-top: 27px; }
+.completion-total { display: grid; justify-items: end; }
+.completion-total strong { color: #609346; font-size: 20px; line-height: 1; }
+.completion-total small { margin-top: 3px; color: #8996a5; font-size: 8px; }
+.status-chips { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-top: -3px; }
+.overview-side { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; padding-top: 0; }
 .startup-card, .attention-card { display: grid; gap: 8px; padding: 18px !important; }
-.startup-card span { font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.startup-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.startup-card-heading > span:first-child { font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.startup-icon { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgb(48 79 126 / 12%); border-radius: 9px; color: #304f7e; background: rgb(255 255 255 / 62%); }
 .startup-card strong { font-size: 21px; }
-.startup-card small { font-size: 10px; }
+.startup-countdown { display: flex; align-items: center; gap: 5px; color: #617b9a; }
+.startup-countdown small { font-size: 9px; font-weight: 650; }
 .attention-card strong { color: #344e6c; font-size: 11px; }
 .attention-card p { margin: 0; color: #6e7d8f; font-size: 10px; line-height: 1.55; }
 .report-table-title { margin: 0 0 24px; }
@@ -707,10 +698,18 @@ onMounted(() => void loadReport());
 .no-overdue { padding: 34px !important; text-align: center; }
 .table-commentary { margin-top: 20px; font-size: 10px; }
 .table-commentary p { margin: 4px 0 0; line-height: 1.55; }
-.pipeline-chart { margin: 12px 0 4px; }
-.paper-caption { margin: 5px 0 0; color: #939eaa; font-size: 9px; }
-.closing-section { margin-top: 27px; padding-top: 22px; border-top: 1px solid #e9edf2; }
-.paper-footer { display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 38px; border-top: 1px solid #edf0f4; color: #929eac; font-size: 8px; }
+.final-consideration { margin-top: 10px; font-size: 10px; }
+.final-consideration p { margin: 4px 0 0; line-height: 1.55; }
+.pipeline-section { margin-top: 20px; }
+.pipeline-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 10px; }
+.pipeline-heading .section-title { margin: 0; }
+.pipeline-heading .section-title p { margin: 2px 0 0; color: #8794a5; font-size: 9px; }
+.pipeline-total { display: grid; min-width: 116px; padding-left: 18px; border-left: 1px solid #e2e7ed; text-align: right; }
+.pipeline-total strong { color: #304f7e; font-size: 22px; line-height: 1; }
+.pipeline-total span { margin-top: 3px; color: #8996a5; font-size: 7px; text-transform: uppercase; }
+.pipeline-chart { margin: 0; }
+.pipeline-commentary { margin-top: 10px; }
+.paper-footer { position: absolute; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: space-between; height: 43px; padding: 0 38px; border-top: 1px solid #edf0f4; color: #929eac; font-size: 8px; line-height: 1; }
 .preview-note { margin: 0; color: #7d8b9d; font-size: 11px; }
 
 /* Identidade editorial do relatório. As dimensões continuam fixas em A4 para
@@ -749,7 +748,7 @@ onMounted(() => void loadReport());
   font-size: 8px;
 }
 .paper-content {
-  padding: 26px 36px 18px !important;
+  padding: 26px 36px 60px !important;
 }
 .paper-heading--cover {
   position: relative;
@@ -763,31 +762,15 @@ onMounted(() => void loadReport());
   border-radius: 14px;
   color: #fff;
   background:
-    linear-gradient(115deg, rgb(30 58 91 / 98%), rgb(48 79 126 / 94%)),
+    linear-gradient(90deg, rgb(27 53 85 / 88%) 0%, rgb(31 61 96 / 72%) 34%, rgb(32 66 104 / 28%) 63%, rgb(23 56 91 / 5%) 100%),
+    url("/brand/usina.jpg") 62% 56% / cover no-repeat,
     #304f7e;
 }
 .paper-heading--cover::before,
 .paper-heading--cover::after {
-  position: absolute;
-  border-radius: 50%;
-  content: "";
+  display: none;
 }
-.paper-heading--cover::before {
-  top: -74px;
-  right: 64px;
-  width: 190px;
-  height: 190px;
-  border: 34px solid rgb(255 255 255 / 6%);
-}
-.paper-heading--cover::after {
-  right: -35px;
-  bottom: -64px;
-  width: 155px;
-  height: 155px;
-  background: rgb(240 165 54 / 16%);
-}
-.cover-copy,
-.cover-stamp {
+.cover-copy {
   position: relative;
   z-index: 1;
 }
@@ -801,70 +784,18 @@ onMounted(() => void loadReport());
   font-size: 31px;
   letter-spacing: -.025em;
 }
-.cover-stamp {
-  display: grid;
-  gap: 2px;
-  min-width: 112px;
-  padding: 12px 14px;
-  border: 1px solid rgb(255 255 255 / 18%);
-  border-radius: 10px;
-  background: rgb(255 255 255 / 8%);
-  backdrop-filter: blur(4px);
-}
-.cover-stamp span {
-  color: rgb(255 255 255 / 62%);
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: .16em;
-}
-.cover-stamp strong {
-  color: #fff;
-  font-size: 10px;
-  letter-spacing: .08em;
-}
 .section-title {
   gap: 10px;
 }
 .section-index {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  box-shadow: 0 5px 12px rgb(48 79 126 / 18%);
-}
-.metric-grid {
-  gap: 11px;
-  margin-top: 16px;
-}
-.metric {
-  position: relative;
-  min-height: 102px;
-  padding: 15px 14px 13px !important;
-  overflow: hidden;
-  border-color: #e2e7ed !important;
-  background: linear-gradient(145deg, #fff, #fafbfd);
-  box-shadow: 0 7px 18px rgb(39 62 91 / 6%);
-}
-.metric::before {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 3px;
-  background: #8797a9;
-  content: "";
-}
-.metric-primary::before { background: #304f7e; }
-.metric-success::before { background: #609346; }
-.metric-warning::before { background: #c26850; }
-.metric-neutral::before { background: #f0a536; }
-.metric strong {
-  margin-top: 3px;
-  font-size: 26px;
-  letter-spacing: -.03em;
+  width: auto;
+  height: 22px;
+  border-radius: 0;
+  box-shadow: none;
 }
 .overview-grid {
-  grid-template-columns: 1.2fr .8fr;
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 11px;
   margin-bottom: 0;
 }
 .chart-panel {
@@ -892,17 +823,18 @@ onMounted(() => void loadReport());
   color: #609346;
   font-size: 18px;
 }
-.status-chips {
-  gap: 4px;
-  margin-top: -8px;
-}
 .overview-side {
-  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
   padding-top: 0;
 }
 .startup-card {
-  min-height: 130px;
-  padding: 20px !important;
+  position: relative;
+  gap: 4px;
+  min-height: 105px;
+  padding: 15px 17px !important;
+  overflow: hidden;
+  border: 1px solid #d9e3ee !important;
   background: linear-gradient(145deg, #eaf0f7, #f4f7fa) !important;
 }
 .startup-card strong {
@@ -911,7 +843,8 @@ onMounted(() => void loadReport());
   letter-spacing: -.02em;
 }
 .attention-card {
-  min-height: 155px;
+  min-height: 105px;
+  padding: 15px 17px !important;
   border-color: #ead8d1 !important;
   background: linear-gradient(145deg, #fff, #fff8f5);
 }
@@ -921,18 +854,18 @@ onMounted(() => void loadReport());
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 22px;
-  padding: 20px 22px;
-  border: 1px solid #ebd7d1;
-  border-radius: 13px;
-  background: linear-gradient(100deg, #fff8f5, #fff);
+  margin-bottom: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 .risk-heading .report-table-title { margin: 0; }
 .risk-total {
   display: grid;
   min-width: 92px;
   padding-left: 20px;
-  border-left: 1px solid #ead3cc;
+  border-left: 1px solid #dfe5ec;
   text-align: right;
 }
 .risk-total strong {
@@ -965,40 +898,9 @@ onMounted(() => void loadReport());
 .table-commentary {
   border-radius: 10px;
 }
-.pipeline-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 30px;
-  margin-bottom: 25px;
-  padding: 23px 26px;
-  border-radius: 14px;
-  color: #fff;
-  background: linear-gradient(110deg, #254365, #375f8d);
-}
-.pipeline-hero > div { display: grid; }
-.pipeline-hero span {
-  color: rgb(255 255 255 / 68%);
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: .13em;
-}
-.pipeline-hero strong {
-  margin: 5px 0 1px;
-  font-size: 30px;
-  line-height: 1;
-}
-.pipeline-hero small { color: rgb(255 255 255 / 72%); font-size: 9px; }
-.pipeline-hero p {
-  max-width: 330px;
-  margin: 0;
-  color: rgb(255 255 255 / 78%);
-  font-size: 10px;
-  line-height: 1.55;
-}
 .pipeline-panel {
-  margin-top: 14px;
-  padding: 8px 18px 2px !important;
+  margin-top: 0;
+  padding: 2px 18px 0 !important;
   background: linear-gradient(180deg, #fff, #fbfcfd);
 }
 .paper-footer {

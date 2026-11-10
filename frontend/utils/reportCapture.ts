@@ -8,6 +8,42 @@ interface ChartReplacement {
   image: HTMLImageElement;
 }
 
+function cssChannel(value: string): number {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) return 0;
+  const normalized = value.endsWith("%") ? parsed / 100 : parsed;
+  return Math.round(Math.min(1, Math.max(0, normalized)) * 255);
+}
+
+/** Chrome pode expor cores calculadas como `color(srgb ...)` ou
+ * `color(display-p3 ...)`. O parser do html2canvas ainda não aceita essa
+ * sintaxe, então a convertemos para rgba somente dentro do clone capturado. */
+export function normalizeUnsupportedColorFunctions(value: string): string {
+  return value.replace(
+    /color\(\s*(?:srgb|display-p3)\s+([+-]?(?:\d*\.)?\d+%?)\s+([+-]?(?:\d*\.)?\d+%?)\s+([+-]?(?:\d*\.)?\d+%?)(?:\s*\/\s*([+-]?(?:\d*\.)?\d+%?))?\s*\)/gi,
+    (_match, red: string, green: string, blue: string, alpha?: string) => {
+      const opacity = alpha === undefined
+        ? 1
+        : Math.min(1, Math.max(0, Number.parseFloat(alpha) / (alpha.endsWith("%") ? 100 : 1)));
+      return `rgba(${cssChannel(red)}, ${cssChannel(green)}, ${cssChannel(blue)}, ${opacity})`;
+    },
+  );
+}
+
+export function sanitizeReportCloneColors(root: HTMLElement): void {
+  const elements = [root, ...Array.from(root.querySelectorAll<HTMLElement>("*"))];
+  for (const element of elements) {
+    const computed = getComputedStyle(element);
+    for (let index = 0; index < computed.length; index += 1) {
+      const property = computed.item(index);
+      const value = computed.getPropertyValue(property);
+      if (!value.toLowerCase().includes("color(")) continue;
+      const normalized = normalizeUnsupportedColorFunctions(value);
+      if (normalized !== value) element.style.setProperty(property, normalized, "important");
+    }
+  }
+}
+
 function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
@@ -106,6 +142,8 @@ export async function captureReportElement(
 ): Promise<HTMLCanvasElement> {
   await waitForReportAssets(element);
   const restoreCharts = await rasterizeApexCharts(element);
+  const previousCaptureTarget = element.dataset.reportCaptureTarget;
+  element.dataset.reportCaptureTarget = "true";
   try {
     const { default: html2canvas } = await import("html2canvas");
     return await html2canvas(element, {
@@ -123,6 +161,10 @@ export async function captureReportElement(
       windowHeight: Math.max(document.documentElement.clientHeight, element.scrollHeight),
       removeContainer: true,
       onclone: (clonedDocument) => {
+        const clonedElement = clonedDocument.querySelector<HTMLElement>(
+          `[data-report-capture-target="${element.dataset.reportCaptureTarget}"]`,
+        );
+        if (clonedElement) sanitizeReportCloneColors(clonedElement);
         const style = clonedDocument.createElement("style");
         style.dataset.reportCapture = "true";
         style.textContent = `
@@ -139,6 +181,8 @@ export async function captureReportElement(
       },
     });
   } finally {
+    if (previousCaptureTarget === undefined) delete element.dataset.reportCaptureTarget;
+    else element.dataset.reportCaptureTarget = previousCaptureTarget;
     restoreCharts();
   }
 }

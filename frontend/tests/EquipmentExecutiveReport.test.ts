@@ -88,14 +88,19 @@ describe("EquipmentExecutiveReport", () => {
     });
     await flushPromises();
 
-    expect(wrapper.findAll(".report-page")).toHaveLength(3);
-    expect(wrapper.findAll("img.paper-logo")).toHaveLength(3);
+    expect(wrapper.findAll(".report-page")).toHaveLength(2);
+    expect(wrapper.findAll("img.paper-logo")).toHaveLength(2);
     expect(
       wrapper.findAll("img.paper-logo").every((logo) => logo.attributes("src") === "/brand/logo-inpasa.png"),
     ).toBe(true);
     const charts = wrapper.findAllComponents(ChartCanvasStub);
-    expect(charts.map((chart) => chart.props("type"))).toEqual(["donut", "bar"]);
-    expect(charts[0]?.props("series")).toEqual([0, 0, 1, 0]);
+    expect(charts.map((chart) => chart.props("type"))).toEqual(["bar", "bar"]);
+    expect(charts[0]?.props("series")).toEqual([
+      { name: "Concluído", data: [0] },
+      { name: "No prazo", data: [0] },
+      { name: "Atrasado", data: [1] },
+      { name: "Sem classificação", data: [0] },
+    ]);
     expect(charts[1]?.props("series")).toEqual([
       { name: "Equipamentos", data: [1, 0, 0, 0, 0, 0] },
     ]);
@@ -108,6 +113,6 @@ describe("EquipmentExecutiveReport", () => {
     expect(text).toContain("Caldeira de Biomassa");
     expect(text).toContain("Abertura de Chamado");
     expect(text).toContain("Pipeline de aquisição");
-    expect(text).toContain("Considerações finais");
+    expect(text).toContain("Os equipamentos que já concluíram a negociação seguem o fluxo normal de aquisição");
   });
 });

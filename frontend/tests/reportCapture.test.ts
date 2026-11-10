@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   captureReportElement,
+  normalizeUnsupportedColorFunctions,
   rasterizeApexCharts,
   stitchReportCanvases,
 } from "~/utils/reportCapture";
@@ -13,6 +14,13 @@ describe("reportCapture", () => {
   beforeEach(() => {
     html2canvasMock.mockReset();
     document.body.innerHTML = "";
+  });
+
+  it("converts modern color functions unsupported by html2canvas", () => {
+    expect(normalizeUnsupportedColorFunctions("color(srgb 0.2 0.4 0.6)"))
+      .toBe("rgba(51, 102, 153, 1)");
+    expect(normalizeUnsupportedColorFunctions("1px solid color(display-p3 100% 0% 50% / 25%)"))
+      .toBe("1px solid rgba(255, 0, 128, 0.25)");
   });
 
   it("passes valid html2canvas options without replacing its canvas option", async () => {
