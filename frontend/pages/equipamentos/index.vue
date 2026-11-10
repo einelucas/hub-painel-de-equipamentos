@@ -21,6 +21,7 @@ import { formatDateOnly } from "~/utils/format";
 import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
+import EquipmentExecutiveReport from "~/components/equipment/EquipmentExecutiveReport.vue";
 import { Sparkles } from "lucide-vue-next";
 import { VBtn } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
@@ -54,6 +55,12 @@ const refreshing = ref(false);
 const error = ref("");
 const showForm = ref(false);
 const showAdmin = ref(false);
+const reportSelection = ref<{
+  unitId: string;
+  projectContextId: string;
+  unitName: string;
+  projectName: string;
+} | null>(null);
 let requestVersion = 0;
 let quietRefresh = false;
 let unsubscribeSync: (() => void) | null = null;
@@ -67,6 +74,30 @@ const canCreate = computed(
 const canAdminister = computed(
   () => auth.can("catalogs:manage") || auth.can("users:manage"),
 );
+const canGenerateReport = computed(
+  () => Boolean(context.selectedUnit && context.selectedProjectContext) &&
+    !context.loading && !context.optionsLoading,
+);
+
+/** O escopo é fixado no clique. Filtro de equipamento e filtros locais não
+ * reduzem o report: ele sempre representa a carteira inteira da obra. */
+function openExecutiveReport(): void {
+  if (!canGenerateReport.value) return;
+  const unit = context.units.find((item) => item.id === context.selectedUnit);
+  const project = context.projectContexts.find(
+    (item) => item.id === context.selectedProjectContext,
+  );
+  if (!unit || !project) {
+    error.value = "A unidade e a obra selecionadas não estão disponíveis. Atualize os filtros.";
+    return;
+  }
+  reportSelection.value = {
+    unitId: unit.id,
+    projectContextId: project.id,
+    unitName: unit.name,
+    projectName: project.name,
+  };
+}
 
 /**
  * Área vem da EAP (Processo/Área), a mesma localização gravada no equipamento;
@@ -372,7 +403,14 @@ onBeforeUnmount(() => unsubscribeSync?.());
           >
             Novo equipamento
           </VBtn>
-          <VBtn variant="outlined" size="default">
+          <VBtn
+            variant="outlined"
+            size="default"
+            :disabled="!canGenerateReport || loading"
+            :title="!canGenerateReport ? 'Selecione Unidade e Obra para gerar o report' : 'Gerar relatório executivo da obra inteira'"
+            data-testid="generate-report-button"
+            @click="openExecutiveReport"
+          >
             <Sparkles class="text-[12px] opacity-60 mr-1" /> Gerar Report
           </VBtn>
         </template>
@@ -511,6 +549,16 @@ onBeforeUnmount(() => unsubscribeSync?.());
         @cancel="showForm = false"
       />
     </AppModal>
+
+    <EquipmentExecutiveReport
+      v-if="reportSelection"
+      :key="`${reportSelection.unitId}-${reportSelection.projectContextId}`"
+      :unit-id="reportSelection.unitId"
+      :project-context-id="reportSelection.projectContextId"
+      :unit-name="reportSelection.unitName"
+      :project-name="reportSelection.projectName"
+      @close="reportSelection = null"
+    />
   </ModuleWorkspace>
 </template>
 
