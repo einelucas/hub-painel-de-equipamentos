@@ -40,6 +40,37 @@ describe("relatório executivo da obra", () => {
     ], date);
     expect(data.overdueEquipments.map((x) => x.daysLate)).toEqual([9, 2]);
   });
+  it("contabiliza OVERDUE apenas nas etapas 0, 1 e 2", () => {
+    const base = make().calculated;
+    const overdueByStage = Array.from({ length: 9 }, (_, currentStage) =>
+      make({
+        id: `stage-${currentStage}`,
+        name: `Etapa ${currentStage}`,
+        currentStage,
+        calculated: {
+          ...base,
+          negotiationStatus: "OVERDUE",
+          negotiationDeadline: "2026-11-01",
+          negotiationDaysRemaining: -9,
+        },
+      }),
+    );
+    const onTrack = make({
+      id: "on-track",
+      currentStage: 1,
+      calculated: { ...base, negotiationStatus: "ON_TRACK" },
+    });
+
+    const data = buildEquipmentReport([...overdueByStage, onTrack], date);
+
+    expect(data.overdueEquipments.map((item) => item.equipment.currentStage)).toEqual([0, 1, 2]);
+    expect(data.overdue).toBe(3);
+    expect(data.overduePercent).toBe(30);
+    expect(data.onTime).toBe(1);
+    expect(data.unclassified).toBe(6);
+    expect(data.unclassifiedPercent).toBe(60);
+    expect(data.pipeline.map((item) => item.count)).toEqual([1, 1, 1, 1, 1, 1]);
+  });
   it("considera apenas startups futuros, sem herdar startup entre componentes", () => {
     const data = buildEquipmentReport([
       make({ startupAt: "2026-11-09" }),

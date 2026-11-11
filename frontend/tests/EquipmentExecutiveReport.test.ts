@@ -66,10 +66,17 @@ const ChartCanvasStub = defineComponent({
 
 describe("EquipmentExecutiveReport", () => {
   beforeEach(() => {
+    const equipments = Array.from({ length: 9 }, (_, currentStage) => ({
+      ...equipment,
+      id: `eq-${currentStage}`,
+      name: `Equipamento etapa ${currentStage}`,
+      currentStage,
+      stageName: `Etapa ${currentStage}`,
+    }));
     vi.stubGlobal("useApi", () => ({
       get: vi.fn().mockResolvedValue({
-        items: [equipment],
-        pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
+        items: equipments,
+        pagination: { page: 1, pageSize: 100, total: 9, totalPages: 1 },
       }),
     }));
   });
@@ -88,6 +95,7 @@ describe("EquipmentExecutiveReport", () => {
     });
     await flushPromises();
 
+    expect(wrapper.find('[data-testid="report-html"]').exists()).toBe(true);
     expect(wrapper.findAll(".report-page")).toHaveLength(2);
     expect(wrapper.findAll("img.paper-logo")).toHaveLength(2);
     expect(
@@ -98,11 +106,11 @@ describe("EquipmentExecutiveReport", () => {
     expect(charts[0]?.props("series")).toEqual([
       { name: "Concluído", data: [0] },
       { name: "No prazo", data: [0] },
-      { name: "Atrasado", data: [1] },
-      { name: "Sem classificação", data: [0] },
+      { name: "Atrasado", data: [3] },
+      { name: "Sem classificação", data: [6] },
     ]);
     expect(charts[1]?.props("series")).toEqual([
-      { name: "Equipamentos", data: [1, 0, 0, 0, 0, 0] },
+      { name: "Equipamentos", data: [1, 1, 1, 1, 1, 1] },
     ]);
     const text = wrapper.text();
     expect(text).toContain("Resumo executivo");
@@ -110,8 +118,11 @@ describe("EquipmentExecutiveReport", () => {
     expect(text).toContain("PRÓXIMO STARTUP CADASTRADO");
     expect(text).toContain("Principais pontos de atenção");
     expect(text).toContain("Equipamentos em atraso na negociação");
-    expect(text).toContain("Caldeira de Biomassa");
-    expect(text).toContain("Abertura de Chamado");
+    expect(text).toContain("Equipamento etapa 0");
+    expect(text).toContain("Equipamento etapa 1");
+    expect(text).toContain("Equipamento etapa 2");
+    expect(text).not.toContain("Equipamento etapa 3");
+    expect(text).not.toContain("Equipamento etapa 8");
     expect(text).toContain("Pipeline de aquisição");
     expect(text).toContain("Os equipamentos que já concluíram a negociação seguem o fluxo normal de aquisição");
   });

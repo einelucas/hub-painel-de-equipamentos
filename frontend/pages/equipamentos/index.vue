@@ -17,8 +17,6 @@ import type {
   Pagination,
   Responsible,
 } from "~/types/equipment";
-import { formatDateOnly } from "~/utils/format";
-import { equipmentLocationLabel } from "~/utils/equipmentLocation";
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import EquipmentExecutiveReport from "~/components/equipment/EquipmentExecutiveReport.vue";
@@ -262,23 +260,9 @@ async function exportAll(): Promise<void> {
       },
     );
 
-    useExport().excel(
+    await useExport().excel(
       `equipamentos-${new Date().toISOString().slice(0, 10)}`,
-      rows.map((item) => ({
-        Equipamento: item.name,
-        Unidade: item.unit.name,
-        Contexto: item.projectContext.code ?? item.projectContext.name,
-        Área: equipmentLocationLabel(item) ?? "",
-        Disciplina: item.discipline?.name ?? "",
-        "Work Packages": item.workPackages
-          .map((wp) => wp.code ?? wp.name)
-          .join(", "),
-        Responsável: item.responsibleUser?.name ?? "",
-        Etapa: `${item.currentStage} · ${item.stageName}`,
-        Startup: formatDateOnly(item.startupAt),
-        Criticidade: item.criticalityLabel?.name ?? item.criticality ?? "",
-        Componentes: item.componentsCount,
-      })),
+      rows,
     );
   } catch (caught) {
     error.value =

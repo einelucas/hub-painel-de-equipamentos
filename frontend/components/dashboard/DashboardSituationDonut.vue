@@ -39,7 +39,7 @@ function formatValue(value: number): string {
   }).format(value);
 }
 
-const apexRef = ref<InstanceType<typeof VueApexCharts> | null>(null);
+const apexRef = ref<{ chart?: { toggleSeries: (seriesName: string) => void } } | null>(null);
 
 /** Fatias ocultas pelo clique na legenda (ficam acinzentadas, como no gráfico de situação de prazos). */
 const hiddenLabels = ref<Set<string>>(new Set());

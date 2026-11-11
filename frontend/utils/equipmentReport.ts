@@ -21,6 +21,7 @@ export interface EquipmentReportMetrics {
 }
 
 const ON_TIME = new Set(["DUE_TODAY", "CRITICAL", "URGENT", "UPCOMING", "ON_TRACK"]);
+const NEGOTIATION_STAGES = new Set([0, 1, 2]);
 const PIPELINE = [
   { stage: 3, label: "Abertura de Chamado" },
   { stage: 4, label: "Aprovação de Minuta" },
@@ -83,7 +84,7 @@ export function buildEquipmentReport(
 
     const status = equipment.calculated?.negotiationStatus;
     if (status === "COMPLETED") completed++;
-    else if (status === "OVERDUE") {
+    else if (status === "OVERDUE" && NEGOTIATION_STAGES.has(equipment.currentStage)) {
       const apiDays = equipment.calculated?.negotiationDaysRemaining;
       const deadlineDay = calendarDay(equipment.calculated?.negotiationDeadline);
       const daysLate = typeof apiDays === "number" && Number.isFinite(apiDays) && apiDays < 0

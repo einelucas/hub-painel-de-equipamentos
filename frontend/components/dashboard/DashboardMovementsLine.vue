@@ -15,7 +15,7 @@ const options = computed<ApexOptions>(() => ({
   xaxis: { categories: props.months.map((item) => monthCaption(item.month)), labels: { style: { fontSize: "10px" } } },
   yaxis: { min: 0, labels: { formatter: (n) => String(Math.round(n)) } },
   dataLabels: { enabled: false },
-  tooltip: { y: { formatter: (n) => `${Math.round(n)} transições registradas` } },
+  tooltip: { y: { formatter: (n) => `${Math.round(n ?? 0)} transições registradas` } },
   grid: { borderColor: CHART_COLORS.border },
 }));
 </script>

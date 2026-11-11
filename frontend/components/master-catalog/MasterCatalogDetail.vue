@@ -11,7 +11,7 @@ import {
 import { computed } from "vue";
 import { Boxes, CircleHelp, Info, Layers3, Package, SearchX } from "lucide-vue-next";
 import {
-  VAutocomplete, VBtn, VChip, VIcon, VList, VListItem, VMenu, VTextField,
+  VAutocomplete, VBtn, VChip, VList, VListItem, VMenu, VTextField,
 } from "vuetify/components";
 import Badge from "~/components/ui/Badge.vue";
 import LoadingSpinner from "~/components/ui/LoadingSpinner.vue";

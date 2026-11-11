@@ -1,13 +1,13 @@
-import { utils, writeFile } from "xlsx";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import type { Equipment } from "~/types/equipment";
 
 export function useExport() {
-  function excel(fileName: string, rows: Array<Record<string, unknown>>) {
-    const book = utils.book_new();
-    const sheet = utils.json_to_sheet(rows.length ? rows : [{ mensagem: "Sem dados" }]);
-    utils.book_append_sheet(book, sheet, "Dados");
-    writeFile(book, fileName.endsWith(".xlsx") ? fileName : `${fileName}.xlsx`);
+  async function excel(fileName: string, equipments: Equipment[]): Promise<void> {
+    const { downloadEquipmentWorkbook } = await import(
+      "~/utils/equipmentExcelExport"
+    );
+    await downloadEquipmentWorkbook(fileName, equipments);
   }
 
   function pdf(fileName: string, title: string, rows: Array<Record<string, unknown>>) {

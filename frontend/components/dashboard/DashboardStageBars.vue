@@ -14,7 +14,7 @@ const options = computed<ApexOptions>(() => ({
     toolbar: { show: true },
     events: {
       dataPointSelection: (_event, _context, config) => {
-        const item = ordered.value[config.dataPointIndex];
+        const item = ordered.value[config?.dataPointIndex ?? -1];
         if (item) emit("selectStage", item.stage);
       },
     },

@@ -21,7 +21,7 @@ const options = computed<ApexOptions>(() => ({
   plotOptions: { bar: { horizontal: true, barHeight: "52%", borderRadius: 3 } },
   xaxis: { categories: ["Prazo"], labels: { formatter: (v) => `${Math.round(Number(v))}%` } },
   yaxis: { show: false },
-  dataLabels: { enabled: true, formatter: (_v, context) => String(series.value[context.seriesIndex]?.data[0] ?? ""), style: { fontSize: "11px", fontWeight: 700 } },
+  dataLabels: { enabled: true, formatter: (_v, context) => String(series.value[context?.seriesIndex ?? -1]?.data[0] ?? ""), style: { fontSize: "11px", fontWeight: 700 } },
   legend: { show: true, position: "bottom", fontSize: "11px" },
   grid: { show: false, padding: { left: 0, right: 10 } },
   tooltip: { y: { formatter: (v) => `${v} equipamentos` } },

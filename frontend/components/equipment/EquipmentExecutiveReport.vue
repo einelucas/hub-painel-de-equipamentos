@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from "vue";
 import type { ApexOptions } from "apexcharts";
-import { mdiFilePdfBox, mdiImageOutline, mdiRefresh } from "@mdi/js";
+import {
+  mdiFilePdfBox,
+  mdiImageOutline,
+  mdiLanguageHtml5,
+  mdiRefresh,
+} from "@mdi/js";
 import { CalendarClock, Clock3 } from "lucide-vue-next";
 import {
   VAlert,
@@ -38,7 +43,7 @@ const emit = defineEmits<{ close: [] }>();
 const api = useApi();
 const previewEl = ref<HTMLElement | null>(null);
 const loading = ref(true);
-const downloading = ref<"pdf" | "png" | null>(null);
+const downloading = ref<"pdf" | "png" | "html" | null>(null);
 const error = ref("");
 const downloadError = ref("");
 const progress = ref("");
@@ -288,6 +293,32 @@ async function savePdf(): Promise<void> {
   }
 }
 
+async function saveHtml(): Promise<void> {
+  if (busy.value || !rows.value.length) return;
+  downloading.value = "html";
+  downloadError.value = "";
+  progress.value = "Preparando HTML interativo e incorporando os gráficos...";
+  try {
+    const { downloadEquipmentReportHtml } = await import(
+      "~/utils/equipmentReportHtml"
+    );
+    await downloadEquipmentReportHtml(`${fileBase.value}.html`, {
+      unitName: props.unitName,
+      projectName: props.projectName,
+      generatedAt: generatedAt.value,
+      metrics: metrics.value,
+    });
+  } catch (caught) {
+    downloadError.value =
+      caught instanceof Error
+        ? caught.message
+        : "Não foi possível salvar o HTML.";
+  } finally {
+    downloading.value = null;
+    progress.value = "";
+  }
+}
+
 function saveCanvas(
   canvas: HTMLCanvasElement,
   filename: string,
@@ -390,6 +421,18 @@ onMounted(() => void loadReport());
             variant="outlined"
             color="primary"
             size="small"
+            :prepend-icon="mdiLanguageHtml5"
+            :loading="downloading === 'html'"
+            :disabled="busy || !rows.length"
+            data-testid="report-html"
+            @click="saveHtml"
+          >
+            Salvar HTML
+          </VBtn>
+          <VBtn
+            variant="outlined"
+            color="primary"
+            size="small"
             :prepend-icon="mdiImageOutline"
             :loading="downloading === 'png'"
             :disabled="busy || !rows.length"
@@ -474,8 +517,8 @@ onMounted(() => void loadReport());
               <p class="paper-paragraph">
                 A carteira da obra possui
                 <b>{{ totalLabel }} Aquisições previstas</b>. Desse total,
-                <b>{{ number(metrics.completed) }}</b> aquisições já foram con
-                cluídas, representando aproximadamente
+                <b>{{ number(metrics.completed) }}</b> aquisições já foram
+                concluídas, representando aproximadamente
                 <b>{{ percent(metrics.completedPercent) }}</b> de avanço da
                 carteira.
               </p>
@@ -728,7 +771,8 @@ onMounted(() => void loadReport());
 
       <p v-if="rows.length" class="preview-note">
         O PDF contém todas as páginas. O PNG é contínuo; relatórios com mais de
-        seis páginas são divididos em arquivos numerados.
+        seis páginas são divididos em arquivos numerados. O HTML é interativo e
+        funciona offline.
       </p>
     </div>
   </AppModal>

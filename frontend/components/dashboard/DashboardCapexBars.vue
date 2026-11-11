@@ -15,7 +15,7 @@ const options = computed<ApexOptions>(() => ({
   xaxis: { categories: informed.value.map((stage) => `${stage.stage}. ${stage.label}`), labels: { formatter: (value) => `R$ ${Math.round(Number(value) / 1000)} mil` } },
   yaxis: { labels: { maxWidth: 155, style: { fontSize: "10px" } } },
   dataLabels: { enabled: false },
-  tooltip: { y: { formatter: (n, opts) => `${formatCurrency(n)} · ${informed.value[opts.dataPointIndex]?.informed ?? 0} com CAPEX` } },
+  tooltip: { y: { formatter: (n, opts) => `${formatCurrency(n)} · ${informed.value[opts?.dataPointIndex ?? -1]?.informed ?? 0} com CAPEX` } },
   legend: { show: false },
   grid: { borderColor: CHART_COLORS.border },
 }));
