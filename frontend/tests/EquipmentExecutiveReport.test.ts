@@ -4,6 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import EquipmentExecutiveReport from "~/components/equipment/EquipmentExecutiveReport.vue";
 import type { Equipment } from "~/types/equipment";
 
+vi.mock("~/utils/equipmentReportHtml", () => ({
+  generateEquipmentReportHtml: vi.fn().mockResolvedValue(
+    '<!doctype html><html lang="pt-BR"><body>MODELO HTML</body></html>',
+  ),
+  downloadEquipmentReportHtml: vi.fn(),
+}));
+
 const equipment: Equipment = {
   id: "eq-1",
   name: "Caldeira de Biomassa",
@@ -125,5 +132,41 @@ describe("EquipmentExecutiveReport", () => {
     expect(text).not.toContain("Equipamento etapa 8");
     expect(text).toContain("Pipeline de aquisição");
     expect(text).toContain("Os equipamentos que já concluíram a negociação seguem o fluxo normal de aquisição");
+  });
+
+  it("alternates the report preview between PDF and the exact HTML model", async () => {
+    const wrapper = mount(EquipmentExecutiveReport, {
+      props: {
+        unitId: "unit-1",
+        projectContextId: "ctx-1",
+        unitName: "Nova Mutum",
+        projectName: "Caldeira 4",
+      },
+      global: {
+        components: { AppModal: AppModalStub, ChartCanvas: ChartCanvasStub },
+      },
+    });
+    await flushPromises();
+
+    const toggle = wrapper.get('[data-testid="report-preview-toggle"]');
+    expect(toggle.attributes("aria-label")).toBe("Visualizar modelo HTML");
+    expect(wrapper.findAll(".report-page")).toHaveLength(2);
+    expect(wrapper.find("iframe.report-html-frame").exists()).toBe(false);
+
+    await toggle.trigger("click");
+    await flushPromises();
+    expect(wrapper.find(".report-page").exists()).toBe(false);
+    const frame = wrapper.get("iframe.report-html-frame");
+    expect(frame.attributes("srcdoc")).toContain("MODELO HTML");
+    expect(frame.attributes("sandbox")).toBe("allow-scripts");
+    expect(toggle.attributes("aria-label")).toBe("Voltar à visualização PDF");
+    expect(toggle.attributes("aria-pressed")).toBe("true");
+
+    await toggle.trigger("click");
+    await flushPromises();
+    expect(wrapper.findAll(".report-page")).toHaveLength(2);
+    expect(wrapper.find("iframe.report-html-frame").exists()).toBe(false);
+    expect(toggle.attributes("aria-label")).toBe("Visualizar modelo HTML");
+    expect(toggle.attributes("aria-pressed")).toBe("false");
   });
 });
