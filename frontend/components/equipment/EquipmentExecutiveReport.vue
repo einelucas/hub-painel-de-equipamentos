@@ -48,7 +48,9 @@ const generatedAt = ref(new Date());
 const metrics = computed<EquipmentReportMetrics>(() =>
   buildEquipmentReport(rows.value, generatedAt.value),
 );
-const overduePages = computed(() => chunks(metrics.value.overdueEquipments, 10));
+const overduePages = computed(() =>
+  chunks(metrics.value.overdueEquipments, 10),
+);
 const pageCount = computed(() => 1 + overduePages.value.length);
 const busy = computed(() => loading.value || downloading.value !== null);
 const totalLabel = computed(() => number(metrics.value.total));
@@ -82,7 +84,8 @@ const statusChartOptions = computed<ApexOptions>(() => ({
   legend: { show: false },
   dataLabels: {
     enabled: true,
-    formatter: (value: number) => value > 0 ? `${value.toFixed(1).replace(".", ",")}%` : "",
+    formatter: (value: number) =>
+      value > 0 ? `${value.toFixed(1).replace(".", ",")}%` : "",
     style: { colors: ["#ffffff"], fontSize: "8px", fontWeight: 700 },
     dropShadow: { enabled: false },
   },
@@ -129,7 +132,7 @@ const pipelineChartOptions = computed<ApexOptions>(() => ({
   grid: { borderColor: "#e7ebf0", strokeDashArray: 4 },
   dataLabels: {
     enabled: true,
-    formatter: (value: number) => value > 0 ? number(value) : "",
+    formatter: (value: number) => (value > 0 ? number(value) : ""),
     textAnchor: "start",
     offsetX: 7,
     style: {
@@ -276,14 +279,19 @@ async function savePdf(): Promise<void> {
     pdf.save(`${fileBase.value}.pdf`);
   } catch (caught) {
     downloadError.value =
-      caught instanceof Error ? caught.message : "Não foi possível salvar o PDF.";
+      caught instanceof Error
+        ? caught.message
+        : "Não foi possível salvar o PDF.";
   } finally {
     downloading.value = null;
     progress.value = "";
   }
 }
 
-function saveCanvas(canvas: HTMLCanvasElement, filename: string): Promise<void> {
+function saveCanvas(
+  canvas: HTMLCanvasElement,
+  filename: string,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
@@ -329,7 +337,9 @@ async function savePng(): Promise<void> {
     }
   } catch (caught) {
     downloadError.value =
-      caught instanceof Error ? caught.message : "Não foi possível salvar o PNG.";
+      caught instanceof Error
+        ? caught.message
+        : "Não foi possível salvar o PNG.";
   } finally {
     downloading.value = null;
     progress.value = "";
@@ -393,13 +403,21 @@ onMounted(() => void loadReport());
 
       <div v-if="busy" class="report-progress" role="status" aria-live="polite">
         <VProgressLinear indeterminate color="primary" height="3" />
-        <span>{{ progress || (loading ? "Preparando relatório..." : "Gerando arquivo...") }}</span>
+        <span>{{
+          progress ||
+          (loading ? "Preparando relatório..." : "Gerando arquivo...")
+        }}</span>
       </div>
 
       <VAlert v-if="error" type="error" variant="tonal" density="compact">
         <div class="report-alert-content">
-          <span><strong>Não foi possível preparar o relatório.</strong> {{ error }}</span>
-          <VBtn variant="outlined" size="small" @click="loadReport">Tentar novamente</VBtn>
+          <span
+            ><strong>Não foi possível preparar o relatório.</strong>
+            {{ error }}</span
+          >
+          <VBtn variant="outlined" size="small" @click="loadReport"
+            >Tentar novamente</VBtn
+          >
         </div>
       </VAlert>
       <VAlert
@@ -433,7 +451,7 @@ onMounted(() => void loadReport());
               src="/brand/logo-inpasa.png"
               alt="Inpasa"
               crossorigin="anonymous"
-            >
+            />
             <span class="paper-label">RELATÓRIO EXECUTIVO · EQUIPAMENTOS</span>
           </header>
           <VDivider />
@@ -442,7 +460,9 @@ onMounted(() => void loadReport());
               <div class="cover-copy">
                 <p class="paper-kicker">CARTEIRA DE EQUIPAMENTOS</p>
                 <h1>{{ projectName }}</h1>
-                <p class="paper-subtitle">{{ unitName }} · Emitido em {{ generatedLabel }}</p>
+                <p class="paper-subtitle">
+                  {{ unitName }} · Emitido em {{ generatedLabel }}
+                </p>
               </div>
             </div>
 
@@ -452,9 +472,12 @@ onMounted(() => void loadReport());
                 <h2>Resumo executivo</h2>
               </div>
               <p class="paper-paragraph">
-                A carteira da obra possui <b>{{ totalLabel }} Aquisições previstas</b>. Desse total,
-                <b>{{ number(metrics.completed) }}</b> negociações já foram con cluídas,
-                representando aproximadamente <b>{{ percent(metrics.completedPercent) }}</b> de avanço da carteira.
+                A carteira da obra possui
+                <b>{{ totalLabel }} Aquisições previstas</b>. Desse total,
+                <b>{{ number(metrics.completed) }}</b> aquisições já foram con
+                cluídas, representando aproximadamente
+                <b>{{ percent(metrics.completedPercent) }}</b> de avanço da
+                carteira.
               </p>
             </section>
 
@@ -478,33 +501,58 @@ onMounted(() => void loadReport());
                   :height="105"
                   label="Distribuição da situação das negociações"
                 />
-                <div class="status-chips" aria-label="Legenda da situação das negociações">
-                  <VChip size="x-small" color="success" variant="tonal">Concluído · {{ number(metrics.completed) }}</VChip>
-                  <VChip size="x-small" color="primary" variant="tonal">No prazo · {{ number(metrics.onTime) }}</VChip>
-                  <VChip size="x-small" color="error" variant="tonal">Atrasado · {{ number(metrics.overdue) }}</VChip>
-                  <VChip size="x-small" variant="tonal">Sem classificação · {{ number(metrics.unclassified) }}</VChip>
+                <div
+                  class="status-chips"
+                  aria-label="Legenda da situação das negociações"
+                >
+                  <VChip size="x-small" color="success" variant="tonal"
+                    >Concluído · {{ number(metrics.completed) }}</VChip
+                  >
+                  <VChip size="x-small" color="primary" variant="tonal"
+                    >No prazo · {{ number(metrics.onTime) }}</VChip
+                  >
+                  <VChip size="x-small" color="error" variant="tonal"
+                    >Atrasado · {{ number(metrics.overdue) }}</VChip
+                  >
+                  <VChip size="x-small" variant="tonal"
+                    >Sem classificação ·
+                    {{ number(metrics.unclassified) }}</VChip
+                  >
                 </div>
               </VCard>
               <div class="overview-side">
-                <VCard class="startup-card" variant="tonal" color="primary" rounded="lg">
+                <VCard
+                  class="startup-card"
+                  variant="tonal"
+                  color="primary"
+                  rounded="lg"
+                >
                   <div class="startup-card-heading">
                     <span>PRÓXIMO STARTUP CADASTRADO</span>
                     <span class="startup-icon" aria-hidden="true">
                       <CalendarClock :size="18" :stroke-width="1.8" />
                     </span>
                   </div>
-                  <strong>{{ metrics.nextStartup ? formatReportDate(metrics.nextStartup) : "Não informado" }}</strong>
+                  <strong>{{
+                    metrics.nextStartup
+                      ? formatReportDate(metrics.nextStartup)
+                      : "Não informado"
+                  }}</strong>
                   <div class="startup-countdown">
                     <Clock3 :size="12" :stroke-width="2" aria-hidden="true" />
-                    <small>{{ metrics.daysToNextStartup ?? "—" }} dias restantes</small>
+                    <small
+                      >{{ metrics.daysToNextStartup ?? "—" }} dias
+                      restantes</small
+                    >
                   </div>
                 </VCard>
                 <VCard class="attention-card" variant="outlined" rounded="lg">
                   <strong>Principais pontos de atenção</strong>
                   <p>
-                    Os principais riscos da carteira estão concentrados nos equipamentos que permanecem
-                    nas etapas de Nova Demanda, Negociação e Equalização, uma vez que ainda não iniciaram
-                    o processo formal de aquisição.
+                    Os principais riscos da carteira estão concentrados nos
+                    equipamentos que permanecem nas etapas de Nova Demanda,
+                    Negociação e Equalização, uma vez que ainda não iniciaram o
+                    processo formal de aquisição.
                   </p>
                 </VCard>
               </div>
@@ -524,7 +572,11 @@ onMounted(() => void loadReport());
                   <span>nas etapas posteriores</span>
                 </div>
               </div>
-              <VCard class="chart-panel pipeline-panel" variant="outlined" rounded="lg">
+              <VCard
+                class="chart-panel pipeline-panel"
+                variant="outlined"
+                rounded="lg"
+              >
                 <ChartCanvas
                   class="report-chart pipeline-chart"
                   type="bar"
@@ -534,11 +586,17 @@ onMounted(() => void loadReport());
                   label="Distribuição de equipamentos por etapa do pipeline"
                 />
               </VCard>
-              <VAlert class="table-commentary pipeline-commentary" type="info" variant="tonal" density="compact">
+              <VAlert
+                class="table-commentary pipeline-commentary"
+                type="info"
+                variant="tonal"
+                density="compact"
+              >
                 <strong>Comentário executivo</strong>
                 <p>
-                  Os equipamentos que já concluíram a negociação seguem o fluxo normal de aquisição,
-                  contratação e emissão de ordem de compra, sendo monitorados pelas áreas responsáveis.
+                  Os equipamentos que já concluíram a negociação seguem o fluxo
+                  normal de aquisição, contratação e emissão de ordem de compra,
+                  sendo monitorados pelas áreas responsáveis.
                 </p>
               </VAlert>
             </section>
@@ -558,7 +616,12 @@ onMounted(() => void loadReport());
         >
           <div class="report-accent" />
           <header class="paper-header">
-            <img class="paper-logo" src="/brand/logo-inpasa.png" alt="Inpasa" crossorigin="anonymous">
+            <img
+              class="paper-logo"
+              src="/brand/logo-inpasa.png"
+              alt="Inpasa"
+              crossorigin="anonymous"
+            />
             <span class="paper-label">{{ unitName }} · {{ projectName }}</span>
           </header>
           <VDivider />
@@ -568,7 +631,10 @@ onMounted(() => void loadReport());
                 <span class="section-index">03</span>
                 <div>
                   <h2>Equipamentos em atraso na negociação</h2>
-                  <p>Prioridades para acompanhamento · {{ number(metrics.overdue) }} equipamentos</p>
+                  <p>
+                    Prioridades para acompanhamento ·
+                    {{ number(metrics.overdue) }} equipamentos
+                  </p>
                 </div>
               </div>
               <div class="risk-total">
@@ -589,25 +655,52 @@ onMounted(() => void loadReport());
               </thead>
               <tbody>
                 <tr v-for="item in batch" :key="item.equipment.id">
-                  <td><strong>{{ item.equipment.name }}</strong></td>
-                  <td><VChip size="x-small" variant="tonal">{{ item.equipment.stageName }}</VChip></td>
-                  <td>{{ item.equipment.responsibleUser?.name || "Não atribuído" }}</td>
-                  <td>{{ formatReportDate(item.equipment.calculated.negotiationDeadline) }}</td>
+                  <td>
+                    <strong>{{ item.equipment.name }}</strong>
+                  </td>
+                  <td>
+                    <VChip size="x-small" variant="tonal">{{
+                      item.equipment.stageName
+                    }}</VChip>
+                  </td>
+                  <td>
+                    {{
+                      item.equipment.responsibleUser?.name || "Não atribuído"
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      formatReportDate(
+                        item.equipment.calculated.negotiationDeadline,
+                      )
+                    }}
+                  </td>
                   <td class="late-days">{{ item.daysLate ?? "—" }}</td>
                   <td class="treatment">Não informada</td>
                 </tr>
                 <tr v-if="!batch.length">
-                  <td colspan="6" class="no-overdue">Nenhum equipamento com negociação em atraso.</td>
+                  <td colspan="6" class="no-overdue">
+                    Nenhum equipamento com negociação em atraso.
+                  </td>
                 </tr>
               </tbody>
             </VTable>
-            <VAlert class="table-commentary" type="info" variant="tonal" density="compact">
+            <VAlert
+              class="table-commentary"
+              type="info"
+              variant="tonal"
+              density="compact"
+            >
               <strong>Comentário executivo</strong>
               <p v-if="metrics.overdue">
-                Os equipamentos listados acima possuem prazo de negociação vencido e estão sendo acompanhados
-                junto aos responsáveis para a conclusão das tratativas e avanço ao processo de aquisição.
+                Os equipamentos listados acima possuem prazo de negociação
+                vencido e estão sendo acompanhados junto aos responsáveis para a
+                conclusão das tratativas e avanço ao processo de aquisição.
               </p>
-              <p v-else>Não há registros classificados como atrasados no momento da emissão.</p>
+              <p v-else>
+                Não há registros classificados como atrasados no momento da
+                emissão.
+              </p>
             </VAlert>
             <VAlert
               v-if="metrics.overdue"
@@ -618,9 +711,11 @@ onMounted(() => void loadReport());
             >
               <strong>Consideração final</strong>
               <p>
-                O principal ponto de atenção da carteira permanece nos equipamentos com negociação em atraso,
-                uma vez que estes ainda não ingressaram no fluxo formal de aquisição e podem impactar o cronograma
-                do projeto caso não sejam regularizados dentro do prazo.
+                O principal ponto de atenção da carteira permanece nos
+                equipamentos com negociação em atraso, uma vez que estes ainda
+                não ingressaram no fluxo formal de aquisição e podem impactar o
+                cronograma do projeto caso não sejam regularizados dentro do
+                prazo.
               </p>
             </VAlert>
           </VCardText>
@@ -629,88 +724,396 @@ onMounted(() => void loadReport());
             <span>{{ index + 2 }} / {{ pageCount }}</span>
           </footer>
         </VCard>
-
       </div>
 
       <p v-if="rows.length" class="preview-note">
-        O PDF contém todas as páginas. O PNG é contínuo; relatórios com mais de seis páginas são divididos em arquivos numerados.
+        O PDF contém todas as páginas. O PNG é contínuo; relatórios com mais de
+        seis páginas são divididos em arquivos numerados.
       </p>
     </div>
   </AppModal>
 </template>
 
 <style scoped>
-.report-shell { display: grid; gap: 13px; color: #213758; }
-.report-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid #e8edf4; }
-.report-toolbar-copy { display: grid; gap: 2px; }
-.report-toolbar-copy strong { font-size: 14px; color: #233e60; }
-.report-toolbar-copy span, .report-progress span { font-size: 11px; color: #8594a8; }
-.report-toolbar-actions { display: flex; flex-wrap: wrap; gap: 7px; }
-.report-progress { display: grid; gap: 7px; }
-.report-alert-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.report-loading { min-height: 520px; padding: 24px; border: 1px solid #e8edf4; border-radius: 12px; }
-.report-preview { display: grid; justify-items: center; gap: 18px; padding: 12px; overflow: auto; background: #eef1f5; border-radius: 12px; }
-.report-page { position: relative; display: flex; flex-direction: column; flex: 0 0 auto; width: 794px; height: 1123px; overflow: hidden; color: #243b58; background: #fff; font-family: "Manrope", Arial, sans-serif; }
-.report-accent { flex: 0 0 7px; background: linear-gradient(90deg, #304f7e 0 72%, #609346 72%); }
-.paper-header { display: flex; align-items: center; justify-content: space-between; min-height: 68px; padding: 12px 36px; }
-.paper-logo { display: block; width: auto; max-width: 150px; height: 39px; object-fit: contain; }
-.paper-label { color: #718096; font-size: 9px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
-.paper-content { flex: 1 1 auto; padding: 30px 38px 60px !important; }
-.paper-heading { margin-bottom: 28px; }
-.paper-kicker { margin: 0 0 7px; color: #5f7d9f; font-size: 9px; font-weight: 800; letter-spacing: .15em; }
-.paper-heading h1 { margin: 0; color: #203b5d; font-size: 30px; line-height: 1.15; }
-.paper-subtitle { margin: 8px 0 0; color: #7c8999; font-size: 11px; }
-.paper-section { margin-bottom: 24px; }
-.section-title { display: flex; align-items: center; gap: 11px; margin-bottom: 13px; }
-.section-title h2 { margin: 0; color: #263f5f; font-size: 16px; }
-.section-index { display: inline-flex; align-items: center; width: auto; height: 22px; padding-right: 10px; border-right: 1px solid #d4dde8; color: #304f7e; background: transparent; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
-.paper-paragraph { margin: 0; color: #607086; font-size: 11px; line-height: 1.65; }
-.overview-grid { display: grid; grid-template-columns: 1fr; gap: 11px; align-items: start; }
-.minor-heading { margin: 0 0 5px; color: #405a78; font-size: 12px; }
-.completion-total { display: grid; justify-items: end; }
-.completion-total strong { color: #609346; font-size: 20px; line-height: 1; }
-.completion-total small { margin-top: 3px; color: #8996a5; font-size: 8px; }
-.status-chips { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-top: -3px; }
-.overview-side { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; padding-top: 0; }
-.startup-card, .attention-card { display: grid; gap: 8px; padding: 18px !important; }
-.startup-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.startup-card-heading > span:first-child { font-size: 8px; font-weight: 800; letter-spacing: .1em; }
-.startup-icon { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgb(48 79 126 / 12%); border-radius: 9px; color: #304f7e; background: rgb(255 255 255 / 62%); }
-.startup-card strong { font-size: 21px; }
-.startup-countdown { display: flex; align-items: center; gap: 5px; color: #617b9a; }
-.startup-countdown small { font-size: 9px; font-weight: 650; }
-.attention-card strong { color: #344e6c; font-size: 11px; }
-.attention-card p { margin: 0; color: #6e7d8f; font-size: 10px; line-height: 1.55; }
-.report-table-title { margin: 0 0 24px; }
-.report-table-title p { margin: 3px 0 0; color: #8793a2; font-size: 10px; }
-.overdue-table { border: 1px solid #e7ebf0; border-radius: 8px; overflow: hidden; }
-.overdue-table :deep(table) { table-layout: fixed; }
-.overdue-table :deep(th) { height: 38px !important; color: #64748b !important; background: #f5f7fa; font-size: 8px !important; font-weight: 800 !important; text-transform: uppercase; }
-.overdue-table :deep(td) { height: 57px !important; padding: 7px 9px !important; color: #53657a; font-size: 9px !important; line-height: 1.35; }
-.overdue-table :deep(th:nth-child(1)) { width: 24%; }
-.overdue-table :deep(th:nth-child(2)) { width: 18%; }
-.overdue-table :deep(th:nth-child(3)) { width: 17%; }
-.overdue-table :deep(th:nth-child(4)) { width: 15%; }
-.overdue-table :deep(th:nth-child(5)) { width: 13%; }
-.overdue-table :deep(th:nth-child(6)) { width: 13%; }
-.late-days { color: #b75b47 !important; font-weight: 800; text-align: center; }
-.treatment { color: #9aa5b2 !important; }
-.no-overdue { padding: 34px !important; text-align: center; }
-.table-commentary { margin-top: 20px; font-size: 10px; }
-.table-commentary p { margin: 4px 0 0; line-height: 1.55; }
-.final-consideration { margin-top: 10px; font-size: 10px; }
-.final-consideration p { margin: 4px 0 0; line-height: 1.55; }
-.pipeline-section { margin-top: 20px; }
-.pipeline-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 10px; }
-.pipeline-heading .section-title { margin: 0; }
-.pipeline-heading .section-title p { margin: 2px 0 0; color: #8794a5; font-size: 9px; }
-.pipeline-total { display: grid; min-width: 116px; padding-left: 18px; border-left: 1px solid #e2e7ed; text-align: right; }
-.pipeline-total strong { color: #304f7e; font-size: 22px; line-height: 1; }
-.pipeline-total span { margin-top: 3px; color: #8996a5; font-size: 7px; text-transform: uppercase; }
-.pipeline-chart { margin: 0; }
-.pipeline-commentary { margin-top: 10px; }
-.paper-footer { position: absolute; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: space-between; height: 43px; padding: 0 38px; border-top: 1px solid #edf0f4; color: #929eac; font-size: 8px; line-height: 1; }
-.preview-note { margin: 0; color: #7d8b9d; font-size: 11px; }
+.report-shell {
+  display: grid;
+  gap: 13px;
+  color: #213758;
+}
+.report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8edf4;
+}
+.report-toolbar-copy {
+  display: grid;
+  gap: 2px;
+}
+.report-toolbar-copy strong {
+  font-size: 14px;
+  color: #233e60;
+}
+.report-toolbar-copy span,
+.report-progress span {
+  font-size: 11px;
+  color: #8594a8;
+}
+.report-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.report-progress {
+  display: grid;
+  gap: 7px;
+}
+.report-alert-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.report-loading {
+  min-height: 520px;
+  padding: 24px;
+  border: 1px solid #e8edf4;
+  border-radius: 12px;
+}
+.report-preview {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding: 12px;
+  overflow: auto;
+  background: #eef1f5;
+  border-radius: 12px;
+}
+.report-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 794px;
+  height: 1123px;
+  overflow: hidden;
+  color: #243b58;
+  background: #fff;
+  font-family: "Manrope", Arial, sans-serif;
+}
+.report-accent {
+  flex: 0 0 7px;
+  background: linear-gradient(90deg, #304f7e 0 72%, #609346 72%);
+}
+.paper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 68px;
+  padding: 12px 36px;
+}
+.paper-logo {
+  display: block;
+  width: auto;
+  max-width: 150px;
+  height: 39px;
+  object-fit: contain;
+}
+.paper-label {
+  color: #718096;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.paper-content {
+  flex: 1 1 auto;
+  padding: 30px 38px 60px !important;
+}
+.paper-heading {
+  margin-bottom: 28px;
+}
+.paper-kicker {
+  margin: 0 0 7px;
+  color: #5f7d9f;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+.paper-heading h1 {
+  margin: 0;
+  color: #203b5d;
+  font-size: 30px;
+  line-height: 1.15;
+}
+.paper-subtitle {
+  margin: 8px 0 0;
+  color: #7c8999;
+  font-size: 11px;
+}
+.paper-section {
+  margin-bottom: 24px;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 13px;
+}
+.section-title h2 {
+  margin: 0;
+  color: #263f5f;
+  font-size: 16px;
+}
+.section-index {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  height: 22px;
+  padding-right: 10px;
+  border-right: 1px solid #d4dde8;
+  color: #304f7e;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.paper-paragraph {
+  margin: 0;
+  color: #607086;
+  font-size: 11px;
+  line-height: 1.65;
+}
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 11px;
+  align-items: start;
+}
+.minor-heading {
+  margin: 0 0 5px;
+  color: #405a78;
+  font-size: 12px;
+}
+.completion-total {
+  display: grid;
+  justify-items: end;
+}
+.completion-total strong {
+  color: #609346;
+  font-size: 20px;
+  line-height: 1;
+}
+.completion-total small {
+  margin-top: 3px;
+  color: #8996a5;
+  font-size: 8px;
+}
+.status-chips {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: -3px;
+}
+.overview-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+  padding-top: 0;
+}
+.startup-card,
+.attention-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px !important;
+}
+.startup-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.startup-card-heading > span:first-child {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.startup-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgb(48 79 126 / 12%);
+  border-radius: 9px;
+  color: #304f7e;
+  background: rgb(255 255 255 / 62%);
+}
+.startup-card strong {
+  font-size: 21px;
+}
+.startup-countdown {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #617b9a;
+}
+.startup-countdown small {
+  font-size: 9px;
+  font-weight: 650;
+}
+.attention-card strong {
+  color: #344e6c;
+  font-size: 11px;
+}
+.attention-card p {
+  margin: 0;
+  color: #6e7d8f;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.report-table-title {
+  margin: 0 0 24px;
+}
+.report-table-title p {
+  margin: 3px 0 0;
+  color: #8793a2;
+  font-size: 10px;
+}
+.overdue-table {
+  border: 1px solid #e7ebf0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.overdue-table :deep(table) {
+  table-layout: fixed;
+}
+.overdue-table :deep(th) {
+  height: 38px !important;
+  color: #64748b !important;
+  background: #f5f7fa;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+}
+.overdue-table :deep(td) {
+  height: 57px !important;
+  padding: 7px 9px !important;
+  color: #53657a;
+  font-size: 9px !important;
+  line-height: 1.35;
+}
+.overdue-table :deep(th:nth-child(1)) {
+  width: 24%;
+}
+.overdue-table :deep(th:nth-child(2)) {
+  width: 18%;
+}
+.overdue-table :deep(th:nth-child(3)) {
+  width: 17%;
+}
+.overdue-table :deep(th:nth-child(4)) {
+  width: 15%;
+}
+.overdue-table :deep(th:nth-child(5)) {
+  width: 13%;
+}
+.overdue-table :deep(th:nth-child(6)) {
+  width: 13%;
+}
+.late-days {
+  color: #b75b47 !important;
+  font-weight: 800;
+  text-align: center;
+}
+.treatment {
+  color: #9aa5b2 !important;
+}
+.no-overdue {
+  padding: 34px !important;
+  text-align: center;
+}
+.table-commentary {
+  margin-top: 20px;
+  font-size: 10px;
+}
+.table-commentary p {
+  margin: 4px 0 0;
+  line-height: 1.55;
+}
+.final-consideration {
+  margin-top: 10px;
+  font-size: 10px;
+}
+.final-consideration p {
+  margin: 4px 0 0;
+  line-height: 1.55;
+}
+.pipeline-section {
+  margin-top: 20px;
+}
+.pipeline-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 10px;
+}
+.pipeline-heading .section-title {
+  margin: 0;
+}
+.pipeline-heading .section-title p {
+  margin: 2px 0 0;
+  color: #8794a5;
+  font-size: 9px;
+}
+.pipeline-total {
+  display: grid;
+  min-width: 116px;
+  padding-left: 18px;
+  border-left: 1px solid #e2e7ed;
+  text-align: right;
+}
+.pipeline-total strong {
+  color: #304f7e;
+  font-size: 22px;
+  line-height: 1;
+}
+.pipeline-total span {
+  margin-top: 3px;
+  color: #8996a5;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+.pipeline-chart {
+  margin: 0;
+}
+.pipeline-commentary {
+  margin-top: 10px;
+}
+.paper-footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 43px;
+  padding: 0 38px;
+  border-top: 1px solid #edf0f4;
+  color: #929eac;
+  font-size: 8px;
+  line-height: 1;
+}
+.preview-note {
+  margin: 0;
+  color: #7d8b9d;
+  font-size: 11px;
+}
 
 /* Identidade editorial do relatório. As dimensões continuam fixas em A4 para
  * que a prévia, o PDF e o PNG compartilhem exatamente a mesma composição. */
@@ -728,7 +1131,12 @@ onMounted(() => void loadReport());
 }
 .report-accent {
   flex-basis: 5px;
-  background: linear-gradient(90deg, #304f7e 0 68%, #f0a536 68% 84%, #609346 84%);
+  background: linear-gradient(
+    90deg,
+    #304f7e 0 68%,
+    #f0a536 68% 84%,
+    #609346 84%
+  );
 }
 .paper-header {
   min-height: 74px;
@@ -762,7 +1170,13 @@ onMounted(() => void loadReport());
   border-radius: 14px;
   color: #fff;
   background:
-    linear-gradient(90deg, rgb(27 53 85 / 88%) 0%, rgb(31 61 96 / 72%) 34%, rgb(32 66 104 / 28%) 63%, rgb(23 56 91 / 5%) 100%),
+    linear-gradient(
+      90deg,
+      rgb(27 53 85 / 88%) 0%,
+      rgb(31 61 96 / 72%) 34%,
+      rgb(32 66 104 / 28%) 63%,
+      rgb(23 56 91 / 5%) 100%
+    ),
     url("/brand/usina.jpg") 62% 56% / cover no-repeat,
     #304f7e;
 }
@@ -782,7 +1196,7 @@ onMounted(() => void loadReport());
   max-width: 470px;
   color: #fff;
   font-size: 31px;
-  letter-spacing: -.025em;
+  letter-spacing: -0.025em;
 }
 .section-title {
   gap: 10px;
@@ -816,9 +1230,11 @@ onMounted(() => void loadReport());
   color: #8a97a6;
   font-size: 7px;
   font-weight: 800;
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
 }
-.panel-heading .minor-heading { margin: 2px 0 0; }
+.panel-heading .minor-heading {
+  margin: 2px 0 0;
+}
 .panel-heading > strong {
   color: #609346;
   font-size: 18px;
@@ -840,7 +1256,7 @@ onMounted(() => void loadReport());
 .startup-card strong {
   color: #294c76;
   font-size: 24px;
-  letter-spacing: -.02em;
+  letter-spacing: -0.02em;
 }
 .attention-card {
   min-height: 105px;
@@ -848,7 +1264,9 @@ onMounted(() => void loadReport());
   border-color: #ead8d1 !important;
   background: linear-gradient(145deg, #fff, #fff8f5);
 }
-.attention-card strong { color: #9d503f; }
+.attention-card strong {
+  color: #9d503f;
+}
 .risk-heading {
   display: flex;
   align-items: center;
@@ -860,7 +1278,9 @@ onMounted(() => void loadReport());
   border-radius: 0;
   background: transparent;
 }
-.risk-heading .report-table-title { margin: 0; }
+.risk-heading .report-table-title {
+  margin: 0;
+}
 .risk-total {
   display: grid;
   min-width: 92px;
@@ -889,8 +1309,12 @@ onMounted(() => void loadReport());
   color: #fff !important;
   background: #304f7e;
 }
-.overdue-table :deep(tbody tr:nth-child(even)) { background: #f8fafc; }
-.overdue-table :deep(td) { border-bottom-color: #edf0f4 !important; }
+.overdue-table :deep(tbody tr:nth-child(even)) {
+  background: #f8fafc;
+}
+.overdue-table :deep(td) {
+  border-bottom-color: #edf0f4 !important;
+}
 .late-days {
   color: #ad4f3c !important;
   background: #fff5f2;
@@ -908,6 +1332,19 @@ onMounted(() => void loadReport());
   color: #76869a;
   background: #f8fafc;
 }
-@media (max-width: 900px) { .report-preview { justify-items: start; } }
-@media (max-width: 640px) { .report-toolbar-actions, .report-alert-content { width: 100%; } .report-alert-content { align-items: stretch; flex-direction: column; } }
+@media (max-width: 900px) {
+  .report-preview {
+    justify-items: start;
+  }
+}
+@media (max-width: 640px) {
+  .report-toolbar-actions,
+  .report-alert-content {
+    width: 100%;
+  }
+  .report-alert-content {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
 </style>
