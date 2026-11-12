@@ -1,7 +1,8 @@
 """Etapa 01 — validações puras do contrato; sem acesso a banco."""
 
+import pytest  # noqa: I001
+
 from app.modules.equipments import bulk_edit_contracts
-import pytest
 
 
 STAMP = "2026-11-12T13:00:00"
