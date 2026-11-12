@@ -30,12 +30,13 @@ def preview_equipment_changes(
             if before is not None and not isinstance(before, list | tuple | set):
                 raise ValueError("Snapshot inválido para Work Packages")
             existing = set(before or [])
+            wp_values = change.value if isinstance(change.value, list) else []
             if change.operation == "ADD":
-                proposed = sorted(existing | set(change.value or []))
+                proposed = sorted(existing | set(wp_values))
             elif change.operation == "REMOVE":
-                proposed = sorted(existing - set(change.value or []))
+                proposed = sorted(existing - set(wp_values))
             elif change.operation == "REPLACE":
-                proposed = sorted(set(change.value or []))
+                proposed = sorted(set(wp_values))
             else:  # CLEAR
                 proposed = []
             old = sorted(existing)
