@@ -1,7 +1,6 @@
 """Etapa 01 — validações puras do contrato; sem acesso a banco."""
 
 import pytest
-
 from app.modules.equipments import bulk_edit_contracts
 
 
@@ -71,7 +70,9 @@ def test_wp_operation_is_explicit_and_preserves_multi_relation():
 def test_clear_distinct_from_absent_and_fill_empty():
     cleared = bulk_edit_contracts.EquipmentCellChange(field="origin", operation="CLEAR")
     assert cleared.value is None
-    filled = bulk_edit_contracts.EquipmentCellChange(field="origin", operation="FILL_EMPTY", value="Importado")
+    filled = bulk_edit_contracts.EquipmentCellChange(
+        field="origin", operation="FILL_EMPTY", value="Importado"
+    )
     assert filled.value == "Importado"
     with pytest.raises(ValueError):
         bulk_edit_contracts.EquipmentCellChange(field="origin", operation="SET", value=None)
