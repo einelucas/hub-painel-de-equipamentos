@@ -117,9 +117,12 @@ function cellChanged(row: Equipment, field: Field, event: Event): void {
   if (value === baseValue(row, field)) {
     const current = drafts.value[row.id];
     if (current) {
-      delete current.changes[field];
-      if (!Object.keys(current.changes).length) delete drafts.value[row.id];
-      drafts.value = { ...drafts.value };
+      const changes = Object.fromEntries(
+        Object.entries(current.changes).filter(([key]) => key !== field),
+      ) as RowDraft["changes"];
+      drafts.value = Object.keys(changes).length
+        ? { ...drafts.value, [row.id]: { ...current, changes } }
+        : Object.fromEntries(Object.entries(drafts.value).filter(([key]) => key !== row.id));
     }
     return;
   }
