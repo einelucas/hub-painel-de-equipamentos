@@ -189,16 +189,24 @@ async function apexRuntime(): Promise<string> {
   return response.text();
 }
 
-export async function downloadEquipmentReportHtml(
-  fileName: string,
+/** Mesma fonte de HTML para download e prévia isolada no Hub.
+ * O documento permanece autocontido, inclusive para uso offline. */
+export async function generateEquipmentReportHtml(
   input: Omit<EquipmentReportHtmlInput, "logoDataUrl" | "apexChartsRuntime">,
-): Promise<void> {
+): Promise<string> {
   const [logo, runtime] = await Promise.all([logoDataUrl(), apexRuntime()]);
-  const html = buildEquipmentReportHtml({
+  return buildEquipmentReportHtml({
     ...input,
     logoDataUrl: logo,
     apexChartsRuntime: runtime,
   });
+}
+
+export async function downloadEquipmentReportHtml(
+  fileName: string,
+  input: Omit<EquipmentReportHtmlInput, "logoDataUrl" | "apexChartsRuntime">,
+): Promise<void> {
+  const html = await generateEquipmentReportHtml(input);
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");

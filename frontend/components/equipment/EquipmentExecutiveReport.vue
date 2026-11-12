@@ -42,6 +42,9 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>();
 const api = useApi();
 const previewEl = ref<HTMLElement | null>(null);
+const previewMode = ref<"pdf" | "html">("pdf");
+const htmlPreview = ref("");
+const htmlPreviewLoading = ref(false);
 const loading = ref(true);
 const downloading = ref<"pdf" | "png" | "html" | null>(null);
 const error = ref("");
@@ -57,7 +60,9 @@ const overduePages = computed(() =>
   chunks(metrics.value.overdueEquipments, 10),
 );
 const pageCount = computed(() => 1 + overduePages.value.length);
-const busy = computed(() => loading.value || downloading.value !== null);
+const busy = computed(
+  () => loading.value || downloading.value !== null || htmlPreviewLoading.value,
+);
 const totalLabel = computed(() => number(metrics.value.total));
 const generatedLabel = computed(() =>
   generatedAt.value.toLocaleString("pt-BR", {
@@ -192,6 +197,7 @@ function percent(value: number): string {
 async function loadReport(): Promise<void> {
   loading.value = true;
   rows.value = [];
+  htmlPreview.value = "";
   error.value = "";
   downloadError.value = "";
   progress.value = "Consultando a carteira da obra...";
@@ -228,6 +234,18 @@ async function loadReport(): Promise<void> {
     }
     generatedAt.value = new Date();
     rows.value = equipments;
+    if (previewMode.value === "html" && rows.value.length) {
+      try {
+        progress.value = "Atualizando a visualização HTML...";
+        await refreshHtmlPreview();
+      } catch (caught) {
+        previewMode.value = "pdf";
+        downloadError.value =
+          caught instanceof Error
+            ? caught.message
+            : "Não foi possível atualizar a visualização HTML.";
+      }
+    }
     await nextTick();
   } catch (caught) {
     error.value =
@@ -257,6 +275,9 @@ async function prepareExport(): Promise<HTMLElement[]> {
 
 async function savePdf(): Promise<void> {
   if (busy.value || !rows.value.length) return;
+  // A exportação PDF continua usando as páginas Vue, mesmo na prévia HTML.
+  const restoreHtml = previewMode.value === "html";
+  if (restoreHtml) previewMode.value = "pdf";
   downloading.value = "pdf";
   downloadError.value = "";
   try {
@@ -288,6 +309,7 @@ async function savePdf(): Promise<void> {
         ? caught.message
         : "Não foi possível salvar o PDF.";
   } finally {
+    if (restoreHtml) previewMode.value = "html";
     downloading.value = null;
     progress.value = "";
   }
@@ -319,6 +341,45 @@ async function saveHtml(): Promise<void> {
   }
 }
 
+/** Monta exatamente o documento autônomo gerado pelo botão Salvar HTML. */
+async function refreshHtmlPreview(): Promise<void> {
+  const { generateEquipmentReportHtml } = await import(
+    "~/utils/equipmentReportHtml"
+  );
+  htmlPreview.value = await generateEquipmentReportHtml({
+    unitName: props.unitName,
+    projectName: props.projectName,
+    generatedAt: generatedAt.value,
+    metrics: metrics.value,
+  });
+}
+
+async function togglePreview(): Promise<void> {
+  if (busy.value || !rows.value.length) return;
+  if (previewMode.value === "html") {
+    previewMode.value = "pdf";
+    return;
+  }
+  if (!htmlPreview.value) {
+    htmlPreviewLoading.value = true;
+    downloadError.value = "";
+    progress.value = "Preparando a visualização HTML...";
+    try {
+      await refreshHtmlPreview();
+    } catch (caught) {
+      downloadError.value =
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível visualizar o modelo HTML.";
+      return;
+    } finally {
+      htmlPreviewLoading.value = false;
+      progress.value = "";
+    }
+  }
+  previewMode.value = "html";
+}
+
 function saveCanvas(
   canvas: HTMLCanvasElement,
   filename: string,
@@ -346,6 +407,8 @@ function saveCanvas(
  * navegadores móveis. Relatórios maiores são divididos em arquivos numerados. */
 async function savePng(): Promise<void> {
   if (busy.value || !rows.value.length) return;
+  const restoreHtml = previewMode.value === "html";
+  if (restoreHtml) previewMode.value = "pdf";
   downloading.value = "png";
   downloadError.value = "";
   try {
@@ -372,6 +435,7 @@ async function savePng(): Promise<void> {
         ? caught.message
         : "Não foi possível salvar o PNG.";
   } finally {
+    if (restoreHtml) previewMode.value = "html";
     downloading.value = null;
     progress.value = "";
   }
@@ -433,6 +497,19 @@ onMounted(() => void loadReport());
             variant="outlined"
             color="primary"
             size="small"
+            :icon="previewMode === 'pdf' ? mdiLanguageHtml5 : mdiFilePdfBox"
+            :loading="htmlPreviewLoading"
+            :disabled="busy || !rows.length"
+            :aria-label="previewMode === 'pdf' ? 'Visualizar modelo HTML' : 'Voltar à visualização PDF'"
+            :aria-pressed="previewMode === 'html'"
+            :title="previewMode === 'pdf' ? 'Visualizar modelo HTML' : 'Voltar à visualização PDF'"
+            data-testid="report-preview-toggle"
+            @click="togglePreview"
+          />
+          <VBtn
+            variant="outlined"
+            color="primary"
+            size="small"
             :prepend-icon="mdiImageOutline"
             :loading="downloading === 'png'"
             :disabled="busy || !rows.length"
@@ -485,7 +562,11 @@ onMounted(() => void loadReport());
         text="O relatório não será exportado sem registros cadastrados no contexto selecionado."
       />
 
-      <div v-if="!error && rows.length" ref="previewEl" class="report-preview">
+      <div
+        v-if="!error && rows.length && previewMode === 'pdf'"
+        ref="previewEl"
+        class="report-preview"
+      >
         <VCard class="report-page" elevation="1" rounded="lg">
           <div class="report-accent" />
           <header class="paper-header">
@@ -768,6 +849,18 @@ onMounted(() => void loadReport());
           </footer>
         </VCard>
       </div>
+      <div
+        v-else-if="!error && rows.length && htmlPreview"
+        class="report-html-preview"
+      >
+        <iframe
+          class="report-html-frame"
+          title="Visualização do relatório executivo em HTML"
+          :srcdoc="htmlPreview"
+          sandbox="allow-scripts"
+          referrerpolicy="no-referrer"
+        />
+      </div>
 
       <p v-if="rows.length" class="preview-note">
         O PDF contém todas as páginas. O PNG é contínuo; relatórios com mais de
@@ -826,6 +919,21 @@ onMounted(() => void loadReport());
   padding: 24px;
   border: 1px solid #e8edf4;
   border-radius: 12px;
+}
+.report-html-preview {
+  overflow: hidden;
+  padding: 12px;
+  border-radius: 12px;
+  background: #eef1f5;
+}
+.report-html-frame {
+  display: block;
+  width: 100%;
+  height: min(74vh, 950px);
+  min-height: 520px;
+  border: 1px solid #dce3eb;
+  border-radius: 10px;
+  background: #fff;
 }
 .report-preview {
   display: grid;
