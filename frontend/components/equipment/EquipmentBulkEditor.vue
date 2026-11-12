@@ -10,7 +10,7 @@ type Operation = "SET" | "CLEAR" | "FILL_EMPTY" | "ADD" | "REMOVE" | "REPLACE";
 interface Option { id: string; label: string }
 interface CellChange { field: Field; operation: Operation; value?: string | string[] | null }
 interface RowDraft { expectedUpdatedAt: string; changes: Partial<Record<Field, CellChange>> }
-interface SelectionItem { equipmentId: string; expectedUpdatedAt: string }
+interface SelectionItem { equipmentId: string; name: string; expectedUpdatedAt: string }
 interface Preview {
   previewToken: string; requestedCount: number; changedCount: number; skippedCount: number;
   diffs: { equipmentId: string; field: string; previousValue: unknown;
@@ -31,6 +31,7 @@ const emit = defineEmits<{ saved: []; exit: [] }>();
 const api = useApi();
 const selected = ref<string[]>([]);
 const versions = ref<Record<string, string>>({});
+const recordLabels = ref<Record<string, string>>({});
 const drafts = ref<Record<string, RowDraft>>({});
 const preview = ref<Preview | null>(null);
 const previewRequest = ref<Record<string, unknown> | null>(null);
@@ -55,10 +56,27 @@ const fields: { key: Field; label: string; kind: "select" | "text" | "date" | "w
   { key: "criticalityLabelId", label: "Criticidade", kind: "select" },
   { key: "workPackageIds", label: "Work Packages", kind: "wps" },
 ];
+const fieldLabels: Record<string, string> = {
+  discipline_id: "Disciplina",
+  responsible_user_id: "Responsável",
+  eap_node_id: "Área / EAP",
+  origin: "Origem",
+  startup_at: "Startup",
+  criticality_label_id: "Criticidade",
+  work_package_ids: "Work Packages",
+};
+const valueLabels = computed(() => ({
+  discipline_id: Object.fromEntries(props.disciplineOptions.map((item) => [item.id, item.label])),
+  responsible_user_id: Object.fromEntries(props.responsibleOptions.map((item) => [item.id, item.label])),
+  eap_node_id: Object.fromEntries(props.eapOptions.map((item) => [item.id, item.label])),
+  criticality_label_id: Object.fromEntries(props.criticalityOptions.map((item) => [item.id, item.label])),
+  work_package_ids: Object.fromEntries(props.workPackageOptions.map((item) => [item.id, item.label])),
+}));
 
 watch(() => props.equipments, (items) => {
   for (const item of items) {
     if (!versions.value[item.id]) versions.value[item.id] = item.updatedAt;
+    recordLabels.value[item.id] = item.name;
   }
 }, { immediate: true });
 
@@ -160,6 +178,7 @@ async function selectAllFiltered(): Promise<void> {
       if (!versions.value[item.equipmentId]) {
         versions.value[item.equipmentId] = item.expectedUpdatedAt;
       }
+      recordLabels.value[item.equipmentId] = item.name;
     }
     selected.value = result.items.map((item) => item.equipmentId);
     success.value = `Selecionados ${result.total} equipamentos em todas as páginas filtradas.`;
@@ -256,8 +275,13 @@ defineExpose({ hasPending: () => editing.value, confirmDiscard: () => !editing.v
       <strong>Modo de edição · {{ pendingCount }} campo(s) pendente(s)</strong>
       <span class="spacer" />
       <VBtn size="small" variant="tonal" :disabled="busy" @click="selectPage">Selecionar página</VBtn>
-      <VBtn size="small" variant="tonal" :loading="state === 'selecting'" :disabled="busy"
-        @click="selectAllFiltered">Todos os filtrados ({{ total }})</VBtn>
+      <VBtn
+        size="small"
+        variant="tonal"
+        :loading="state === 'selecting'"
+        :disabled="busy"
+        @click="selectAllFiltered"
+      >Todos os filtrados ({{ total }})</VBtn>
       <VBtn size="small" variant="text" :disabled="busy" @click="selected = []">Limpar seleção</VBtn>
     </div>
     <p v-if="selected.length" class="muted">{{ selected.length }} linha(s) selecionada(s).</p>
@@ -280,21 +304,34 @@ defineExpose({ hasPending: () => editing.value, confirmDiscard: () => !editing.v
         </select>
       </label>
       <label v-if="massOp !== 'CLEAR'">Novo valor
-        <select v-if="massField === 'workPackageIds'" multiple size="3" :disabled="busy"
-          aria-label="Work Packages em massa" @change="massWpChanged">
+        <select
+          v-if="massField === 'workPackageIds'"
+          multiple
+          size="3"
+          :disabled="busy"
+          aria-label="Work Packages em massa"
+          @change="massWpChanged"
+        >
           <option v-for="option in workPackageOptions" :key="option.id" :value="option.id">
             {{ option.label }}
           </option>
         </select>
-        <select v-else-if="['disciplineId','responsibleUserId','eapNodeId','criticalityLabelId'].includes(massField)"
-          v-model="massValue" :disabled="busy">
+        <select
+          v-else-if="['disciplineId','responsibleUserId','eapNodeId','criticalityLabelId'].includes(massField)"
+          v-model="massValue"
+          :disabled="busy"
+        >
           <option value="">Escolher</option>
           <option v-for="option in options(massField)" :key="option.id" :value="option.id">
             {{ option.label }}
           </option>
         </select>
-        <input v-else v-model="massValue" :type="massField === 'startupAt' ? 'date' : 'text'"
-          :disabled="busy" />
+        <input
+          v-else
+          v-model="massValue"
+          :type="massField === 'startupAt' ? 'date' : 'text'"
+          :disabled="busy"
+        />
       </label>
       <VBtn color="primary" size="small" variant="tonal" :disabled="busy" @click="applyMass">
         Aplicar ao rascunho
@@ -312,31 +349,56 @@ defineExpose({ hasPending: () => editing.value, confirmDiscard: () => !editing.v
         </tr></thead>
         <tbody>
           <tr v-for="row in equipments" :key="row.id">
-            <td><input type="checkbox" :checked="selected.includes(row.id)" :disabled="busy"
-              :aria-label="`Selecionar ${row.name}`" @change="toggle(row)" /></td>
+            <td><input
+              type="checkbox"
+              :checked="selected.includes(row.id)"
+              :disabled="busy"
+              :aria-label="`Selecionar ${row.name}`"
+              @change="toggle(row)"
+            /></td>
             <td class="name"><NuxtLink :to="`/equipamentos/${row.id}`">{{ row.name }}</NuxtLink></td>
-            <td v-for="field in fields" :key="field.key"
-              :class="{ changed: Boolean(drafts[row.id]?.changes[field.key]) }">
-              <select v-if="field.kind === 'select'" :value="draftValue(row, field.key)"
-                :disabled="busy" :aria-label="`${field.label}: ${row.name}`"
-                @change="cellChanged(row, field.key, $event)">
+            <td
+              v-for="field in fields"
+              :key="field.key"
+              :class="{ changed: Boolean(drafts[row.id]?.changes[field.key]) }"
+            >
+              <select
+                v-if="field.kind === 'select'"
+                :value="draftValue(row, field.key)"
+                :disabled="busy"
+                :aria-label="`${field.label}: ${row.name}`"
+                @change="cellChanged(row, field.key, $event)"
+              >
                 <option value="">—</option>
                 <option v-for="option in options(field.key)" :key="option.id" :value="option.id">
                   {{ option.label }}
                 </option>
               </select>
-              <select v-else-if="field.kind === 'wps'" multiple size="2" :disabled="busy"
-                :aria-label="`Work Packages: ${row.name}`" @change="wpChanged(row, $event)">
-                <option v-for="option in workPackageOptions" :key="option.id"
+              <select
+                v-else-if="field.kind === 'wps'"
+                multiple
+                size="2"
+                :disabled="busy"
+                :aria-label="`Work Packages: ${row.name}`"
+                @change="wpChanged(row, $event)"
+              >
+                <option
+                  v-for="option in workPackageOptions"
+                  :key="option.id"
                   :value="option.id"
-                  :selected="(draftValue(row, field.key) as string[]).includes(option.id)">
+                  :selected="(draftValue(row, field.key) as string[]).includes(option.id)"
+                >
                   {{ option.label }}
                 </option>
               </select>
-              <input v-else :value="draftValue(row, field.key)"
+              <input
+                v-else
+                :value="draftValue(row, field.key)"
                 :type="field.kind === 'date' ? 'date' : 'text'"
-                :disabled="busy" :aria-label="`${field.label}: ${row.name}`"
-                @change="cellChanged(row, field.key, $event)" />
+                :disabled="busy"
+                :aria-label="`${field.label}: ${row.name}`"
+                @change="cellChanged(row, field.key, $event)"
+              />
             </td>
             <td>{{ row.stageName }}</td>
           </tr>
@@ -349,12 +411,24 @@ defineExpose({ hasPending: () => editing.value, confirmDiscard: () => !editing.v
         state === "saving" ? "Gravando lote…" : "Alterações não são salvas automaticamente" }}</span>
       <div class="footer-buttons">
         <VBtn variant="text" :disabled="busy" @click="discard">Sair da edição</VBtn>
-        <VBtn color="primary" variant="flat" :loading="state === 'validating'"
-          :disabled="!editing || busy" @click="review">Revisar alterações</VBtn>
+        <VBtn
+          color="primary"
+          variant="flat"
+          :loading="state === 'validating'"
+          :disabled="!editing || busy"
+          @click="review"
+        >Revisar alterações</VBtn>
       </div>
     </div>
-    <BulkEditReviewDialog :preview="preview" :saving="state === 'saving'"
-      @close="preview = null" @confirm="save" />
+    <BulkEditReviewDialog
+      :preview="preview"
+      :saving="state === 'saving'"
+      :record-labels="recordLabels"
+      :field-labels="fieldLabels"
+      :value-labels="valueLabels"
+      @close="preview = null"
+      @confirm="save"
+    />
   </div>
 </template>
 

@@ -5,7 +5,7 @@ import { VAlert, VBtn } from "vuetify/components";
 import type { EquipmentComponent } from "~/types/equipment";
 
 type Field = "tag" | "sector" | "startupAt" | "leadTimeDays" |
-  "preStartDays" | "contractDeliveryAt" | "freightDays";
+  "preStartDays" | "freightDays";
 type Operation = "SET" | "CLEAR" | "FILL_EMPTY";
 interface Change { field: Field; operation: Operation; value: string | number | null }
 interface Draft { expectedUpdatedAt: string; changes: Partial<Record<Field, Change>> }
@@ -34,9 +34,19 @@ const columns: { key: Field; label: string; kind: "text" | "date" | "number" }[]
   { key: "startupAt", label: "Startup", kind: "date" },
   { key: "leadTimeDays", label: "Lead time", kind: "number" },
   { key: "preStartDays", label: "Pré-start", kind: "number" },
-  { key: "contractDeliveryAt", label: "Entrega contratual", kind: "date" },
   { key: "freightDays", label: "Frete", kind: "number" },
 ];
+const recordLabels = computed(() => Object.fromEntries(
+  props.components.map((component) => [component.id, component.name]),
+));
+const fieldLabels: Record<string, string> = {
+  tag: "TAG",
+  sector: "Setor",
+  startup_at: "Startup",
+  lead_time_days: "Lead time",
+  pre_start_days: "Pré-start",
+  freight_days: "Frete",
+};
 const massFields = columns.filter((column) => column.key !== "tag");
 const massKind = computed(() => massFields.find((item) => item.key === massField.value)?.kind ?? "text");
 const pendingCount = computed(() =>
@@ -173,10 +183,18 @@ defineExpose({ hasPending: () => pendingCount.value > 0,
   <div class="component-bulk" :aria-busy="busy" data-testid="component-bulk-editor">
     <div class="toolbar">
       <strong>Modo de edição · {{ pendingCount }} campo(s) pendente(s)</strong>
-      <VBtn variant="tonal" size="small" :disabled="busy"
-        @click="selected = components.map((row) => row.id)">Selecionar todos</VBtn>
-      <VBtn variant="text" size="small" :disabled="busy"
-        @click="selected = []">Limpar seleção</VBtn>
+      <VBtn
+        variant="tonal"
+        size="small"
+        :disabled="busy"
+        @click="selected = components.map((row) => row.id)"
+      >Selecionar todos</VBtn>
+      <VBtn
+        variant="text"
+        size="small"
+        :disabled="busy"
+        @click="selected = []"
+      >Limpar seleção</VBtn>
     </div>
     <div v-if="selected.length" class="mass-panel">
       <strong>{{ selected.length }} selecionado(s)</strong>
@@ -195,12 +213,20 @@ defineExpose({ hasPending: () => pendingCount.value > 0,
         </select>
       </label>
       <label v-if="massOp !== 'CLEAR'">Valor
-        <input v-model="massValue" :type="massKind === 'date' ? 'date' :
+        <input
+          v-model="massValue"
+          :type="massKind === 'date' ? 'date' :
           massKind === 'number' ? 'number' : 'text'" :min="massKind === 'number' ? 0 : undefined"
-          :disabled="busy" />
+          :disabled="busy"
+        />
       </label>
-      <VBtn variant="tonal" color="primary" size="small" :disabled="busy"
-        @click="applyMass">Aplicar ao rascunho</VBtn>
+      <VBtn
+        variant="tonal"
+        color="primary"
+        size="small"
+        :disabled="busy"
+        @click="applyMass"
+      >Aplicar ao rascunho</VBtn>
     </div>
     <VAlert v-if="error" type="error" density="compact" variant="tonal" role="alert">
       {{ error }}
@@ -216,16 +242,27 @@ defineExpose({ hasPending: () => pendingCount.value > 0,
         </tr></thead>
         <tbody>
           <tr v-for="component in components" :key="component.id">
-            <td><input type="checkbox" :checked="selected.includes(component.id)"
-              :disabled="busy" :aria-label="`Selecionar ${component.name}`"
-              @change="toggle(component.id)" /></td>
+            <td><input
+              type="checkbox"
+              :checked="selected.includes(component.id)"
+              :disabled="busy"
+              :aria-label="`Selecionar ${component.name}`"
+              @change="toggle(component.id)"
+            /></td>
             <td class="name">{{ component.name }}</td>
-            <td v-for="column in columns" :key="column.key"
-              :class="{ changed: Boolean(drafts[component.id]?.changes[column.key]) }">
-              <input :type="column.kind" :value="currentValue(component, column.key)"
+            <td
+              v-for="column in columns"
+              :key="column.key"
+              :class="{ changed: Boolean(drafts[component.id]?.changes[column.key]) }"
+            >
+              <input
+                :type="column.kind"
+                :value="currentValue(component, column.key)"
                 :min="column.kind === 'number' ? 0 : undefined"
-                :aria-label="`${column.label}: ${component.name}`" :disabled="busy"
-                @change="setCell(component, column, $event)" />
+                :aria-label="`${column.label}: ${component.name}`"
+                :disabled="busy"
+                @change="setCell(component, column, $event)"
+              />
             </td>
           </tr>
         </tbody>
@@ -235,11 +272,22 @@ defineExpose({ hasPending: () => pendingCount.value > 0,
       <span>{{ state === "validating" ? "Validando…" :
         state === "saving" ? "Gravando lote…" : "Altere células ou selecione componentes" }}</span>
       <VBtn variant="text" :disabled="busy" @click="discard">Sair da edição</VBtn>
-      <VBtn variant="flat" color="primary" :loading="state === 'validating'"
-        :disabled="!pendingCount || busy" @click="review">Revisar alterações</VBtn>
+      <VBtn
+        variant="flat"
+        color="primary"
+        :loading="state === 'validating'"
+        :disabled="!pendingCount || busy"
+        @click="review"
+      >Revisar alterações</VBtn>
     </div>
-    <BulkEditReviewDialog :preview="preview" :saving="state === 'saving'"
-      @close="preview = null" @confirm="save" />
+    <BulkEditReviewDialog
+      :preview="preview"
+      :saving="state === 'saving'"
+      :record-labels="recordLabels"
+      :field-labels="fieldLabels"
+      @close="preview = null"
+      @confirm="save"
+    />
   </div>
 </template>
 

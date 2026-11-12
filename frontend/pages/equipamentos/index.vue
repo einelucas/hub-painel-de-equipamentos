@@ -547,8 +547,12 @@ onBeforeUnmount(() => unsubscribeSync?.());
               @change="reload"
             />
           </div>
-          <VBtn v-if="auth.can('equipments:write')" variant="tonal" color="primary"
-            :disabled="!canEditTable && !editingTable" :title="!canEditTable ? 'Selecione uma obra para editar' : undefined"
+          <VBtn
+            v-if="auth.can('equipments:write')"
+            variant="tonal"
+            color="primary"
+            :disabled="!canEditTable && !editingTable"
+            :title="!canEditTable ? 'Selecione uma obra para editar' : undefined"
             data-testid="toggle-equipment-table-edit"
             @click="toggleTableEditing">
             {{ editingTable ? "Sair da edição" : "Editar tabela" }}

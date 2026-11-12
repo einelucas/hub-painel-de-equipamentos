@@ -19,14 +19,31 @@ interface BulkEditPreview {
   errors: string[];
 }
 
-defineProps<{ preview: BulkEditPreview | null; saving: boolean }>();
+const props = defineProps<{
+  preview: BulkEditPreview | null;
+  saving: boolean;
+  recordLabels?: Record<string, string>;
+  fieldLabels?: Record<string, string>;
+  valueLabels?: Record<string, Record<string, string>>;
+}>();
 const emit = defineEmits<{ confirm: []; close: [] }>();
 
-function label(value: unknown): string {
+function label(value: unknown, field: string): string {
   if (value === null || value === undefined || value === "") return "—";
-  if (Array.isArray(value)) return value.length ? value.join(", ") : "Nenhum";
+  const labels = props.valueLabels?.[field];
+  if (Array.isArray(value)) {
+    return value.length
+      ? value.map((item) => labels?.[String(item)] ?? String(item)).join(", ")
+      : "Nenhum";
+  }
+  if (labels?.[String(value)]) return labels[String(value)]!;
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function recordLabel(diff: BulkEditDiff): string {
+  const id = diff.equipmentId ?? diff.componentId ?? "";
+  return props.recordLabels?.[id] ?? id;
 }
 </script>
 
@@ -49,10 +66,10 @@ function label(value: unknown): string {
             </thead>
             <tbody>
               <tr v-for="(diff, index) in preview.diffs" :key="index">
-                <td>{{ diff.equipmentId ?? diff.componentId }}</td>
-                <td>{{ diff.field }}</td>
-                <td>{{ label(diff.previousValue) }}</td>
-                <td>{{ label(diff.proposedValue) }}</td>
+                <td>{{ recordLabel(diff) }}</td>
+                <td>{{ fieldLabels?.[diff.field] ?? diff.field }}</td>
+                <td>{{ label(diff.previousValue, diff.field) }}</td>
+                <td>{{ label(diff.proposedValue, diff.field) }}</td>
                 <td>{{ diff.skippedReason === "ALREADY_FILLED" ? "Preservado (já preenchido)" : diff.skippedReason === "UNCHANGED" ? "Sem alteração" : "Alterar" }}</td>
               </tr>
             </tbody>

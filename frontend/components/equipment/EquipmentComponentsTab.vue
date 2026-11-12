@@ -68,12 +68,23 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
         <p>{{ components.length }} subitem(ns) cadastrado(s).</p>
       </div>
       <div class="component-header-actions">
-        <VBtn v-if="canEdit" variant="tonal" color="primary" :disabled="editingTable"
-          :prepend-icon="mdiPlus" @click="openCreate">
+        <VBtn
+          v-if="canEdit"
+          variant="tonal"
+          color="primary"
+          :disabled="editingTable"
+          :prepend-icon="mdiPlus"
+          @click="openCreate"
+        >
           Adicionar componente
         </VBtn>
-        <VBtn v-if="canEdit" variant="outlined" color="primary"
-          data-testid="toggle-components-table-edit" @click="toggleTableEditing">
+        <VBtn
+          v-if="canEdit"
+          variant="outlined"
+          color="primary"
+          data-testid="toggle-components-table-edit"
+          @click="toggleTableEditing"
+        >
           {{ editingTable ? "Sair da edição" : "Editar tabela" }}
         </VBtn>
       </div>
