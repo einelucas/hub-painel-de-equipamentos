@@ -46,15 +46,17 @@ function equipment(currentStage: number, name: string): Equipment {
 
 describe("relatório executivo HTML offline", () => {
   it("incorpora ApexCharts, logo, estilos e apenas os atrasos válidos", () => {
-    const metrics = buildEquipmentReport([
+    const rows = [
       equipment(1, "Válido & atrasado"),
       equipment(3, "Não deve aparecer <script>alert(2)</script>"),
-    ], new Date(2026, 10, 11));
+    ];
+    const metrics = buildEquipmentReport(rows, new Date(2026, 10, 11));
     const html = buildEquipmentReportHtml({
       unitName: "Unidade & Teste",
       projectName: "Obra <C2>",
       generatedAt: new Date(2026, 10, 11, 10, 30),
       metrics,
+      equipments: rows,
       logoDataUrl: "data:image/png;base64,AAAA",
       apexChartsRuntime: "window.ApexCharts = window.ApexCharts || function ApexCharts() {};",
     });
@@ -69,9 +71,16 @@ describe("relatório executivo HTML offline", () => {
     expect(parsed.querySelectorAll("script[src]")).toHaveLength(0);
     expect(parsed.querySelectorAll("link[href]")).toHaveLength(0);
     expect(html).toContain("Válido &amp; atrasado");
-    expect(html).not.toContain("Não deve aparecer");
+    expect(parsed.querySelectorAll('[data-equipment-id]')).toHaveLength(1);
+    expect(parsed.querySelector('[data-equipment-id]')?.textContent).toBe("Válido & atrasado");
+    expect(html).toContain('class="detail-overlay"');
+    expect(html).toContain("dataPointSelection");
+    expect(html).toContain('"group":"unclassified"');
+    expect(html).toContain("Não deve aparecer");
     expect(html).toContain("A &lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).not.toContain("<script>alert(2)</script>");
+    expect(html).toContain("\\u003cscript\\u003ealert(2)\\u003c/script\\u003e");
   });
 
   it("gera um documento válido também sem equipamentos", () => {
@@ -81,6 +90,7 @@ describe("relatório executivo HTML offline", () => {
       projectName: "Obra",
       generatedAt: new Date(2026, 10, 11),
       metrics,
+      equipments: [],
       logoDataUrl: "data:image/png;base64,AAAA",
       apexChartsRuntime: "window.ApexCharts = window.ApexCharts || function ApexCharts() {};",
     });

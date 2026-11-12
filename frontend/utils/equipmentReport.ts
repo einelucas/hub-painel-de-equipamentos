@@ -22,6 +22,17 @@ export interface EquipmentReportMetrics {
 
 const ON_TIME = new Set(["DUE_TODAY", "CRITICAL", "URGENT", "UPCOMING", "ON_TRACK"]);
 const NEGOTIATION_STAGES = new Set([0, 1, 2]);
+export type ReportStatusGroup = "completed" | "onTime" | "overdue" | "unclassified";
+
+/** Mesma classificação para indicadores e listas interativas do HTML. */
+export function equipmentReportStatusGroup(equipment: Equipment): ReportStatusGroup {
+  const status = equipment.calculated?.negotiationStatus;
+  if (status === "COMPLETED") return "completed";
+  if (status === "OVERDUE" && NEGOTIATION_STAGES.has(equipment.currentStage)) return "overdue";
+  if (status && ON_TIME.has(status)) return "onTime";
+  return "unclassified";
+}
+
 const PIPELINE = [
   { stage: 3, label: "Abertura de Chamado" },
   { stage: 4, label: "Aprovação de Minuta" },
@@ -82,16 +93,16 @@ export function buildEquipmentReport(
     const pipelineStage = pipeline.find((item) => item.stage === equipment.currentStage);
     if (pipelineStage) pipelineStage.count++;
 
-    const status = equipment.calculated?.negotiationStatus;
-    if (status === "COMPLETED") completed++;
-    else if (status === "OVERDUE" && NEGOTIATION_STAGES.has(equipment.currentStage)) {
+    const statusGroup = equipmentReportStatusGroup(equipment);
+    if (statusGroup === "completed") completed++;
+    else if (statusGroup === "overdue") {
       const apiDays = equipment.calculated?.negotiationDaysRemaining;
       const deadlineDay = calendarDay(equipment.calculated?.negotiationDeadline);
       const daysLate = typeof apiDays === "number" && Number.isFinite(apiDays) && apiDays < 0
         ? Math.abs(apiDays)
         : deadlineDay !== null && deadlineDay < today ? today - deadlineDay : null;
       overdueEquipments.push({ equipment, daysLate });
-    } else if (status && ON_TIME.has(status)) onTime++;
+    } else if (statusGroup === "onTime") onTime++;
     else unclassified++;
 
     const startupDay = calendarDay(equipment.startupAt);

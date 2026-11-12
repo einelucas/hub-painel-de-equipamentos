@@ -36,6 +36,8 @@ import {
 const props = defineProps<{
   unitId: string;
   projectContextId: string;
+  /** Contextos selecionados no diálogo. O singular permanece compatível. */
+  projectContextIds?: string[];
   unitName: string;
   projectName: string;
 }>();
@@ -192,8 +194,8 @@ function percent(value: number): string {
   })}%`;
 }
 
-/** O relatório sempre representa toda a obra selecionada. Filtros locais da
- * tabela de equipamentos não são propagados para esta consulta. */
+/** O relatório consolida integralmente cada obra selecionada. Filtros locais
+ * da tabela de equipamentos não são propagados para estas consultas. */
 async function loadReport(): Promise<void> {
   loading.value = true;
   rows.value = [];
@@ -202,38 +204,44 @@ async function loadReport(): Promise<void> {
   downloadError.value = "";
   progress.value = "Consultando a carteira da obra...";
   try {
-    const equipments = await collectAllPages<Equipment>(
-      (page) =>
-        api.get<EquipmentList>(
-          "/equipments",
-          {
-            unit_id: props.unitId,
-            project_context_id: props.projectContextId,
-            page,
-            pageSize: 100,
-            sortBy: "name",
+    const projectIds = [...new Set(props.projectContextIds?.length
+      ? props.projectContextIds
+      : [props.projectContextId])];
+    const equipments: Equipment[] = [];
+    for (const [index, projectId] of projectIds.entries()) {
+      progress.value = `Consultando obra ${index + 1} de ${projectIds.length}...`;
+      const projectEquipments = await collectAllPages<Equipment>(
+        (page) =>
+          api.get<EquipmentList>(
+            "/equipments",
+            {
+              unit_id: props.unitId,
+              project_context_id: projectId,
+              page,
+              pageSize: 100,
+              sortBy: "name",
+            },
+            { force: true },
+          ),
+        {
+          onProgress: (page, totalPages) => {
+            progress.value = `Obra ${index + 1}/${projectIds.length} · página ${page} de ${totalPages}`;
           },
-          { force: true },
-        ),
-      {
-        onProgress: (page, totalPages) => {
-          progress.value = `Carregando equipamentos · página ${page} de ${totalPages}`;
         },
-      },
-    );
-    if (
-      equipments.some(
-        (item) =>
-          item.unit.id !== props.unitId ||
-          item.projectContext.id !== props.projectContextId,
-      )
-    ) {
-      throw new Error(
-        "A API retornou equipamentos de outra obra. O relatório foi bloqueado por segurança.",
       );
+      if (projectEquipments.some((item) =>
+        item.unit.id !== props.unitId || item.projectContext.id !== projectId
+      )) {
+        throw new Error(
+          "A API retornou equipamentos de outra obra. O relatório foi bloqueado por segurança.",
+        );
+      }
+      equipments.push(...projectEquipments);
     }
+    // Cada equipamento deve aparecer uma única vez, inclusive se a API repetir registros.
+    const uniqueEquipments = [...new Map(equipments.map((item) => [item.id, item])).values()];
     generatedAt.value = new Date();
-    rows.value = equipments;
+    rows.value = uniqueEquipments;
     if (previewMode.value === "html" && rows.value.length) {
       try {
         progress.value = "Atualizando a visualização HTML...";
@@ -329,6 +337,7 @@ async function saveHtml(): Promise<void> {
       projectName: props.projectName,
       generatedAt: generatedAt.value,
       metrics: metrics.value,
+      equipments: rows.value,
     });
   } catch (caught) {
     downloadError.value =
@@ -351,6 +360,7 @@ async function refreshHtmlPreview(): Promise<void> {
     projectName: props.projectName,
     generatedAt: generatedAt.value,
     metrics: metrics.value,
+    equipments: rows.value,
   });
 }
 

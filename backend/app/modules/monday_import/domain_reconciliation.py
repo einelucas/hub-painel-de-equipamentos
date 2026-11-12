@@ -175,9 +175,8 @@ async def _load_equipments(session: AsyncSession, equipment_ids: Iterable[str]) 
     equipments: dict[str, Equipment] = {}
     for chunk in _chunks(equipment_ids):
         rows = (
-            (
-                await session.scalars(
-                    select(Equipment)
+            await session.scalars(
+                select(Equipment)
                     .where(Equipment.id.in_(chunk))
                     .options(
                         joinedload(Equipment.discipline),
@@ -188,8 +187,7 @@ async def _load_equipments(session: AsyncSession, equipment_ids: Iterable[str]) 
                         selectinload(Equipment.contracts),
                         selectinload(Equipment.purchase_requests),
                         selectinload(Equipment.purchase_orders),
-                        selectinload(Equipment.components),
-                    )
+                    selectinload(Equipment.components),
                 )
             )
         ).all()
