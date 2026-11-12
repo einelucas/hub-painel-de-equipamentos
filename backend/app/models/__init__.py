@@ -2,6 +2,7 @@
 
 from app.models.access import UserModuleContextPreference, UserUnitAccess
 from app.models.audit import AuditLog
+from app.models.bulk_edit import BulkEditBatch
 from app.models.equipment import (
     Area,
     CriticalityLabel,
@@ -65,6 +66,7 @@ __all__ = [
     "MasterArea", "MasterComponentOption", "MasterEquipment", "MasterEquipmentArea",
     "MasterProjectCreation",
     "AuditLog",
+    "BulkEditBatch",
     "Area",
     "Comment",
     "Contract",
