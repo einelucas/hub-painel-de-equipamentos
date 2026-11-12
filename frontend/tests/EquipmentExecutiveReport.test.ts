@@ -177,6 +177,8 @@ describe("EquipmentExecutiveReport", () => {
         id: projectContextId === "ctx-1" ? "eq-1" : "eq-2",
         name: projectContextId === "ctx-1" ? "Caldeira de Biomassa" : "Tanque de Fermentação",
         projectContext: { id: projectContextId as string, name: "Obra selecionada" },
+        currentStage: 0,
+        stageName: "Nova demanda",
       };
       return Promise.resolve({
         items: [item],
