@@ -400,7 +400,7 @@ async def apply_components(
 
 async def resolve_filtered_equipments(
     session: AsyncSession, actor: CurrentUser, *,
-    project_context_id: str, stage: int | None = None,
+    project_context_id: str, equipment_id: str | None = None, stage: int | None = None,
     discipline_id: str | None = None, responsible_user_id: str | None = None,
     eap_node_id: str | None = None, work_package_id: str | None = None,
     search: str | None = None,
@@ -410,7 +410,7 @@ async def resolve_filtered_equipments(
     stmt = equipment_services._apply_filters(
         select(Equipment.id, Equipment.updated_at),
         allowed_units=None, unit_id=None,
-        project_context_id=project_context_id, equipment_id=None,
+        project_context_id=project_context_id, equipment_id=equipment_id,
         search=search, stage=stage, discipline_id=discipline_id,
         responsible_user_id=responsible_user_id, area_id=None,
         eap_node_id=eap_node_id, work_package_id=work_package_id,
