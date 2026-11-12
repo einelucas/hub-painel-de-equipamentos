@@ -37,6 +37,7 @@ router = APIRouter(tags=["equipamentos"])
 @router.get("/equipments/bulk/selection")
 async def get_bulk_equipment_selection(
     project_context_id: str = Query(alias="projectContextId"),
+    equipment_id: str | None = None,
     stage: int | None = Query(default=None, ge=0, le=8),
     discipline_id: str | None = None,
     responsible_user_id: str | None = None,
@@ -47,7 +48,7 @@ async def get_bulk_equipment_selection(
     actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
 ) -> dict:
     return await bulk_edit_service.resolve_filtered_equipments(
-        session, actor, project_context_id=project_context_id, stage=stage,
+        session, actor, project_context_id=project_context_id, equipment_id=equipment_id, stage=stage,
         discipline_id=discipline_id, responsible_user_id=responsible_user_id,
         eap_node_id=eap_node_id, work_package_id=work_package_id, search=search,
     )
