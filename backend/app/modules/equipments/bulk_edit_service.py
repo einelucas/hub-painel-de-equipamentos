@@ -38,7 +38,7 @@ from app.modules.sync.services import record_equipment_sync_event
 from app.shared.audit import record_audit
 
 _PREVIEW_TTL = timedelta(minutes=15)
-_MAX_ROWS = 100
+_MAX_ROWS = 200
 _COMPONENT_FIELDS = {
     "tag", "sector", "startup_at", "lead_time_days", "pre_start_days",
     "freight_days",
@@ -451,7 +451,7 @@ async def resolve_filtered_equipments(
     )).all()
     if len(rows) > _MAX_ROWS:
         raise DomainError(
-            "Mais de 100 equipamentos encontrados. Refine os filtros para um lote de até 100."
+            "Mais de 200 equipamentos encontrados. Refine os filtros para um lote de até 200."
         )
     return {
         "total": len(rows),

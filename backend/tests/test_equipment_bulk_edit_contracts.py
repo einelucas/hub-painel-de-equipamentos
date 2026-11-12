@@ -2,7 +2,7 @@
 
 import pytest  # noqa: I001
 
-from app.modules.equipments import bulk_edit_contracts
+from app.modules.equipments import bulk_edit_components, bulk_edit_contracts
 
 
 STAMP = "2026-11-12T13:00:00"
@@ -98,9 +98,30 @@ def test_apply_requires_preview_and_idempotency_tokens():
     assert parsed.items[0].expected_updated_at.isoformat() == STAMP
 
 
-def test_max_batch_size_is_100():
+def test_max_batch_size_is_200():
     payload = _payload()
     original = payload["items"][0]
-    payload["items"] = [dict(original, equipmentId=f"eq-{i}") for i in range(101)]
+    payload["items"] = [dict(original, equipmentId=f"eq-{i}") for i in range(200)]
+    parsed = bulk_edit_contracts.EquipmentBulkPreviewIn.model_validate(payload)
+    assert len(parsed.items) == 200
+
+    payload["items"] = [dict(original, equipmentId=f"eq-{i}") for i in range(201)]
     with pytest.raises(ValueError):
         bulk_edit_contracts.EquipmentBulkPreviewIn.model_validate(payload)
+
+
+def test_component_max_batch_size_is_200():
+    original = {
+        "componentId": "component-0",
+        "expectedUpdatedAt": STAMP,
+        "changes": [{"field": "sector", "operation": "SET", "value": "Utilidades"}],
+    }
+    payload = {
+        "items": [dict(original, componentId=f"component-{i}") for i in range(200)]
+    }
+    parsed = bulk_edit_components.ComponentBulkPreviewIn.model_validate(payload)
+    assert len(parsed.items) == 200
+
+    payload["items"] = [dict(original, componentId=f"component-{i}") for i in range(201)]
+    with pytest.raises(ValueError):
+        bulk_edit_components.ComponentBulkPreviewIn.model_validate(payload)

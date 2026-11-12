@@ -78,7 +78,7 @@ class ComponentRowEdit(StrictBulkModel):
 
 
 class ComponentBulkPreviewIn(StrictBulkModel):
-    items: list[ComponentRowEdit] = Field(min_length=1, max_length=100)
+    items: list[ComponentRowEdit] = Field(min_length=1, max_length=200)
 
     @model_validator(mode="after")
     def no_duplicate_items(self) -> ComponentBulkPreviewIn:

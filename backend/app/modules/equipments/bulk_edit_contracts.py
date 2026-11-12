@@ -129,14 +129,14 @@ class EquipmentRowEdit(StrictBulkModel):
 
 
 class EquipmentBulkPreviewIn(StrictBulkModel):
-    """Escopo fechado: IDs explícitos de uma única obra, até 100 linhas por lote.
+    """Escopo fechado: IDs explícitos de uma única obra, até 200 linhas por lote.
 
     Seleção por filtros precisa ser resolvida no servidor antes de produzir
     esta lista; nunca confiar em seleção parcial da página do navegador.
     """
 
     project_context_id: str = Field(min_length=1, max_length=64)
-    items: list[EquipmentRowEdit] = Field(min_length=1, max_length=100)
+    items: list[EquipmentRowEdit] = Field(min_length=1, max_length=200)
 
     @model_validator(mode="after")
     def unique_equipment_ids(self) -> EquipmentBulkPreviewIn:
