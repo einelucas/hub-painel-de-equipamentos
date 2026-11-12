@@ -306,8 +306,8 @@ async def apply_equipments(
         changed: dict[str, Any] = {}
         for diff in relevant:
             field = diff.field
-            previous[field] = diff.previous_value
-            changed[field] = diff.proposed_value
+            previous[field] = equipment_services._json_value(diff.previous_value)
+            changed[field] = equipment_services._json_value(diff.proposed_value)
             if field == "work_package_ids":
                 await equipment_services._sync_work_packages(
                     session, equipment=equipment, work_package_ids=diff.proposed_value
@@ -372,8 +372,8 @@ async def apply_components(
         previous: dict[str, Any] = {}
         changed: dict[str, Any] = {}
         for diff in relevant:
-            previous[diff.field] = diff.previous_value
-            changed[diff.field] = diff.proposed_value
+            previous[diff.field] = equipment_services._json_value(diff.previous_value)
+            changed[diff.field] = equipment_services._json_value(diff.proposed_value)
             setattr(component, diff.field, diff.proposed_value)
         component.updated_at = _now()
         await record_audit(
