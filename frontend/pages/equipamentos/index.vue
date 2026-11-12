@@ -21,7 +21,7 @@ import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import EquipmentExecutiveReport from "~/components/equipment/EquipmentExecutiveReport.vue";
 import { Sparkles } from "lucide-vue-next";
-import { VBtn } from "vuetify/components";
+import { VBtn, VCard, VCardActions, VCardText, VCardTitle, VCheckbox, VDialog } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
@@ -56,9 +56,12 @@ const showAdmin = ref(false);
 const reportSelection = ref<{
   unitId: string;
   projectContextId: string;
+  projectContextIds: string[];
   unitName: string;
   projectName: string;
 } | null>(null);
+const showReportPicker = ref(false);
+const selectedReportProjectIds = ref<string[]>([]);
 let requestVersion = 0;
 let quietRefresh = false;
 let unsubscribeSync: (() => void) | null = null;
@@ -72,28 +75,50 @@ const canCreate = computed(
 const canAdminister = computed(
   () => auth.can("catalogs:manage") || auth.can("users:manage"),
 );
+const availableReportProjects = computed(() =>
+  context.projectContexts.filter((project) => project.active !== false),
+);
 const canGenerateReport = computed(
-  () => Boolean(context.selectedUnit && context.selectedProjectContext) &&
+  () => Boolean(context.selectedUnit && availableReportProjects.value.length) &&
     !context.loading && !context.optionsLoading,
 );
 
-/** O escopo é fixado no clique. Filtro de equipamento e filtros locais não
- * reduzem o report: ele sempre representa a carteira inteira da obra. */
+/** A escolha das obras é independente dos filtros de equipamento e da tabela.
+ * Um único contexto dispensa a seleção; vários exigem confirmação explícita. */
 function openExecutiveReport(): void {
   if (!canGenerateReport.value) return;
-  const unit = context.units.find((item) => item.id === context.selectedUnit);
-  const project = context.projectContexts.find(
-    (item) => item.id === context.selectedProjectContext,
-  );
-  if (!unit || !project) {
-    error.value = "A unidade e a obra selecionadas não estão disponíveis. Atualize os filtros.";
+  const projects = availableReportProjects.value;
+  if (projects.length === 1) {
+    confirmExecutiveReport([projects[0]!.id]);
     return;
   }
+  selectedReportProjectIds.value =
+    context.selectedProjectContext && projects.some((item) => item.id === context.selectedProjectContext)
+      ? [context.selectedProjectContext]
+      : projects.map((item) => item.id);
+  showReportPicker.value = true;
+}
+
+function toggleReportProject(id: string, selected: boolean): void {
+  selectedReportProjectIds.value = selected
+    ? [...new Set([...selectedReportProjectIds.value, id])]
+    : selectedReportProjectIds.value.filter((value) => value !== id);
+}
+
+function confirmExecutiveReport(ids: string[] = selectedReportProjectIds.value): void {
+  const unit = context.units.find((item) => item.id === context.selectedUnit);
+  const selected = availableReportProjects.value.filter((item) => ids.includes(item.id));
+  if (!unit || selected.length === 0 || selected.length !== new Set(ids).size) {
+    error.value = "As obras selecionadas não estão disponíveis nesta unidade. Atualize os filtros.";
+    return;
+  }
+  showReportPicker.value = false;
   reportSelection.value = {
     unitId: unit.id,
-    projectContextId: project.id,
+    projectContextId: selected[0]!.id,
+    projectContextIds: selected.map((item) => item.id),
     unitName: unit.name,
-    projectName: project.name,
+    projectName: selected.map((item) => item.name).join(" · "),
   };
 }
 
@@ -391,7 +416,7 @@ onBeforeUnmount(() => unsubscribeSync?.());
             variant="outlined"
             size="default"
             :disabled="!canGenerateReport || loading"
-            :title="!canGenerateReport ? 'Selecione Unidade e Obra para gerar o report' : 'Gerar relatório executivo da obra inteira'"
+            :title="!canGenerateReport ? 'Selecione uma unidade com obras para gerar o report' : 'Escolher obras para o relatório executivo'"
             data-testid="generate-report-button"
             @click="openExecutiveReport"
           >
@@ -534,11 +559,57 @@ onBeforeUnmount(() => unsubscribeSync?.());
       />
     </AppModal>
 
+    <VDialog v-model="showReportPicker" max-width="520" scrollable>
+      <VCard rounded="lg" data-testid="report-project-picker">
+        <VCardTitle class="px-6 pt-5">Selecionar obras do relatório</VCardTitle>
+        <VCardText class="px-6">
+          <p class="report-picker-description">
+            Selecione uma ou mais obras da unidade {{ context.selectedUnitLabel }}.
+            O relatório consolidará todos os equipamentos das obras escolhidas.
+          </p>
+          <div class="report-picker-actions">
+            <VBtn size="small" variant="text" @click="selectedReportProjectIds = availableReportProjects.map((project) => project.id)">
+              Selecionar todas
+            </VBtn>
+            <VBtn size="small" variant="text" @click="selectedReportProjectIds = []">
+              Limpar
+            </VBtn>
+          </div>
+          <VCheckbox
+            v-for="project in availableReportProjects"
+            :key="project.id"
+            :model-value="selectedReportProjectIds.includes(project.id)"
+            :label="project.name"
+            color="primary"
+            density="compact"
+            hide-details
+            class="report-picker-checkbox"
+            @update:model-value="toggleReportProject(project.id, Boolean($event))"
+          />
+        </VCardText>
+        <VCardActions class="px-6 pb-5">
+          <span class="report-picker-count">{{ selectedReportProjectIds.length }} selecionada(s)</span>
+          <VSpacer />
+          <VBtn variant="text" @click="showReportPicker = false">Cancelar</VBtn>
+          <VBtn
+            color="primary"
+            variant="flat"
+            data-testid="confirm-report-projects"
+            :disabled="selectedReportProjectIds.length === 0"
+            @click="confirmExecutiveReport()"
+          >
+            Gerar relatório
+          </VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+
     <EquipmentExecutiveReport
       v-if="reportSelection"
-      :key="`${reportSelection.unitId}-${reportSelection.projectContextId}`"
+      :key="`${reportSelection.unitId}-${reportSelection.projectContextIds.join(',')}`"
       :unit-id="reportSelection.unitId"
       :project-context-id="reportSelection.projectContextId"
+      :project-context-ids="reportSelection.projectContextIds"
       :unit-name="reportSelection.unitName"
       :project-name="reportSelection.projectName"
       @close="reportSelection = null"
@@ -550,6 +621,26 @@ onBeforeUnmount(() => unsubscribeSync?.());
 .state-card {
   max-width: none;
 }
+.report-picker-description {
+  color: #61738a;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.report-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.report-picker-checkbox {
+  border-radius: 8px;
+}
+.report-picker-count {
+  color: #61738a;
+  font-size: 12px;
+}
+
 .table-filters {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
