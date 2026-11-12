@@ -69,9 +69,12 @@ function setCell(component: EquipmentComponent, column: typeof columns[number], 
   if (raw === baseValue(component, column.key)) {
     const data = drafts.value[component.id];
     if (data) {
-      delete data.changes[column.key];
-      if (!Object.keys(data.changes).length) delete drafts.value[component.id];
-      drafts.value = { ...drafts.value };
+      const changes = Object.fromEntries(
+        Object.entries(data.changes).filter(([key]) => key !== column.key),
+      ) as Draft["changes"];
+      drafts.value = Object.keys(changes).length
+        ? { ...drafts.value, [component.id]: { ...data, changes } }
+        : Object.fromEntries(Object.entries(drafts.value).filter(([key]) => key !== component.id));
     }
     return;
   }
