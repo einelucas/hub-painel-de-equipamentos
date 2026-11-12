@@ -169,4 +169,67 @@ describe("EquipmentExecutiveReport", () => {
     expect(toggle.attributes("aria-label")).toBe("Visualizar modelo HTML");
     expect(toggle.attributes("aria-pressed")).toBe("false");
   });
+  it("consolida somente as obras escolhidas, consultando cada contexto integralmente", async () => {
+    const get = vi.fn().mockImplementation((_path: string, query: Record<string, unknown>) => {
+      const projectContextId = query.project_context_id;
+      const item = {
+        ...equipment,
+        id: projectContextId === "ctx-1" ? "eq-1" : "eq-2",
+        name: projectContextId === "ctx-1" ? "Caldeira de Biomassa" : "Tanque de Fermentação",
+        projectContext: { id: projectContextId as string, name: "Obra selecionada" },
+      };
+      return Promise.resolve({
+        items: [item],
+        pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
+      });
+    });
+    vi.stubGlobal("useApi", () => ({ get }));
+    const wrapper = mount(EquipmentExecutiveReport, {
+      props: {
+        unitId: "unit-1",
+        projectContextIds: ["ctx-1", "ctx-2"],
+        unitName: "Nova Mutum",
+        projectName: "Caldeira 4 · Fase 2",
+      },
+      global: {
+        components: { AppModal: AppModalStub, ChartCanvas: ChartCanvasStub },
+      },
+    });
+    await flushPromises();
+
+    expect(get.mock.calls.map((call) => call[1].project_context_id)).toEqual([
+      "ctx-1",
+      "ctx-2",
+    ]);
+    const text = wrapper.text();
+    expect(text).toContain("Caldeira 4 · Fase 2");
+    expect(text).toContain("Tanque de Fermentação");
+    expect(text).toContain("Caldeira de Biomassa");
+    expect(text).toContain("das obras selecionadas");
+    expect(text).not.toContain("fora das obras selecionadas");
+  });
+
+  it("bloqueia a exportação se a API retornar equipamento de outra obra", async () => {
+    const get = vi.fn().mockResolvedValue({
+      items: [{ ...equipment, projectContext: { id: "ctx-fora", name: "Outra obra" } }],
+      pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
+    });
+    vi.stubGlobal("useApi", () => ({ get }));
+    const wrapper = mount(EquipmentExecutiveReport, {
+      props: {
+        unitId: "unit-1",
+        projectContextIds: ["ctx-1", "ctx-2"],
+        unitName: "Nova Mutum",
+        projectName: "Caldeira 4 · Fase 2",
+      },
+      global: {
+        components: { AppModal: AppModalStub, ChartCanvas: ChartCanvasStub },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain("fora das obras selecionadas");
+    expect(wrapper.get('[data-testid="report-pdf"]').attributes("disabled")).toBeDefined();
+    expect(get).toHaveBeenCalledTimes(1);
+  });
+
 });
