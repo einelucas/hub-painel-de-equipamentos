@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { VBtn, VCard, VCardActions, VCardText, VCardTitle, VDialog, VSpacer } from "vuetify/components";
 
-export interface BulkEditDiff {
+interface BulkEditDiff {
   equipmentId?: string;
   componentId?: string;
   field: string;
@@ -10,7 +10,7 @@ export interface BulkEditDiff {
   skippedReason: string | null;
 }
 
-export interface BulkEditPreview {
+interface BulkEditPreview {
   previewToken: string;
   requestedCount: number;
   changedCount: number;
