@@ -1,12 +1,14 @@
 import apexChartsRuntimeUrl from "apexcharts/dist/apexcharts.min.js?url";
+import type { Equipment } from "~/types/equipment";
 import type { EquipmentReportMetrics } from "~/utils/equipmentReport";
-import { formatReportDate } from "~/utils/equipmentReport";
+import { equipmentReportStatusGroup, formatReportDate } from "~/utils/equipmentReport";
 
 export interface EquipmentReportHtmlInput {
   unitName: string;
   projectName: string;
   generatedAt: Date;
   metrics: EquipmentReportMetrics;
+  equipments: Equipment[];
   logoDataUrl: string;
   apexChartsRuntime: string;
 }
@@ -55,7 +57,7 @@ function overdueRows(metrics: EquipmentReportMetrics): string {
     .map(
       ({ equipment, daysLate }) => `
       <tr>
-        <td><strong>${escapeHtml(equipment.name)}</strong></td>
+        <td><button type="button" class="equipment-detail-link" data-equipment-id="${escapeHtml(equipment.id)}" aria-label="Ver detalhes de ${escapeHtml(equipment.name)}">${escapeHtml(equipment.name)}</button></td>
         <td><span class="stage">${escapeHtml(equipment.stageName)}</span></td>
         <td>${escapeHtml(equipment.responsibleUser?.name || "Não atribuído")}</td>
         <td>${escapeHtml(formatReportDate(equipment.calculated.negotiationDeadline))}</td>
@@ -98,6 +100,52 @@ export function buildEquipmentReportHtml(
         },
       ],
     },
+  };
+  // Snapshot seguro para consulta offline. Nada depende de API depois do download.
+  const overdueDays = new Map(
+    metrics.overdueEquipments.map(({ equipment, daysLate }) => [equipment.id, daysLate]),
+  );
+  const detailRows = input.equipments.map((equipment) => ({
+    id: equipment.id,
+    name: equipment.name,
+    stage: equipment.currentStage,
+    stageName: equipment.stageName,
+    group: equipmentReportStatusGroup(equipment),
+    unit: equipment.unit.name,
+    project: equipment.projectContext.name,
+    responsible: equipment.responsibleUser?.name || "Não atribuído",
+    deadline: formatReportDate(equipment.calculated?.negotiationDeadline),
+    fields: [
+      ["Unidade", equipment.unit.name],
+      ["Obra", equipment.projectContext.name],
+      ["Etapa de aquisição", equipment.stageName],
+      ["Responsável", equipment.responsibleUser?.name || "Não atribuído"],
+      ["Disciplina", equipment.discipline?.name || "Não informada"],
+      ["Área / EAP", equipment.eapNode ? `${equipment.eapNode.code} · ${equipment.eapNode.name}` : equipment.area?.name || "Não informada"],
+      ["Fornecedor", equipment.supplier?.name || "Não informado"],
+      ["Work Packages", equipment.workPackages.map((wp) => wp.code || wp.name).join(", ") || "Não informados"],
+      ["Origem", equipment.origin || "Não informada"],
+      ["Criticidade", equipment.criticalityLabel?.name || equipment.criticality || "Não informada"],
+      ["Startup", formatReportDate(equipment.startupAt)],
+      ["Prazo limite de negociação", formatReportDate(equipment.calculated?.negotiationDeadline)],
+      ["Dias em atraso", overdueDays.get(equipment.id) ?? "—"],
+      ["Prazo limite de entrega em obra", formatReportDate(equipment.calculated?.deliveryDeadline)],
+      ["Início da entrega contratual", formatReportDate(equipment.contractualDeliveryStart)],
+      ["Fim da entrega contratual", formatReportDate(equipment.contractualDeliveryEnd)],
+      ["Componentes", equipment.componentsCount],
+      ["CAPEX estimado", equipment.capexEstimated ?? "Não informado"],
+      ["Valor total do projeto", equipment.projectTotalValue ?? "Não informado"],
+      ["Estado operacional", equipment.operationalStatus],
+    ],
+  }));
+  const interactiveData = {
+    equipments: detailRows,
+    status: ["completed", "onTime", "overdue", "unclassified"].map((group) =>
+      detailRows.filter((item) => item.group === group).map((item) => item.id),
+    ),
+    pipeline: metrics.pipeline.map(({ stage }) =>
+      detailRows.filter((item) => item.stage === stage).map((item) => item.id),
+    ),
   };
   const title = `Relatório executivo · ${input.projectName}`;
 
@@ -387,6 +435,29 @@ export function buildEquipmentReportHtml(
       .metric{min-height:100px}
     }
     
+    /* Interações exclusivas do HTML; não alteram o layout do relatório. */
+    .equipment-detail-link{border:0;background:none;padding:0;color:inherit;font:inherit;font-weight:800;text-align:left;cursor:pointer}
+    .equipment-detail-link:hover,.equipment-detail-link:focus-visible{color:var(--navy);text-decoration:underline;text-underline-offset:3px}
+    #status-chart .apexcharts-bar-area,#pipeline-chart .apexcharts-bar-area{cursor:pointer}
+    .detail-overlay[hidden]{display:none}
+    .detail-overlay{position:fixed;z-index:9999;inset:0;background:rgb(22 39 61 / 60%);display:flex;align-items:center;justify-content:center;padding:20px}
+    .detail-dialog{width:min(900px,100%);max-height:min(90vh,940px);overflow:hidden;display:flex;flex-direction:column;border:1px solid #dce5ee;border-radius:16px;background:#fff;box-shadow:0 28px 80px rgb(0 0 0 / 25%)}
+    .detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 26px;border-bottom:1px solid var(--line)}
+    .detail-head p{margin:0;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .detail-head h2{margin:4px 0 0;color:var(--ink);font-size:20px;line-height:1.3}
+    .detail-close{flex:none;border:1px solid var(--line);border-radius:8px;background:#f8fafc;color:var(--ink);width:34px;height:34px;font-size:21px;cursor:pointer}
+    .detail-body{overflow-y:auto;padding:22px 26px}
+    .detail-caption{margin:0 0 16px;color:var(--muted);font-size:12px}
+    .detail-table{width:100%;min-width:650px}
+    .detail-table th{padding:11px 12px}
+    .detail-table td{padding:12px}
+    .detail-empty{padding:32px 12px;text-align:center;color:var(--muted)}
+    .detail-back{border:0;background:none;padding:0 0 16px;color:var(--navy);font-size:12px;font-weight:800;cursor:pointer}
+    .detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .detail-field{min-width:0;border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fbfcfe}
+    .detail-field dt{font-size:10px;letter-spacing:.045em;color:var(--muted);font-weight:800;text-transform:uppercase}
+    .detail-field dd{margin:5px 0 0;font-size:13px;color:var(--ink);overflow-wrap:anywhere}
+    @media(max-width:600px){.detail-head,.detail-body{padding:16px}.detail-grid{grid-template-columns:1fr}.detail-head h2{font-size:17px}}
     /* Para impressão:
        - Remove fundos e sombras
        - Evita quebra de página dentro de painéis e tabelas */
@@ -396,6 +467,7 @@ export function buildEquipmentReportHtml(
       .report{border:0;box-shadow:none}
       .panel,.metric,.table-wrap{break-inside:avoid}
       section{break-inside:avoid}
+      .detail-overlay{display:none!important}
     }
   </style>
 </head>
@@ -443,13 +515,116 @@ export function buildEquipmentReportHtml(
       <footer><span>INPASA · Planejamento / Painel de Equipamentos</span><span>Snapshot emitido em ${escapeHtml(generatedLabel(input.generatedAt))}</span></footer>
     </article>
   </div>
+  <div id="equipment-detail-overlay" class="detail-overlay" hidden aria-hidden="true">
+    <section class="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-detail-title" tabindex="-1">
+      <div class="detail-head">
+        <div><p>DETALHAMENTO DA CARTEIRA</p><h2 id="equipment-detail-title"></h2></div>
+        <button type="button" class="detail-close" id="equipment-detail-close" aria-label="Fechar detalhes">×</button>
+      </div>
+      <div id="equipment-detail-content" class="detail-body"></div>
+    </section>
+  </div>
   <script>${embeddedRuntime(input.apexChartsRuntime)}</script>
   <script>
     "use strict";
     const reportData=${safeJson(chartData)};
+    const interactiveData=${safeJson(interactiveData)};
+    const overlay=document.getElementById('equipment-detail-overlay');
+    const dialog=overlay.querySelector('.detail-dialog');
+    const detailTitle=document.getElementById('equipment-detail-title');
+    const detailContent=document.getElementById('equipment-detail-content');
+    const closeButton=document.getElementById('equipment-detail-close');
+    let previousFocus=null;
+    let previousGroup=null;
+    const equipmentById=new Map(interactiveData.equipments.map(function(item){return [item.id,item]}));
+    function element(tag,cls,value){
+      const node=document.createElement(tag);
+      if(cls)node.className=cls;
+      if(value!==undefined)node.textContent=String(value);
+      return node;
+    }
+    function openOverlay(title){
+      previousFocus=overlay.hidden?document.activeElement:previousFocus;
+      detailTitle.textContent=title;
+      overlay.hidden=false;
+      overlay.setAttribute('aria-hidden','false');
+      document.body.style.overflow='hidden';
+      closeButton.focus();
+    }
+    function closeOverlay(){
+      overlay.hidden=true;
+      overlay.setAttribute('aria-hidden','true');
+      document.body.style.overflow='';
+      previousGroup=null;
+      if(previousFocus&&typeof previousFocus.focus==='function')previousFocus.focus();
+    }
+    function showEquipmentDetails(item){
+      if(!item)return;
+      openOverlay(item.name);
+      detailContent.replaceChildren();
+      if(previousGroup){
+        const back=element('button','detail-back','← Voltar à lista');
+        back.type='button';
+        back.addEventListener('click',function(){showGroup(previousGroup.title,previousGroup.ids)});
+        detailContent.appendChild(back);
+      }
+      const grid=element('dl','detail-grid');
+      item.fields.forEach(function(pair){
+        const field=element('div','detail-field');
+        field.appendChild(element('dt','',pair[0]));
+        field.appendChild(element('dd','',pair[1]));
+        grid.appendChild(field);
+      });
+      detailContent.appendChild(grid);
+    }
+    function showGroup(title,ids){
+      const items=ids.map(function(id){return equipmentById.get(id)}).filter(Boolean);
+      previousGroup={title:title,ids:ids};
+      openOverlay(title);
+      detailContent.replaceChildren();
+      detailContent.appendChild(element('p','detail-caption',items.length+' equipamento(s) neste recorte.'));
+      if(!items.length){detailContent.appendChild(element('p','detail-empty','Nenhum equipamento nesta classificação.'));return}
+      const wrap=element('div','table-wrap');
+      const table=element('table','detail-table');
+      const thead=element('thead');
+      const heading=element('tr');
+      ['Equipamento','Obra','Etapa','Responsável','Prazo'].forEach(function(label){heading.appendChild(element('th','',label))});
+      thead.appendChild(heading);
+      table.appendChild(thead);
+      const body=element('tbody');
+      items.forEach(function(item){
+        const tr=element('tr');
+        const td=element('td');
+        const button=element('button','equipment-detail-link',item.name);
+        button.type='button';
+        button.addEventListener('click',function(){showEquipmentDetails(item)});
+        td.appendChild(button);
+        tr.appendChild(td);
+        [item.project,item.stageName,item.responsible,item.deadline].forEach(function(value){tr.appendChild(element('td','',value))});
+        body.appendChild(tr);
+      });
+      table.appendChild(body);wrap.appendChild(table);detailContent.appendChild(wrap);
+    }
+    closeButton.addEventListener('click',closeOverlay);
+    overlay.addEventListener('click',function(event){if(event.target===overlay)closeOverlay()});
+    document.addEventListener('keydown',function(event){
+      if(overlay.hidden)return;
+      if(event.key==='Escape'){event.preventDefault();closeOverlay()}
+      if(event.key==='Tab'){
+        const focusable=Array.from(dialog.querySelectorAll('button:not([disabled])'));
+        const first=focusable[0],last=focusable[focusable.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+      }
+    });
+    document.addEventListener('click',function(event){
+      const button=event.target.closest&&event.target.closest('[data-equipment-id]');
+      if(button){previousGroup=null;showEquipmentDetails(equipmentById.get(button.dataset.equipmentId))}
+    });
+    const statusLabels=['Concluídos','No prazo','Atrasados','Sem classificação'];
     const common={chart:{fontFamily:'Manrope, Segoe UI, Arial, sans-serif',foreColor:'#667085',toolbar:{show:false},animations:{enabled:false}},noData:{text:'Sem dados'},tooltip:{theme:'light'}};
-    const statusChart=new ApexCharts(document.querySelector('#status-chart'),{...common,chart:{...common.chart,type:'bar',stacked:true,stackType:'100%',height:230},series:reportData.status.series,colors:['#609346','#5b83b4','#c26850','#aab4c0'],plotOptions:{bar:{horizontal:true,borderRadius:5,barHeight:'55%'}},dataLabels:{enabled:true,formatter:value=>value>0?value.toFixed(1).replace('.',',')+'%':''},xaxis:{categories:['Carteira'],max:100,labels:{show:false}},yaxis:{show:false},legend:{show:true,position:'bottom',onItemClick:{toggleDataSeries:true}},grid:{show:false},tooltip:{y:{formatter:value=>value.toLocaleString('pt-BR')+' equipamento(s)'}}});
-    const pipelineChart=new ApexCharts(document.querySelector('#pipeline-chart'),{...common,chart:{...common.chart,type:'bar',height:390},series:reportData.pipeline.series,colors:['#304f7e'],plotOptions:{bar:{horizontal:true,borderRadius:5,barHeight:'58%',dataLabels:{position:'top'}}},dataLabels:{enabled:true,offsetX:8,style:{colors:['#304f7e']},formatter:value=>value>0?value.toLocaleString('pt-BR'):''},xaxis:{categories:reportData.pipeline.categories,labels:{formatter:value=>Number(value).toLocaleString('pt-BR')}},legend:{show:false},grid:{borderColor:'#e7ebf0',strokeDashArray:4},tooltip:{y:{formatter:value=>value.toLocaleString('pt-BR')+' equipamento(s)'}}});
+    const statusChart=new ApexCharts(document.querySelector('#status-chart'),{...common,chart:{...common.chart,type:'bar',stacked:true,stackType:'100%',height:230,events:{dataPointSelection:function(event,ctx,selection){const index=selection.seriesIndex;if(index>=0&&index<4)showGroup(statusLabels[index],interactiveData.status[index])}}},series:reportData.status.series,colors:['#609346','#5b83b4','#c26850','#aab4c0'],plotOptions:{bar:{horizontal:true,borderRadius:5,barHeight:'55%'}},dataLabels:{enabled:true,formatter:value=>value>0?value.toFixed(1).replace('.',',')+'%':''},xaxis:{categories:['Carteira'],max:100,labels:{show:false}},yaxis:{show:false},legend:{show:true,position:'bottom',onItemClick:{toggleDataSeries:true}},grid:{show:false},tooltip:{y:{formatter:value=>value.toLocaleString('pt-BR')+' equipamento(s)'}}});
+    const pipelineChart=new ApexCharts(document.querySelector('#pipeline-chart'),{...common,chart:{...common.chart,type:'bar',height:390,events:{dataPointSelection:function(event,ctx,selection){const index=selection.dataPointIndex;if(index>=0&&index<interactiveData.pipeline.length)showGroup(reportData.pipeline.categories[index],interactiveData.pipeline[index])}}},series:reportData.pipeline.series,colors:['#304f7e'],plotOptions:{bar:{horizontal:true,borderRadius:5,barHeight:'58%',dataLabels:{position:'top'}}},dataLabels:{enabled:true,offsetX:8,style:{colors:['#304f7e']},formatter:value=>value>0?value.toLocaleString('pt-BR'):''},xaxis:{categories:reportData.pipeline.categories,labels:{formatter:value=>Number(value).toLocaleString('pt-BR')}},legend:{show:false},grid:{borderColor:'#e7ebf0',strokeDashArray:4},tooltip:{y:{formatter:value=>value.toLocaleString('pt-BR')+' equipamento(s)'}}});
     Promise.all([statusChart.render(),pipelineChart.render()]).then(()=>{document.documentElement.dataset.chartsReady='true'}).catch(()=>{document.documentElement.dataset.chartsReady='false'});
   </script>
 </body>
