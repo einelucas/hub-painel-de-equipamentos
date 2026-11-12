@@ -286,3 +286,22 @@ async def test_selection_uses_server_and_not_browser_page(client, auth_header) -
     assert r.status_code == 200, r.text
     assert r.json()["total"] == 27
     assert len({item["equipmentId"] for item in r.json()["items"]}) == 27
+
+
+async def test_selection_honors_equipment_filter_even_with_many_in_context(
+    client, auth_header
+) -> None:
+    context = await _context(client, auth_header, "B10")
+    wanted = await _equipment(client, auth_header, context["context"], "Somente este")
+    await _equipment(client, auth_header, context["context"], "Não selecionar")
+    response = await client.get(
+        "/api/v1/equipments/bulk/selection",
+        params={
+            "projectContextId": context["context"],
+            "equipment_id": wanted["id"],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["equipmentId"] == wanted["id"]
