@@ -35,7 +35,8 @@ import {
 
 const props = defineProps<{
   unitId: string;
-  projectContextId: string;
+  projectContextId?: string;
+  projectContextIds?: string[];
   unitName: string;
   projectName: string;
 }>();
@@ -52,6 +53,16 @@ const downloadError = ref("");
 const progress = ref("");
 const rows = ref<Equipment[]>([]);
 const generatedAt = ref(new Date());
+const selectedProjectIds = computed(() => [
+  ...new Set(
+    props.projectContextIds?.length
+      ? props.projectContextIds
+      : props.projectContextId
+        ? [props.projectContextId]
+        : [],
+  ),
+]);
+const multipleProjects = computed(() => selectedProjectIds.value.length > 1);
 
 const metrics = computed<EquipmentReportMetrics>(() =>
   buildEquipmentReport(rows.value, generatedAt.value),
@@ -192,48 +203,62 @@ function percent(value: number): string {
   })}%`;
 }
 
-/** O relatório sempre representa toda a obra selecionada. Filtros locais da
- * tabela de equipamentos não são propagados para esta consulta. */
+/** O relatório representa toda a carteira das obras selecionadas. Filtros
+ * locais da tabela de equipamentos não são propagados para esta consulta. */
 async function loadReport(): Promise<void> {
   loading.value = true;
   rows.value = [];
   htmlPreview.value = "";
   error.value = "";
   downloadError.value = "";
-  progress.value = "Consultando a carteira da obra...";
+  progress.value = "Consultando a carteira das obras...";
   try {
-    const equipments = await collectAllPages<Equipment>(
-      (page) =>
-        api.get<EquipmentList>(
-          "/equipments",
-          {
-            unit_id: props.unitId,
-            project_context_id: props.projectContextId,
-            page,
-            pageSize: 100,
-            sortBy: "name",
+    if (!selectedProjectIds.value.length) {
+      throw new Error("Selecione ao menos uma obra para gerar o relatório.");
+    }
+    const allEquipments: Equipment[] = [];
+    const seenIds = new Set<string>();
+    for (const [index, projectContextId] of selectedProjectIds.value.entries()) {
+      const equipments = await collectAllPages<Equipment>(
+        (page) =>
+          api.get<EquipmentList>(
+            "/equipments",
+            {
+              unit_id: props.unitId,
+              project_context_id: projectContextId,
+              page,
+              pageSize: 100,
+              sortBy: "name",
+            },
+            { force: true },
+          ),
+        {
+          onProgress: (page, totalPages) => {
+            progress.value =
+              "Obra " + (index + 1) + " de " + selectedProjectIds.value.length +
+              " · equipamentos · página " + page + " de " + totalPages;
           },
-          { force: true },
-        ),
-      {
-        onProgress: (page, totalPages) => {
-          progress.value = `Carregando equipamentos · página ${page} de ${totalPages}`;
         },
-      },
-    );
-    if (
-      equipments.some(
+      );
+      if (equipments.some(
         (item) =>
           item.unit.id !== props.unitId ||
-          item.projectContext.id !== props.projectContextId,
-      )
-    ) {
-      throw new Error(
-        "A API retornou equipamentos de outra obra. O relatório foi bloqueado por segurança.",
-      );
+          item.projectContext.id !== projectContextId,
+      )) {
+        throw new Error(
+          "A API retornou equipamentos fora das obras selecionadas. O relatório foi bloqueado por segurança.",
+        );
+      }
+      for (const item of equipments) {
+        if (seenIds.has(item.id)) {
+          throw new Error("A API retornou equipamento duplicado entre obras. Relatório bloqueado.");
+        }
+        seenIds.add(item.id);
+        allEquipments.push(item);
+      }
     }
     generatedAt.value = new Date();
-    rows.value = equipments;
+    rows.value = allEquipments;
     if (previewMode.value === "html" && rows.value.length) {
       try {
         progress.value = "Atualizando a visualização HTML...";
@@ -456,7 +481,7 @@ onMounted(() => void loadReport());
       <div class="report-toolbar">
         <div class="report-toolbar-copy">
           <strong>{{ unitName }} · {{ projectName }}</strong>
-          <span>Escopo completo da obra · dados consultados no Hub</span>
+          <span>Escopo completo {{ multipleProjects ? "das obras selecionadas" : "da obra" }} · dados consultados no Hub</span>
         </div>
         <div class="report-toolbar-actions">
           <VBtn
@@ -559,7 +584,7 @@ onMounted(() => void loadReport());
         v-else-if="!error && !rows.length"
         type="info"
         variant="tonal"
-        title="Sem equipamentos nesta obra"
+        :title="multipleProjects ? 'Sem equipamentos nas obras selecionadas' : 'Sem equipamentos nesta obra'"
         text="O relatório não será exportado sem registros cadastrados no contexto selecionado."
       />
 
@@ -597,7 +622,7 @@ onMounted(() => void loadReport());
                 <h2>Resumo executivo</h2>
               </div>
               <p class="paper-paragraph">
-                A carteira da obra possui
+                A carteira {{ multipleProjects ? "das obras possui" : "da obra possui" }}
                 <b>{{ totalLabel }} Aquisições previstas</b>. Desse total,
                 <b>{{ number(metrics.completed) }}</b> aquisições já foram
                 concluídas, representando aproximadamente

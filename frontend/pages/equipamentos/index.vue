@@ -20,6 +20,7 @@ import type {
 import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import EquipmentExecutiveReport from "~/components/equipment/EquipmentExecutiveReport.vue";
+import ReportProjectSelector from "~/components/equipment/ReportProjectSelector.vue";
 import { Sparkles } from "lucide-vue-next";
 import { VBtn } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
@@ -53,9 +54,10 @@ const refreshing = ref(false);
 const error = ref("");
 const showForm = ref(false);
 const showAdmin = ref(false);
+const reportPickerOpen = ref(false);
 const reportSelection = ref<{
   unitId: string;
-  projectContextId: string;
+  projectContextIds: string[];
   unitName: string;
   projectName: string;
 } | null>(null);
@@ -72,29 +74,44 @@ const canCreate = computed(
 const canAdminister = computed(
   () => auth.can("catalogs:manage") || auth.can("users:manage"),
 );
+const availableReportProjects = computed(() =>
+  context.projectContexts.filter((project) => project.active),
+);
 const canGenerateReport = computed(
-  () => Boolean(context.selectedUnit && context.selectedProjectContext) &&
-    !context.loading && !context.optionsLoading,
+  () =>
+    Boolean(context.selectedUnit && availableReportProjects.value.length) &&
+    !context.loading &&
+    !context.optionsLoading,
 );
 
-/** O escopo é fixado no clique. Filtro de equipamento e filtros locais não
- * reduzem o report: ele sempre representa a carteira inteira da obra. */
-function openExecutiveReport(): void {
+/** O escopo é fixado no clique. Filtros de equipamento e da tabela não
+ * reduzem o report, que inclui toda a carteira das obras escolhidas. */
+function generateReport(projectIds: string[]): void {
   if (!canGenerateReport.value) return;
   const unit = context.units.find((item) => item.id === context.selectedUnit);
-  const project = context.projectContexts.find(
-    (item) => item.id === context.selectedProjectContext,
-  );
-  if (!unit || !project) {
-    error.value = "A unidade e a obra selecionadas não estão disponíveis. Atualize os filtros.";
+  const available = new Map(availableReportProjects.value.map((project) => [project.id, project]));
+  const ids = [...new Set(projectIds)];
+  if (!unit || !ids.length || ids.some((id) => !available.has(id))) {
+    error.value = "A unidade ou as obras selecionadas não estão disponíveis. Atualize os filtros.";
     return;
   }
+  const names = ids.map((id) => available.get(id)!.name);
   reportSelection.value = {
     unitId: unit.id,
-    projectContextId: project.id,
+    projectContextIds: ids,
     unitName: unit.name,
-    projectName: project.name,
+    projectName: names.join(" · "),
   };
+  reportPickerOpen.value = false;
+}
+
+function openExecutiveReport(): void {
+  if (!canGenerateReport.value) return;
+  if (availableReportProjects.value.length === 1) {
+    generateReport([availableReportProjects.value[0]!.id]);
+    return;
+  }
+  reportPickerOpen.value = true;
 }
 
 /**
@@ -391,7 +408,7 @@ onBeforeUnmount(() => unsubscribeSync?.());
             variant="outlined"
             size="default"
             :disabled="!canGenerateReport || loading"
-            :title="!canGenerateReport ? 'Selecione Unidade e Obra para gerar o report' : 'Gerar relatório executivo da obra inteira'"
+            :title="!canGenerateReport ? 'Selecione uma unidade com obras disponíveis' : 'Gerar relatório executivo das obras escolhidas'"
             data-testid="generate-report-button"
             @click="openExecutiveReport"
           >
@@ -534,11 +551,20 @@ onBeforeUnmount(() => unsubscribeSync?.());
       />
     </AppModal>
 
+    <ReportProjectSelector
+      :open="reportPickerOpen"
+      :unit-name="context.selectedUnitLabel"
+      :projects="availableReportProjects"
+      :initial-selected-id="context.selectedProjectContext"
+      @close="reportPickerOpen = false"
+      @generate="generateReport"
+    />
+
     <EquipmentExecutiveReport
       v-if="reportSelection"
-      :key="`${reportSelection.unitId}-${reportSelection.projectContextId}`"
+      :key="reportSelection.unitId + '-' + reportSelection.projectContextIds.join('-')"
       :unit-id="reportSelection.unitId"
-      :project-context-id="reportSelection.projectContextId"
+      :project-context-ids="reportSelection.projectContextIds"
       :unit-name="reportSelection.unitName"
       :project-name="reportSelection.projectName"
       @close="reportSelection = null"
