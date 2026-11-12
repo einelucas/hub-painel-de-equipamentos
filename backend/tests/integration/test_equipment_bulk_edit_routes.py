@@ -6,16 +6,20 @@ A fixture de integração bloqueia alvos que não sejam um banco local *_test.
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from sqlalchemy import select
 
 from app.models.audit import AuditLog
+from app.models.bulk_edit import BulkEditBatch
 from app.models.equipment import EapNode
 from tests.helpers import grant_unit
 
 
-async def _context(client, auth_header, code: str) -> dict[str, str]:
+async def _context(
+    client, auth_header, code: str, *, grant_analyst: bool = True
+) -> dict[str, str]:
     headers = auth_header("ADMIN")
     unit_resp = await client.post(
         "/api/v1/units", json={"code": f"B-{code}", "name": f"Unidade {code}"},
@@ -28,7 +32,8 @@ async def _context(client, auth_header, code: str) -> dict[str, str]:
         json={"code": code, "name": f"Obra {code}"}, headers=headers,
     )
     assert context_resp.status_code == 201, context_resp.text
-    await grant_unit(client, auth_header, unit["id"])
+    if grant_analyst:
+        await grant_unit(client, auth_header, unit["id"])
     return {"unit": unit["id"], "context": context_resp.json()["id"]}
 
 
@@ -121,6 +126,26 @@ async def test_viewer_and_wrong_context_are_blocked(client, auth_header) -> None
     assert forbidden.status_code == 404
 
 
+async def test_manipulated_ids_cannot_cross_an_unauthorized_unit(
+    client, auth_header
+) -> None:
+    context = await _context(
+        client, auth_header, "B03X", grant_analyst=False
+    )
+    equipment_response = await client.post(
+        "/api/v1/equipments",
+        json={"projectContextId": context["context"], "name": "Restrito"},
+        headers=auth_header("ADMIN"),
+    )
+    assert equipment_response.status_code == 201, equipment_response.text
+    preview = await client.post(
+        "/api/v1/equipments/bulk/preview",
+        json=_body(context["context"], equipment_response.json()),
+        headers=auth_header("ANALYST"),
+    )
+    assert preview.status_code == 404, preview.text
+
+
 async def test_protected_fields_never_enter_bulk_endpoint(client, auth_header) -> None:
     ctx = await _context(client, auth_header, "B04")
     eq = await _equipment(client, auth_header, ctx["context"])
@@ -131,6 +156,35 @@ async def test_protected_fields_never_enter_bulk_endpoint(client, auth_header) -
             headers=auth_header("ANALYST"),
         )
         assert r.status_code == 422, (field, r.text)
+
+
+async def test_component_contract_delivery_is_disabled_until_policy_is_approved(
+    client, auth_header
+) -> None:
+    ctx = await _context(client, auth_header, "B04C")
+    equipment = await _equipment(client, auth_header, ctx["context"])
+    component = await client.post(
+        f"/api/v1/equipments/{equipment['id']}/components",
+        json={"name": "Componente contratual"},
+        headers=auth_header("ANALYST"),
+    )
+    assert component.status_code == 201, component.text
+    response = await client.post(
+        f"/api/v1/equipments/{equipment['id']}/components/bulk/preview",
+        json={
+            "items": [{
+                "componentId": component.json()["id"],
+                "expectedUpdatedAt": component.json()["updatedAt"],
+                "changes": [{
+                    "field": "contractDeliveryAt",
+                    "operation": "SET",
+                    "value": "2027-12-01",
+                }],
+            }],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert response.status_code == 422, response.text
 
 
 async def test_preview_rejects_invalid_island_eap(client, auth_header, db_session) -> None:
@@ -174,6 +228,93 @@ async def test_conflict_aborts_every_row_without_partial_commit(client, auth_hea
         f"/api/v1/equipments/{eq1['id']}", headers=auth_header("ANALYST")
     )
     assert check.json()["equipment"]["origin"] is None
+
+
+async def test_preview_token_is_bound_to_actor_and_expiration(
+    client, auth_header, db_session
+) -> None:
+    ctx = await _context(client, auth_header, "B06T")
+    equipment = await _equipment(client, auth_header, ctx["context"])
+    request = _body(ctx["context"], equipment)
+    preview = await client.post(
+        "/api/v1/equipments/bulk/preview",
+        json=request,
+        headers=auth_header("ANALYST"),
+    )
+    assert preview.status_code == 200, preview.text
+    body = _apply_body(request, preview.json())
+
+    other_actor = await client.post(
+        "/api/v1/equipments/bulk/apply",
+        json=body,
+        headers=auth_header("ADMIN"),
+    )
+    assert other_actor.status_code == 404, other_actor.text
+
+    batch = (
+        await db_session.execute(
+            select(BulkEditBatch).where(
+                BulkEditBatch.preview_token == preview.json()["previewToken"]
+            )
+        )
+    ).scalar_one()
+    batch.expires_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(seconds=1)
+    await db_session.commit()
+
+    expired = await client.post(
+        "/api/v1/equipments/bulk/apply",
+        json=body,
+        headers=auth_header("ANALYST"),
+    )
+    assert expired.status_code == 409, expired.text
+
+
+async def test_concurrent_reuse_of_idempotency_key_never_becomes_server_error(
+    client, auth_header
+) -> None:
+    ctx = await _context(client, auth_header, "B06I")
+    equipment_a = await _equipment(client, auth_header, ctx["context"], "Bomba A")
+    equipment_b = await _equipment(client, auth_header, ctx["context"], "Bomba B")
+    request_a = _body(ctx["context"], equipment_a, value="Lote A")
+    request_b = _body(ctx["context"], equipment_b, value="Lote B")
+    preview_a, preview_b = await asyncio.gather(
+        client.post(
+            "/api/v1/equipments/bulk/preview",
+            json=request_a,
+            headers=auth_header("ANALYST"),
+        ),
+        client.post(
+            "/api/v1/equipments/bulk/preview",
+            json=request_b,
+            headers=auth_header("ANALYST"),
+        ),
+    )
+    assert preview_a.status_code == preview_b.status_code == 200
+    key = str(uuid4())
+    body_a = {
+        **request_a,
+        "previewToken": preview_a.json()["previewToken"],
+        "idempotencyKey": key,
+    }
+    body_b = {
+        **request_b,
+        "previewToken": preview_b.json()["previewToken"],
+        "idempotencyKey": key,
+    }
+
+    result_a, result_b = await asyncio.gather(
+        client.post(
+            "/api/v1/equipments/bulk/apply",
+            json=body_a,
+            headers=auth_header("ANALYST"),
+        ),
+        client.post(
+            "/api/v1/equipments/bulk/apply",
+            json=body_b,
+            headers=auth_header("ANALYST"),
+        ),
+    )
+    assert sorted((result_a.status_code, result_b.status_code)) == [200, 409]
 
 
 async def test_wp_add_preserves_current_links(client, auth_header) -> None:
@@ -272,6 +413,90 @@ async def test_components_multiple_changes_and_cross_equipment_protection(
         json=invalid, headers=auth_header("ANALYST"),
     )
     assert wrong.status_code == 404
+
+
+async def test_component_conflict_aborts_the_complete_batch(client, auth_header) -> None:
+    ctx = await _context(client, auth_header, "B08C")
+    equipment = await _equipment(client, auth_header, ctx["context"])
+    components = []
+    for name in ("Motor", "Bomba"):
+        response = await client.post(
+            f"/api/v1/equipments/{equipment['id']}/components",
+            json={"name": name},
+            headers=auth_header("ANALYST"),
+        )
+        assert response.status_code == 201, response.text
+        components.append(response.json())
+    request = {
+        "items": [
+            {
+                "componentId": component["id"],
+                "expectedUpdatedAt": component["updatedAt"],
+                "changes": [{"field": "sector", "operation": "SET", "value": "Setor A"}],
+            }
+            for component in components
+        ]
+    }
+    preview = await client.post(
+        f"/api/v1/equipments/{equipment['id']}/components/bulk/preview",
+        json=request,
+        headers=auth_header("ANALYST"),
+    )
+    assert preview.status_code == 200, preview.text
+    concurrent = await client.patch(
+        f"/api/v1/components/{components[1]['id']}",
+        json={
+            "sector": "Setor concorrente",
+            "expectedUpdatedAt": components[1]["updatedAt"],
+        },
+        headers=auth_header("ANALYST"),
+    )
+    assert concurrent.status_code == 200, concurrent.text
+    applied = await client.post(
+        f"/api/v1/equipments/{equipment['id']}/components/bulk/apply",
+        json=_apply_body(request, preview.json()),
+        headers=auth_header("ANALYST"),
+    )
+    assert applied.status_code == 409, applied.text
+    detail = await client.get(
+        f"/api/v1/equipments/{equipment['id']}",
+        headers=auth_header("ANALYST"),
+    )
+    saved = {item["id"]: item for item in detail.json()["components"]}
+    assert saved[components[0]["id"]]["sector"] is None
+    assert saved[components[1]["id"]]["sector"] == "Setor concorrente"
+
+
+async def test_bulk_equipment_startup_does_not_propagate_to_components(
+    client, auth_header
+) -> None:
+    ctx = await _context(client, auth_header, "B08S")
+    equipment = await _equipment(client, auth_header, ctx["context"])
+    component = await client.post(
+        f"/api/v1/equipments/{equipment['id']}/components",
+        json={"name": "Componente sem startup"},
+        headers=auth_header("ANALYST"),
+    )
+    assert component.status_code == 201, component.text
+    request = _body(ctx["context"], equipment, "startupAt", "2028-01-10")
+    preview = await client.post(
+        "/api/v1/equipments/bulk/preview",
+        json=request,
+        headers=auth_header("ANALYST"),
+    )
+    assert preview.status_code == 200, preview.text
+    applied = await client.post(
+        "/api/v1/equipments/bulk/apply",
+        json=_apply_body(request, preview.json()),
+        headers=auth_header("ANALYST"),
+    )
+    assert applied.status_code == 200, applied.text
+    detail = await client.get(
+        f"/api/v1/equipments/{equipment['id']}",
+        headers=auth_header("ANALYST"),
+    )
+    assert detail.json()["equipment"]["startupAt"] == "2028-01-10"
+    assert detail.json()["components"][0]["startupAt"] is None
 
 
 async def test_selection_uses_server_and_not_browser_page(client, auth_header) -> None:

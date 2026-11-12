@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import select
 
 from app.models.access import UserUnitAccess
+from app.models.bulk_edit import BulkEditBatch
 from app.models.equipment import Equipment, EquipmentComponent, ProjectContext
 from app.models.process import Contract, Negotiation
 from app.models.sync import SyncEvent
@@ -86,6 +87,24 @@ async def test_project_cascade_deletes_owned_tree_and_preserves_audit_event(
     )
     await db_session.commit()
 
+    preview = await client.post(
+        "/api/v1/equipments/bulk/preview",
+        json={
+            "projectContextId": context["id"],
+            "items": [{
+                "equipmentId": equipment["id"],
+                "expectedUpdatedAt": equipment["updatedAt"],
+                "changes": [{
+                    "field": "origin",
+                    "operation": "SET",
+                    "value": "Rascunho",
+                }],
+            }],
+        },
+        headers=auth_header("ADMIN"),
+    )
+    assert preview.status_code == 200, preview.text
+
     impact = await client.get(
         f"/api/v1/project-contexts/{context['id']}/deletion-impact", headers=admin
     )
@@ -116,6 +135,13 @@ async def test_project_cascade_deletes_owned_tree_and_preserves_audit_event(
     db_session.expire_all()
     assert await db_session.get(ProjectContext, context["id"]) is None
     assert await db_session.get(Equipment, equipment["id"]) is None
+    assert (
+        await db_session.scalar(
+            select(BulkEditBatch).where(
+                BulkEditBatch.project_context_id == context["id"]
+            )
+        )
+    ) is None
     assert (
         await db_session.scalar(
             select(SyncEvent).where(

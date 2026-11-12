@@ -16,11 +16,10 @@ ComponentEditableField = Literal[
     "startup_at",
     "lead_time_days",
     "pre_start_days",
-    "contract_delivery_at",
     "freight_days",
 ]
 ComponentOperation = Literal["SET", "CLEAR", "FILL_EMPTY"]
-_DATE_FIELDS = {"startup_at", "contract_delivery_at"}
+_DATE_FIELDS = {"startup_at"}
 _INTEGER_FIELDS = {"lead_time_days", "pre_start_days", "freight_days"}
 _TEXT_MAX_LENGTH = {"tag": 100, "sector": 120}
 

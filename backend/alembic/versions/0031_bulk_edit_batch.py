@@ -25,11 +25,11 @@ def upgrade() -> None:
         sa.Column("actor_user_id", sa.String(), sa.ForeignKey("User.id", ondelete="RESTRICT"), nullable=False),
         sa.Column(
             "project_context_id", sa.String(),
-            sa.ForeignKey("project_context.id", ondelete="RESTRICT"), nullable=False,
+            sa.ForeignKey("project_context.id", ondelete="CASCADE"), nullable=False,
         ),
         sa.Column(
             "equipment_id", sa.String(),
-            sa.ForeignKey("equipment.id", ondelete="RESTRICT"), nullable=True,
+            sa.ForeignKey("equipment.id", ondelete="CASCADE"), nullable=True,
         ),
         sa.Column("target", sa.String(length=20), nullable=False),
         sa.Column("request_payload", JSONB(), nullable=False),
@@ -39,6 +39,19 @@ def upgrade() -> None:
         sa.Column("idempotency_key", sa.String(length=128), nullable=True),
         sa.Column("result_payload", JSONB(), nullable=True),
         sa.Column("created_at", TIMESTAMP(precision=3, timezone=False), nullable=False),
+        sa.CheckConstraint(
+            "target IN ('equipment', 'component')",
+            name="bulk_edit_batch_target_check",
+        ),
+        sa.CheckConstraint(
+            "status IN ('PREVIEW', 'APPLIED')",
+            name="bulk_edit_batch_status_check",
+        ),
+        sa.CheckConstraint(
+            "(target = 'equipment' AND equipment_id IS NULL) "
+            "OR (target = 'component' AND equipment_id IS NOT NULL)",
+            name="bulk_edit_batch_target_equipment_check",
+        ),
     )
     op.create_index(
         "bulk_edit_batch_actor_idempotency_key", "bulk_edit_batch",

@@ -10,7 +10,8 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -40,7 +41,7 @@ _PREVIEW_TTL = timedelta(minutes=15)
 _MAX_ROWS = 100
 _COMPONENT_FIELDS = {
     "tag", "sector", "startup_at", "lead_time_days", "pre_start_days",
-    "contract_delivery_at", "freight_days",
+    "freight_days",
 }
 
 
@@ -192,6 +193,15 @@ async def _store_preview(
     target: str, request: dict[str, Any], preview: dict[str, Any],
     equipment_id: str | None = None,
 ) -> str:
+    # Prévias expiradas não são histórico de auditoria e não podem mais ser
+    # aplicadas. A limpeza oportunista mantém a tabela limitada sem depender
+    # de um scheduler externo; recibos APPLIED permanecem para idempotência.
+    await session.execute(
+        delete(BulkEditBatch).where(
+            BulkEditBatch.status == "PREVIEW",
+            BulkEditBatch.expires_at <= _now(),
+        )
+    )
     token = secrets.token_urlsafe(40)
     batch = BulkEditBatch(
         preview_token=token,
@@ -278,6 +288,23 @@ async def _locked_batch(
     return batch
 
 
+async def _reserve_idempotency_key(
+    session: AsyncSession, *, batch: BulkEditBatch, idempotency_key: str
+) -> None:
+    """Reserva a chave antes das escritas e traduz a corrida do índice em 409.
+
+    A consulta em `_locked_batch` resolve o caminho sequencial. O savepoint é
+    necessário para duas prévias distintas do mesmo ator confirmadas ao mesmo
+    tempo: somente uma pode reservar a chave e a outra não pode virar erro 500.
+    """
+    try:
+        async with session.begin_nested():
+            batch.idempotency_key = idempotency_key
+            await session.flush()
+    except IntegrityError as exc:
+        raise ConflictError("Esta chave de idempotência já foi usada em outro lote") from exc
+
+
 async def apply_equipments(
     session: AsyncSession, body: EquipmentBulkApplyIn, actor: CurrentUser
 ) -> EquipmentBulkApplyOut:
@@ -288,6 +315,9 @@ async def apply_equipments(
     )
     if batch.status == "APPLIED":
         return EquipmentBulkApplyOut.model_validate(batch.result_payload)
+    await _reserve_idempotency_key(
+        session, batch=batch, idempotency_key=body.idempotency_key
+    )
     if batch.project_context_id != body.project_context_id:
         raise ConflictError("A obra não corresponde à prévia")
     diffs, models = await _equipment_diffs(session, preview_request, actor, lock=True)
@@ -337,7 +367,6 @@ async def apply_equipments(
         skipped_count=len(preview_request.items) - len(touched),
     )
     batch.status = "APPLIED"
-    batch.idempotency_key = body.idempotency_key
     batch.result_payload = result.model_dump(mode="json", by_alias=True)
     await session.commit()
     return result
@@ -354,6 +383,9 @@ async def apply_components(
     )
     if batch.status == "APPLIED":
         return EquipmentBulkApplyOut.model_validate(batch.result_payload)
+    await _reserve_idempotency_key(
+        session, batch=batch, idempotency_key=body.idempotency_key
+    )
     diffs, models, equipment = await _component_diffs(
         session, equipment_id, preview_request, actor, lock=True
     )
@@ -392,7 +424,6 @@ async def apply_components(
         skipped_count=len(preview_request.items) - len(touched),
     )
     batch.status = "APPLIED"
-    batch.idempotency_key = body.idempotency_key
     batch.result_payload = result.model_dump(mode="json", by_alias=True)
     await session.commit()
     return result
@@ -408,7 +439,7 @@ async def resolve_filtered_equipments(
     """Materializa no servidor os IDs/versões de todos os resultados filtrados."""
     await assert_context_allowed(session, actor, project_context_id)
     stmt = equipment_services._apply_filters(
-        select(Equipment.id, Equipment.updated_at),
+        select(Equipment.id, Equipment.name, Equipment.updated_at),
         allowed_units=None, unit_id=None,
         project_context_id=project_context_id, equipment_id=equipment_id,
         search=search, stage=stage, discipline_id=discipline_id,
@@ -425,7 +456,11 @@ async def resolve_filtered_equipments(
     return {
         "total": len(rows),
         "items": [
-            {"equipmentId": equipment_id, "expectedUpdatedAt": stamp.isoformat()}
-            for equipment_id, stamp in rows
+            {
+                "equipmentId": equipment_id,
+                "name": name,
+                "expectedUpdatedAt": stamp.isoformat(),
+            }
+            for equipment_id, name, stamp in rows
         ],
     }
