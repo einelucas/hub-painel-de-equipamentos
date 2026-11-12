@@ -497,7 +497,6 @@ onMounted(() => void loadReport());
             variant="outlined"
             color="primary"
             size="small"
-            :icon="previewMode === 'pdf' ? mdiLanguageHtml5 : mdiFilePdfBox"
             :loading="htmlPreviewLoading"
             :disabled="busy || !rows.length"
             :aria-label="previewMode === 'pdf' ? 'Visualizar modelo HTML' : 'Voltar à visualização PDF'"
@@ -505,7 +504,9 @@ onMounted(() => void loadReport());
             :title="previewMode === 'pdf' ? 'Visualizar modelo HTML' : 'Voltar à visualização PDF'"
             data-testid="report-preview-toggle"
             @click="togglePreview"
-          />
+          >
+            <VIcon :icon="previewMode === 'pdf' ? mdiLanguageHtml5 : mdiFilePdfBox" size="18" />
+          </VBtn>
           <VBtn
             variant="outlined"
             color="primary"
