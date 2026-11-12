@@ -6,7 +6,8 @@ versões e chamará estas funções após validar as referências no catálogo.
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from app.modules.equipments.bulk_edit_contracts import EquipmentCellChange, EquipmentFieldDiffOut
 
@@ -26,7 +27,7 @@ def preview_equipment_changes(
         before = current_values[change.field]
         proposed: Any
         if change.field == "work_package_ids":
-            if before is not None and not isinstance(before, (list, tuple, set)):
+            if before is not None and not isinstance(before, list | tuple | set):
                 raise ValueError("Snapshot inválido para Work Packages")
             existing = set(before or [])
             if change.operation == "ADD":
