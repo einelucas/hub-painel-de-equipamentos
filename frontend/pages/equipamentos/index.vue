@@ -40,6 +40,11 @@ const disciplines = ref<CatalogItem[]>([]);
 const responsibles = ref<Responsible[]>([]);
 const areas = ref<CatalogItem[]>([]);
 const workPackages = ref<CatalogItem[]>([]);
+const criticalityLabels = ref<CatalogItem[]>([]);
+const editingTable = ref(false);
+const editorProjectContextId = ref("");
+const editorUnitId = ref("");
+const bulkEditorRef = ref<{ hasPending: () => boolean; confirmDiscard: () => boolean } | null>(null);
 const stage = ref<string>("");
 const disciplineId = ref("");
 const responsibleUserId = ref("");
@@ -68,6 +73,7 @@ let unsubscribeSync: (() => void) | null = null;
 const realtime = useRealtimeSync();
 
 const allowed = computed(() => auth.can("equipments:read"));
+const canEditTable = computed(() => auth.can("equipments:write") && Boolean(context.selectedProjectContext));
 const canCreate = computed(
   () => auth.can("equipments:write") && Boolean(context.selectedUnit),
 );
@@ -143,6 +149,9 @@ async function adminChanged(): Promise<void> {
   disciplines.value = (
     await api.get<CatalogList<CatalogItem>>("/disciplines")
   ).items;
+  criticalityLabels.value = (
+    await api.get<CatalogList<CatalogItem>>("/criticality-labels")
+  ).items;
   await context.loadProjectContexts();
   await context.loadEquipmentOptions();
   if (context.selectedUnit) {
@@ -171,6 +180,22 @@ async function syncQuery(): Promise<void> {
 }
 
 /** Troca de página pela paginação controlada do Hub. */
+function toggleTableEditing(): void {
+  if (editingTable.value) {
+    if (bulkEditorRef.value?.hasPending() && !bulkEditorRef.value.confirmDiscard()) return;
+    editingTable.value = false;
+    return;
+  }
+  if (!canEditTable.value) return;
+  editorProjectContextId.value = context.selectedProjectContext;
+  editorUnitId.value = context.selectedUnit;
+  editingTable.value = true;
+}
+
+function editorSaved(): void {
+  void load();
+}
+
 function onPageChange(next: number): void {
   page.value = next;
   void load();
@@ -245,6 +270,16 @@ async function reload(): Promise<void> {
  * para nunca filtrar por uma seleção que já deixou de existir na unidade
  * nova. */
 async function onGlobalFilterChange(): Promise<void> {
+  if (editingTable.value &&
+    (context.selectedUnit !== editorUnitId.value ||
+     context.selectedProjectContext !== editorProjectContextId.value)) {
+    if (bulkEditorRef.value?.hasPending() && !bulkEditorRef.value.confirmDiscard()) {
+      await context.setUnit(editorUnitId.value);
+      await context.setProjectContext(editorProjectContextId.value);
+      return;
+    }
+    editingTable.value = false;
+  }
   await loadAreaAndWorkPackageOptions();
   await reload();
 }
@@ -340,6 +375,9 @@ onMounted(async () => {
   });
   disciplines.value = (
     await api.get<CatalogList<CatalogItem>>("/disciplines")
+  ).items;
+  criticalityLabels.value = (
+    await api.get<CatalogList<CatalogItem>>("/criticality-labels")
   ).items;
   if (context.selectedUnit) {
     responsibles.value = (
@@ -509,6 +547,12 @@ onBeforeUnmount(() => unsubscribeSync?.());
               @change="reload"
             />
           </div>
+          <VBtn v-if="auth.can('equipments:write')" variant="tonal" color="primary"
+            :disabled="!canEditTable && !editingTable" :title="!canEditTable ? 'Selecione uma obra para editar' : undefined"
+            data-testid="toggle-equipment-table-edit"
+            @click="toggleTableEditing">
+            {{ editingTable ? "Sair da edição" : "Editar tabela" }}
+          </VBtn>
         </div>
 
         <div
@@ -521,7 +565,23 @@ onBeforeUnmount(() => unsubscribeSync?.());
           <VBtn variant="outlined" @click="load">Tentar novamente</VBtn>
         </div>
         <template v-else>
+          <EquipmentBulkEditor
+            v-if="editingTable"
+            ref="bulkEditorRef"
+            :equipments="equipments"
+            :project-context-id="editorProjectContextId"
+            :filters="currentQuery(100, 1)"
+            :total="pagination?.total ?? 0"
+            :discipline-options="disciplineOptions"
+            :responsible-options="responsibleOptions"
+            :eap-options="areaOptions"
+            :work-package-options="workPackageOptions"
+            :criticality-options="criticalityLabels.map((item) => ({ id: item.id, label: item.name }))"
+            @saved="editorSaved"
+            @exit="editingTable = false"
+          />
           <EquipmentTable
+            v-else
             :equipments="equipments"
             :loading="loading || refreshing"
           />
