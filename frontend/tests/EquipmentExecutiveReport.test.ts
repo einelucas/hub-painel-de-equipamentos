@@ -134,6 +134,50 @@ describe("EquipmentExecutiveReport", () => {
     expect(text).toContain("Os equipamentos que já concluíram a negociação seguem o fluxo normal de aquisição");
   });
 
+  it("consolida as obras selecionadas e não aplica filtro de equipamento da tela", async () => {
+    const get = vi.fn().mockImplementation(
+      (_path: string, query: Record<string, unknown>) => {
+        const id = String(query.project_context_id);
+        return Promise.resolve({
+          items: [{
+            ...equipment,
+            id: `eq-${id}`,
+            name: `Equipamento ${id}`,
+            projectContext: { id, name: id === "ctx-1" ? "Obra 1" : "Obra 2" },
+          }],
+          pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
+        });
+      },
+    );
+    vi.stubGlobal("useApi", () => ({ get }));
+    const wrapper = mount(EquipmentExecutiveReport, {
+      props: {
+        unitId: "unit-1",
+        projectContextId: "ctx-1",
+        projectContextIds: ["ctx-1", "ctx-2"],
+        unitName: "Nova Mutum",
+        projectName: "Obra 1 · Obra 2",
+      },
+      global: {
+        components: { AppModal: AppModalStub, ChartCanvas: ChartCanvasStub },
+      },
+    });
+    await flushPromises();
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(get.mock.calls.map((call) => call[1].project_context_id)).toEqual(["ctx-1", "ctx-2"]);
+    expect(get.mock.calls.every((call) =>
+      call[1].unit_id === "unit-1" && !("equipment_id" in call[1])
+    )).toBe(true);
+    const charts = wrapper.findAllComponents(ChartCanvasStub);
+    expect(charts[0]?.props("series")).toEqual([
+      { name: "Concluído", data: [0] },
+      { name: "No prazo", data: [0] },
+      { name: "Atrasado", data: [0] },
+      { name: "Sem classificação", data: [2] },
+    ]);
+    expect(wrapper.text()).toContain("Obra 1 · Obra 2");
+  });
+
   it("alternates the report preview between PDF and the exact HTML model", async () => {
     const wrapper = mount(EquipmentExecutiveReport, {
       props: {
