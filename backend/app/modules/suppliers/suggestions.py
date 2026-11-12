@@ -86,8 +86,10 @@ class SupplierSuggestionResolver:
             .join(Supplier, Supplier.id == EquipmentSupplier.supplier_id)
             .where(Supplier.active.is_(True))
         )
-        if project_context_id is not None:
-            history_query = history_query.where(Equipment.project_context_id == project_context_id)
+        # Supplier é um cadastro corporativo: a evidência por nome exato pode vir
+        # de outra obra. Essa leitura somente produz SUGESTÕES, nunca aplica
+        # fornecedor automaticamente. Mantemos o argumento por compatibilidade.
+        # O mapeamento de origem exige seleção explícita para histórico.
         history_rows = await session.execute(history_query)
         for equipment_name, equipment_id, supplier_id in history_rows.all():
             history[canonical_text(equipment_name)][supplier_id].add(equipment_id)
