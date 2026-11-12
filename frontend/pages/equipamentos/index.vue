@@ -21,7 +21,7 @@ import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import EquipmentExecutiveReport from "~/components/equipment/EquipmentExecutiveReport.vue";
 import { Sparkles } from "lucide-vue-next";
-import { VBtn, VCard, VCardActions, VCardText, VCardTitle, VCheckbox, VDialog } from "vuetify/components";
+import { VBtn, VCard, VCardActions, VCardText, VCardTitle, VCheckbox, VDialog, VSpacer } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
