@@ -2,8 +2,8 @@
 
 from datetime import datetime
 
-import pytest
 from pydantic import ValidationError
+import pytest
 
 from app.modules.equipments.bulk_edit_contracts import (
     EquipmentBulkApplyIn,
