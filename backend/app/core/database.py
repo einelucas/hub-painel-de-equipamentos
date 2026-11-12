@@ -42,7 +42,7 @@ def create_engine() -> AsyncEngine:
     return create_async_engine(
         settings.sqlalchemy_database_url,
         poolclass=pool_class,
-        connect_args={"timeout": 10, "command_timeout": 20},
+        connect_args={"timeout": 60, "command_timeout": 30},
         **engine_kwargs,
     )
 
