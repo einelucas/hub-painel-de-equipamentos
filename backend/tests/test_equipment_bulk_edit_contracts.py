@@ -1,7 +1,5 @@
 """Etapa 01 — validações puras do contrato; sem acesso a banco."""
 
-from datetime import datetime
-
 import pytest
 
 from app.modules.equipments import bulk_edit_contracts
@@ -95,7 +93,7 @@ def test_apply_requires_preview_and_idempotency_tokens():
         bulk_edit_contracts.EquipmentBulkApplyIn.model_validate(payload)
     payload.update(previewToken="p" * 16, idempotencyKey="i" * 16)
     parsed = bulk_edit_contracts.EquipmentBulkApplyIn.model_validate(payload)
-    assert parsed.items[0].expected_updated_at == datetime.fromisoformat(STAMP)
+    assert parsed.items[0].expected_updated_at.isoformat() == STAMP
 
 
 def test_max_batch_size_is_100():
