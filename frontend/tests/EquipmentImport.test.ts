@@ -398,6 +398,47 @@ describe("Importar equipamentos", () => {
     expect(wrapper.get("[data-testid='plan-group-Equipamentos']").text()).toContain("2");
   });
 
+  it("exibe progresso antes de aguardar a geração demorada do plano", async () => {
+    let resolvePlan!: (value: ImportPlan) => void;
+    setup(["equipments:write"], {
+      plan: () => new Promise<ImportPlan>((resolve) => { resolvePlan = resolve; }),
+    });
+    const wrapper = mountButton();
+    await openAndAnalyze(wrapper);
+    await wrapper.get("[data-testid='import-to-mapping']").trigger("click");
+    await settle(wrapper);
+
+    void wrapper.get("[data-testid='import-build-plan']").trigger("click");
+    await settle(wrapper);
+    expect(wrapper.get("[data-testid='import-status']").text()).toContain(
+      "Montando o plano de importação",
+    );
+    expect(wrapper.get("[data-testid='import-step-mapping']").attributes("aria-busy")).toBe("true");
+
+    resolvePlan(plan());
+    await settle(wrapper);
+    expect(wrapper.find("[data-testid='import-status']").exists()).toBe(false);
+    expect(wrapper.find("[data-testid='import-step-plan']").exists()).toBe(true);
+  });
+
+  it("renderiza pendências grandes em blocos para não travar a tela", async () => {
+    const equipmentWarnings = Array.from({ length: 120 }, (_, index) => ({
+      group: "Equipamentos",
+      sourceKey: `equipment-${index}`,
+      label: `Equipamento ${index}`,
+      issues: [{ code: "WARNING", message: "Revisar cadastro" }],
+    }));
+    setup(["equipments:write"], { plan: async () => plan({ equipmentWarnings }) });
+    const wrapper = mountButton();
+    await goToPlan(wrapper);
+
+    const warnings = wrapper.get("[data-testid='plan-equipment-warnings']");
+    expect(warnings.findAll("li")).toHaveLength(50);
+    await warnings.get("button").trigger("click");
+    await wrapper.vm.$nextTick();
+    expect(warnings.findAll("li")).toHaveLength(100);
+  });
+
   it("plano com BLOCKED desabilita a confirmação e lista o motivo", async () => {
     setup(["equipments:write"], {
       plan: async () =>

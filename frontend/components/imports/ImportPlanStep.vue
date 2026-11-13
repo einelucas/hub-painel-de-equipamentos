@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { VBtn } from "vuetify/components";
 import ImportCatalogSummary from "~/components/imports/ImportCatalogSummary.vue";
 import SupplierCombobox from "~/components/imports/SupplierCombobox.vue";
@@ -37,6 +37,22 @@ const totals = computed(() => {
 const catalogCreates = computed(() => (plan.value?.catalogs ?? []).filter((item) => item.action === "CREATE").length);
 const equipmentWarnings = computed(() => plan.value?.equipmentWarnings ?? []);
 const supplierSuggestions = computed(() => plan.value?.supplierSuggestions ?? []);
+const PAGE_SIZE = 50;
+const visibleBlockedCount = ref(PAGE_SIZE);
+const visibleWarningCount = ref(PAGE_SIZE);
+const visibleSupplierCount = ref(PAGE_SIZE);
+const visibleBlocked = computed(() => (plan.value?.blocked ?? []).slice(0, visibleBlockedCount.value));
+const visibleEquipmentWarnings = computed(() => equipmentWarnings.value.slice(0, visibleWarningCount.value));
+const visibleSupplierSuggestions = computed(() => supplierSuggestions.value.slice(0, visibleSupplierCount.value));
+
+watch(
+  () => plan.value?.planSha256,
+  () => {
+    visibleBlockedCount.value = PAGE_SIZE;
+    visibleWarningCount.value = PAGE_SIZE;
+    visibleSupplierCount.value = PAGE_SIZE;
+  },
+);
 
 function selectionValue(item: (typeof supplierSuggestions.value)[number]): string {
   if (item.selectedAction === "NONE") return "__NONE__";
@@ -95,11 +111,19 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
       <section v-if="plan.blocked.length" class="callout callout--stop" data-testid="plan-blocked">
         <h4>Itens bloqueados <span class="import-count">({{ plan.blocked.length }})</span></h4>
         <ul>
-          <li v-for="item in plan.blocked" :key="`${item.group}-${item.sourceKey}`">
+          <li v-for="item in visibleBlocked" :key="`${item.group}-${item.sourceKey}`">
             <strong>{{ item.group }} · {{ item.label }}</strong>
             <span v-for="issue in item.issues" :key="issue.code" class="issue-meta">{{ issue.message }}</span>
           </li>
         </ul>
+        <VBtn
+          v-if="visibleBlocked.length < plan.blocked.length"
+          type="button"
+          class="list-more"
+          variant="text"
+          size="small"
+          @click="visibleBlockedCount += PAGE_SIZE"
+        >Mostrar mais bloqueados</VBtn>
       </section>
 
       <section class="import-panel" data-testid="plan-eap">
@@ -133,7 +157,7 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             <VBtn to="/fornecedores" variant="text" color="secondary" size="small">+ Cadastrar fornecedor</VBtn>
           </div>
         </div>
-        <article v-for="item in supplierSuggestions" :key="item.sourceKey" class="supplier-suggestion">
+        <article v-for="item in visibleSupplierSuggestions" :key="item.sourceKey" class="supplier-suggestion">
           <div>
             <strong>{{ item.equipmentName }}</strong>
             <span>Origem: <span class="mono">{{ item.sourceValue ?? "não informado" }}</span></span>
@@ -161,6 +185,14 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
             />
           </div>
         </article>
+        <VBtn
+          v-if="visibleSupplierSuggestions.length < supplierSuggestions.length"
+          type="button"
+          class="list-more"
+          variant="text"
+          size="small"
+          @click="visibleSupplierCount += PAGE_SIZE"
+        >Mostrar mais fornecedores</VBtn>
         <VBtn v-if="mappingDirty" type="button" :disabled="busy" :loading="busy" variant="outlined" @click="buildPlan">
           {{ busy ? "Atualizando plano..." : "Atualizar plano com as decisões" }}
         </VBtn>
@@ -169,11 +201,19 @@ const hasRecommendations = computed(() => supplierSuggestions.value.some((item) 
       <section v-if="equipmentWarnings.length" class="callout callout--caution" data-testid="plan-equipment-warnings">
         <h4>Pendências que não bloqueiam <span class="import-count">({{ equipmentWarnings.length }} equipamentos)</span></h4>
         <ul>
-          <li v-for="item in equipmentWarnings" :key="item.sourceKey">
+          <li v-for="item in visibleEquipmentWarnings" :key="item.sourceKey">
             <strong>{{ item.label }}</strong>
             <span v-for="issue in item.issues" :key="issue.code" class="issue-meta">{{ issue.message }}</span>
           </li>
         </ul>
+        <VBtn
+          v-if="visibleEquipmentWarnings.length < equipmentWarnings.length"
+          type="button"
+          class="list-more"
+          variant="text"
+          size="small"
+          @click="visibleWarningCount += PAGE_SIZE"
+        >Mostrar mais pendências</VBtn>
       </section>
       <section v-if="plan.warnings.length" class="callout callout--caution">
         <h4>Avisos <span class="import-count">({{ plan.warnings.length }})</span></h4>
@@ -234,6 +274,7 @@ p.callout { margin: 0; }
 .supplier-suggestion strong { color: var(--ink); }
 .supplier-suggestion small { color: var(--muted); }
 .supplier-choice { display: grid; align-content: start; gap: 6px; }
+.list-more { justify-self: start; margin-top: 8px; }
 
 /* Resumo final: a última coisa lida antes de confirmar a gravação. */
 .confirm {

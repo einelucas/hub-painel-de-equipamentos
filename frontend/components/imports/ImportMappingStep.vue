@@ -45,7 +45,7 @@ function automaticLabel(location: ImportLocationValue): string {
 </script>
 
 <template>
-  <div class="import-step" data-testid="import-step-mapping">
+  <div class="import-step" :aria-busy="busy" data-testid="import-step-mapping">
     <p class="import-hint">
       Sem associação, o plano mostra cada item como existente, novo (criado na importação), conflito ou pendente —
       não é preciso cadastrar nada antes na administração.
@@ -77,6 +77,7 @@ function automaticLabel(location: ImportLocationValue): string {
             :label="`${section.label}: ${value}`"
             placeholder="Digite para buscar"
             empty-label="Automático (existente, novo ou pendente)"
+            :disabled="busy"
             :test-id="`mapping-select-${section.key}`"
             @update:model-value="setMapping(section.key, value, $event)"
           />
@@ -111,6 +112,7 @@ function automaticLabel(location: ImportLocationValue): string {
             :label="`EAP: ${location.value}`"
             placeholder="Buscar por código ou nome"
             :empty-label="automaticLabel(location)"
+            :disabled="busy"
             test-id="mapping-select-eapNodes"
             @update:model-value="setMapping('eapNodes', location.value, $event)"
           />

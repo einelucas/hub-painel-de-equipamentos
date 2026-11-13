@@ -1,4 +1,4 @@
-import { computed, reactive, ref } from "vue";
+import { computed, nextTick, reactive, ref, shallowRef } from "vue";
 import { ApiError } from "~/services/api/error";
 import type { CatalogItem, CatalogList, EapNodeItem, Responsible, Supplier, Unit } from "~/types/equipment";
 import type {
@@ -105,7 +105,10 @@ export function useEquipmentImport() {
     workPackages: [],
     eapNodes: [],
   });
-  const plan = ref<ImportPlan | null>(null);
+  // O plano pode conter centenas de itens e milhares de avisos/opções. Ele é
+  // um snapshot somente leitura; não há benefício em criar proxies profundos
+  // para toda a resposta.
+  const plan = shallowRef<ImportPlan | null>(null);
   const suppliers = ref<Supplier[]>([]);
   const mappingDirty = ref(false);
   const result = ref<ImportApplyResult | null>(null);
@@ -337,6 +340,9 @@ export function useEquipmentImport() {
     error.value = "";
     stale.value = false;
     try {
+      // Garante que o status de progresso seja pintado antes da requisição longa.
+      await nextTick();
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
       // O servidor já aplica as seleções automáticas de fornecedor neste mesmo plano
       // e as devolve em `automaticSupplierSelections` (o apply precisa do mesmo mapping).
       const nextPlan = await api.post<ImportPlan>(`${BASE}/plan`, {
