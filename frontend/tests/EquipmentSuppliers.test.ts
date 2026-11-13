@@ -155,8 +155,9 @@ describe("EquipmentSuppliers", () => {
     await wrapper.vm.$nextTick();
 
     await wrapper.get("[data-testid='replace-supplier']").trigger("click");
-    await new Promise((resolve) => setTimeout(resolve));
-    await wrapper.vm.$nextTick();
+    await vi.waitFor(() => {
+      expect(wrapper.find("[data-testid='supplier-link-combobox']").exists()).toBe(true);
+    });
     await openMenu(wrapper, "supplier-link-combobox");
     const replacement = menuOptions(wrapper, "supplier-link-combobox").find((option) =>
       option.text().includes("Secundária SA"),

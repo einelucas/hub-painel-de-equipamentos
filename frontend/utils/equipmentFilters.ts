@@ -9,6 +9,15 @@ export function compatibleEquipment(equipments: Equipment[], selectedId: string)
   return equipments.some((equipment) => equipment.id === selectedId) ? selectedId : "";
 }
 
+export function equipmentBulkEditScopeReady(options: {
+  canWrite: boolean;
+  unitId: string;
+  projectContextId: string;
+  stage: string;
+}): boolean {
+  return options.canWrite && Boolean(options.unitId && options.projectContextId) && options.stage !== "";
+}
+
 export function equipmentRequestQuery(options: {
   unitId: string;
   equipmentId: string;

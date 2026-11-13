@@ -6,7 +6,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
-from app.modules.equipments import services
+from app.modules.equipments import bulk_edit_service, services
+from app.modules.equipments.bulk_edit_components import (
+    ComponentBulkApplyIn,
+    ComponentBulkPreviewIn,
+    ComponentBulkPreviewOut,
+)
+from app.modules.equipments.bulk_edit_contracts import (
+    EquipmentBulkApplyIn,
+    EquipmentBulkApplyOut,
+    EquipmentBulkPreviewIn,
+    EquipmentBulkPreviewOut,
+)
 from app.modules.equipments.schemas import (
     ComponentCreateIn,
     ComponentListOut,
@@ -20,6 +31,71 @@ from app.modules.equipments.schemas import (
 )
 
 router = APIRouter(tags=["equipamentos"])
+
+
+
+@router.get("/equipments/bulk/selection")
+async def get_bulk_equipment_selection(
+    project_context_id: str = Query(alias="projectContextId"),
+    equipment_id: str | None = None,
+    stage: int = Query(ge=0, le=8),
+    discipline_id: str | None = None,
+    responsible_user_id: str | None = None,
+    eap_node_id: str | None = None,
+    work_package_id: str | None = None,
+    search: str | None = Query(default=None, max_length=200),
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
+) -> dict:
+    return await bulk_edit_service.resolve_filtered_equipments(
+        session, actor, project_context_id=project_context_id, equipment_id=equipment_id, stage=stage,
+        discipline_id=discipline_id, responsible_user_id=responsible_user_id,
+        eap_node_id=eap_node_id, work_package_id=work_package_id, search=search,
+    )
+
+
+@router.post("/equipments/bulk/preview", response_model=EquipmentBulkPreviewOut)
+async def post_equipment_bulk_preview(
+    body: EquipmentBulkPreviewIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
+) -> EquipmentBulkPreviewOut:
+    return await bulk_edit_service.preview_equipments(session, body, actor)
+
+
+@router.post("/equipments/bulk/apply", response_model=EquipmentBulkApplyOut)
+async def post_equipment_bulk_apply(
+    body: EquipmentBulkApplyIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
+) -> EquipmentBulkApplyOut:
+    return await bulk_edit_service.apply_equipments(session, body, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/components/bulk/preview",
+    response_model=ComponentBulkPreviewOut,
+)
+async def post_component_bulk_preview(
+    equipment_id: str,
+    body: ComponentBulkPreviewIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
+) -> ComponentBulkPreviewOut:
+    return await bulk_edit_service.preview_components(session, equipment_id, body, actor)
+
+
+@router.post(
+    "/equipments/{equipment_id}/components/bulk/apply",
+    response_model=EquipmentBulkApplyOut,
+)
+async def post_component_bulk_apply(
+    equipment_id: str,
+    body: ComponentBulkApplyIn,
+    session: AsyncSession = Depends(get_session),
+    actor: CurrentUser = Depends(require_permission(Permission.EQUIPMENTS_WRITE)),
+) -> EquipmentBulkApplyOut:
+    return await bulk_edit_service.apply_components(session, equipment_id, body, actor)
 
 
 @router.get("/equipments", response_model=EquipmentListOut)

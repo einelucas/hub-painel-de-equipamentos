@@ -21,6 +21,16 @@ defineProps<{
 const emit = defineEmits<{ saved: [] }>();
 
 const showComponent = ref(false);
+const editingTable = ref(false);
+const bulkEditorRef = ref<{ hasPending: () => boolean; confirmDiscard: () => boolean } | null>(null);
+
+function toggleTableEditing(): void {
+  if (editingTable.value && bulkEditorRef.value?.hasPending() &&
+      !bulkEditorRef.value.confirmDiscard()) return;
+  editingTable.value = !editingTable.value;
+}
+
+function savedBulk(): void { emit("saved"); }
 const editingComponent = ref<EquipmentComponent | null>(null);
 const expandedComponentId = ref<string | null>(null);
 
@@ -57,11 +67,37 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
         <h2>Componentes</h2>
         <p>{{ components.length }} subitem(ns) cadastrado(s).</p>
       </div>
-      <VBtn v-if="canEdit" variant="tonal" color="primary" :prepend-icon="mdiPlus" @click="openCreate">
-         Adicionar componente
-      </VBtn>
+      <div class="component-header-actions">
+        <VBtn
+          v-if="canEdit"
+          variant="tonal"
+          color="primary"
+          :disabled="editingTable"
+          :prepend-icon="mdiPlus"
+          @click="openCreate"
+        >
+          Adicionar componente
+        </VBtn>
+        <VBtn
+          v-if="canEdit"
+          variant="outlined"
+          color="primary"
+          data-testid="toggle-components-table-edit"
+          @click="toggleTableEditing"
+        >
+          {{ editingTable ? "Sair da edição" : "Editar tabela" }}
+        </VBtn>
+      </div>
     </div>
-    <div v-if="components.length === 0" class="empty-state table-empty">
+    <ComponentBulkEditor
+      v-if="editingTable"
+      ref="bulkEditorRef"
+      :equipment-id="equipmentId"
+      :components="components"
+      @saved="savedBulk"
+      @exit="editingTable = false"
+    />
+    <div v-else-if="components.length === 0" class="empty-state table-empty">
       <h2>Nenhum componente cadastrado</h2>
       <p>Os componentes deste equipamento aparecerão aqui.</p>
     </div>
@@ -132,6 +168,7 @@ async function componentSaved(_component: EquipmentComponent): Promise<void> {
 </template>
 
 <style scoped>
+.component-header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .detail-field { display: grid; align-content: start; gap: 5px; }
 .detail-field > span { color: #7a879a; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 .detail-field strong { color: #2b3e58; font-size: 13px; font-weight: 700; }

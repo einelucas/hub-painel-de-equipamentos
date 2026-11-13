@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Equipment, Unit } from "~/types/equipment";
-import { compatibleEquipment, equipmentRequestQuery, initialUnit } from "~/utils/equipmentFilters";
+import {
+  compatibleEquipment,
+  equipmentBulkEditScopeReady,
+  equipmentRequestQuery,
+  initialUnit,
+} from "~/utils/equipmentFilters";
 
 const units: Unit[] = [
   { id: "u1", code: "U1", name: "Unidade 1", active: true },
@@ -31,5 +36,19 @@ describe("filtros do painel de equipamentos", () => {
       equipment_id: "eq-1",
       search: "bomba",
     });
+  });
+
+  it("só libera edição da tabela com permissão, unidade, obra e etapa", () => {
+    const complete = {
+      canWrite: true,
+      unitId: "u1",
+      projectContextId: "ctx-1",
+      stage: "0",
+    };
+    expect(equipmentBulkEditScopeReady(complete)).toBe(true);
+    expect(equipmentBulkEditScopeReady({ ...complete, canWrite: false })).toBe(false);
+    expect(equipmentBulkEditScopeReady({ ...complete, unitId: "" })).toBe(false);
+    expect(equipmentBulkEditScopeReady({ ...complete, projectContextId: "" })).toBe(false);
+    expect(equipmentBulkEditScopeReady({ ...complete, stage: "" })).toBe(false);
   });
 });
