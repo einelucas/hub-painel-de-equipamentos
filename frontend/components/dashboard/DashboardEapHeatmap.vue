@@ -24,17 +24,32 @@ const options = computed<ApexOptions>(() => ({
   plotOptions: {
     heatmap: {
       enableShades: false,
+      radius: 6,
       colorScale: {
         ranges: [
-          { from: 0, to: 0, color: "#f0f3f8", name: "Sem equipamentos" },
-          { from: 1, to: 4, color: "#b9cee6", name: "1–4" },
-          { from: 5, to: 14, color: "#7299c5", name: "5–14" },
-          { from: 15, to: 999999, color: "#304f7e", name: "15+" },
+          { from: 0, to: 0, color: "#f5f7fa", name: "Sem equipamentos" },
+          { from: 1, to: 4, color: "#fae5b8", name: "1–4" },
+          { from: 5, to: 14, color: "#efbf95", name: "5–14" },
+          { from: 15, to: 999999, color: "#eb9352", name: "15+" },
         ],
       },
     },
   },
-  dataLabels: { enabled: true, formatter: (v) => Number(v) ? String(v) : "", style: { fontSize: "10px", colors: ["#263b57"] } },
+  stroke: {
+    show: true,
+    width: 4,
+    colors: ["#ffffff"],
+  },
+  dataLabels: {
+    enabled: true,
+    formatter: (v) => Number(v) ? String(v) : "",
+    style: {
+      fontSize: "11px",
+      fontFamily: FONT_FAMILY,
+      fontWeight: 600,
+      colors: ["#2c3543"],
+    },
+  },
   xaxis: { labels: { style: { fontSize: "10px", fontFamily: FONT_FAMILY } }, title: { text: "Fases do processo 0–8" } },
   yaxis: {
     labels: {
@@ -70,4 +85,8 @@ const options = computed<ApexOptions>(() => ({
 
 <style scoped>
 .eap-chart { position: relative; }
+.eap-chart :deep(.apexcharts-heatmap-rect) {
+  rx: 6px;
+  ry: 6px;
+}
 </style>
