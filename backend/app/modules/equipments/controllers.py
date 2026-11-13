@@ -38,7 +38,7 @@ router = APIRouter(tags=["equipamentos"])
 async def get_bulk_equipment_selection(
     project_context_id: str = Query(alias="projectContextId"),
     equipment_id: str | None = None,
-    stage: int | None = Query(default=None, ge=0, le=8),
+    stage: int = Query(ge=0, le=8),
     discipline_id: str | None = None,
     responsible_user_id: str | None = None,
     eap_node_id: str | None = None,

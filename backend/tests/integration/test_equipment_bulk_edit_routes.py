@@ -524,9 +524,20 @@ async def test_selection_honors_equipment_filter_even_with_many_in_context(
         params={
             "projectContextId": context["context"],
             "equipment_id": wanted["id"],
+            "stage": 0,
         },
         headers=auth_header("ANALYST"),
     )
     assert response.status_code == 200, response.text
     assert response.json()["total"] == 1
     assert response.json()["items"][0]["equipmentId"] == wanted["id"]
+
+
+async def test_selection_requires_stage_filter(client, auth_header) -> None:
+    context = await _context(client, auth_header, "B11")
+    response = await client.get(
+        "/api/v1/equipments/bulk/selection",
+        params={"projectContextId": context["context"]},
+        headers=auth_header("ANALYST"),
+    )
+    assert response.status_code == 422

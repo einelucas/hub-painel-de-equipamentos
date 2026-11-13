@@ -431,7 +431,7 @@ async def apply_components(
 
 async def resolve_filtered_equipments(
     session: AsyncSession, actor: CurrentUser, *,
-    project_context_id: str, equipment_id: str | None = None, stage: int | None = None,
+    project_context_id: str, stage: int, equipment_id: str | None = None,
     discipline_id: str | None = None, responsible_user_id: str | None = None,
     eap_node_id: str | None = None, work_package_id: str | None = None,
     search: str | None = None,

@@ -26,6 +26,7 @@ import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
 import type { RealtimeChangeEvent } from "~/composables/useRealtimeSync";
+import { equipmentBulkEditScopeReady } from "~/utils/equipmentFilters";
 
 definePageMeta({ middleware: "auth" });
 const route = useRoute();
@@ -73,7 +74,18 @@ let unsubscribeSync: (() => void) | null = null;
 const realtime = useRealtimeSync();
 
 const allowed = computed(() => auth.can("equipments:read"));
-const canEditTable = computed(() => auth.can("equipments:write") && Boolean(context.selectedProjectContext));
+const canEditTable = computed(() => equipmentBulkEditScopeReady({
+  canWrite: auth.can("equipments:write"),
+  unitId: context.selectedUnit,
+  projectContextId: context.selectedProjectContext,
+  stage: stage.value,
+}));
+const editTableDisabledReason = computed(() => {
+  if (!context.selectedUnit) return "Selecione uma unidade para editar";
+  if (!context.selectedProjectContext) return "Selecione uma obra para editar";
+  if (stage.value === "") return "Selecione uma etapa para editar";
+  return undefined;
+});
 const canCreate = computed(
   () => auth.can("equipments:write") && Boolean(context.selectedUnit),
 );
@@ -476,11 +488,14 @@ onBeforeUnmount(() => unsubscribeSync?.());
               v-model="stage"
               :options="STAGE_OPTIONS"
               :sorted="false"
+              :disabled="editingTable"
+              :title="editingTable ? 'Saia do modo de edição para trocar a etapa' : undefined"
               :icon="mdiLayers"
               label="Etapa"
               placeholder="Buscar etapa"
               empty-label="Todas"
               density="compact"
+              test-id="stage-filter"
               @change="reload"
             />
           </div>
@@ -552,7 +567,7 @@ onBeforeUnmount(() => unsubscribeSync?.());
             variant="tonal"
             color="primary"
             :disabled="!canEditTable && !editingTable"
-            :title="!canEditTable ? 'Selecione uma obra para editar' : undefined"
+            :title="!canEditTable ? editTableDisabledReason : undefined"
             data-testid="toggle-equipment-table-edit"
             @click="toggleTableEditing">
             {{ editingTable ? "Sair da edição" : "Editar tabela" }}
@@ -574,7 +589,7 @@ onBeforeUnmount(() => unsubscribeSync?.());
             ref="bulkEditorRef"
             :equipments="equipments"
             :project-context-id="editorProjectContextId"
-            :filters="currentQuery(100, 1)"
+            :filters="currentQuery(200, 1)"
             :total="pagination?.total ?? 0"
             :discipline-options="disciplineOptions"
             :responsible-options="responsibleOptions"
