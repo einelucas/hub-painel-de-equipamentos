@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import unicodedata
-from typing import Iterable
+from collections.abc import Iterable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
