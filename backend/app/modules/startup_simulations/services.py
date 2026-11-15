@@ -199,6 +199,10 @@ async def update_scenario(
     values = await _validate_and_match(session, scenario.project_context_id, body.items)
     scenario.name = body.name.strip()
     scenario.startup_at = body.startup_at
+    # O índice (scenario_id, position) é único. Excluir as linhas antigas
+    # antes de inserir as novas impede colisão durante o flush do ORM.
+    scenario.items.clear()
+    await session.flush()
     scenario.items = _make_items(scenario, values)
     # updated_at é sempre modificado, inclusive quando apenas os itens mudam.
     from app.models.common import utcnow
