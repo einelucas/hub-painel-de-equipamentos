@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import NewProjectButton from "~/components/project-creation/NewProjectButton.vue";
 import EquipmentNotificationBell from "~/components/notifications/EquipmentNotificationBell.vue";
-import { Boxes, Handshake, Kanban, LayoutDashboard, Scale, ShoppingCart, Wrench } from "lucide-vue-next";
+import { Boxes, CalendarRange, Handshake, Kanban, LayoutDashboard, Scale, ShoppingCart, Wrench } from "lucide-vue-next";
 import type { NavIcon } from "~/utils/navigation";
 import { NAV_ITEMS, activeNavPath, visibleNavItems } from "~/utils/navigation";
 
@@ -16,6 +16,7 @@ const ICONS = {
   legal: Scale,
   procurement: ShoppingCart,
   suppliers: Handshake,
+  simulations: CalendarRange,
   kanban: Kanban,
 } satisfies Record<NavIcon, unknown>;
 

@@ -52,6 +52,7 @@ from app.models.supplier import (
     SupplierAlias,
     SupplierRecommendationEvidence,
 )
+from app.models.startup_simulation import StartupScenario, StartupScenarioEquipment
 from app.models.sync import ContractFileCleanup, SyncEvent
 from app.models.user import Account, Role, Session, User, Verification
 from app.models.workflow_extras import (
@@ -102,6 +103,8 @@ __all__ = [
     "SupplierAlias",
     "SupplierRecommendationEvidence",
     "SyncEvent",
+    "StartupScenario",
+    "StartupScenarioEquipment",
     "Unit",
     "UserUnitAccess",
     "UserModuleContextPreference",
