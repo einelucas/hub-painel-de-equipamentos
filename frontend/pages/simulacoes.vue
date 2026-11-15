@@ -7,7 +7,7 @@ import type {
   SimulationProject, SimulationProjectList, SimulationUnit, SimulationUnitList,
   StartupItemInput, StartupMetric, StartupScenario, StartupScenarioList,
 } from "~/types/startupSimulation";
-import { asDraftItems, formatScenarioDate, previewScenario } from "~/utils/startupSimulation";
+import { asDraftItems, previewScenario } from "~/utils/startupSimulation";
 import { readStartupWorkbook } from "~/utils/startupWorkbook";
 import { exportStartupScenarios } from "~/utils/startupExport";
 
@@ -241,6 +241,9 @@ const comparisons = computed(() => {
   return selected.map((id) => id === activeId.value ? activePreview.value : scenarios.value.find((s) => s.id === id))
     .filter((item): item is StartupScenario => Boolean(item));
 });
+const comparisonA = computed(() => comparisons.value.find(item => item.id === leftId.value) ?? null);
+const comparisonB = computed(() => comparisons.value.find(item => item.id === rightId.value) ?? null);
+
 const dirty = computed(() => {
   const source = activeScenario.value;
   if (!source) return false;
@@ -269,6 +272,26 @@ const visibleEntries = computed(() => {
     return true;
   });
 });
+
+/** Selecionar um prazo do cenário B troca a tabela editável para B, com proteção do rascunho. */
+async function selectComparisonDeadline(
+  scenarioId: string, selectedMetric: StartupMetric, selectedMonth: string,
+): Promise<void> {
+  if (busy.value || !scenarios.value.some(item => item.id === scenarioId)) return;
+  if (scenarioId !== activeId.value) {
+    if (!await discardBeforeSwitch()) return;
+    selectActive(scenarioId);
+  }
+  metric.value = selectedMetric;
+  monthFilter.value = selectedMonth;
+  search.value = "";
+  await nextTick();
+  if (typeof document !== "undefined") {
+    document.getElementById("startup-equipment-planning")?.scrollIntoView({
+      behavior: "smooth", block: "start",
+    });
+  }
+}
 
 function selectActive(id: string): void {
   const source = scenarios.value.find((scenario) => scenario.id === id);
@@ -462,9 +485,6 @@ async function exportExcel(): Promise<void> {
   }
 }
 
-function dateAverage(value: number | null): string {
-  return value === null ? "—" : `${value.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} dias`;
-}
 </script>
 
 <template>
@@ -533,6 +553,39 @@ function dateAverage(value: number | null): string {
           </div>
         </section>
 
+        <StartupComparisonSummary
+          v-if="activePreview"
+          :scenario-a="comparisonA"
+          :scenario-b="comparisonB"
+          :draft-scenario-id="dirty ? activeId : null"
+        />
+
+        <DashboardChartFrame
+          v-if="activePreview" :title="metricTitle"
+          subtitle="Quantidade de equipamentos com prazo-limite em cada mês. Clique em um ponto para filtrar a tabela."
+          :empty="!comparisons.length || comparisons.every((s) => !s.summary.monthly.length)"
+        >
+          <template #actions>
+            <NavigationMenu
+              v-model="metric"
+              class="metric-navigation"
+              :items="metricNavigationItems"
+              aria-label="Selecionar tipo de prazo exibido no gráfico"
+            />
+          </template>
+          <StartupMonthlyChart :scenarios="comparisons" :metric="metric" @select-month="monthFilter = $event" />
+        </DashboardChartFrame>
+
+        <StartupMonthlyComparisonTable
+          v-if="activePreview"
+          :scenario-a="comparisonA"
+          :scenario-b="comparisonB"
+          :active-scenario-id="activeId"
+          :active-metric="metric"
+          :active-month="monthFilter"
+          @select-deadline="selectComparisonDeadline"
+        />
+
         <section v-if="activePreview" class="surface simulation-editor">
           <div class="editor-heading">
             <div>
@@ -551,32 +604,7 @@ function dateAverage(value: number | null): string {
           </div>
         </section>
 
-        <div v-if="activePreview" class="simulation-kpis">
-          <MetricCard label="Equipamentos" :value="String(activePreview.summary.equipments)" :detail="`${activePreview.summary.negotiationsCalculated} com negociação calculada`" />
-          <MetricCard label="Primeira negociação" :value="formatScenarioDate(activePreview.summary.firstNegotiation)" detail="Data-limite inicial" />
-          <MetricCard label="Última negociação" :value="formatScenarioDate(activePreview.summary.lastNegotiation)" detail="Data-limite final" />
-          <MetricCard label="Primeira entrega" :value="formatScenarioDate(activePreview.summary.firstDelivery)" detail="Na obra" />
-          <MetricCard label="Fabricação média" :value="dateAverage(activePreview.summary.averageManufactureDays)" detail="Dos prazos informados" />
-          <MetricCard label="Antecedência média" :value="dateAverage(activePreview.summary.averagePreStartDays)" detail="Dias antes do startup" />
-        </div>
-
-        <DashboardChartFrame
-          v-if="activePreview" :title="metricTitle"
-          subtitle="Quantidade de equipamentos com prazo-limite em cada mês. Clique em um ponto para filtrar a tabela."
-          :empty="!comparisons.length || comparisons.every((s) => !s.summary.monthly.length)"
-        >
-          <template #actions>
-            <NavigationMenu
-              v-model="metric"
-              class="metric-navigation"
-              :items="metricNavigationItems"
-              aria-label="Selecionar tipo de prazo exibido no gráfico"
-            />
-          </template>
-          <StartupMonthlyChart :scenarios="comparisons" :metric="metric" @select-month="monthFilter = $event" />
-        </DashboardChartFrame>
-
-        <section v-if="activePreview" class="surface simulation-table-section">
+        <section id="startup-equipment-planning" v-if="activePreview" class="surface simulation-table-section">
           <header class="table-heading">
             <div>
               <h2>Planejamento por equipamento</h2>
@@ -685,11 +713,6 @@ function dateAverage(value: number | null): string {
 .editor-heading, .table-heading { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
 .editor-fields { display: grid; grid-template-columns: minmax(0,2fr) minmax(180px,1fr) auto; align-items: center; gap: 12px; }
 .source-hint { font-size: 11px; color: #8190a3; }
-.simulation-kpis { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin-bottom: 16px; }
-.simulation-kpis :deep(.metric-card) { padding: 17px 19px; background: #fff; border: 1px solid #e7ecf3; border-radius: 12px; box-shadow: 0 2px 9px rgba(36,60,95,.035); }
-.simulation-kpis :deep(.label) { color: #8390a3; font-size: 11px; }
-.simulation-kpis :deep(.value) { color: #213758; font-size: 23px; font-weight: 800; margin-top: 5px; }
-.simulation-kpis :deep(.detail) { color: #9aa6b5; font-size: 10.5px; margin-top: 4px; }
 .simulation-table-section { padding: 18px; margin-top: 16px; }
 .table-search { max-width: 430px; margin-bottom: 12px; }
 .simulation-footnote { margin: 12px 0 0; font-size: 10.5px; line-height: 1.6; color: #8896a8; }
@@ -697,6 +720,6 @@ function dateAverage(value: number | null): string {
 .metric-navigation { width: fit-content !important; flex: 0 0 auto; flex-wrap: nowrap; align-self: flex-start; margin-left: auto; padding: 4px; }
 .metric-navigation :deep(.analysis-nav__item) { padding: 7px 11px; font-size: 12px; }
 .metric-navigation :deep(.analysis-nav__icon) { width: 14px; height: 14px; }
-@media(max-width:1100px) { .simulation-selectors, .simulation-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .editor-fields { grid-template-columns: 1fr 1fr; } }
-@media(max-width:700px) { .simulation-selectors, .simulation-kpis, .simulation-loading, .editor-fields { grid-template-columns: minmax(0,1fr); } .simulation-toolbar, .simulation-editor, .simulation-table-section { padding: 14px; } .metric-navigation { width: 100% !important; flex-wrap: wrap; } }
+@media(max-width:1100px) { .simulation-selectors { grid-template-columns: repeat(2,minmax(0,1fr)); } .editor-fields { grid-template-columns: 1fr 1fr; } }
+@media(max-width:700px) { .simulation-selectors, .simulation-loading, .editor-fields { grid-template-columns: minmax(0,1fr); } .simulation-toolbar, .simulation-editor, .simulation-table-section { padding: 14px; } .metric-navigation { width: 100% !important; flex-wrap: wrap; } }
 </style>
