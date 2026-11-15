@@ -720,5 +720,6 @@ async function exportExcel(): Promise<void> {
 .metric-navigation { width: fit-content !important; flex: 0 0 auto; flex-wrap: nowrap; align-self: flex-start; margin-left: auto; padding: 4px; }
 .metric-navigation :deep(.analysis-nav__item) { padding: 7px 11px; font-size: 12px; }
 .metric-navigation :deep(.analysis-nav__icon) { width: 14px; height: 14px; }
-@media(max-width:1100px) { .simulation-selectors, @media(max-width:700px) { .simulation-selectors, .simulation-loading, .editor-fields { grid-template-columns: minmax(0,1fr); } .simulation-toolbar, .simulation-editor, .simulation-table-section { padding: 14px; } .metric-navigation { width: 100% !important; flex-wrap: wrap; } }
+@media(max-width:1100px) { .simulation-selectors { grid-template-columns: repeat(2,minmax(0,1fr)); } .editor-fields { grid-template-columns: 1fr 1fr; } }
+@media(max-width:700px) { .simulation-selectors, .simulation-loading, .editor-fields { grid-template-columns: minmax(0,1fr); } .simulation-toolbar, .simulation-editor, .simulation-table-section { padding: 14px; } .metric-navigation { width: 100% !important; flex-wrap: wrap; } }
 </style>
