@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { mdiCubeOutline, mdiHistory, mdiMessageTextOutline, mdiOfficeBuildingOutline, mdiTimelineOutline } from "@mdi/js";
+import { Box, Building2, History, MessageSquareText, Workflow } from "lucide-vue-next";
 import type { Equipment, EquipmentDetail } from "~/types/equipment";
 import type { RealtimeChangeEvent } from "~/composables/useRealtimeSync";
 import { VBtn, VProgress } from "vuetify/components";
+import NavigationMenu from "~/components/ui/NavigationMenu.vue";
 import { currentStageEnteredAt } from "~/utils/workflow";
 
 definePageMeta({ middleware: "auth" });
@@ -21,9 +22,34 @@ let equipmentRequestVersion = 0;
 let unsubscribeSync: (() => void) | null = null;
 const realtime = useRealtimeSync();
 
-const tab = ref<
-  "process" | "components" | "suppliers" | "comments" | "history"
->("process");
+type EquipmentDetailTab = "process" | "components" | "suppliers" | "comments" | "history";
+const tab = ref<EquipmentDetailTab>("process");
+const detailNavigationItems = computed(() => [
+  { value: "process", label: "Processo", icon: Workflow },
+  {
+    value: "components",
+    label: "Componentes",
+    icon: Box,
+    badge: detail.value?.components.length ?? 0,
+  },
+  {
+    value: "suppliers",
+    label: "Fornecedor",
+    icon: Building2,
+    testId: "tab-suppliers",
+  },
+  {
+    value: "comments",
+    label: "Comentários",
+    icon: MessageSquareText,
+    testId: "tab-comments",
+  },
+  { value: "history", label: "Histórico", icon: History },
+]);
+
+function selectDetailTab(value: string): void {
+  tab.value = value as EquipmentDetailTab;
+}
 const equipmentId = computed(() => String(route.params.id));
 const workflow = useEquipmentWorkflow(equipmentId);
 
@@ -159,7 +185,7 @@ onBeforeUnmount(() => unsubscribeSync?.());
     :title="detail?.equipment.name ?? 'Detalhe do equipamento'"
     description="Processo de aquisição, dados mestres, componentes e histórico."
   >
-    <BackLink class="page-back" to="/dashboard">Voltar ao painel</BackLink>
+    <BackLink class="page-back" to="/equipamentos">Voltar aos equipamentos</BackLink>
     <div v-if="loading && !detail" class="surface detail-state" role="status">
       <span class="spinner" /> Carregando detalhe...
     </div>
@@ -228,65 +254,13 @@ onBeforeUnmount(() => unsubscribeSync?.());
 
       <EquipmentDeadlines :calculated="detail.equipment.calculated" />
 
-      <div
-        class="detail-tabs"
-        role="tablist"
+      <NavigationMenu
+        :model-value="tab"
+        :items="detailNavigationItems"
+        class="detail-navigation"
         aria-label="Seções do equipamento"
-      >
-        <VBtn
-          type="button"
-          :variant="tab === 'process' ? 'tonal' : 'text'"
-          role="tab"
-          :aria-selected="tab === 'process'"
-          :prepend-icon="mdiTimelineOutline"
-          @click="tab = 'process'"
-        >
-          <span>Processo</span>
-        </VBtn>
-        <VBtn
-          type="button"
-          :variant="tab === 'components' ? 'tonal' : 'text'"
-          role="tab"
-          :aria-selected="tab === 'components'"
-          :prepend-icon="mdiCubeOutline"
-          @click="tab = 'components'"
-        >
-          <span>Componentes</span>
-          <span class="detail-tab-count">{{ detail.components.length }}</span>
-        </VBtn>
-        <VBtn
-          type="button"
-          :variant="tab === 'suppliers' ? 'tonal' : 'text'"
-          role="tab"
-          :aria-selected="tab === 'suppliers'"
-          data-testid="tab-suppliers"
-          :prepend-icon="mdiOfficeBuildingOutline"
-          @click="tab = 'suppliers'"
-        >
-          <span>Fornecedor</span>
-        </VBtn>
-        <VBtn
-          type="button"
-          :variant="tab === 'comments' ? 'tonal' : 'text'"
-          role="tab"
-          :aria-selected="tab === 'comments'"
-          data-testid="tab-comments"
-          :prepend-icon="mdiMessageTextOutline"
-          @click="tab = 'comments'"
-        >
-          <span>Comentários</span>
-        </VBtn>
-        <VBtn
-          type="button"
-          :variant="tab === 'history' ? 'tonal' : 'text'"
-          role="tab"
-          :aria-selected="tab === 'history'"
-          :prepend-icon="mdiHistory"
-          @click="tab = 'history'"
-        >
-          <span>Histórico</span>
-        </VBtn>
-      </div>
+        @update:model-value="selectDetailTab"
+      />
 
       <EquipmentProcessTab
         v-if="tab === 'process'"
@@ -356,32 +330,15 @@ onBeforeUnmount(() => unsubscribeSync?.());
   justify-content: center;
   gap: 12px;
 }
-.detail-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.detail-navigation {
+  width: 100%;
+  flex-wrap: nowrap;
   overflow-x: auto;
-  border: 1px solid #d9e3ef;
-  border-radius: 12px;
-  background: #fff;
-  padding: 4px;
   box-shadow: 0 6px 18px rgb(39 69 120 / 7%);
   scrollbar-width: none;
 }
-.detail-tabs::-webkit-scrollbar {
+.detail-navigation::-webkit-scrollbar {
   display: none;
 }
-.detail-tab-count {
-  display: inline-grid;
-  min-width: 20px;
-  height: 20px;
-  place-items: center;
-  border-radius: 999px;
-  padding: 0 6px;
-  background: #e6edf6;
-  color: #52657c;
-  font-size: 10.5px;
-  font-weight: 800;
-  line-height: 1;
-}
+.detail-navigation :deep(.analysis-nav__item) { flex-shrink: 0; }
 </style>

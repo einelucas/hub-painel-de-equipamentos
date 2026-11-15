@@ -7,6 +7,8 @@ interface NavItem {
   value: string;
   label: string;
   icon?: Component;
+  badge?: string | number;
+  testId?: string;
 }
 
 const defaultItems: NavItem[] = [
@@ -15,7 +17,12 @@ const defaultItems: NavItem[] = [
   { value: "finance", label: "Financeiro e evolução", icon: ChartNoAxesCombined },
 ];
 
-const props = defineProps<{ modelValue: string; items?: NavItem[]; distributed?: boolean }>();
+const props = defineProps<{
+  modelValue: string;
+  items?: NavItem[];
+  distributed?: boolean;
+  ariaLabel?: string;
+}>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
 const resolvedItems = computed(() => props.items ?? defaultItems);
@@ -26,18 +33,25 @@ function select(value: string): void {
 </script>
 
 <template>
-  <nav class="analysis-nav" :class="{ 'analysis-nav--distributed': props.distributed }" role="tablist" aria-label="Análises complementares">
+  <nav
+    class="analysis-nav"
+    :class="{ 'analysis-nav--distributed': props.distributed }"
+    role="tablist"
+    :aria-label="props.ariaLabel ?? 'Análises complementares'"
+  >
     <button
       v-for="item in resolvedItems"
       :key="item.value"
       type="button"
       role="tab"
       :aria-selected="modelValue === item.value"
+      :data-testid="item.testId"
       :class="['analysis-nav__item', { 'is-active': modelValue === item.value }]"
       @click="select(item.value)"
     >
-      <component :is="item.icon" class="analysis-nav__icon" :size="16" aria-hidden="true" />
+      <component :is="item.icon" v-if="item.icon" class="analysis-nav__icon" :size="16" aria-hidden="true" />
       <span>{{ item.label }}</span>
+      <span v-if="item.badge !== undefined" class="analysis-nav__badge">{{ item.badge }}</span>
     </button>
   </nav>
 </template>
@@ -77,6 +91,20 @@ function select(value: string): void {
 .analysis-nav__icon {
   flex: none;
   opacity: 0.78;
+}
+
+.analysis-nav__badge {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e6edf6;
+  color: #52657c;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .analysis-nav__item:hover {

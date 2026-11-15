@@ -1,9 +1,10 @@
 import { mount } from "@vue/test-utils";
 import { computed, nextTick, ref } from "vue";
-import { VBadge, VBtn, VMenu, VTabs } from "vuetify/components";
+import { VBadge, VBtn, VMenu } from "vuetify/components";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import EquipmentNotificationBell from "~/components/notifications/EquipmentNotificationBell.vue";
 import EquipmentNotificationPopover from "~/components/notifications/EquipmentNotificationPopover.vue";
+import NavigationMenu from "~/components/ui/NavigationMenu.vue";
 import TabsNav from "~/components/TabsNav.vue";
 import type {
   EquipmentUserNotification,
@@ -127,7 +128,7 @@ describe("Central de notificações do Painel", () => {
     const analyst = mount(EquipmentNotificationPopover, {
       props: popoverProps({ loading: true }),
     });
-    expect(analyst.findComponent(VTabs).exists()).toBe(true);
+    expect(analyst.findComponent(NavigationMenu).exists()).toBe(true);
     expect(analyst.text()).not.toContain("Aprovações");
     expect(analyst.find(".v-skeleton-loader").exists()).toBe(true);
 
@@ -143,6 +144,9 @@ describe("Central de notificações do Painel", () => {
     expect(admin.text()).toContain("Aprovações");
     expect(admin.text()).toContain("Caldeira");
     expect(admin.text()).toContain("Pendente");
+    expect(admin.text()).toContain("Etapa atual");
+    expect(admin.text()).toContain("Etapa solicitada");
+    expect(admin.text()).toContain("Revisar processo");
   });
 
   it("exibe notificação não lida e emite a navegação sem aprovar automaticamente", async () => {
