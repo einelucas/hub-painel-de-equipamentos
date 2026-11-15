@@ -46,6 +46,7 @@ from app.models.process import (
     PurchaseOrder,
     PurchaseRequest,
 )
+from app.models.startup_simulation import StartupScenario, StartupScenarioEquipment
 from app.models.supplier import (
     EquipmentSupplier,
     Supplier,
@@ -102,6 +103,8 @@ __all__ = [
     "SupplierAlias",
     "SupplierRecommendationEvidence",
     "SyncEvent",
+    "StartupScenario",
+    "StartupScenarioEquipment",
     "Unit",
     "UserUnitAccess",
     "UserModuleContextPreference",

@@ -15,6 +15,7 @@ describe("NAV_ITEMS", () => {
       "/juridico",
       "/suprimentos",
       "/fornecedores",
+      "/simulacoes",
       "/equipamentos/kanban",
     ]);
     expect(NAV_ITEMS.map((item) => item.to)).not.toContain("/usuarios");
@@ -31,12 +32,14 @@ describe("visibleNavItems", () => {
     const visible = visibleNavItems(NAV_ITEMS, allowNone);
     expect(visible.map((item) => item.to)).not.toContain("/equipamentos/kanban");
     expect(visible.map((item) => item.to)).not.toContain("/fornecedores");
-    expect(visible).toHaveLength(NAV_ITEMS.length - 3);
+    expect(visible.map((item) => item.to)).not.toContain("/simulacoes");
+    expect(visible).toHaveLength(NAV_ITEMS.length - 4);
   });
 
   it("mostra o kanban para quem tem equipments:read", () => {
     const can = (permission: Permission) => permission === "equipments:read";
     expect(visibleNavItems(NAV_ITEMS, can).map((item) => item.to)).toContain("/equipamentos/kanban");
+    expect(visibleNavItems(NAV_ITEMS, can).map((item) => item.to)).toContain("/simulacoes");
   });
 
   it("mostra fornecedores somente para quem tem suppliers:read", () => {
