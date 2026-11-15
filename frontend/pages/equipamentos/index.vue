@@ -5,6 +5,7 @@ import {
   mdiLayers,
   mdiMapMarker,
   mdiPackageVariant,
+  mdiPencilOutline,
   mdiPlus,
   mdiTag,
   mdiTuneVariant,
@@ -21,7 +22,7 @@ import { loadEapLocationOptions } from "~/utils/eapLocationOptions";
 import FloatingFilterSelect from "~/components/ui/FloatingFilterSelect.vue";
 import EquipmentExecutiveReport from "~/components/equipment/EquipmentExecutiveReport.vue";
 import { Sparkles } from "lucide-vue-next";
-import { VBtn, VCard, VCardActions, VCardText, VCardTitle, VCheckbox, VDialog, VSpacer } from "vuetify/components";
+import { VBtn, VCard, VCardActions, VCardText, VCardTitle, VCheckbox, VDialog, VSpacer, VTooltip } from "vuetify/components";
 import type { SearchableOption } from "~/types/ui";
 import { STAGE_OPTIONS, toOptions } from "~/utils/selectOptions";
 import { collectAllPages } from "~/utils/pagination";
@@ -45,7 +46,10 @@ const criticalityLabels = ref<CatalogItem[]>([]);
 const editingTable = ref(false);
 const editorProjectContextId = ref("");
 const editorUnitId = ref("");
-const bulkEditorRef = ref<{ hasPending: () => boolean; confirmDiscard: () => boolean } | null>(null);
+const bulkEditorRef = ref<{
+  hasPending: () => boolean;
+  confirmDiscard: () => Promise<boolean>;
+} | null>(null);
 const stage = ref<string>("");
 const disciplineId = ref("");
 const responsibleUserId = ref("");
@@ -81,9 +85,16 @@ const canEditTable = computed(() => equipmentBulkEditScopeReady({
   stage: stage.value,
 }));
 const editTableDisabledReason = computed(() => {
-  if (!context.selectedUnit) return "Selecione uma unidade para editar";
-  if (!context.selectedProjectContext) return "Selecione uma obra para editar";
-  if (stage.value === "") return "Selecione uma etapa para editar";
+  const missing: string[] = [];
+  if (!context.selectedUnit) missing.push("uma unidade");
+  if (!context.selectedProjectContext) missing.push("uma obra");
+  if (stage.value === "") missing.push("uma etapa");
+  if (missing.length) {
+    const fields = missing.length === 1
+      ? missing[0]
+      : `${missing.slice(0, -1).join(", ")} e ${missing.at(-1)}`;
+    return `Selecione ${fields} antes de editar a tabela.`;
+  }
   return undefined;
 });
 const canCreate = computed(
@@ -192,9 +203,9 @@ async function syncQuery(): Promise<void> {
 }
 
 /** Troca de página pela paginação controlada do Hub. */
-function toggleTableEditing(): void {
+async function toggleTableEditing(): Promise<void> {
   if (editingTable.value) {
-    if (bulkEditorRef.value?.hasPending() && !bulkEditorRef.value.confirmDiscard()) return;
+    if (bulkEditorRef.value?.hasPending() && !await bulkEditorRef.value.confirmDiscard()) return;
     editingTable.value = false;
     return;
   }
@@ -285,7 +296,7 @@ async function onGlobalFilterChange(): Promise<void> {
   if (editingTable.value &&
     (context.selectedUnit !== editorUnitId.value ||
      context.selectedProjectContext !== editorProjectContextId.value)) {
-    if (bulkEditorRef.value?.hasPending() && !bulkEditorRef.value.confirmDiscard()) {
+    if (bulkEditorRef.value?.hasPending() && !await bulkEditorRef.value.confirmDiscard()) {
       await context.setUnit(editorUnitId.value);
       await context.setProjectContext(editorProjectContextId.value);
       return;
@@ -562,16 +573,33 @@ onBeforeUnmount(() => unsubscribeSync?.());
               @change="reload"
             />
           </div>
-          <VBtn
+          <VTooltip
             v-if="auth.can('equipments:write')"
-            variant="tonal"
-            color="primary"
-            :disabled="!canEditTable && !editingTable"
-            :title="!canEditTable ? editTableDisabledReason : undefined"
-            data-testid="toggle-equipment-table-edit"
-            @click="toggleTableEditing">
-            {{ editingTable ? "Sair da edição" : "Editar tabela" }}
-          </VBtn>
+            :text="editTableDisabledReason"
+            location="bottom"
+            :disabled="canEditTable || editingTable"
+            open-on-click
+          >
+            <template #activator="{ props: tooltipProps }">
+              <span
+                v-bind="tooltipProps"
+                class="edit-table-button-wrap"
+                :tabindex="!canEditTable && !editingTable ? 0 : undefined"
+                :aria-label="!canEditTable && !editingTable ? editTableDisabledReason : undefined"
+              >
+                <VBtn
+                  variant="tonal"
+                  color="primary"
+                  :disabled="!canEditTable && !editingTable"
+                  :prepend-icon="mdiPencilOutline"
+                  data-testid="toggle-equipment-table-edit"
+                  @click="toggleTableEditing"
+                >
+                  {{ editingTable ? "Sair da edição" : "Editar tabela" }}
+                </VBtn>
+              </span>
+            </template>
+          </VTooltip>
         </div>
 
         <div
@@ -729,6 +757,14 @@ onBeforeUnmount(() => unsubscribeSync?.());
 .inline-field {
   display: block;
   min-width: 0;
+}
+.edit-table-button-wrap {
+  display: inline-flex;
+  border-radius: 8px;
+}
+.edit-table-button-wrap:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 3px;
 }
 .queue-state {
   display: flex;

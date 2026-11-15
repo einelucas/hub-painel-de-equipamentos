@@ -22,11 +22,14 @@ const emit = defineEmits<{ saved: [] }>();
 
 const showComponent = ref(false);
 const editingTable = ref(false);
-const bulkEditorRef = ref<{ hasPending: () => boolean; confirmDiscard: () => boolean } | null>(null);
+const bulkEditorRef = ref<{
+  hasPending: () => boolean;
+  confirmDiscard: () => Promise<boolean>;
+} | null>(null);
 
-function toggleTableEditing(): void {
+async function toggleTableEditing(): Promise<void> {
   if (editingTable.value && bulkEditorRef.value?.hasPending() &&
-      !bulkEditorRef.value.confirmDiscard()) return;
+      !await bulkEditorRef.value.confirmDiscard()) return;
   editingTable.value = !editingTable.value;
 }
 

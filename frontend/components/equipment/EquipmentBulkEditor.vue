@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
-import { VAlert, VBtn } from "vuetify/components";
+import { mdiChevronLeft, mdiChevronRight, mdiPencilOutline } from "@mdi/js";
+import {
+  VAlert,
+  VBtn,
+  VCheckbox,
+  VChip,
+  VIcon,
+  VSelect,
+  VTextField,
+} from "vuetify/components";
+import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import { useConfirm } from "~/composables/useConfirm";
 import type { Equipment } from "~/types/equipment";
 
 type Field = "disciplineId" | "responsibleUserId" | "eapNodeId" | "origin" |
@@ -29,6 +41,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ saved: []; exit: [] }>();
 const api = useApi();
+const { confirm } = useConfirm();
 const selected = ref<string[]>([]);
 const versions = ref<Record<string, string>>({});
 const recordLabels = ref<Record<string, string>>({});
@@ -38,6 +51,7 @@ const previewRequest = ref<Record<string, unknown> | null>(null);
 const state = ref<"idle" | "selecting" | "validating" | "saving">("idle");
 const error = ref("");
 const success = ref("");
+const gridScroll = ref<HTMLElement | null>(null);
 const massField = ref<Field>("disciplineId");
 const massOp = ref<Operation>("SET");
 const massValue = ref("");
@@ -65,6 +79,18 @@ const fieldLabels: Record<string, string> = {
   criticality_label_id: "Criticidade",
   work_package_ids: "Work Packages",
 };
+const massOperationOptions = computed(() => massField.value === "workPackageIds"
+  ? [
+      { value: "ADD", title: "Adicionar" },
+      { value: "REMOVE", title: "Remover" },
+      { value: "REPLACE", title: "Substituir" },
+      { value: "CLEAR", title: "Limpar" },
+    ]
+  : [
+      { value: "SET", title: "Substituir" },
+      { value: "FILL_EMPTY", title: "Preencher vazios" },
+      { value: "CLEAR", title: "Limpar" },
+    ]);
 const valueLabels = computed(() => ({
   discipline_id: Object.fromEntries(props.disciplineOptions.map((item) => [item.id, item.label])),
   responsible_user_id: Object.fromEntries(props.responsibleOptions.map((item) => [item.id, item.label])),
@@ -130,8 +156,8 @@ function setChange(
   error.value = "";
   success.value = "";
 }
-function cellChanged(row: Equipment, field: Field, event: Event): void {
-  const value = (event.target as HTMLInputElement | HTMLSelectElement).value;
+function cellChanged(row: Equipment, field: Field, next: unknown): void {
+  const value = next === null || next === undefined ? "" : String(next);
   if (value === baseValue(row, field)) {
     const current = drafts.value[row.id];
     if (current) {
@@ -146,16 +172,14 @@ function cellChanged(row: Equipment, field: Field, event: Event): void {
   }
   setChange(row.id, field, value ? "SET" : "CLEAR", value || null, row.updatedAt);
 }
-function wpChanged(row: Equipment, event: Event): void {
-  const chosen = Array.from((event.target as HTMLSelectElement).selectedOptions)
-    .map((option) => option.value);
+function wpChanged(row: Equipment, chosen: string[]): void {
   setChange(row.id, "workPackageIds", "REPLACE", chosen, row.updatedAt);
 }
-function toggle(row: Equipment): void {
+function toggle(row: Equipment, checked: boolean): void {
   versions.value[row.id] = versions.value[row.id] ?? row.updatedAt;
-  selected.value = selected.value.includes(row.id)
-    ? selected.value.filter((id) => id !== row.id)
-    : [...selected.value, row.id];
+  selected.value = checked
+    ? [...new Set([...selected.value, row.id])]
+    : selected.value.filter((id) => id !== row.id);
 }
 function selectPage(): void {
   const ids = props.equipments.map((row) => row.id);
@@ -163,7 +187,15 @@ function selectPage(): void {
 }
 async function selectAllFiltered(): Promise<void> {
   if (busy.value) return;
-  if (editing.value && !window.confirm("Manter rascunho e substituir seleção pelos resultados filtrados?")) {
+  if (editing.value && !await confirm({
+    title: "Substituir seleção?",
+    message: "Selecionar todos os resultados filtrados?",
+    detail: "O rascunho atual será mantido, mas a seleção de linhas será substituída.",
+    confirmLabel: "Continuar",
+    cancelLabel: "Voltar",
+    tone: "primary",
+    icon: "warning",
+  })) {
     return;
   }
   state.value = "selecting";
@@ -186,15 +218,14 @@ async function selectAllFiltered(): Promise<void> {
     error.value = caught instanceof Error ? caught.message : "Falha ao selecionar.";
   } finally { state.value = "idle"; }
 }
-function massChanged(event: Event): void {
-  massField.value = (event.target as HTMLSelectElement).value as Field;
+function massChanged(value: unknown): void {
+  massField.value = String(value) as Field;
   massValue.value = "";
   massWpIds.value = [];
   massOp.value = massField.value === "workPackageIds" ? "ADD" : "SET";
 }
-function massWpChanged(event: Event): void {
-  massWpIds.value = Array.from((event.target as HTMLSelectElement).selectedOptions)
-    .map((option) => option.value);
+function scrollTable(direction: -1 | 1): void {
+  gridScroll.value?.scrollBy({ left: direction * 520, behavior: "smooth" });
 }
 function applyMass(): void {
   if (!selected.value.length) return;
@@ -252,8 +283,20 @@ async function save(): Promise<void> {
     error.value = caught instanceof Error ? caught.message : "Falha na gravação. Revise novamente.";
   } finally { state.value = "idle"; }
 }
-function discard(): void {
-  if (editing.value && !window.confirm("Descartar todas as alterações não salvas?")) return;
+async function confirmDiscard(): Promise<boolean> {
+  if (!editing.value) return true;
+  return confirm({
+    title: "Descartar alterações?",
+    message: "Descartar todas as alterações não salvas?",
+    detail: `${pendingCount.value} alteração(ões) pendente(s) serão perdidas.`,
+    confirmLabel: "Descartar",
+    cancelLabel: "Continuar editando",
+    tone: "danger",
+    icon: "warning",
+  });
+}
+async function discard(): Promise<void> {
+  if (!await confirmDiscard()) return;
   drafts.value = {};
   selected.value = [];
   emit("exit");
@@ -264,140 +307,173 @@ function beforeUnload(event: BeforeUnloadEvent): void {
 }
 onMounted(() => window.addEventListener("beforeunload", beforeUnload));
 onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
-onBeforeRouteLeave(() => !editing.value || window.confirm("Descartar alterações pendentes?"));
-defineExpose({ hasPending: () => editing.value, confirmDiscard: () => !editing.value ||
-  window.confirm("Descartar alterações pendentes?") });
+onBeforeRouteLeave(() => confirmDiscard());
+defineExpose({ hasPending: () => editing.value, confirmDiscard });
 </script>
 
 <template>
   <div class="bulk-editor" data-testid="equipment-bulk-editor" :aria-busy="busy">
-    <div class="bulk-actions">
-      <strong>Modo de edição · {{ pendingCount }} campo(s) pendente(s)</strong>
-      <span class="spacer" />
-      <VBtn size="small" variant="tonal" :disabled="busy" @click="selectPage">Selecionar página</VBtn>
-      <VBtn
-        size="small"
-        variant="tonal"
-        :loading="state === 'selecting'"
-        :disabled="busy"
-        @click="selectAllFiltered"
-      >Todos os filtrados ({{ total }})</VBtn>
-      <VBtn size="small" variant="text" :disabled="busy" @click="selected = []">Limpar seleção</VBtn>
+    <div class="edit-mode-header">
+      <div class="edit-mode-title">
+        <span class="edit-mode-icon" aria-hidden="true"><VIcon :icon="mdiPencilOutline" size="18" /></span>
+        <div>
+          <div class="edit-mode-eyebrow">Edição em tabela</div>
+          <strong>Edite os campos e revise antes de salvar</strong>
+          <p>Selecione linhas para aplicar uma mesma alteração a vários equipamentos.</p>
+        </div>
+      </div>
+      <div class="edit-status" role="status" aria-live="polite">
+        <VChip size="small" variant="tonal" color="primary">{{ selected.length }} linha(s) selecionada(s)</VChip>
+        <VChip size="small" variant="outlined" :color="pendingCount ? 'warning' : 'default'">
+          {{ pendingCount }} alteração(ões)
+        </VChip>
+      </div>
     </div>
-    <p v-if="selected.length" class="muted">{{ selected.length }} linha(s) selecionada(s).</p>
-    <div v-if="selected.length" class="mass-panel">
-      <label>Campo
-        <select :value="massField" :disabled="busy" @change="massChanged">
-          <option v-for="field in fields" :key="field.key" :value="field.key">{{ field.label }}</option>
-        </select>
-      </label>
-      <label>Operação
-        <select v-model="massOp" :disabled="busy">
-          <template v-if="massField === 'workPackageIds'">
-            <option value="ADD">Adicionar</option><option value="REMOVE">Remover</option>
-            <option value="REPLACE">Substituir</option><option value="CLEAR">Limpar</option>
-          </template>
-          <template v-else>
-            <option value="SET">Substituir</option><option value="FILL_EMPTY">Preencher vazios</option>
-            <option value="CLEAR">Limpar</option>
-          </template>
-        </select>
-      </label>
-      <label v-if="massOp !== 'CLEAR'">Novo valor
-        <select
-          v-if="massField === 'workPackageIds'"
-          multiple
-          size="3"
+    <div class="bulk-actions" aria-label="Ações de seleção e navegação">
+      <div class="selection-actions">
+        <VBtn size="small" variant="tonal" :disabled="busy" @click="selectPage">Selecionar página</VBtn>
+        <VBtn
+          size="small"
+          variant="tonal"
+          :loading="state === 'selecting'"
           :disabled="busy"
-          aria-label="Work Packages em massa"
-          @change="massWpChanged"
-        >
-          <option v-for="option in workPackageOptions" :key="option.id" :value="option.id">
-            {{ option.label }}
-          </option>
-        </select>
-        <select
+          @click="selectAllFiltered"
+        >Todos os filtrados ({{ total }})</VBtn>
+        <VBtn size="small" variant="text" :disabled="busy || !selected.length" @click="selected = []">Limpar seleção</VBtn>
+      </div>
+      <span class="spacer" />
+      <div class="column-navigation">
+        <span>Explorar colunas</span>
+        <VBtn :icon="mdiChevronLeft" size="x-small" variant="text" title="Ver colunas anteriores" aria-label="Ver colunas anteriores" @click="scrollTable(-1)" />
+        <VBtn :icon="mdiChevronRight" size="x-small" variant="text" title="Ver próximas colunas" aria-label="Ver próximas colunas" @click="scrollTable(1)" />
+      </div>
+    </div>
+    <div v-if="selected.length" class="mass-panel" data-testid="mass-edit-panel">
+      <div class="mass-panel-heading">
+        <strong>Alteração coletiva</strong>
+        <span>Aplicar em {{ selected.length }} equipamento(s)</span>
+      </div>
+      <div class="mass-control">
+        <VSelect
+          :model-value="massField"
+          :items="fields"
+          item-title="label"
+          item-value="key"
+          label="Campo"
+          density="compact"
+          hide-details
+          :disabled="busy"
+          data-testid="mass-field-select"
+          @update:model-value="massChanged"
+        />
+      </div>
+      <div class="mass-control">
+        <VSelect
+          v-model="massOp"
+          :items="massOperationOptions"
+          label="Operação"
+          density="compact"
+          hide-details
+          :disabled="busy"
+          data-testid="mass-operation-select"
+        />
+      </div>
+      <div v-if="massOp !== 'CLEAR'" class="mass-control mass-value">
+        <SearchableMultiSelect
+          v-if="massField === 'workPackageIds'"
+          v-model="massWpIds"
+          class="mass-wp-select"
+          :options="workPackageOptions"
+          label="Work Packages"
+          placeholder="Buscar e selecionar vários"
+          :disabled="busy"
+          test-id="mass-work-packages"
+        />
+        <SearchableSelect
           v-else-if="['disciplineId','responsibleUserId','eapNodeId','criticalityLabelId'].includes(massField)"
           v-model="massValue"
+          :options="options(massField)"
+          label="Novo valor"
+          placeholder="Digite para buscar"
+          empty-label="Escolher"
           :disabled="busy"
-        >
-          <option value="">Escolher</option>
-          <option v-for="option in options(massField)" :key="option.id" :value="option.id">
-            {{ option.label }}
-          </option>
-        </select>
-        <input
+        />
+        <VTextField
           v-else
           v-model="massValue"
           :type="massField === 'startupAt' ? 'date' : 'text'"
+          label="Novo valor"
+          density="compact"
+          hide-details
           :disabled="busy"
         />
-      </label>
-      <VBtn color="primary" size="small" variant="tonal" :disabled="busy" @click="applyMass">
+      </div>
+      <VBtn class="apply-mass-button" color="primary" size="small" variant="flat" :disabled="busy" @click="applyMass">
         Aplicar ao rascunho
       </VBtn>
     </div>
     <VAlert v-if="error" type="error" variant="tonal" density="compact" role="alert">{{ error }}</VAlert>
     <VAlert v-if="success" type="success" variant="tonal" density="compact">{{ success }}</VAlert>
-    <div class="grid-scroll">
+    <div ref="gridScroll" class="grid-scroll">
       <table class="edit-table">
         <thead><tr>
-          <th><span class="sr-only">Selecionar</span></th>
-          <th>Equipamento (somente leitura)</th>
+          <th class="select-column"><span class="sr-only">Selecionar</span></th>
+          <th class="equipment-column">Equipamento <span class="readonly-label">Somente leitura</span></th>
           <th v-for="field in fields" :key="field.key">{{ field.label }}</th>
           <th>Etapa (somente leitura)</th>
         </tr></thead>
         <tbody>
           <tr v-for="row in equipments" :key="row.id">
-            <td><input
-              type="checkbox"
-              :checked="selected.includes(row.id)"
+            <td class="select-column"><VCheckbox
+              class="row-checkbox"
+              :model-value="selected.includes(row.id)"
               :disabled="busy"
+              color="primary"
+              density="compact"
+              hide-details
               :aria-label="`Selecionar ${row.name}`"
-              @change="toggle(row)"
+              @update:model-value="toggle(row, Boolean($event))"
             /></td>
-            <td class="name"><NuxtLink :to="`/equipamentos/${row.id}`">{{ row.name }}</NuxtLink></td>
+            <td class="name equipment-column"><NuxtLink :to="`/equipamentos/${row.id}`">{{ row.name }}</NuxtLink></td>
             <td
               v-for="field in fields"
               :key="field.key"
               :class="{ changed: Boolean(drafts[row.id]?.changes[field.key]) }"
             >
-              <select
+              <SearchableSelect
                 v-if="field.kind === 'select'"
-                :value="draftValue(row, field.key)"
+                class="cell-control cell-select"
+                :model-value="draftValue(row, field.key) as string"
+                :options="options(field.key)"
+                :label="field.label"
+                placeholder="Digite para buscar"
+                empty-label="Não informado"
                 :disabled="busy"
-                :aria-label="`${field.label}: ${row.name}`"
-                @change="cellChanged(row, field.key, $event)"
-              >
-                <option value="">—</option>
-                <option v-for="option in options(field.key)" :key="option.id" :value="option.id">
-                  {{ option.label }}
-                </option>
-              </select>
-              <select
+                :test-id="`${field.key}-${row.id}`"
+                @update:model-value="cellChanged(row, field.key, $event)"
+              />
+              <SearchableMultiSelect
                 v-else-if="field.kind === 'wps'"
-                multiple
-                size="2"
+                class="wp-multi-select"
+                :model-value="draftValue(row, field.key) as string[]"
+                :options="workPackageOptions"
+                label="Work Packages"
+                placeholder="Buscar e adicionar"
                 :disabled="busy"
-                :aria-label="`Work Packages: ${row.name}`"
-                @change="wpChanged(row, $event)"
-              >
-                <option
-                  v-for="option in workPackageOptions"
-                  :key="option.id"
-                  :value="option.id"
-                  :selected="(draftValue(row, field.key) as string[]).includes(option.id)"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-              <input
+                :test-id="`work-packages-${row.id}`"
+                @update:model-value="wpChanged(row, $event)"
+              />
+              <VTextField
                 v-else
-                :value="draftValue(row, field.key)"
+                class="cell-control"
+                :model-value="draftValue(row, field.key)"
                 :type="field.kind === 'date' ? 'date' : 'text'"
+                :label="field.label"
+                density="compact"
+                hide-details
                 :disabled="busy"
                 :aria-label="`${field.label}: ${row.name}`"
-                @change="cellChanged(row, field.key, $event)"
+                @update:model-value="cellChanged(row, field.key, $event)"
               />
             </td>
             <td>{{ row.stageName }}</td>
@@ -433,28 +509,59 @@ defineExpose({ hasPending: () => editing.value, confirmDiscard: () => !editing.v
 </template>
 
 <style scoped>
-.bulk-editor { padding: 8px 16px 18px; display: grid; gap: 12px; }
+.bulk-editor { padding: 0 16px 18px; display: grid; gap: 12px; background: #f8fafc; border-top: 1px solid #dbe5f0; }
+.edit-mode-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 -16px; padding: 16px 18px; background: #f3f7fc; border-bottom: 1px solid #d9e6f5; }
+.edit-mode-title { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.edit-mode-title strong { display: block; color: #173456; font-size: 14px; }
+.edit-mode-title p { margin: 3px 0 0; color: #64748b; font-size: 12px; }
+.edit-mode-eyebrow { margin-bottom: 2px; color: #2867ad; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.edit-mode-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: #fff; color: #2867ad; box-shadow: 0 3px 10px rgb(33 82 135 / 12%); }
+.edit-status { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .bulk-actions, .bulk-footer, .footer-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
-.bulk-actions strong { color: #213758; font-size: 13px; }
+.bulk-actions { min-height: 38px; }
+.selection-actions, .column-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.column-navigation { color: #64748b; font-size: 11px; }
 .spacer { flex: 1; }
 .muted, .bulk-footer span { font-size: 12px; color: #64748b; }
-.mass-panel { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; background: #f1f5f9;
-  border-radius: 10px; padding: 12px; }
-.mass-panel label { display: grid; gap: 5px; font-size: 12px; color: #475569; }
-input, select { background: white; border: 1px solid #cbd5e1; padding: 7px 8px; border-radius: 6px;
-  min-width: 95px; max-width: 215px; color: #213758; font: inherit; }
-select[multiple] { min-width: 145px; }
-input:focus, select:focus { outline: 2px solid #3b82f6; outline-offset: 1px; }
-.grid-scroll { overflow-x: auto; max-width: 100%; }
-.edit-table { border-collapse: collapse; text-align: left; width: 100%; font-size: 12px; }
-.edit-table th, .edit-table td { padding: 9px; border-bottom: 1px solid #e2e8f0; }
-.edit-table th { white-space: nowrap; background: #f8fafc; position: sticky; top: 0; }
-.edit-table .name { min-width: 180px; color: #213758; font-weight: 600; }
-.edit-table td.changed { background: #eff6ff; }
-.bulk-footer { justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+.mass-panel { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; background: #fff;
+  border: 1px solid #dce6f0; border-radius: 12px; padding: 14px; box-shadow: 0 4px 16px rgb(31 55 85 / 6%); }
+.mass-panel-heading { display: grid; align-self: center; min-width: 145px; }
+.mass-panel-heading strong { color: #213758; font-size: 13px; }
+.mass-panel-heading span { color: #718096; font-size: 11px; }
+.mass-control { width: 185px; }
+.mass-value { min-width: 210px; flex: 1; }
+.apply-mass-button { margin-bottom: 1px; }
+.grid-scroll { overflow: auto; max-width: 100%; max-height: min(62vh, 680px); border: 1px solid #dce4ee; border-radius: 12px; background: #fff; box-shadow: 0 5px 20px rgb(31 55 85 / 5%); scrollbar-color: #94a3b8 #e9eef5; }
+.edit-table { border-collapse: separate; border-spacing: 0; min-width: 1540px; width: 100%; text-align: left; font-size: 12px; }
+.edit-table th, .edit-table td { height: 58px; padding: 9px 10px; border-bottom: 1px solid #e5ebf2; background: #fff; vertical-align: middle; }
+.edit-table th { height: 46px; white-space: nowrap; background: #f3f6fa; color: #41546c; font-size: 11px; font-weight: 750; letter-spacing: .01em; position: sticky; top: 0; z-index: 3; }
+.edit-table tbody tr:hover td { background: #f8fbff; }
+.edit-table .select-column { position: sticky; left: 0; z-index: 2; width: 46px; min-width: 46px; text-align: center; }
+.edit-table .equipment-column { position: sticky; left: 46px; z-index: 2; min-width: 210px; max-width: 250px; box-shadow: 8px 0 12px -12px rgb(31 55 85 / 55%); }
+.edit-table th.select-column, .edit-table th.equipment-column { z-index: 5; background: #edf2f7; }
+.edit-table .name { color: #213758; font-weight: 650; line-height: 1.35; }
+.edit-table .name a { color: #245ea8; text-decoration: none; }
+.edit-table .name a:hover { text-decoration: underline; }
+.edit-table td.changed { background: #edf6ff; box-shadow: inset 0 0 0 1px #b9d7f7; }
+.edit-table tbody tr:hover td.changed { background: #e8f3ff; }
+.readonly-label { display: block; margin-top: 2px; color: #8795a8; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+.cell-control { width: 190px; min-width: 190px; max-width: 190px; }
+.cell-select :deep(.searchable-select) { width: 100%; }
+.cell-control :deep(.v-field), .mass-control :deep(.v-field) { background: rgb(var(--v-theme-surface)); }
+.row-checkbox { display: inline-flex; vertical-align: middle; }
+.row-checkbox :deep(.v-selection-control) { justify-content: center; }
+.wp-multi-select { width: 245px; }
+.mass-wp-select { max-width: 420px; }
+.wp-multi-select :deep(.v-input__details), .mass-wp-select :deep(.v-input__details) { display: none; }
+.wp-multi-select :deep(.v-field), .mass-wp-select :deep(.v-field) { border-radius: 8px; background: #fff; }
+.wp-multi-select :deep(.v-field__input) { min-height: 40px; padding-top: 7px; padding-bottom: 7px; }
+.wp-multi-select :deep(.selection-chip), .wp-multi-select :deep(.selection-summary) { font-weight: 400; }
+.bulk-footer { position: sticky; bottom: 0; z-index: 7; justify-content: space-between; margin: 0 -16px -18px; padding: 12px 18px; border-top: 1px solid #dce4ee; background: rgb(255 255 255 / 96%); box-shadow: 0 -8px 22px rgb(31 55 85 / 7%); backdrop-filter: blur(8px); }
 @media (max-width: 760px) {
   .bulk-editor { padding: 8px; }
-  .mass-panel label { width: 100%; }
-  input, select { max-width: 100%; }
+  .edit-mode-header { align-items: flex-start; flex-direction: column; margin: -8px -8px 0; }
+  .edit-status { justify-content: flex-start; }
+  .mass-control { width: 100%; }
+  .bulk-footer { margin: 0 -8px -8px; }
 }
 </style>

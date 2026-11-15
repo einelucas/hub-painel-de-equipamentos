@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
-import { VAlert, VBtn } from "vuetify/components";
+import { mdiChevronLeft, mdiChevronRight, mdiPencilOutline } from "@mdi/js";
+import {
+  VAlert,
+  VBtn,
+  VCheckbox,
+  VChip,
+  VIcon,
+  VSelect,
+  VTextField,
+} from "vuetify/components";
+import { useConfirm } from "~/composables/useConfirm";
 import type { EquipmentComponent } from "~/types/equipment";
 
 type Field = "tag" | "sector" | "startupAt" | "leadTimeDays" |
@@ -18,6 +28,7 @@ interface Preview {
 const props = defineProps<{ equipmentId: string; components: EquipmentComponent[] }>();
 const emit = defineEmits<{ saved: []; exit: [] }>();
 const api = useApi();
+const { confirm } = useConfirm();
 const selected = ref<string[]>([]);
 const drafts = ref<Record<string, Draft>>({});
 const preview = ref<Preview | null>(null);
@@ -25,6 +36,7 @@ const previewRequest = ref<Record<string, unknown> | null>(null);
 const state = ref<"idle" | "validating" | "saving">("idle");
 const error = ref("");
 const success = ref("");
+const tableScroll = ref<HTMLElement | null>(null);
 const massField = ref<Field>("sector");
 const massOp = ref<Operation>("SET");
 const massValue = ref("");
@@ -49,6 +61,11 @@ const fieldLabels: Record<string, string> = {
 };
 const massFields = columns.filter((column) => column.key !== "tag");
 const massKind = computed(() => massFields.find((item) => item.key === massField.value)?.kind ?? "text");
+const massOperationOptions = [
+  { value: "SET", title: "Substituir" },
+  { value: "FILL_EMPTY", title: "Preencher vazios" },
+  { value: "CLEAR", title: "Limpar" },
+];
 const pendingCount = computed(() =>
   Object.values(drafts.value).reduce((sum, row) => sum + Object.keys(row.changes).length, 0),
 );
@@ -74,8 +91,12 @@ function setChange(component: EquipmentComponent, field: Field, operation: Opera
   error.value = "";
   success.value = "";
 }
-function setCell(component: EquipmentComponent, column: typeof columns[number], event: Event): void {
-  const raw = (event.target as HTMLInputElement).value;
+function setCell(
+  component: EquipmentComponent,
+  column: typeof columns[number],
+  next: unknown,
+): void {
+  const raw = next === null || next === undefined ? "" : String(next);
   if (raw === baseValue(component, column.key)) {
     const data = drafts.value[component.id];
     if (data) {
@@ -95,14 +116,17 @@ function setCell(component: EquipmentComponent, column: typeof columns[number], 
   const value = raw === "" ? null : column.kind === "number" ? Number(raw) : raw;
   setChange(component, column.key, value === null ? "CLEAR" : "SET", value);
 }
-function toggle(id: string): void {
-  selected.value = selected.value.includes(id)
-    ? selected.value.filter((item) => item !== id)
-    : [...selected.value, id];
+function toggle(id: string, checked: boolean): void {
+  selected.value = checked
+    ? [...new Set([...selected.value, id])]
+    : selected.value.filter((item) => item !== id);
 }
-function massFieldChanged(event: Event): void {
-  massField.value = (event.target as HTMLSelectElement).value as Field;
+function massFieldChanged(value: unknown): void {
+  massField.value = String(value) as Field;
   massValue.value = "";
+}
+function scrollColumns(direction: -1 | 1): void {
+  tableScroll.value?.scrollBy({ left: direction * 440, behavior: "smooth" });
 }
 function applyMass(): void {
   const value = massOp.value === "CLEAR" ? null :
@@ -164,9 +188,22 @@ async function save(): Promise<void> {
     error.value = caught instanceof Error ? caught.message : "Falha ao salvar. Revise novamente.";
   } finally { state.value = "idle"; }
 }
-function discard(): void {
-  if (pendingCount.value && !window.confirm("Descartar alterações pendentes?")) return;
+async function confirmDiscard(): Promise<boolean> {
+  if (!pendingCount.value) return true;
+  return confirm({
+    title: "Descartar alterações?",
+    message: "Descartar todas as alterações dos componentes?",
+    detail: `${pendingCount.value} alteração(ões) pendente(s) serão perdidas.`,
+    confirmLabel: "Descartar",
+    cancelLabel: "Continuar editando",
+    tone: "danger",
+    icon: "warning",
+  });
+}
+async function discard(): Promise<void> {
+  if (!await confirmDiscard()) return;
   drafts.value = {};
+  selected.value = [];
   emit("exit");
 }
 function beforeUnload(event: BeforeUnloadEvent): void {
@@ -174,54 +211,94 @@ function beforeUnload(event: BeforeUnloadEvent): void {
 }
 onMounted(() => window.addEventListener("beforeunload", beforeUnload));
 onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
-onBeforeRouteLeave(() => !pendingCount.value || window.confirm("Descartar alterações pendentes?"));
-defineExpose({ hasPending: () => pendingCount.value > 0,
-  confirmDiscard: () => !pendingCount.value || window.confirm("Descartar alterações?") });
+onBeforeRouteLeave(() => confirmDiscard());
+defineExpose({ hasPending: () => pendingCount.value > 0, confirmDiscard });
 </script>
 
 <template>
   <div class="component-bulk" :aria-busy="busy" data-testid="component-bulk-editor">
-    <div class="toolbar">
-      <strong>Modo de edição · {{ pendingCount }} campo(s) pendente(s)</strong>
-      <VBtn
-        variant="tonal"
-        size="small"
-        :disabled="busy"
-        @click="selected = components.map((row) => row.id)"
-      >Selecionar todos</VBtn>
-      <VBtn
-        variant="text"
-        size="small"
-        :disabled="busy"
-        @click="selected = []"
-      >Limpar seleção</VBtn>
+    <div class="edit-mode-header">
+      <div class="edit-mode-title">
+        <span class="edit-mode-icon" aria-hidden="true"><VIcon :icon="mdiPencilOutline" size="18" /></span>
+        <div>
+          <div class="edit-mode-eyebrow">Edição de componentes</div>
+          <strong>Edite os campos e revise antes de salvar</strong>
+          <p>Selecione componentes para aplicar a mesma alteração em várias linhas.</p>
+        </div>
+      </div>
+      <div class="edit-status" role="status" aria-live="polite">
+        <VChip size="small" variant="tonal" color="primary">
+          {{ selected.length }} linha(s) selecionada(s)
+        </VChip>
+        <VChip size="small" variant="outlined" :color="pendingCount ? 'warning' : 'default'">
+          {{ pendingCount }} alteração(ões)
+        </VChip>
+      </div>
+    </div>
+    <div class="toolbar" aria-label="Ações de seleção e navegação">
+      <div class="selection-actions">
+        <VBtn
+          variant="tonal"
+          size="small"
+          :disabled="busy"
+          @click="selected = components.map((row) => row.id)"
+        >Selecionar todos</VBtn>
+        <VBtn
+          variant="text"
+          size="small"
+          :disabled="busy || !selected.length"
+          @click="selected = []"
+        >Limpar seleção</VBtn>
+      </div>
+      <span class="spacer" />
+      <div class="column-navigation">
+        <span>Explorar colunas</span>
+        <VBtn :icon="mdiChevronLeft" size="x-small" variant="text" title="Ver colunas anteriores" aria-label="Ver colunas anteriores" @click="scrollColumns(-1)" />
+        <VBtn :icon="mdiChevronRight" size="x-small" variant="text" title="Ver próximas colunas" aria-label="Ver próximas colunas" @click="scrollColumns(1)" />
+      </div>
     </div>
     <div v-if="selected.length" class="mass-panel">
-      <strong>{{ selected.length }} selecionado(s)</strong>
-      <label>Campo
-        <select :value="massField" :disabled="busy" @change="massFieldChanged">
-          <option v-for="column in massFields" :key="column.key" :value="column.key">
-            {{ column.label }}
-          </option>
-        </select>
-      </label>
-      <label>Operação
-        <select v-model="massOp" :disabled="busy">
-          <option value="SET">Substituir</option>
-          <option value="FILL_EMPTY">Preencher vazios</option>
-          <option value="CLEAR">Limpar</option>
-        </select>
-      </label>
-      <label v-if="massOp !== 'CLEAR'">Valor
-        <input
+      <div class="mass-panel-heading">
+        <strong>Alteração coletiva</strong>
+        <span>Aplicar em {{ selected.length }} componente(s)</span>
+      </div>
+      <div class="mass-control">
+        <VSelect
+          :model-value="massField"
+          :items="massFields"
+          item-title="label"
+          item-value="key"
+          label="Campo"
+          density="compact"
+          hide-details
+          :disabled="busy"
+          @update:model-value="massFieldChanged"
+        />
+      </div>
+      <div class="mass-control">
+        <VSelect
+          v-model="massOp"
+          :items="massOperationOptions"
+          label="Operação"
+          density="compact"
+          hide-details
+          :disabled="busy"
+        />
+      </div>
+      <div v-if="massOp !== 'CLEAR'" class="mass-control mass-value">
+        <VTextField
           v-model="massValue"
           :type="massKind === 'date' ? 'date' :
           massKind === 'number' ? 'number' : 'text'" :min="massKind === 'number' ? 0 : undefined"
+          label="Valor"
+          density="compact"
+          hide-details
           :disabled="busy"
         />
-      </label>
+      </div>
       <VBtn
-        variant="tonal"
+        class="apply-mass-button"
+        variant="flat"
         color="primary"
         size="small"
         :disabled="busy"
@@ -234,34 +311,42 @@ defineExpose({ hasPending: () => pendingCount.value > 0,
     <VAlert v-if="success" type="success" density="compact" variant="tonal">
       {{ success }}
     </VAlert>
-    <div class="table-scroll">
+    <div ref="tableScroll" class="table-scroll">
       <table class="edit-table">
         <thead><tr>
-          <th>Selecionar</th><th>Componente (somente leitura)</th>
+          <th class="select-column"><span class="sr-only">Selecionar</span></th>
+          <th class="component-column">Componente <span class="readonly-label">Somente leitura</span></th>
           <th v-for="column in columns" :key="column.key">{{ column.label }}</th>
         </tr></thead>
         <tbody>
           <tr v-for="component in components" :key="component.id">
-            <td><input
-              type="checkbox"
-              :checked="selected.includes(component.id)"
+            <td class="select-column"><VCheckbox
+              class="row-checkbox"
+              :model-value="selected.includes(component.id)"
               :disabled="busy"
+              color="primary"
+              density="compact"
+              hide-details
               :aria-label="`Selecionar ${component.name}`"
-              @change="toggle(component.id)"
+              @update:model-value="toggle(component.id, Boolean($event))"
             /></td>
-            <td class="name">{{ component.name }}</td>
+            <td class="name component-column">{{ component.name }}</td>
             <td
               v-for="column in columns"
               :key="column.key"
               :class="{ changed: Boolean(drafts[component.id]?.changes[column.key]) }"
             >
-              <input
+              <VTextField
+                class="cell-control"
                 :type="column.kind"
-                :value="currentValue(component, column.key)"
+                :model-value="currentValue(component, column.key)"
                 :min="column.kind === 'number' ? 0 : undefined"
+                :label="column.label"
+                density="compact"
+                hide-details
                 :aria-label="`${column.label}: ${component.name}`"
                 :disabled="busy"
-                @change="setCell(component, column, $event)"
+                @update:model-value="setCell(component, column, $event)"
               />
             </td>
           </tr>
@@ -271,14 +356,16 @@ defineExpose({ hasPending: () => pendingCount.value > 0,
     <div class="footer">
       <span>{{ state === "validating" ? "Validando…" :
         state === "saving" ? "Gravando lote…" : "Altere células ou selecione componentes" }}</span>
-      <VBtn variant="text" :disabled="busy" @click="discard">Sair da edição</VBtn>
-      <VBtn
-        variant="flat"
-        color="primary"
-        :loading="state === 'validating'"
-        :disabled="!pendingCount || busy"
-        @click="review"
-      >Revisar alterações</VBtn>
+      <div class="footer-actions">
+        <VBtn variant="text" :disabled="busy" @click="discard">Sair da edição</VBtn>
+        <VBtn
+          variant="flat"
+          color="primary"
+          :loading="state === 'validating'"
+          :disabled="!pendingCount || busy"
+          @click="review"
+        >Revisar alterações</VBtn>
+      </div>
     </div>
     <BulkEditReviewDialog
       :preview="preview"
@@ -292,25 +379,48 @@ defineExpose({ hasPending: () => pendingCount.value > 0,
 </template>
 
 <style scoped>
-.component-bulk { display: grid; gap: 12px; padding: 14px; }
-.toolbar, .mass-panel, .footer { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.toolbar strong, .mass-panel strong { font-size: 13px; color: #213758; margin-right: auto; }
-.mass-panel { background: #f1f5f9; border-radius: 10px; padding: 12px; }
-.mass-panel label { font-size: 12px; display: grid; gap: 5px; color: #475569; }
-input, select { background: #fff; color: #213758; border: 1px solid #cbd5e1; border-radius: 6px;
-  padding: 7px; max-width: 180px; min-width: 95px; font: inherit; }
-input:focus, select:focus { outline: 2px solid #3b82f6; outline-offset: 1px; }
-.table-scroll { overflow-x: auto; }
-.edit-table { border-collapse: collapse; width: 100%; text-align: left; font-size: 12px; }
-.edit-table th, .edit-table td { border-bottom: 1px solid #e2e8f0; padding: 8px 9px; }
-.edit-table th { background: #f8fafc; white-space: nowrap; }
-.edit-table .name { font-weight: 600; min-width: 180px; }
-.edit-table td.changed { background: #eff6ff; }
-.footer { justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 12px; }
-.footer span { margin-right: auto; color: #64748b; font-size: 12px; }
+.component-bulk { display: grid; gap: 12px; padding: 0 16px 18px; background: #f8fafc; border-top: 1px solid #dbe5f0; }
+.edit-mode-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 -16px; padding: 16px 18px; background: #f3f7fc; border-bottom: 1px solid #d9e6f5; }
+.edit-mode-title { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.edit-mode-title strong { display: block; color: #173456; font-size: 14px; }
+.edit-mode-title p { margin: 3px 0 0; color: #64748b; font-size: 12px; }
+.edit-mode-eyebrow { margin-bottom: 2px; color: #2867ad; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.edit-mode-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: #fff; color: #2867ad; box-shadow: 0 3px 10px rgb(33 82 135 / 12%); }
+.edit-status, .toolbar, .selection-actions, .column-navigation, .mass-panel, .footer, .footer-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.edit-status { justify-content: flex-end; }
+.toolbar { min-height: 38px; }
+.spacer { flex: 1; }
+.column-navigation { color: #64748b; font-size: 11px; }
+.mass-panel { gap: 12px; padding: 14px; border: 1px solid #dce6f0; border-radius: 12px; background: #fff; box-shadow: 0 4px 16px rgb(31 55 85 / 6%); }
+.mass-panel-heading { display: grid; align-self: center; min-width: 145px; }
+.mass-panel-heading strong { color: #213758; font-size: 13px; }
+.mass-panel-heading span { color: #718096; font-size: 11px; }
+.mass-control { width: 185px; }
+.mass-value { min-width: 210px; flex: 1; }
+.apply-mass-button { margin-bottom: 1px; }
+.table-scroll { overflow: auto; max-width: 100%; max-height: min(62vh, 680px); border: 1px solid #dce4ee; border-radius: 12px; background: #fff; box-shadow: 0 5px 20px rgb(31 55 85 / 5%); scrollbar-color: #94a3b8 #e9eef5; }
+.edit-table { border-collapse: separate; border-spacing: 0; min-width: 1260px; width: 100%; text-align: left; font-size: 12px; }
+.edit-table th, .edit-table td { height: 58px; padding: 9px 10px; border-bottom: 1px solid #e5ebf2; background: #fff; vertical-align: middle; }
+.edit-table th { position: sticky; top: 0; z-index: 3; height: 46px; white-space: nowrap; background: #f3f6fa; color: #41546c; font-size: 11px; font-weight: 750; }
+.edit-table tbody tr:hover td { background: #f8fbff; }
+.edit-table .select-column { position: sticky; left: 0; z-index: 2; width: 46px; min-width: 46px; text-align: center; }
+.edit-table .component-column { position: sticky; left: 46px; z-index: 2; min-width: 210px; max-width: 250px; box-shadow: 8px 0 12px -12px rgb(31 55 85 / 55%); }
+.edit-table th.select-column, .edit-table th.component-column { z-index: 5; background: #edf2f7; }
+.edit-table .name { color: #213758; font-weight: 650; line-height: 1.35; }
+.edit-table td.changed { background: #edf6ff; box-shadow: inset 0 0 0 1px #b9d7f7; }
+.edit-table tbody tr:hover td.changed { background: #e8f3ff; }
+.readonly-label { display: block; margin-top: 2px; color: #8795a8; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+.cell-control { width: 165px; min-width: 165px; max-width: 165px; }
+.cell-control :deep(.v-field), .mass-control :deep(.v-field) { background: rgb(var(--v-theme-surface)); }
+.row-checkbox { display: inline-flex; vertical-align: middle; }
+.row-checkbox :deep(.v-selection-control) { justify-content: center; }
+.footer { position: sticky; bottom: 0; z-index: 7; justify-content: space-between; margin: 0 -16px -18px; padding: 12px 18px; border-top: 1px solid #dce4ee; background: rgb(255 255 255 / 96%); box-shadow: 0 -8px 22px rgb(31 55 85 / 7%); backdrop-filter: blur(8px); }
+.footer span { color: #64748b; font-size: 12px; }
 @media (max-width: 760px) {
   .component-bulk { padding: 8px; }
-  .mass-panel label { width: 100%; }
-  .mass-panel input, .mass-panel select { max-width: 100%; }
+  .edit-mode-header { align-items: flex-start; flex-direction: column; margin: -8px -8px 0; }
+  .edit-status { justify-content: flex-start; }
+  .mass-control { width: 100%; }
+  .footer { margin: 0 -8px -8px; }
 }
 </style>

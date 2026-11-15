@@ -1,7 +1,11 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { VCheckbox, VSelect, VTextField } from "vuetify/components";
 import ComponentBulkEditor from "~/components/equipment/ComponentBulkEditor.vue";
 import EquipmentBulkEditor from "~/components/equipment/EquipmentBulkEditor.vue";
+import SearchableMultiSelect from "~/components/ui/SearchableMultiSelect.vue";
+import SearchableSelect from "~/components/ui/SearchableSelect.vue";
+import { useConfirm } from "~/composables/useConfirm";
 import type { Equipment, EquipmentComponent } from "~/types/equipment";
 
 function equipment(id: string, name: string, updatedAt: string): Equipment {
@@ -80,7 +84,7 @@ function editorProps(equipments: Equipment[]) {
     responsibleOptions: [],
     eapOptions: [],
     criticalityOptions: [],
-    workPackageOptions: [],
+    workPackageOptions: [] as { id: string; label: string }[],
   };
 }
 
@@ -90,11 +94,30 @@ const stubs = {
 };
 
 afterEach(() => {
+  useConfirm().cancel();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("EquipmentBulkEditor", () => {
+  it("usa os controles Vuetify padronizados nas células editáveis", () => {
+    vi.stubGlobal("useApi", () => ({ get: vi.fn(), post: vi.fn() }));
+    const wrapper = mount(EquipmentBulkEditor, {
+      props: editorProps([
+        equipment("eq-1", "Equipamento A", "2026-11-12T10:00:00"),
+      ]),
+      global: { stubs },
+    });
+
+    expect(wrapper.findComponent(VCheckbox).exists()).toBe(true);
+    expect(wrapper.findAllComponents(SearchableSelect).length).toBeGreaterThan(0);
+    expect(wrapper.findAllComponents(VTextField).length).toBeGreaterThan(0);
+    expect(wrapper.find("select").exists()).toBe(false);
+    expect(wrapper.findAllComponents(SearchableSelect)
+      .every((select) => select.props("placeholder") === "Digite para buscar")).toBe(true);
+    wrapper.unmount();
+  });
+
   it("preserva rascunhos ao trocar de página e envia as duas versões originais", async () => {
     const post = vi.fn().mockResolvedValue({
       previewToken: "preview-token-1234",
@@ -174,8 +197,9 @@ describe("EquipmentBulkEditor", () => {
     expect(wrapper.text()).toContain("2 linha(s) selecionada(s)");
 
     const massPanel = wrapper.get(".mass-panel");
-    await massPanel.get("select").setValue("origin");
-    await massPanel.get('input[type="text"]').setValue("Coletivo");
+    await massPanel.findAllComponents(VSelect)[0]?.vm.$emit("update:modelValue", "origin");
+    await wrapper.vm.$nextTick();
+    await massPanel.get(".mass-value").findComponent(VTextField).get("input").setValue("Coletivo");
     await massPanel.findAll("button").find((button) =>
       button.text().includes("Aplicar ao rascunho"))?.trigger("click");
     await wrapper.findAll("button").find((button) =>
@@ -184,6 +208,51 @@ describe("EquipmentBulkEditor", () => {
 
     const body = post.mock.calls[0]?.[1] as { items: { equipmentId: string }[] };
     expect(body.items.map((item) => item.equipmentId).sort()).toEqual(["eq-1", "eq-2"]);
+    wrapper.unmount();
+  });
+
+  it("permite selecionar e enviar várias Work Packages na mesma linha", async () => {
+    const post = vi.fn().mockResolvedValue({
+      previewToken: "preview-token-1234",
+      requestedCount: 1,
+      changedCount: 1,
+      skippedCount: 0,
+      diffs: [],
+      errors: [],
+    });
+    vi.stubGlobal("useApi", () => ({ get: vi.fn(), post }));
+    const props = editorProps([
+      equipment("eq-1", "Equipamento A", "2026-11-12T10:00:00"),
+    ]);
+    props.workPackageOptions = [
+      { id: "wp-1", label: "CAL003" },
+      { id: "wp-2", label: "ELT002" },
+    ];
+    const wrapper = mount(EquipmentBulkEditor, {
+      props,
+      global: { stubs },
+    });
+
+    await wrapper.findComponent(SearchableMultiSelect).vm.$emit(
+      "update:modelValue",
+      ["wp-1", "wp-2"],
+    );
+    await wrapper.findAll("button").find((button) =>
+      button.text().includes("Revisar alterações"))?.trigger("click");
+    await flushPromises();
+
+    expect(post.mock.calls[0]?.[1]).toEqual({
+      projectContextId: "ctx-1",
+      items: [{
+        equipmentId: "eq-1",
+        expectedUpdatedAt: "2026-11-12T10:00:00",
+        changes: [{
+          field: "workPackageIds",
+          operation: "REPLACE",
+          value: ["wp-1", "wp-2"],
+        }],
+      }],
+    });
     wrapper.unmount();
   });
 });
@@ -204,6 +273,9 @@ describe("ComponentBulkEditor", () => {
       global: { stubs },
     });
 
+    expect(wrapper.findComponent(VCheckbox).exists()).toBe(true);
+    expect(wrapper.findAllComponents(VTextField).length).toBeGreaterThan(0);
+    expect(wrapper.find("select").exists()).toBe(false);
     expect(wrapper.text()).not.toContain("Entrega contratual");
     await wrapper.get('input[aria-label="Selecionar Motor"]').setValue(true);
     expect(wrapper.get(".mass-panel").text()).not.toContain("TAG");
@@ -219,6 +291,28 @@ describe("ComponentBulkEditor", () => {
         changes: [{ field: "tag", operation: "SET", value: "TAG-001" }],
       }],
     });
+    wrapper.unmount();
+  });
+
+  it("confirma o descarte em popup Vuetify antes de sair", async () => {
+    vi.stubGlobal("useApi", () => ({ post: vi.fn() }));
+    const wrapper = mount(ComponentBulkEditor, {
+      props: { equipmentId: "eq-1", components: [component("comp-1", "Motor")] },
+      global: { stubs },
+    });
+
+    await wrapper.get('input[aria-label="TAG: Motor"]').setValue("TAG-002");
+    await wrapper.findAll("button").find((button) =>
+      button.text().includes("Sair da edição"))?.trigger("click");
+
+    expect(useConfirm().state.open).toBe(true);
+    expect(useConfirm().state.title).toBe("Descartar alterações?");
+    expect(useConfirm().state.confirmLabel).toBe("Descartar");
+    expect(wrapper.emitted("exit")).toBeUndefined();
+
+    useConfirm().accept();
+    await flushPromises();
+    expect(wrapper.emitted("exit")).toHaveLength(1);
     wrapper.unmount();
   });
 });
