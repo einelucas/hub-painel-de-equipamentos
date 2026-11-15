@@ -3,7 +3,7 @@ import { calculateScenarioItem, previewScenario, shiftDate, summarizeScenarioRow
 import type { StartupItemInput, StartupScenario } from "~/types/startupSimulation";
 
 const item: StartupItemInput = {
-  equipmentId: null, name: "Estruturas metálicas", origin: "Nacional",
+  name: "Estruturas metálicas", origin: "Nacional",
   discipline: "Metal Mec.", supplier: "METASA", area: "Geral", responsible: "George Kazuki",
   startupAt: null, suppliesDays: 20, legalDays: 20, manufactureDays: 180, preStartDays: 279,
 };
@@ -32,7 +32,7 @@ describe("simulador de startup (equações do Excel)", () => {
 
   it("inclui todos os meses e recalcula o mês quando muda o cenário", () => {
     const scenario = {
-      id: "id", projectContextId: "project", source: "EXCEL",
+      id: "id", simulationProjectId: "project", source: "EXCEL",
       name: "2027", startupAt: "2027-12-02", createdAt: "", updatedAt: "",
       summary: {} as StartupScenario["summary"],
       items: [{ ...item, id: "row", ...calculateScenarioItem(item, "2027-12-02") }],

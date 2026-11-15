@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { VTable, VTextField } from "vuetify/components";
+import { VTable, VTextField, VBtn } from "vuetify/components";
+import { mdiDeleteOutline } from "@mdi/js";
 import type { StartupItem, StartupItemInput } from "~/types/startupSimulation";
 import { formatScenarioDate } from "~/utils/startupSimulation";
 
@@ -11,6 +12,7 @@ defineProps<{
 const emit = defineEmits<{
   "edit-number": [index: number, field: "suppliesDays" | "legalDays" | "manufactureDays" | "preStartDays", value: unknown];
   "edit-startup": [index: number, value: string];
+  remove: [index: number];
 }>();
 const inputCols: Array<{ field: "suppliesDays" | "legalDays" | "manufactureDays" | "preStartDays"; label: string }> = [
   { field: "suppliesDays", label: "Suprimentos" },
@@ -35,6 +37,7 @@ function numberAt(row: StartupItemInput, key: keyof StartupItemInput) {
           <th>Limite negociação</th>
           <th>Limite contrato/OC</th>
           <th>Limite entrega</th>
+          <th v-if="editable" class="actions-col">Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -77,8 +80,9 @@ function numberAt(row: StartupItemInput, key: keyof StartupItemInput) {
           <td class="date-col">{{ formatScenarioDate(row.negotiationDeadline) }}</td>
           <td class="date-col">{{ formatScenarioDate(row.contractDeadline) }}</td>
           <td class="date-col">{{ formatScenarioDate(row.deliveryDeadline) }}</td>
+          <td v-if="editable"><VBtn :icon="mdiDeleteOutline" variant="text" color="error" size="x-small" :aria-label="`Remover ${row.name} do cenário`" :disabled="loading" @click="emit('remove', index)" /></td>
         </tr>
-        <tr v-if="!entries.length"><td colspan="10" class="empty">Nenhum equipamento atende ao filtro selecionado.</td></tr>
+        <tr v-if="!entries.length"><td :colspan="editable ? 11 : 10" class="empty">Nenhum equipamento atende ao filtro selecionado.</td></tr>
       </tbody>
     </VTable>
   </div>

@@ -1,16 +1,46 @@
-"""Contratos REST do simulador (camelCase como o restante do Hub)."""
+"""Contratos REST do simulador (camelCase, como os demais módulos)."""
 from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.shared.schema import CamelModel
 
 
+class NamedSimulationIn(CamelModel):
+    name: str = Field(min_length=1, max_length=160)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        stripped = " ".join(value.split())
+        if not stripped:
+            raise ValueError("Informe um nome válido")
+        return stripped
+
+
+class SimulationUnitOut(CamelModel):
+    id: str
+    name: str
+
+
+class SimulationProjectOut(CamelModel):
+    id: str
+    unit_id: str
+    name: str
+
+
+class SimulationUnitListOut(CamelModel):
+    items: list[SimulationUnitOut]
+
+
+class SimulationProjectListOut(CamelModel):
+    items: list[SimulationProjectOut]
+
+
 class ScenarioItemIn(CamelModel):
-    equipment_id: str | None = None
     name: str = Field(min_length=1, max_length=500)
     origin: str | None = Field(default=None, max_length=160)
     discipline: str | None = Field(default=None, max_length=160)
@@ -25,12 +55,11 @@ class ScenarioItemIn(CamelModel):
 
 
 class ScenarioCreateIn(CamelModel):
-    project_context_id: str
+    simulation_project_id: str
     name: str = Field(min_length=1, max_length=120)
     startup_at: date
-    source: Literal["EXCEL", "PROJECT", "MANUAL"] = "PROJECT"
-    # None: criar snapshot a partir do cadastro atual; []: cenário realmente vazio
-    items: list[ScenarioItemIn] | None = Field(default=None, max_length=500)
+    source: Literal["EXCEL", "MANUAL"] = "MANUAL"
+    items: list[ScenarioItemIn] = Field(default_factory=list, max_length=500)
 
 
 class ScenarioUpdateIn(CamelModel):
@@ -74,7 +103,7 @@ class ScenarioSummaryOut(CamelModel):
 
 class ScenarioOut(CamelModel):
     id: str
-    project_context_id: str
+    simulation_project_id: str
     name: str
     startup_at: date
     source: str

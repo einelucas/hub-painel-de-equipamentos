@@ -81,7 +81,6 @@ export function previewScenario(
 
 export function asDraftItems(scenario: StartupScenario): StartupItemInput[] {
   return scenario.items.map((item) => ({
-    equipmentId: item.equipmentId,
     name: item.name, origin: item.origin, discipline: item.discipline,
     supplier: item.supplier, area: item.area, responsible: item.responsible,
     startupAt: item.startupAt, suppliesDays: item.suppliesDays,
