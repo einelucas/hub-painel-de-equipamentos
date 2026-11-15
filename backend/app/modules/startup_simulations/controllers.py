@@ -54,7 +54,7 @@ async def post_clone_startup_scenario(
     return await services.clone_scenario(session, actor, scenario_id, body)
 
 
-@router.delete("/{scenario_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{scenario_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_startup_scenario(
     scenario_id: str,
     session: AsyncSession = Depends(get_session),
