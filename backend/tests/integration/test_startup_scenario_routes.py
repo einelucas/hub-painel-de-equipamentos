@@ -50,7 +50,11 @@ async def test_simulation_scope_and_scenarios_crud(client, auth_header) -> None:
             "source": "EXCEL",
             "items": [{
                 "name": "Estruturas Metálicas Indústria",
+                "origin": "Importado",
+                "discipline": "Metal Mecânica",
                 "supplier": "METASA",
+                "area": "Caldeira",
+                "responsible": "Responsável teste",
                 "suppliesDays": 20,
                 "legalDays": 20,
                 "manufactureDays": 180,
@@ -62,6 +66,11 @@ async def test_simulation_scope_and_scenarios_crud(client, auth_header) -> None:
     assert created.status_code == 201, created.text
     scenario = created.json()
     assert scenario["simulationProjectId"] == project_id
+    assert scenario["items"][0]["origin"] == "Importado"
+    assert scenario["items"][0]["discipline"] == "Metal Mecânica"
+    assert scenario["items"][0]["supplier"] == "METASA"
+    assert scenario["items"][0]["area"] == "Caldeira"
+    assert scenario["items"][0]["responsible"] == "Responsável teste"
     assert scenario["items"][0]["deliveryDeadline"] == "2027-02-26"
     assert scenario["items"][0]["contractDeadline"] == "2026-08-30"
     assert scenario["items"][0]["negotiationDeadline"] == "2026-08-10"
@@ -105,7 +114,12 @@ async def test_simulation_scope_and_scenarios_crud(client, auth_header) -> None:
         json={
             "name": "Startup 2028", "startupAt": "2028-03-31",
             "items": [{
-                "name": "Estruturas Metálicas Indústria",
+                "name": "Estruturas Metálicas Indústria (revisada)",
+                "origin": "Nacional",
+                "discipline": "Elétrica",
+                "supplier": "Novo fornecedor",
+                "area": "Moagem",
+                "responsible": "Outro responsável",
                 "suppliesDays": 20,
                 "legalDays": 20,
                 "manufactureDays": 180,
@@ -115,6 +129,12 @@ async def test_simulation_scope_and_scenarios_crud(client, auth_header) -> None:
     )
     assert updated.status_code == 200, updated.text
     assert updated.json()["items"][0]["negotiationDeadline"] == "2026-12-08"
+    assert updated.json()["items"][0]["name"] == "Estruturas Metálicas Indústria (revisada)"
+    assert updated.json()["items"][0]["origin"] == "Nacional"
+    assert updated.json()["items"][0]["discipline"] == "Elétrica"
+    assert updated.json()["items"][0]["supplier"] == "Novo fornecedor"
+    assert updated.json()["items"][0]["area"] == "Moagem"
+    assert updated.json()["items"][0]["responsible"] == "Outro responsável"
 
     clone = await client.post(
         f"/api/v1/startup-scenarios/{scenario['id']}/clone",

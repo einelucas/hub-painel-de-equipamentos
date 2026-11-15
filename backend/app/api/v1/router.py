@@ -16,11 +16,7 @@ from app.modules.master_catalog.controllers import router as master_catalog_rout
 from app.modules.notifications.controllers import router as notifications_router
 from app.modules.processes.controllers import router as processes_router
 from app.modules.queues.controllers import router as queues_router
-from app.modules.startup_simulations.controllers import (
-    projects_router as simulation_projects_router,
-    router as startup_scenarios_router,
-    units_router as simulation_units_router,
-)
+from app.modules.startup_simulations import controllers as startup_simulations_controllers
 from app.modules.suppliers.controllers import router as suppliers_router
 from app.modules.sync.controllers import router as sync_router
 from app.modules.users.controllers import router as users_router
@@ -44,6 +40,6 @@ api_router.include_router(dashboard_router)
 api_router.include_router(imports_router)
 api_router.include_router(master_catalog_router)
 api_router.include_router(sync_router)
-api_router.include_router(simulation_units_router)
-api_router.include_router(simulation_projects_router)
-api_router.include_router(startup_scenarios_router)
+api_router.include_router(startup_simulations_controllers.units_router)
+api_router.include_router(startup_simulations_controllers.projects_router)
+api_router.include_router(startup_simulations_controllers.router)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { VAlert, VBtn, VBtnToggle, VCard, VCardActions, VCardText, VCardTitle, VDialog, VProgressLinear, VTextField } from "vuetify/components";
+import { VAlert, VBtn, VBtnToggle, VCard, VCardActions, VCardText, VCardTitle, VDialog, VProgressLinear, VTextField, VCombobox } from "vuetify/components";
 import { mdiContentCopy, mdiContentSave, mdiDeleteOutline, mdiFileExcelOutline, mdiPlus } from "@mdi/js";
 import type {
   SimulationProject, SimulationProjectList, SimulationUnit, SimulationUnitList,
@@ -46,8 +46,11 @@ const scopeDialog = ref<"" | "unit" | "project">("");
 const scopeName = ref("");
 const addEquipmentDialog = ref(false);
 const equipmentName = ref("");
-const equipmentSupplier = ref("");
+const equipmentOrigin = ref("");
 const equipmentDiscipline = ref("");
+const equipmentSupplier = ref("");
+const equipmentArea = ref("");
+const equipmentResponsible = ref("");
 
 async function loadScopes(preferredUnitId = ""): Promise<void> {
   scopesLoading.value = true;
@@ -186,17 +189,34 @@ async function deleteScope(mode: "unit" | "project"): Promise<void> {
 
 function addEquipment(): void {
   const name = equipmentName.value.trim();
-  if (!name || !canWrite.value) return;
+  if (!name || !canWrite.value || draftRows.value.length >= 500) return;
   draftRows.value.push({
-    name, origin: null, discipline: equipmentDiscipline.value.trim() || null,
-    supplier: equipmentSupplier.value.trim() || null, area: null, responsible: null,
-    startupAt: null, suppliesDays: null, legalDays: 20,
-    manufactureDays: null, preStartDays: null,
+    name,
+    origin: equipmentOrigin.value.trim() || null,
+    discipline: equipmentDiscipline.value.trim() || null,
+    supplier: equipmentSupplier.value.trim() || null,
+    area: equipmentArea.value.trim() || null,
+    responsible: equipmentResponsible.value.trim() || null,
+    startupAt: null,
+    suppliesDays: null, legalDays: null, manufactureDays: null, preStartDays: null,
   });
+  // Caso a busca ou o mês estejam filtrando, exibir imediatamente o novo equipamento.
+  search.value = "";
+  monthFilter.value = "";
   addEquipmentDialog.value = false;
   equipmentName.value = "";
+  equipmentOrigin.value = "";
   equipmentDiscipline.value = "";
   equipmentSupplier.value = "";
+  equipmentArea.value = "";
+  equipmentResponsible.value = "";
+}
+
+type EquipmentTextField = "origin" | "discipline" | "name" | "supplier" | "area" | "responsible";
+function editText(index: number, field: EquipmentTextField, value: string): void {
+  const current = draftRows.value[index];
+  if (!current || !canWrite.value) return;
+  draftRows.value[index] = { ...current, [field]: field === "name" ? value : value || null };
 }
 
 function removeEquipment(index: number): void {
@@ -229,7 +249,7 @@ const visibleEntries = computed(() => {
   const rows = activePreview.value?.items ?? [];
   const value = search.value.trim().toLocaleLowerCase("pt-BR");
   return rows.map((row, index) => ({ row, index })).filter(({ row }) => {
-    if (value && ![row.name, row.supplier, row.discipline, row.area, row.responsible]
+    if (value && ![row.name, row.origin, row.supplier, row.discipline, row.area, row.responsible]
       .some((part) => part?.toLocaleLowerCase("pt-BR").includes(value))) return false;
     if (monthFilter.value) {
       const key = {
@@ -303,6 +323,10 @@ async function save(): Promise<void> {
   if (!activeScenario.value || !canWrite.value || !dirty.value) return;
   if (!draftName.value.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(draftStartup.value)) {
     error.value = "Informe um nome e uma data de startup válidos.";
+    return;
+  }
+  if (draftRows.value.some(row => !row.name.trim())) {
+    error.value = "Preencha o nome de todos os equipamentos antes de salvar o cenário.";
     return;
   }
   busy.value = true;
@@ -552,7 +576,7 @@ function dateAverage(value: number | null): string {
             </div>
             <div class="editor-actions">
               <VBtn v-if="monthFilter" variant="tonal" color="primary" size="small" @click="monthFilter = ''">Limpar mês {{ monthFilter }}</VBtn>
-              <VBtn v-if="canWrite" color="primary" :prepend-icon="mdiPlus" size="small" :disabled="busy" @click="addEquipmentDialog = true">Adicionar equipamento</VBtn>
+              <VBtn v-if="canWrite" color="primary" :prepend-icon="mdiPlus" size="small"  :disabled="busy || draftRows.length >= 500" @click="addEquipmentDialog = true">Adicionar equipamento</VBtn>
             </div>
           </header>
           <div class="table-search">
@@ -560,7 +584,8 @@ function dateAverage(value: number | null): string {
           </div>
           <StartupEquipmentTable
             :entries="visibleEntries" :editable="canWrite" :loading="busy"
-            @edit-number="editNumber" @edit-startup="editStartup" @remove="removeEquipment"
+            @edit-text="editText" @edit-number="editNumber"
+            @edit-startup="editStartup" @remove="removeEquipment"
           />
           <p class="simulation-footnote">
             Célula “Startup próprio” vazia herda o startup do cenário. Suprimentos é informativo e não entra nas três fórmulas da planilha.
@@ -589,18 +614,30 @@ function dateAverage(value: number | null): string {
         </VCard>
       </VDialog>
 
-      <VDialog v-model="addEquipmentDialog" max-width="490" persistent>
+      <VDialog v-model="addEquipmentDialog" max-width="540" persistent scrollable>
         <VCard>
           <VCardTitle>Adicionar equipamento ao cenário</VCardTitle>
           <VCardText>
-            <VTextField v-model="equipmentName" label="Nome do equipamento" maxlength="500" class="mb-3" />
-            <VTextField v-model="equipmentSupplier" label="Fornecedor (opcional)" maxlength="200" class="mb-3" />
-            <VTextField v-model="equipmentDiscipline" label="Disciplina (opcional)" maxlength="160" />
-            <p class="dialog-hint">Após adicionar, ajuste os lead times diretamente na tabela e salve o cenário.</p>
+            <p class="dialog-hint mb-3">Preencha os mesmos campos da planilha. Somente o nome é obrigatório; todos os demais podem ser informados ou alterados na tabela.</p>
+            <VCombobox
+              v-model="equipmentOrigin"
+              :items="['Nacional', 'Importado']"
+              label="Origem"
+              maxlength="160"
+              class="mb-3"
+              hint="Escolha uma opção ou digite outra origem."
+              persistent-hint
+            />
+            <VTextField v-model="equipmentDiscipline" label="Disciplina" maxlength="160" class="mb-3" />
+            <VTextField v-model="equipmentName" label="Nome do equipamento *" maxlength="500" class="mb-3" autofocus />
+            <VTextField v-model="equipmentSupplier" label="Fornecedor" maxlength="200" class="mb-3" />
+            <VTextField v-model="equipmentArea" label="Área" maxlength="160" class="mb-3" />
+            <VTextField v-model="equipmentResponsible" label="Responsável" maxlength="160" />
+            <p class="dialog-hint mt-3">Os lead times e a data de startup são preenchidos na tabela. Limites de negociação, contrato/OC e entrega são sempre calculados automaticamente.</p>
           </VCardText>
           <VCardActions>
             <VBtn @click="addEquipmentDialog = false">Cancelar</VBtn>
-            <VBtn color="primary" :disabled="!equipmentName.trim()" @click="addEquipment">Adicionar</VBtn>
+            <VBtn color="primary" :disabled="!equipmentName.trim() || draftRows.length >= 500" @click="addEquipment">Adicionar à tabela</VBtn>
           </VCardActions>
         </VCard>
       </VDialog>
