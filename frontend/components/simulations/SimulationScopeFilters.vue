@@ -49,7 +49,7 @@ const projectOptions = computed(() => props.projects.map((p) => ({ id: p.id, lab
         <VBtn
           v-if="canWrite"
           :prepend-icon="mdiPlus"
-          size="small"
+          size="default"
           color="primary"
           variant="tonal"
           :disabled="loading"
@@ -58,7 +58,8 @@ const projectOptions = computed(() => props.projects.map((p) => ({ id: p.id, lab
         <VBtn
           v-if="canWrite && unitId"
           :icon="mdiDeleteOutline"
-          size="small"
+          height="40"
+          width="40"
           variant="text"
           color="error"
           aria-label="Excluir unidade vazia do simulador"
@@ -83,7 +84,7 @@ const projectOptions = computed(() => props.projects.map((p) => ({ id: p.id, lab
         <VBtn
           v-if="canWrite"
           :prepend-icon="mdiPlus"
-          size="small"
+          size="default"
           color="primary"
           variant="tonal"
           :disabled="!unitId || loading"
@@ -92,7 +93,8 @@ const projectOptions = computed(() => props.projects.map((p) => ({ id: p.id, lab
         <VBtn
           v-if="canWrite && projectId"
           :icon="mdiDeleteOutline"
-          size="small"
+          height="40"
+          width="40"
           variant="text"
           color="error"
           aria-label="Excluir obra vazia do simulador"
@@ -111,7 +113,7 @@ const projectOptions = computed(() => props.projects.map((p) => ({ id: p.id, lab
 .scope-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
 .scope-field { display: flex; align-items: flex-start; gap: 7px; min-width: 0; }
 .scope-field :deep(.floating-filter-select) { flex: 1; min-width: 130px; }
-.scope-field :deep(.v-btn) { margin-top: 3px; flex-shrink: 0; }
+.scope-field :deep(.v-btn) { flex-shrink: 0; }
 @media (max-width: 970px) { .scope-fields { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { .scope-field { flex-wrap: wrap; } }
 </style>

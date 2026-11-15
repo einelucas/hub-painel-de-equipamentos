@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { VAlert, VBtn, VBtnToggle, VCard, VCardActions, VCardText, VCardTitle, VDialog, VProgressLinear, VTextField, VCombobox } from "vuetify/components";
+import { VAlert, VBtn, VCard, VCardActions, VCardText, VCardTitle, VDialog, VProgressLinear, VTextField, VCombobox } from "vuetify/components";
 import { mdiContentCopy, mdiContentSave, mdiDeleteOutline, mdiFileExcelOutline, mdiPlus } from "@mdi/js";
+import { FileText, Handshake, PackageCheck } from "lucide-vue-next";
+import NavigationMenu from "~/components/ui/NavigationMenu.vue";
 import type {
   SimulationProject, SimulationProjectList, SimulationUnit, SimulationUnitList,
   StartupItemInput, StartupMetric, StartupScenario, StartupScenarioList,
@@ -30,6 +32,11 @@ const draftName = ref("");
 const draftStartup = ref("");
 const draftRows = ref<StartupItemInput[]>([]);
 const metric = ref<StartupMetric>("negotiations");
+const metricNavigationItems = [
+  { value: "negotiations", label: "Negociação", icon: Handshake },
+  { value: "contracts", label: "Contrato/OC", icon: FileText },
+  { value: "deliveries", label: "Entrega", icon: PackageCheck },
+];
 const search = ref("");
 const monthFilter = ref("");
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -559,11 +566,12 @@ function dateAverage(value: number | null): string {
           :empty="!comparisons.length || comparisons.every((s) => !s.summary.monthly.length)"
         >
           <template #actions>
-            <VBtnToggle v-model="metric" color="primary" mandatory density="compact" variant="outlined" divided>
-              <VBtn value="negotiations" size="small">Negociação</VBtn>
-              <VBtn value="contracts" size="small">Contrato/OC</VBtn>
-              <VBtn value="deliveries" size="small">Entrega</VBtn>
-            </VBtnToggle>
+            <NavigationMenu
+              v-model="metric"
+              class="metric-navigation"
+              :items="metricNavigationItems"
+              aria-label="Selecionar tipo de prazo exibido no gráfico"
+            />
           </template>
           <StartupMonthlyChart :scenarios="comparisons" :metric="metric" @select-month="monthFilter = $event" />
         </DashboardChartFrame>
@@ -686,6 +694,9 @@ function dateAverage(value: number | null): string {
 .table-search { max-width: 430px; margin-bottom: 12px; }
 .simulation-footnote { margin: 12px 0 0; font-size: 10.5px; line-height: 1.6; color: #8896a8; }
 .dialog-hint { font-size: 11.5px; line-height: 1.55; color: #8793a4; }
+.metric-navigation { width: fit-content !important; flex: 0 0 auto; flex-wrap: nowrap; align-self: flex-start; margin-left: auto; padding: 4px; }
+.metric-navigation :deep(.analysis-nav__item) { padding: 7px 11px; font-size: 12px; }
+.metric-navigation :deep(.analysis-nav__icon) { width: 14px; height: 14px; }
 @media(max-width:1100px) { .simulation-selectors, .simulation-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .editor-fields { grid-template-columns: 1fr 1fr; } }
-@media(max-width:700px) { .simulation-selectors, .simulation-kpis, .simulation-loading, .editor-fields { grid-template-columns: minmax(0,1fr); } .simulation-toolbar, .simulation-editor, .simulation-table-section { padding: 14px; } }
+@media(max-width:700px) { .simulation-selectors, .simulation-kpis, .simulation-loading, .editor-fields { grid-template-columns: minmax(0,1fr); } .simulation-toolbar, .simulation-editor, .simulation-table-section { padding: 14px; } .metric-navigation { width: 100% !important; flex-wrap: wrap; } }
 </style>

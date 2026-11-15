@@ -47,11 +47,15 @@ const options = computed<ApexOptions>(() => ({
     },
   },
   colors,
-  stroke: { curve: "straight", width: 3 },
+  // Curvas suaves preservam os pontos mensais e deixam a leitura temporal menos rígida.
+  stroke: { curve: "smooth", width: 3 },
   markers: { size: 4, hover: { size: 6 }, strokeWidth: 0 },
   dataLabels: {
-    enabled: months.value.length <= 12,
-    style: { fontSize: "10px", fontWeight: 700, colors },
+    // Mantém os totais visíveis, como no exemplo de linha com rótulos do ApexCharts.
+    // Zeros são omitidos para não poluir a linha de base nos meses sem eventos.
+    enabled: true,
+    formatter: (value) => Number(value) === 0 ? "" : String(Math.round(Number(value))),
+    style: { fontSize: "10px", fontWeight: 600, colors },
     background: { enabled: false },
     offsetY: -8,
   },

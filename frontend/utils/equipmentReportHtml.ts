@@ -58,7 +58,7 @@ function overdueRows(metrics: EquipmentReportMetrics): string {
       ({ equipment, daysLate }) => `
       <tr>
         <td><button type="button" class="equipment-detail-link" data-equipment-id="${escapeHtml(equipment.id)}" aria-label="Ver detalhes de ${escapeHtml(equipment.name)}">${escapeHtml(equipment.name)}</button></td>
-        <td><span class="stage">${escapeHtml(equipment.stageName)}</span></td>
+        <td class="stage-cell"><span class="stage">${escapeHtml(equipment.stageName)}</span></td>
         <td>${escapeHtml(equipment.responsibleUser?.name || "Não atribuído")}</td>
         <td>${escapeHtml(formatReportDate(equipment.calculated.negotiationDeadline))}</td>
         <td class="late">${escapeHtml(daysLate ?? "—")}</td>
@@ -387,7 +387,8 @@ export function buildEquipmentReportHtml(
        - .late: células com valores em atraso (fundo vermelho claro)
        - .muted: texto secundário
        - .empty: célula vazia */
-    .stage{display:inline-block;padding:4px 8px;border-radius:999px;background:#e9eff6;color:#365b87}
+    .stage-cell{text-align:center;vertical-align:middle}
+    .stage{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:96px;min-height:30px;padding:5px 10px;border-radius:999px;background:#e9eff6;color:#365b87;line-height:1.2;text-align:center;vertical-align:middle;white-space:normal}
     .late{background:#fff5f2;color:#ad4f3c;font-weight:800;text-align:center}
     .muted{color:#98a3b0}
     .empty{padding:38px;text-align:center}
