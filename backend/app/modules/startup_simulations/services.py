@@ -1,21 +1,26 @@
-"""CRUD isolado de simulações; datas oficiais dos equipamentos nunca são modificadas."""
+"""CRUD de unidades, obras e cenários próprios; nenhuma consulta ao domínio operacional."""
 from __future__ import annotations
 
 import unicodedata
 from collections.abc import Iterable
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 
 from app.core.auth import CurrentUser
-from app.core.errors import DomainError, NotFoundError
-from app.core.scope import assert_context_allowed
-from app.models.equipment import Equipment
-from app.models.startup_simulation import StartupScenario, StartupScenarioEquipment
-from app.models.supplier import EquipmentSupplier
+from app.core.errors import ConflictError, DomainError, NotFoundError
+from app.models.common import utcnow
+from app.models.startup_simulation import (
+    SimulationProject,
+    SimulationUnit,
+    StartupScenario,
+    StartupScenarioEquipment,
+)
 from app.modules.startup_simulations.calculations import calculate_dates, summarize
 from app.modules.startup_simulations.schemas import (
+    NamedSimulationIn,
     ScenarioCloneIn,
     ScenarioCreateIn,
     ScenarioItemIn,
@@ -24,21 +29,130 @@ from app.modules.startup_simulations.schemas import (
     ScenarioOut,
     ScenarioSummaryOut,
     ScenarioUpdateIn,
+    SimulationProjectListOut,
+    SimulationProjectOut,
+    SimulationUnitListOut,
+    SimulationUnitOut,
 )
 
 
-def _normalize_name(value: str) -> str:
-    ascii_name = unicodedata.normalize("NFKD", value)
-    return " ".join("".join(c for c in ascii_name if not unicodedata.combining(c)).casefold().split())
+def _key(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    return " ".join(
+        "".join(char for char in normalized if not unicodedata.combining(char)).casefold().split()
+    )
+
+
+async def _unit(session: AsyncSession, unit_id: str) -> SimulationUnit:
+    item = await session.get(SimulationUnit, unit_id)
+    if item is None:
+        raise NotFoundError("Unidade do simulador não encontrada")
+    return item
+
+
+async def _project(session: AsyncSession, project_id: str) -> SimulationProject:
+    item = await session.get(SimulationProject, project_id)
+    if item is None:
+        raise NotFoundError("Obra do simulador não encontrada")
+    return item
+
+
+async def list_units(session: AsyncSession) -> SimulationUnitListOut:
+    items = (
+        await session.execute(select(SimulationUnit).order_by(SimulationUnit.name))
+    ).scalars().all()
+    return SimulationUnitListOut(
+        items=[SimulationUnitOut.model_validate(item) for item in items]
+    )
+
+
+async def create_unit(
+    session: AsyncSession, body: NamedSimulationIn
+) -> SimulationUnitOut:
+    name_key = _key(body.name)
+    if not name_key:
+        raise DomainError("Informe uma unidade válida")
+    if (await session.execute(
+        select(SimulationUnit.id).where(SimulationUnit.name_key == name_key)
+    )).scalar_one_or_none():
+        raise ConflictError("Esta unidade já existe no simulador")
+    unit = SimulationUnit(name=body.name, name_key=name_key)
+    session.add(unit)
+    try:
+        await session.flush()
+    except IntegrityError as exc:
+        raise ConflictError("Esta unidade já existe no simulador") from exc
+    return SimulationUnitOut.model_validate(unit)
+
+
+async def delete_unit(session: AsyncSession, unit_id: str) -> None:
+    unit = await _unit(session, unit_id)
+    linked = (await session.execute(
+        select(SimulationProject.id).where(SimulationProject.unit_id == unit_id).limit(1)
+    )).scalar_one_or_none()
+    if linked is not None:
+        raise ConflictError("Exclua as obras da unidade antes de excluí-la")
+    await session.delete(unit)
+    await session.flush()
+
+
+async def list_projects(
+    session: AsyncSession, unit_id: str
+) -> SimulationProjectListOut:
+    await _unit(session, unit_id)
+    projects = (await session.execute(
+        select(SimulationProject).where(SimulationProject.unit_id == unit_id)
+        .order_by(SimulationProject.name)
+    )).scalars().all()
+    return SimulationProjectListOut(
+        items=[SimulationProjectOut.model_validate(p) for p in projects]
+    )
+
+
+async def create_project(
+    session: AsyncSession, unit_id: str, body: NamedSimulationIn
+) -> SimulationProjectOut:
+    await _unit(session, unit_id)
+    name_key = _key(body.name)
+    if not name_key:
+        raise DomainError("Informe uma obra válida")
+    exists = (await session.execute(
+        select(SimulationProject.id).where(
+            SimulationProject.unit_id == unit_id,
+            SimulationProject.name_key == name_key,
+        )
+    )).scalar_one_or_none()
+    if exists is not None:
+        raise ConflictError("Esta obra já existe nessa unidade do simulador")
+    project = SimulationProject(unit_id=unit_id, name=body.name, name_key=name_key)
+    session.add(project)
+    try:
+        await session.flush()
+    except IntegrityError as exc:
+        raise ConflictError("Esta obra já existe nessa unidade do simulador") from exc
+    return SimulationProjectOut.model_validate(project)
+
+
+async def delete_project(session: AsyncSession, project_id: str) -> None:
+    project = await _project(session, project_id)
+    linked = (await session.execute(
+        select(StartupScenario.id).where(
+            StartupScenario.simulation_project_id == project_id
+        ).limit(1)
+    )).scalar_one_or_none()
+    if linked is not None:
+        raise ConflictError("Exclua as simulações da obra antes de excluí-la")
+    await session.delete(project)
+    await session.flush()
 
 
 def _item_payload(item: StartupScenarioEquipment) -> ScenarioItemIn:
     return ScenarioItemIn(
-        equipment_id=item.equipment_id, name=item.name, origin=item.origin,
-        discipline=item.discipline, supplier=item.supplier, area=item.area,
-        responsible=item.responsible, startup_at=item.startup_at,
-        supplies_days=item.supplies_days, legal_days=item.legal_days,
-        manufacture_days=item.manufacture_days, pre_start_days=item.pre_start_days,
+        name=item.name, origin=item.origin, discipline=item.discipline,
+        supplier=item.supplier, area=item.area, responsible=item.responsible,
+        startup_at=item.startup_at, supplies_days=item.supplies_days,
+        legal_days=item.legal_days, manufacture_days=item.manufacture_days,
+        pre_start_days=item.pre_start_days,
     )
 
 
@@ -46,9 +160,7 @@ def _make_items(
     scenario: StartupScenario, values: Iterable[ScenarioItemIn]
 ) -> list[StartupScenarioEquipment]:
     return [
-        StartupScenarioEquipment(
-            scenario=scenario, position=index, **item.model_dump()
-        )
+        StartupScenarioEquipment(scenario=scenario, position=index, **item.model_dump())
         for index, item in enumerate(values)
     ]
 
@@ -74,100 +186,31 @@ def _serialize(scenario: StartupScenario) -> ScenarioOut:
             negotiation_deadline=planned.negotiation,
         ))
     return ScenarioOut(
-        id=scenario.id, project_context_id=scenario.project_context_id,
+        id=scenario.id, simulation_project_id=scenario.simulation_project_id,
         name=scenario.name, startup_at=scenario.startup_at, source=scenario.source,
         created_at=scenario.created_at, updated_at=scenario.updated_at,
         items=output, summary=ScenarioSummaryOut(**summarize(rows)),
     )
 
 
-async def _catalog(
-    session: AsyncSession, project_context_id: str
-) -> tuple[list[ScenarioItemIn], dict[str, str]]:
-    stmt = (
-        select(Equipment)
-        .where(Equipment.project_context_id == project_context_id)
-        .options(
-            selectinload(Equipment.components),
-            joinedload(Equipment.discipline),
-            joinedload(Equipment.area),
-            joinedload(Equipment.eap_node),
-            joinedload(Equipment.responsible_user),
-            selectinload(Equipment.supplier_links).joinedload(EquipmentSupplier.supplier),
-        )
-        .order_by(Equipment.name, Equipment.id)
-    )
-    equipments = (await session.execute(stmt)).scalars().unique().all()
-    matched: dict[str, str] = {}
-    collisions: set[str] = set()
-    rows: list[ScenarioItemIn] = []
-    for equipment in equipments:
-        key = _normalize_name(equipment.name)
-        if key in matched:
-            collisions.add(key)
-        else:
-            matched[key] = equipment.id
-        manufacture = [c.lead_time_days for c in equipment.components if c.lead_time_days is not None]
-        pre_start = [c.pre_start_days for c in equipment.components if c.pre_start_days is not None]
-        rows.append(ScenarioItemIn(
-            equipment_id=equipment.id, name=equipment.name, origin=equipment.origin,
-            discipline=equipment.discipline.name if equipment.discipline else None,
-            supplier=equipment.supplier_links[0].supplier.legal_name if equipment.supplier_links else None,
-            area=equipment.eap_node.name if equipment.eap_node else (
-                equipment.area.name if equipment.area else None
-            ),
-            responsible=equipment.responsible_user.name if equipment.responsible_user else None,
-            # 20 dias: prazo explícito da planilha LEM F2, editável em cada simulação.
-            legal_days=20,
-            manufacture_days=max(manufacture) if manufacture else None,
-            pre_start_days=max(pre_start) if pre_start else None,
-        ))
-    for key in collisions:
-        matched.pop(key, None)
-    return rows, matched
-
-
-async def _validate_and_match(
-    session: AsyncSession, project_context_id: str,
-    items: list[ScenarioItemIn],
-) -> list[ScenarioItemIn]:
-    if len(items) > 500:
-        raise DomainError("Limite de 500 equipamentos por cenário")
-    _, by_name = await _catalog(session, project_context_id)
-    # IDs de nomes repetidos não estão em by_name, mas ainda podem ser vinculados explicitamente.
-    all_ids = set(
-        (await session.execute(select(Equipment.id).where(
-            Equipment.project_context_id == project_context_id
-        ))).scalars().all()
-    )
-    resolved: list[ScenarioItemIn] = []
-    for item in items:
-        if item.equipment_id and item.equipment_id not in all_ids:
-            raise DomainError("Equipamento fora da obra selecionada")
-        related_id = item.equipment_id or by_name.get(_normalize_name(item.name))
-        resolved.append(item.model_copy(update={"equipment_id": related_id}))
-    return resolved
-
-
-async def _load(session: AsyncSession, actor: CurrentUser, scenario_id: str) -> StartupScenario:
+async def _load(session: AsyncSession, scenario_id: str) -> StartupScenario:
     scenario = (
         await session.execute(select(StartupScenario).where(StartupScenario.id == scenario_id).options(
             selectinload(StartupScenario.items)
         ))
     ).scalar_one_or_none()
     if scenario is None:
-        raise NotFoundError("Cenário não encontrado")
-    await assert_context_allowed(session, actor, scenario.project_context_id)
+        raise NotFoundError("Simulação não encontrada")
     return scenario
 
 
 async def list_scenarios(
-    session: AsyncSession, actor: CurrentUser, project_context_id: str
+    session: AsyncSession, simulation_project_id: str
 ) -> ScenarioListOut:
-    await assert_context_allowed(session, actor, project_context_id)
+    await _project(session, simulation_project_id)
     scenarios = (await session.execute(
         select(StartupScenario)
-        .where(StartupScenario.project_context_id == project_context_id)
+        .where(StartupScenario.simulation_project_id == simulation_project_id)
         .options(selectinload(StartupScenario.items))
         .order_by(StartupScenario.created_at, StartupScenario.id)
     )).scalars().all()
@@ -177,35 +220,27 @@ async def list_scenarios(
 async def create_scenario(
     session: AsyncSession, actor: CurrentUser, body: ScenarioCreateIn
 ) -> ScenarioOut:
-    await assert_context_allowed(session, actor, body.project_context_id)
-    if body.items is None:
-        values, _ = await _catalog(session, body.project_context_id)
-    else:
-        values = await _validate_and_match(session, body.project_context_id, body.items)
+    await _project(session, body.simulation_project_id)
     scenario = StartupScenario(
-        project_context_id=body.project_context_id, created_by_id=actor.id,
+        simulation_project_id=body.simulation_project_id, created_by_id=actor.id,
         name=body.name.strip(), startup_at=body.startup_at, source=body.source,
     )
-    scenario.items = _make_items(scenario, values)
+    scenario.items = _make_items(scenario, body.items)
     session.add(scenario)
     await session.flush()
     return _serialize(scenario)
 
 
 async def update_scenario(
-    session: AsyncSession, actor: CurrentUser, scenario_id: str, body: ScenarioUpdateIn
+    session: AsyncSession, scenario_id: str, body: ScenarioUpdateIn
 ) -> ScenarioOut:
-    scenario = await _load(session, actor, scenario_id)
-    values = await _validate_and_match(session, scenario.project_context_id, body.items)
+    scenario = await _load(session, scenario_id)
     scenario.name = body.name.strip()
     scenario.startup_at = body.startup_at
-    # O índice (scenario_id, position) é único. Excluir as linhas antigas
-    # antes de inserir as novas impede colisão durante o flush do ORM.
+    # A posição é única por cenário: liberar as posições antigas primeiro.
     scenario.items.clear()
     await session.flush()
-    scenario.items = _make_items(scenario, values)
-    # updated_at é sempre modificado, inclusive quando apenas os itens mudam.
-    from app.models.common import utcnow
+    scenario.items = _make_items(scenario, body.items)
     scenario.updated_at = utcnow()
     await session.flush()
     return _serialize(scenario)
@@ -214,9 +249,9 @@ async def update_scenario(
 async def clone_scenario(
     session: AsyncSession, actor: CurrentUser, scenario_id: str, body: ScenarioCloneIn
 ) -> ScenarioOut:
-    original = await _load(session, actor, scenario_id)
+    original = await _load(session, scenario_id)
     scenario = StartupScenario(
-        project_context_id=original.project_context_id,
+        simulation_project_id=original.simulation_project_id,
         created_by_id=actor.id, name=body.name.strip(),
         startup_at=body.startup_at, source="MANUAL",
     )
@@ -226,7 +261,7 @@ async def clone_scenario(
     return _serialize(scenario)
 
 
-async def delete_scenario(session: AsyncSession, actor: CurrentUser, scenario_id: str) -> None:
-    scenario = await _load(session, actor, scenario_id)
+async def delete_scenario(session: AsyncSession, scenario_id: str) -> None:
+    scenario = await _load(session, scenario_id)
     await session.delete(scenario)
     await session.flush()

@@ -1,6 +1,5 @@
 /** Contratos da API de cenários (camelCase) e rascunhos editáveis. */
 export interface StartupItemInput {
-  equipmentId: string | null;
   name: string;
   origin: string | null;
   discipline: string | null;
@@ -44,7 +43,7 @@ export interface StartupSummary {
 
 export interface StartupScenario {
   id: string;
-  projectContextId: string;
+  simulationProjectId: string;
   name: string;
   startupAt: string;
   source: string;
@@ -53,6 +52,14 @@ export interface StartupScenario {
   items: StartupItem[];
   summary: StartupSummary;
 }
+
+export interface SimulationUnit { id: string; name: string; }
+
+export interface SimulationProject { id: string; unitId: string; name: string; }
+
+export interface SimulationUnitList { items: SimulationUnit[]; }
+
+export interface SimulationProjectList { items: SimulationProject[]; }
 
 export interface StartupScenarioList {
   items: StartupScenario[];

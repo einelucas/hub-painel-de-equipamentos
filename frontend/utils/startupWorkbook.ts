@@ -76,7 +76,6 @@ export async function readStartupWorkbook(file: File): Promise<ImportedWorkbook>
       if (lineStartup && !startup) startup = lineStartup;
       const location = `${sheet.name}, linha ${rowNum}`;
       items.push({
-        equipmentId: null,
         name,
         origin: asText(row.getCell(1).value) || null,
         discipline: asText(row.getCell(2).value) || null,

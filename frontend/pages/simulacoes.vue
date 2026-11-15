@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { VAlert, VBtn, VBtnToggle, VCard, VCardActions, VCardText, VCardTitle, VDialog, VProgressLinear, VTextField } from "vuetify/components";
+import { VAlert, VBtn, VBtnToggle, VCard, VCardActions, VCardText, VCardTitle, VDialog, VProgressLinear, VTextField, VCombobox } from "vuetify/components";
 import { mdiContentCopy, mdiContentSave, mdiDeleteOutline, mdiFileExcelOutline, mdiPlus } from "@mdi/js";
-import type { StartupItemInput, StartupMetric, StartupScenario, StartupScenarioList } from "~/types/startupSimulation";
+import type {
+  SimulationProject, SimulationProjectList, SimulationUnit, SimulationUnitList,
+  StartupItemInput, StartupMetric, StartupScenario, StartupScenarioList,
+} from "~/types/startupSimulation";
 import { asDraftItems, formatScenarioDate, previewScenario } from "~/utils/startupSimulation";
 import { readStartupWorkbook } from "~/utils/startupWorkbook";
 import { exportStartupScenarios } from "~/utils/startupExport";
@@ -9,9 +12,7 @@ import { exportStartupScenarios } from "~/utils/startupExport";
 definePageMeta({ middleware: "auth" });
 
 const api = useApi();
-const route = useRoute();
 const auth = useAuthStore();
-const context = useModuleContextStore();
 const confirm = useConfirm();
 const canRead = computed(() => auth.can("equipments:read"));
 const canWrite = computed(() => auth.can("equipments:write"));
@@ -36,6 +37,193 @@ const createDialog = ref(false);
 const creatingClone = ref(false);
 const newName = ref("");
 const newStartup = ref("");
+const units = ref<SimulationUnit[]>([]);
+const projects = ref<SimulationProject[]>([]);
+const selectedUnitId = ref("");
+const selectedProjectId = ref("");
+const scopesLoading = ref(false);
+const scopeDialog = ref<"" | "unit" | "project">("");
+const scopeName = ref("");
+const addEquipmentDialog = ref(false);
+const equipmentName = ref("");
+const equipmentOrigin = ref("");
+const equipmentDiscipline = ref("");
+const equipmentSupplier = ref("");
+const equipmentArea = ref("");
+const equipmentResponsible = ref("");
+
+async function loadScopes(preferredUnitId = ""): Promise<void> {
+  scopesLoading.value = true;
+  error.value = "";
+  try {
+    units.value = (await api.get<SimulationUnitList>("/startup-simulation-units")).items;
+    selectedUnitId.value = units.value.find(u => u.id === preferredUnitId)?.id
+      ?? units.value.find(u => u.id === selectedUnitId.value)?.id
+      ?? units.value[0]?.id ?? "";
+    await loadProjects();
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível consultar as unidades do simulador.";
+  } finally {
+    scopesLoading.value = false;
+  }
+}
+
+async function loadProjects(preferredProjectId = ""): Promise<void> {
+  if (!selectedUnitId.value) {
+    projects.value = [];
+    selectedProjectId.value = "";
+    await reload();
+    return;
+  }
+  const unitId = selectedUnitId.value;
+  scopesLoading.value = true;
+  try {
+    const response = await api.get<SimulationProjectList>("/startup-simulation-projects", { unit_id: unitId });
+    if (unitId !== selectedUnitId.value) return;
+    projects.value = response.items;
+    selectedProjectId.value = projects.value.find(p => p.id === preferredProjectId)?.id
+      ?? projects.value.find(p => p.id === selectedProjectId.value)?.id
+      ?? projects.value[0]?.id ?? "";
+    await reload();
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível consultar as obras do simulador.";
+  } finally {
+    if (unitId === selectedUnitId.value) scopesLoading.value = false;
+  }
+}
+
+async function discardBeforeSwitch(): Promise<boolean> {
+  if (!dirty.value) return true;
+  return confirm.confirm({
+    title: "Alterações não salvas",
+    message: "Descartar as alterações deste cenário?",
+    detail: "As datas e os prazos não salvos serão perdidos.",
+    confirmLabel: "Descartar alterações", tone: "danger", icon: "warning",
+  });
+}
+
+async function chooseUnit(id: string): Promise<void> {
+  if (id === selectedUnitId.value || !await discardBeforeSwitch()) return;
+  selectedUnitId.value = id;
+  selectedProjectId.value = "";
+  await loadProjects();
+}
+
+async function chooseProject(id: string): Promise<void> {
+  if (id === selectedProjectId.value || !await discardBeforeSwitch()) return;
+  selectedProjectId.value = id;
+  await reload();
+}
+
+async function chooseScenario(id: string): Promise<void> {
+  if (id === activeId.value || !await discardBeforeSwitch()) return;
+  selectActive(id);
+}
+
+function openScopeDialog(mode: "unit" | "project"): void {
+  if (!canWrite.value || (mode === "project" && !selectedUnitId.value)) return;
+  scopeName.value = "";
+  scopeDialog.value = mode;
+}
+
+async function createScope(): Promise<void> {
+  if (!scopeName.value.trim() || !canWrite.value || !scopeDialog.value) return;
+  busy.value = true;
+  error.value = "";
+  try {
+    const body = { name: scopeName.value.trim() };
+    if (scopeDialog.value === "unit") {
+      const created = await api.post<SimulationUnit>("/startup-simulation-units", body);
+      await loadScopes(created.id);
+      notice.value = "Unidade criada no simulador.";
+    } else {
+      const created = await api.post<SimulationProject>(
+        `/startup-simulation-projects?unit_id=${encodeURIComponent(selectedUnitId.value)}`, body,
+      );
+      await loadProjects(created.id);
+      notice.value = "Obra criada no simulador.";
+    }
+    scopeDialog.value = "";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível criar o cadastro.";
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function deleteScope(mode: "unit" | "project"): Promise<void> {
+  if (!canWrite.value) return;
+  const id = mode === "unit" ? selectedUnitId.value : selectedProjectId.value;
+  const name = mode === "unit" ? units.value.find(u => u.id === id)?.name
+    : projects.value.find(p => p.id === id)?.name;
+  if (!id || !name) return;
+  if (!await discardBeforeSwitch()) return;
+  const label = mode === "unit" ? "unidade" : "obra";
+  const agreed = await confirm.confirm({
+    title: `Excluir ${label} do simulador`,
+    message: `Excluir ${label} "${name}"?`,
+    detail: "O cadastro só poderá ser excluído se não possuir obras ou simulações vinculadas.",
+    confirmLabel: "Excluir cadastro", tone: "danger", icon: "trash",
+  });
+  if (!agreed) return;
+  busy.value = true;
+  error.value = "";
+  try {
+    if (mode === "unit") {
+      await api.delete(`/startup-simulation-units/${id}`);
+      selectedUnitId.value = "";
+      selectedProjectId.value = "";
+      await loadScopes();
+    } else {
+      await api.delete(`/startup-simulation-projects/${id}`);
+      selectedProjectId.value = "";
+      await loadProjects();
+    }
+    notice.value = "Cadastro excluído do simulador.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : "Não foi possível excluir o cadastro.";
+  } finally {
+    busy.value = false;
+  }
+}
+
+function addEquipment(): void {
+  const name = equipmentName.value.trim();
+  if (!name || !canWrite.value || draftRows.value.length >= 500) return;
+  draftRows.value.push({
+    name,
+    origin: equipmentOrigin.value.trim() || null,
+    discipline: equipmentDiscipline.value.trim() || null,
+    supplier: equipmentSupplier.value.trim() || null,
+    area: equipmentArea.value.trim() || null,
+    responsible: equipmentResponsible.value.trim() || null,
+    startupAt: null,
+    suppliesDays: null, legalDays: null, manufactureDays: null, preStartDays: null,
+  });
+  // Caso a busca ou o mês estejam filtrando, exibir imediatamente o novo equipamento.
+  search.value = "";
+  monthFilter.value = "";
+  addEquipmentDialog.value = false;
+  equipmentName.value = "";
+  equipmentOrigin.value = "";
+  equipmentDiscipline.value = "";
+  equipmentSupplier.value = "";
+  equipmentArea.value = "";
+  equipmentResponsible.value = "";
+}
+
+type EquipmentTextField = "origin" | "discipline" | "name" | "supplier" | "area" | "responsible";
+function editText(index: number, field: EquipmentTextField, value: string): void {
+  const current = draftRows.value[index];
+  if (!current || !canWrite.value) return;
+  draftRows.value[index] = { ...current, [field]: field === "name" ? value : value || null };
+}
+
+function removeEquipment(index: number): void {
+  if (!canWrite.value || !draftRows.value[index]) return;
+  draftRows.value.splice(index, 1);
+}
+
 
 const scenarioOptions = computed(() => scenarios.value.map((item) => ({ id: item.id, label: item.name })));
 const activeScenario = computed(() => scenarios.value.find((s) => s.id === activeId.value) ?? null);
@@ -61,9 +249,8 @@ const visibleEntries = computed(() => {
   const rows = activePreview.value?.items ?? [];
   const value = search.value.trim().toLocaleLowerCase("pt-BR");
   return rows.map((row, index) => ({ row, index })).filter(({ row }) => {
-    if (value && ![row.name, row.supplier, row.discipline, row.area, row.responsible]
+    if (value && ![row.name, row.origin, row.supplier, row.discipline, row.area, row.responsible]
       .some((part) => part?.toLocaleLowerCase("pt-BR").includes(value))) return false;
-    if (context.selectedEquipment && row.equipmentId !== context.selectedEquipment) return false;
     if (monthFilter.value) {
       const key = {
         negotiations: row.negotiationDeadline,
@@ -86,8 +273,8 @@ function selectActive(id: string): void {
 }
 
 async function reload(): Promise<void> {
-  const projectContextId = context.selectedProjectContext;
-  if (!canRead.value || !projectContextId) {
+  const projectId = selectedProjectId.value;
+  if (!canRead.value || !projectId) {
     scenarios.value = [];
     selectActive("");
     leftId.value = "";
@@ -98,8 +285,9 @@ async function reload(): Promise<void> {
   error.value = "";
   try {
     const result = await api.get<StartupScenarioList>("/startup-scenarios", {
-      project_context_id: projectContextId,
+      simulation_project_id: projectId,
     });
+    if (projectId !== selectedProjectId.value) return;
     scenarios.value = result.items;
     if (!scenarios.value.some((s) => s.id === activeId.value)) selectActive(scenarios.value[0]?.id ?? "");
     if (!scenarios.value.some((s) => s.id === leftId.value)) leftId.value = scenarios.value[0]?.id ?? "";
@@ -115,12 +303,7 @@ async function reload(): Promise<void> {
 
 onMounted(async () => {
   if (!canRead.value) return;
-  await context.initialize({
-    unit: typeof route.query.unit === "string" ? route.query.unit : undefined,
-    project: typeof route.query.project === "string" ? route.query.project : undefined,
-    equipment: typeof route.query.equipment === "string" ? route.query.equipment : undefined,
-  });
-  await reload();
+  await loadScopes();
 });
 
 function editNumber(index: number, field: "suppliesDays" | "legalDays" | "manufactureDays" | "preStartDays", value: unknown) {
@@ -142,6 +325,10 @@ async function save(): Promise<void> {
     error.value = "Informe um nome e uma data de startup válidos.";
     return;
   }
+  if (draftRows.value.some(row => !row.name.trim())) {
+    error.value = "Preencha o nome de todos os equipamentos antes de salvar o cenário.";
+    return;
+  }
   busy.value = true;
   error.value = "";
   try {
@@ -160,11 +347,10 @@ async function save(): Promise<void> {
 }
 
 function openCreate(clone: boolean): void {
-  if (!context.selectedProjectContext) return;
+  if (!selectedProjectId.value) return;
   creatingClone.value = clone;
   newName.value = clone && activeScenario.value ? `${activeScenario.value.name} (cópia)` : "";
-  newStartup.value = clone && activeScenario.value ? activeScenario.value.startupAt
-    : context.equipmentOptions.find((item) => item.startupAt)?.startupAt?.slice(0, 10) ?? "";
+  newStartup.value = clone && activeScenario.value ? activeScenario.value.startupAt : "";
   createDialog.value = true;
 }
 async function create(): Promise<void> {
@@ -182,8 +368,8 @@ async function create(): Promise<void> {
       });
     } else {
       result = await api.post<StartupScenario>("/startup-scenarios", {
-        projectContextId: context.selectedProjectContext, name: newName.value.trim(),
-        startupAt: newStartup.value, source: "PROJECT",
+        simulationProjectId: selectedProjectId.value, name: newName.value.trim(),
+        startupAt: newStartup.value, source: "MANUAL", items: [],
       });
     }
     createDialog.value = false;
@@ -226,7 +412,7 @@ async function importExcel(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = "";
-  if (!file || !canWrite.value || !context.selectedProjectContext) return;
+  if (!file || !canWrite.value || !selectedProjectId.value) return;
   busy.value = true;
   error.value = "";
   notice.value = "";
@@ -237,7 +423,7 @@ async function importExcel(event: Event): Promise<void> {
     const created: string[] = [];
     for (const scenario of parsed.scenarios) {
       const result = await api.post<StartupScenario>("/startup-scenarios", {
-        projectContextId: context.selectedProjectContext,
+        simulationProjectId: selectedProjectId.value,
         name: scenario.name, startupAt: scenario.startupAt, source: "EXCEL",
         items: scenario.items,
       });
@@ -280,7 +466,15 @@ function dateAverage(value: number | null): string {
     title="Simulador de Startup"
     description="Simule prazos de negociação, contrato/OC e entrega a partir do startup, sem alterar o planejamento oficial."
   >
-    <ModuleFilters show-project-context :refreshing="loading" @change="reload" @refresh="reload" />
+    <SimulationScopeFilters
+      v-if="canRead"
+      :units="units" :projects="projects"
+      :unit-id="selectedUnitId" :project-id="selectedProjectId"
+      :loading="scopesLoading || busy" :can-write="canWrite"
+      @select-unit="chooseUnit" @select-project="chooseProject"
+      @create-unit="openScopeDialog('unit')" @create-project="openScopeDialog('project')"
+      @delete-unit="deleteScope('unit')" @delete-project="deleteScope('project')"
+    />
     <div v-if="!canRead" class="surface simulation-empty">Seu perfil não possui acesso aos equipamentos.</div>
     <template v-else>
       <VAlert v-if="error" type="error" class="mb-3" role="alert">{{ error }}</VAlert>
@@ -296,24 +490,24 @@ function dateAverage(value: number | null): string {
           <p>Defina o startup e os prazos por equipamento. Datas calculadas seguem a planilha: entrega = startup − antecedência; contrato = entrega − fabricação; negociação = contrato − Jurídico.</p>
         </div>
         <div class="toolbar-actions">
-          <VBtn v-if="canWrite" color="primary" :prepend-icon="mdiPlus" :disabled="!context.selectedProjectContext || busy" @click="openCreate(false)">Novo cenário</VBtn>
+          <VBtn v-if="canWrite" color="primary" :prepend-icon="mdiPlus" :disabled="!selectedProjectId || busy" @click="openCreate(false)">Novo cenário</VBtn>
           <VBtn v-if="canWrite" :prepend-icon="mdiContentCopy" :disabled="!activeScenario || busy" @click="openCreate(true)">Duplicar</VBtn>
-          <VBtn v-if="canWrite" :prepend-icon="mdiFileExcelOutline" :disabled="!context.selectedProjectContext || busy" @click="fileInput?.click()">Importar Excel</VBtn>
+          <VBtn v-if="canWrite" :prepend-icon="mdiFileExcelOutline" :disabled="!selectedProjectId || busy" @click="fileInput?.click()">Importar Excel</VBtn>
           <VBtn :prepend-icon="mdiFileExcelOutline" :disabled="!activePreview || busy" @click="exportExcel">Exportar Excel</VBtn>
           <input ref="fileInput" type="file" accept=".xlsx" class="sr-only" tabindex="-1" @change="importExcel" />
         </div>
       </section>
 
-      <div v-if="!context.selectedProjectContext" class="surface simulation-empty">
-        <h2>Selecione uma obra</h2>
-        <p>Escolha uma unidade e uma obra nos filtros acima para acessar as simulações correspondentes.</p>
+      <div v-if="!selectedProjectId" class="surface simulation-empty">
+        <h2>{{ units.length ? "Crie ou selecione uma obra" : "Cadastre sua primeira unidade" }}</h2>
+        <p>Use os cadastros exclusivos acima para organizar suas simulações de startup, sem depender de unidades e obras operacionais do Hub.</p>
       </div>
       <div v-else-if="loading" class="simulation-loading" role="status" aria-busy="true">
         <div v-for="index in 4" :key="index" class="surface simulation-skeleton"><CardProgress /><SkeletonBlock :lines="3" /></div>
       </div>
       <div v-else-if="!scenarios.length" class="surface simulation-empty">
         <h2>Nenhum cenário cadastrado nesta obra</h2>
-        <p>Importe as abas da planilha LEM F2 ou crie um cenário a partir dos equipamentos cadastrados no Hub.</p>
+        <p>Importe os cenários da planilha Excel ou crie uma simulação vazia e adicione seus equipamentos.</p>
       </div>
 
       <template v-else>
@@ -321,7 +515,7 @@ function dateAverage(value: number | null): string {
           <div class="surface simulation-selector">
             <FloatingFilterSelect
               :model-value="activeId" :options="scenarioOptions" label="Cenário em edição" :clearable="false"
-              @change="selectActive"
+              @change="chooseScenario"
             />
           </div>
           <div class="surface simulation-selector">
@@ -346,7 +540,7 @@ function dateAverage(value: number | null): string {
           <div class="editor-fields">
             <VTextField v-model="draftName" label="Nome do cenário" :readonly="!canWrite" maxlength="120" />
             <VTextField v-model="draftStartup" type="date" label="Data de startup" :readonly="!canWrite" />
-            <div class="source-hint">Origem: {{ activeScenario?.source === "EXCEL" ? "Planilha Excel" : activeScenario?.source === "PROJECT" ? "Cadastro do Hub" : "Cenário duplicado" }}</div>
+            <div class="source-hint">Origem: {{ activeScenario?.source === "EXCEL" ? "Planilha Excel" : activeScenario?.source === "PROJECT" ? "Legado migrado" : "Simulação manual" }}</div>
           </div>
         </section>
 
@@ -380,21 +574,73 @@ function dateAverage(value: number | null): string {
               <h2>Planejamento por equipamento</h2>
               <p>{{ visibleEntries.length }} de {{ activePreview.items.length }} equipamentos exibidos · prazos em dias corridos</p>
             </div>
-            <VBtn v-if="monthFilter" variant="tonal" color="primary" size="small" @click="monthFilter = ''">Limpar mês {{ monthFilter }}</VBtn>
+            <div class="editor-actions">
+              <VBtn v-if="monthFilter" variant="tonal" color="primary" size="small" @click="monthFilter = ''">Limpar mês {{ monthFilter }}</VBtn>
+              <VBtn v-if="canWrite" color="primary" :prepend-icon="mdiPlus" size="small"  :disabled="busy || draftRows.length >= 500" @click="addEquipmentDialog = true">Adicionar equipamento</VBtn>
+            </div>
           </header>
           <div class="table-search">
             <FloatingFilterInput v-model="search" label="Buscar equipamento, fornecedor ou disciplina" placeholder="Pesquisar nesta simulação" />
           </div>
           <StartupEquipmentTable
             :entries="visibleEntries" :editable="canWrite" :loading="busy"
-            @edit-number="editNumber" @edit-startup="editStartup"
+            @edit-text="editText" @edit-number="editNumber"
+            @edit-startup="editStartup" @remove="removeEquipment"
           />
           <p class="simulation-footnote">
             Célula “Startup próprio” vazia herda o startup do cenário. Suprimentos é informativo e não entra nas três fórmulas da planilha.
-            Resultados sem parâmetros suficientes aparecem como “—”. O filtro de equipamento afeta a tabela, não os totais do cenário.
+            Resultados sem parâmetros suficientes aparecem como “—”. A busca e o filtro de mês afetam apenas a tabela, não os totais do cenário.
           </p>
         </section>
       </template>
+
+      <VDialog :model-value="Boolean(scopeDialog)" max-width="490" persistent @update:model-value="!$event && (scopeDialog = '')">
+        <VCard>
+          <VCardTitle>{{ scopeDialog === 'unit' ? "Nova unidade do simulador" : "Nova obra do simulador" }}</VCardTitle>
+          <VCardText>
+            <VTextField
+              v-model="scopeName"
+              :label="scopeDialog === 'unit' ? 'Nome da unidade' : 'Nome da obra'"
+              maxlength="160"
+              autofocus
+              @keyup.enter="createScope"
+            />
+            <p class="dialog-hint">Este cadastro pertence exclusivamente ao Simulador de Startup.</p>
+          </VCardText>
+          <VCardActions>
+            <VBtn :disabled="busy" @click="scopeDialog = ''">Cancelar</VBtn>
+            <VBtn color="primary" :disabled="!scopeName.trim() || busy" :loading="busy" @click="createScope">Cadastrar</VBtn>
+          </VCardActions>
+        </VCard>
+      </VDialog>
+
+      <VDialog v-model="addEquipmentDialog" max-width="540" persistent scrollable>
+        <VCard>
+          <VCardTitle>Adicionar equipamento ao cenário</VCardTitle>
+          <VCardText>
+            <p class="dialog-hint mb-3">Preencha os mesmos campos da planilha. Somente o nome é obrigatório; todos os demais podem ser informados ou alterados na tabela.</p>
+            <VCombobox
+              v-model="equipmentOrigin"
+              :items="['Nacional', 'Importado']"
+              label="Origem"
+              maxlength="160"
+              class="mb-3"
+              hint="Escolha uma opção ou digite outra origem."
+              persistent-hint
+            />
+            <VTextField v-model="equipmentDiscipline" label="Disciplina" maxlength="160" class="mb-3" />
+            <VTextField v-model="equipmentName" label="Nome do equipamento *" maxlength="500" class="mb-3" autofocus />
+            <VTextField v-model="equipmentSupplier" label="Fornecedor" maxlength="200" class="mb-3" />
+            <VTextField v-model="equipmentArea" label="Área" maxlength="160" class="mb-3" />
+            <VTextField v-model="equipmentResponsible" label="Responsável" maxlength="160" />
+            <p class="dialog-hint mt-3">Os lead times e a data de startup são preenchidos na tabela. Limites de negociação, contrato/OC e entrega são sempre calculados automaticamente.</p>
+          </VCardText>
+          <VCardActions>
+            <VBtn @click="addEquipmentDialog = false">Cancelar</VBtn>
+            <VBtn color="primary" :disabled="!equipmentName.trim() || draftRows.length >= 500" @click="addEquipment">Adicionar à tabela</VBtn>
+          </VCardActions>
+        </VCard>
+      </VDialog>
 
       <VDialog v-model="createDialog" max-width="490" persistent>
         <VCard>
@@ -402,7 +648,7 @@ function dateAverage(value: number | null): string {
           <VCardText>
             <VTextField v-model="newName" label="Nome do cenário" maxlength="120" class="mb-4" autofocus />
             <VTextField v-model="newStartup" type="date" label="Data de startup" />
-            <p class="dialog-hint">{{ creatingClone ? "Todos os equipamentos e prazos serão copiados. A data geral do startup será a nova referência." : "Cria um snapshot dos equipamentos da obra, com prazos conhecidos do Hub e 20 dias iniciais de Jurídico, editáveis." }}</p>
+            <p class="dialog-hint">{{ creatingClone ? "Todos os equipamentos e prazos serão copiados. A data geral do startup será a nova referência." : "Cria um cenário vazio nesta obra. Use “Adicionar equipamento” ou importe o Excel para preencher o planejamento." }}</p>
           </VCardText>
           <VCardActions>
             <VBtn :disabled="busy" @click="createDialog = false">Cancelar</VBtn>
