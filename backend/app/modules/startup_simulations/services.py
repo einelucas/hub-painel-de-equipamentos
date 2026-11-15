@@ -16,8 +16,14 @@ from app.models.startup_simulation import StartupScenario, StartupScenarioEquipm
 from app.models.supplier import EquipmentSupplier
 from app.modules.startup_simulations.calculations import calculate_dates, summarize
 from app.modules.startup_simulations.schemas import (
-    ScenarioCloneIn, ScenarioCreateIn, ScenarioItemIn, ScenarioItemOut,
-    ScenarioListOut, ScenarioOut, ScenarioSummaryOut, ScenarioUpdateIn,
+    ScenarioCloneIn,
+    ScenarioCreateIn,
+    ScenarioItemIn,
+    ScenarioItemOut,
+    ScenarioListOut,
+    ScenarioOut,
+    ScenarioSummaryOut,
+    ScenarioUpdateIn,
 )
 
 
@@ -36,7 +42,9 @@ def _item_payload(item: StartupScenarioEquipment) -> ScenarioItemIn:
     )
 
 
-def _make_items(\n    scenario: StartupScenario, values: Iterable[ScenarioItemIn]\n) -> list[StartupScenarioEquipment]:
+def _make_items(
+    scenario: StartupScenario, values: Iterable[ScenarioItemIn]
+) -> list[StartupScenarioEquipment]:
     return [
         StartupScenarioEquipment(
             scenario=scenario, position=index, **item.model_dump()

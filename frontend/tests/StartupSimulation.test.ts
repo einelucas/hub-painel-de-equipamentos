@@ -38,7 +38,7 @@ describe("simulador de startup (equações do Excel)", () => {
       items: [{ ...item, id: "row", ...calculateScenarioItem(item, "2027-12-02") }],
     };
     const changed = previewScenario(scenario, "2028", "2028-03-31", [item]);
-    expect(changed.items[0].negotiationDeadline).toBe("2026-12-08");
+    expect(changed.items[0]?.negotiationDeadline).toBe("2026-12-08");
     const summary = summarizeScenarioRows(changed.items);
     expect(summary.equipments).toBe(1);
     expect(summary.monthly.some((month) => month.month === "2026-12" && month.negotiations === 1)).toBe(true);

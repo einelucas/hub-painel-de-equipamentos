@@ -22,8 +22,14 @@ def calculate_dates(
 ) -> ScenarioDates:
     """Supplies_days não participa da fórmula original; nunca somar implicitamente."""
     delivery = startup - timedelta(days=pre_start_days) if startup and pre_start_days is not None else None
-    contract = (\n        delivery - timedelta(days=manufacture_days)\n        if delivery is not None and manufacture_days is not None else None\n    )
-    negotiation = (\n        contract - timedelta(days=legal_days)\n        if contract is not None and legal_days is not None else None\n    )
+    contract = (
+        delivery - timedelta(days=manufacture_days)
+        if delivery is not None and manufacture_days is not None else None
+    )
+    negotiation = (
+        contract - timedelta(days=legal_days)
+        if contract is not None and legal_days is not None else None
+    )
     return ScenarioDates(delivery=delivery, contract=contract, negotiation=negotiation)
 
 

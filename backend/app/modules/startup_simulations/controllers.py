@@ -9,7 +9,11 @@ from app.core.database import get_session
 from app.core.permissions import Permission
 from app.modules.startup_simulations import services
 from app.modules.startup_simulations.schemas import (
-    ScenarioCloneIn, ScenarioCreateIn, ScenarioListOut, ScenarioOut, ScenarioUpdateIn,
+    ScenarioCloneIn,
+    ScenarioCreateIn,
+    ScenarioListOut,
+    ScenarioOut,
+    ScenarioUpdateIn,
 )
 
 router = APIRouter(prefix="/startup-scenarios", tags=["simulacoes-startup"])

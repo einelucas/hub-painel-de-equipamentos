@@ -37,11 +37,11 @@ const options = computed<ApexOptions>(() => ({
     animations: { enabled: true, speed: 350 },
     events: {
       dataPointSelection: (_event, _chart, opts) => {
-        const month = months.value[opts.dataPointIndex];
+        const month = opts ? months.value[opts.dataPointIndex] : undefined;
         if (month) emit("select-month", month);
       },
       markerClick: (_event, _chart, opts) => {
-        const month = months.value[opts.dataPointIndex];
+        const month = opts ? months.value[opts.dataPointIndex] : undefined;
         if (month) emit("select-month", month);
       },
     },

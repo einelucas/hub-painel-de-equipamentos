@@ -46,13 +46,13 @@ from app.models.process import (
     PurchaseOrder,
     PurchaseRequest,
 )
+from app.models.startup_simulation import StartupScenario, StartupScenarioEquipment
 from app.models.supplier import (
     EquipmentSupplier,
     Supplier,
     SupplierAlias,
     SupplierRecommendationEvidence,
 )
-from app.models.startup_simulation import StartupScenario, StartupScenarioEquipment
 from app.models.sync import ContractFileCleanup, SyncEvent
 from app.models.user import Account, Role, Session, User, Verification
 from app.models.workflow_extras import (

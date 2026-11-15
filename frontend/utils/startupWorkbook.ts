@@ -58,7 +58,8 @@ export async function readStartupWorkbook(file: File): Promise<ImportedWorkbook>
   if (file.size > 8 * 1024 * 1024) throw new Error("O arquivo ultrapassa 8 MB.");
   const { Workbook } = await import("exceljs");
   const workbook = new Workbook();
-  await workbook.xlsx.load(new Uint8Array(await file.arrayBuffer()) as unknown as Buffer);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  await workbook.xlsx.load(bytes as unknown as Parameters<typeof workbook.xlsx.load>[0]);
   const warnings: string[] = [];
   const scenarios: ImportedScenario[] = [];
   for (const sheet of workbook.worksheets) {
