@@ -37,7 +37,7 @@ export function formatDaysDifference(value: number | null, digits = 0): string {
   const formatted = Math.abs(rounded).toLocaleString("pt-BR", {
     minimumFractionDigits: digits, maximumFractionDigits: digits,
   });
-  return `${rounded > 0 ? "+" : rounded < 0 ? "−" : ""}${formatted} ${Math.abs(rounded) === 1 ? "dia" : "dias"}`;
+  return `${rounded < 0 ? "−" : ""}${formatted} ${Math.abs(rounded) === 1 ? "dia" : "dias"}`;
 }
 
 export function formatAverageDays(value: number | null | undefined): string {

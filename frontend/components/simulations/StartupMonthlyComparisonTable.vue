@@ -44,8 +44,8 @@ function isSelected(scenario: StartupScenario | null, metric: StartupMetric, mon
         <p>Contagem de equipamentos com data-limite em cada mês, por cenário e etapa. Selecione um número para localizar os equipamentos.</p>
       </div>
       <div class="scenario-legend" aria-label="Legenda dos cenários">
-        <span><i class="series-dot series-dot--a" aria-hidden="true" /> A: {{ scenarioA?.name ?? "—" }}</span>
-        <span><i class="series-dot series-dot--b" aria-hidden="true" /> B: {{ scenarioB?.name ?? "—" }}</span>
+        <span><i class="series-dot series-dot--a" aria-hidden="true" /> {{ scenarioA?.name ?? "—" }}</span>
+        <span><i class="series-dot series-dot--b" aria-hidden="true" /> {{ scenarioB?.name ?? "—" }}</span>
       </div>
     </header>
     <div v-if="!rows.length" class="monthly-empty" role="status">
@@ -63,10 +63,16 @@ function isSelected(scenario: StartupScenario | null, metric: StartupMetric, mon
           <tr class="subhead">
             <template v-for="item in metrics" :key="item.key">
               <th scope="col" :title="scenarioA?.name ?? ''">
-                <i class="series-dot series-dot--a" aria-hidden="true" /> A
+                <span class="scenario-name">
+                  <i class="series-dot series-dot--a" aria-hidden="true" />
+                  {{ scenarioA?.name ?? "—" }}
+                </span>
               </th>
               <th scope="col" :title="scenarioB?.name ?? ''">
-                <i class="series-dot series-dot--b" aria-hidden="true" /> B
+                <span class="scenario-name">
+                  <i class="series-dot series-dot--b" aria-hidden="true" />
+                  {{ scenarioB?.name ?? "—" }}
+                </span>
               </th>
             </template>
           </tr>
@@ -129,7 +135,8 @@ function isSelected(scenario: StartupScenario | null, metric: StartupMetric, mon
 .monthly-table :deep(th) { color: #52677f; font-weight: 750; background: #f4f7fb; }
 .monthly-table :deep(thead th) { position: sticky; z-index: 2; text-align: center; white-space: nowrap; }
 .monthly-table :deep(thead .group-head th) { top: 0; padding: 9px 11px; }
-.monthly-table :deep(thead .subhead th) { top: 36px; padding: 6px 11px; background: #f7f9fc; }
+.monthly-table :deep(thead .subhead th) { top: 36px; min-width: 112px; padding: 6px 11px; background: #f7f9fc; }
+.scenario-name { display: inline-flex; align-items: center; justify-content: center; gap: 5px; line-height: 1.25; white-space: normal; }
 .monthly-table :deep(thead .month-col) { text-align: left; z-index: 3; }
 .monthly-table :deep(td) { text-align: center; padding: 3px 10px; min-width: 72px; }
 .monthly-table :deep(.month-name) { text-align: left; padding: 8px 12px; white-space: nowrap; font-weight: 700; background: #fff; }

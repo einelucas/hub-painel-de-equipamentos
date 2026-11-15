@@ -34,7 +34,7 @@ function scenario(id: string, startupAt: string, monthly: StartupMonth[]): Start
 describe("visão executiva do simulador", () => {
   it("compara startup de 2027 com 2028 em dias corridos e sinais corretos", () => {
     expect(comparisonDateDelta("2027-12-02", "2028-03-31")).toBe(120);
-    expect(formatDaysDifference(120)).toBe("+120 dias");
+    expect(formatDaysDifference(120)).toBe("120 dias");
     expect(formatDaysDifference(-120)).toBe("−120 dias");
     expect(formatDaysDifference(0)).toBe("0 dias");
     expect(comparisonDateDelta("2028-03-31", "2027-12-02")).toBe(-120);
@@ -51,7 +51,7 @@ describe("visão executiva do simulador", () => {
   it("compara diferenças de lead time sem converter ausências em zero", () => {
     expect(formatAverageDays(134.6)).toBe("134,6 dias");
     expect(formatDaysDifference(comparisonNumberDelta(134.6, 134.6), 1)).toBe("0,0 dias");
-    expect(formatDaysDifference(comparisonNumberDelta(134.6, 136.1), 1)).toBe("+1,5 dias");
+    expect(formatDaysDifference(comparisonNumberDelta(134.6, 136.1), 1)).toBe("1,5 dias");
     expect(formatDaysDifference(comparisonNumberDelta(136.1, 134.6), 1)).toBe("−1,5 dias");
   });
 

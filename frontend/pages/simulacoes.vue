@@ -553,6 +553,24 @@ async function exportExcel(): Promise<void> {
           </div>
         </section>
 
+        <section v-if="activePreview" class="surface simulation-editor">
+          <div class="editor-heading">
+            <div>
+              <h2>Parâmetros do cenário</h2>
+              <p>Os ajustes aparecem imediatamente nos resultados. Salve para persistir no banco.</p>
+            </div>
+            <div class="editor-actions">
+              <VBtn v-if="canWrite" color="error" variant="text" :prepend-icon="mdiDeleteOutline" :disabled="busy" @click="remove">Excluir</VBtn>
+              <VBtn v-if="canWrite" color="primary" :prepend-icon="mdiContentSave" :disabled="busy || !dirty" :loading="busy" @click="save">Salvar alterações</VBtn>
+            </div>
+          </div>
+          <div class="editor-fields">
+            <VTextField v-model="draftName" label="Nome do cenário" :readonly="!canWrite" maxlength="120" />
+            <VTextField v-model="draftStartup" type="date" label="Data de startup" :readonly="!canWrite" />
+            <div class="source-hint">Origem: {{ activeScenario?.source === "EXCEL" ? "Planilha Excel" : activeScenario?.source === "PROJECT" ? "Legado migrado" : "Simulação manual" }}</div>
+          </div>
+        </section>
+
         <StartupComparisonSummary
           v-if="activePreview"
           :scenario-a="comparisonA"
@@ -586,25 +604,7 @@ async function exportExcel(): Promise<void> {
           @select-deadline="selectComparisonDeadline"
         />
 
-        <section v-if="activePreview" class="surface simulation-editor">
-          <div class="editor-heading">
-            <div>
-              <h2>Parâmetros do cenário</h2>
-              <p>Os ajustes aparecem imediatamente nos resultados. Salve para persistir no banco.</p>
-            </div>
-            <div class="editor-actions">
-              <VBtn v-if="canWrite" color="error" variant="text" :prepend-icon="mdiDeleteOutline" :disabled="busy" @click="remove">Excluir</VBtn>
-              <VBtn v-if="canWrite" color="primary" :prepend-icon="mdiContentSave" :disabled="busy || !dirty" :loading="busy" @click="save">Salvar alterações</VBtn>
-            </div>
-          </div>
-          <div class="editor-fields">
-            <VTextField v-model="draftName" label="Nome do cenário" :readonly="!canWrite" maxlength="120" />
-            <VTextField v-model="draftStartup" type="date" label="Data de startup" :readonly="!canWrite" />
-            <div class="source-hint">Origem: {{ activeScenario?.source === "EXCEL" ? "Planilha Excel" : activeScenario?.source === "PROJECT" ? "Legado migrado" : "Simulação manual" }}</div>
-          </div>
-        </section>
-
-        <section id="startup-equipment-planning" v-if="activePreview" class="surface simulation-table-section">
+        <section v-if="activePreview" id="startup-equipment-planning" class="surface simulation-table-section">
           <header class="table-heading">
             <div>
               <h2>Planejamento por equipamento</h2>
