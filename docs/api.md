@@ -38,6 +38,22 @@ Também existem endpoints `/health/live` e `/health/ready` no router de saúde.
 
 Os métodos específicos são definidos em `backend/app/modules/catalogs/controllers.py`; nem toda coleção aceita PATCH no caminho sem ID. Não presuma hard delete: o cadastro usa manutenção de ativação/edição.
 
+## Catálogo Mestre
+
+Prefixo `/master-catalog`, com leitura controlada por `catalogs:read` e manutenção por `catalogs:manage` (o código de criação de obra também exige escrita de equipamentos).
+
+| Método | Caminho | Operação |
+| --- | --- | --- |
+| GET | `/master-catalog` | Listar áreas, equipamentos globais e componentes; `include_inactive` requer permissão de gestão |
+| POST | `/master-catalog/seed?dry_run=true\|false` | Validar ou incorporar novos itens de seed JSON |
+| POST | `/master-catalog/projects` | Criar contexto e equipamentos operacionais a partir de seleções do catálogo |
+| POST | `/master-catalog/areas`, `/master-catalog/equipments` | Cadastrar área/equipamento global |
+| POST | `/master-catalog/equipments/{equipment_id}/components` | Adicionar opção de componente |
+| PUT | `/master-catalog/equipments/{equipment_id}/areas` | Substituir áreas vinculadas |
+| PATCH, DELETE | `/master-catalog/areas/{item_id}`, `/master-catalog/equipments/{item_id}`, `/master-catalog/components/{item_id}` | Manutenção e exclusão sujeitas a regras de domínio |
+
+Consulte [Catálogo Mestre](catalogo-mestre.md) para diferenças entre modelos globais e obras.
+
 ## Equipamentos, componentes e comentários
 
 | Método | Caminho | Finalidade |
@@ -50,6 +66,18 @@ Os métodos específicos são definidos em `backend/app/modules/catalogs/control
 | PATCH, DELETE | `/equipments/{equipment_id}/comments/{comment_id}` | Editar/excluir comentário |
 
 Os parâmetros de consulta de listagem e filtro são declarados nos schemas/controllers; use os nomes reais, como `unit_id` e `project_context_id`, conforme a operação. Atualizações comuns não substituem o serviço de transições de workflow.
+
+## Edição em lote
+
+| Método | Caminho | Operação |
+| --- | --- | --- |
+| GET | `/equipments/bulk/selection` | Resolver equipamentos elegíveis por contexto, fase e filtros |
+| POST | `/equipments/bulk/preview` | Validar alterações propostas nos equipamentos |
+| POST | `/equipments/bulk/apply` | Aplicar alterações confirmadas |
+| POST | `/equipments/{equipment_id}/components/bulk/preview` | Prévia de edição de componentes |
+| POST | `/equipments/{equipment_id}/components/bulk/apply` | Aplicação da edição de componentes |
+
+Todas as operações acima exigem permissão de escrita; a prévia não substitui a validação transacional do `apply`.
 
 ## Processos de aquisição
 
@@ -120,6 +148,23 @@ Os uploads não alteram o domínio até o apply controlado; ver [importação Mo
 - `POST /notifications/templates/{kind}/preview` e `POST /notifications/templates/{kind}/test`: prévia e envio de teste.
 - `GET /notifications/deliveries`: outbox/histórico de envio.
 - `POST /notifications/test`, `POST /notifications/process` e `POST /notifications/deliveries/{delivery_id}/retry`: operações de teste, processamento e retry, sujeitas a permissões.
+
+## Simulador de Startup
+
+Os cadastros do simulador são independentes das unidades e obras operacionais; leitura exige `equipments:read` e escrita exige `equipments:write`.
+
+| Método | Caminho | Operação |
+| --- | --- | --- |
+| GET, POST | `/startup-simulation-units` | Listar/criar unidades próprias do simulador |
+| DELETE | `/startup-simulation-units/{unit_id}` | Excluir unidade sem vínculos impeditivos |
+| GET, POST | `/startup-simulation-projects?unit_id={unit_id}` | Listar/criar obras da unidade simulada |
+| DELETE | `/startup-simulation-projects/{project_id}` | Excluir obra sem cenários impeditivos |
+| GET | `/startup-scenarios?simulation_project_id={id}` | Listar cenários da obra |
+| POST | `/startup-scenarios` | Criar cenário e itens |
+| PUT, DELETE | `/startup-scenarios/{scenario_id}` | Atualizar/excluir cenário |
+| POST | `/startup-scenarios/{scenario_id}/clone` | Duplicar cenário |
+
+Os cálculos e a importação/exportação XLSX da interface estão descritos em [Simulador de Startup](simulacoes.md).
 
 ## Erros, paginação e contratos
 

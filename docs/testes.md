@@ -55,7 +55,7 @@ Mesmo um banco chamado `neondb_test` em Neon **não** é um alvo aceitável para
 - Frontend: instalação congelada, lint, typecheck, test, build.
 - Backend: PostgreSQL local em container, configuração `.env.test` temporária, Alembic, Ruff, mypy e pytest.
 
-O estado de cada job deve ser consultado na execução correspondente ao SHA do commit; um relatório histórico de CI não certifica a main de hoje.
+O estado de cada job deve ser consultado na execução correspondente ao SHA do commit; um relatório histórico de CI não certifica a main de hoje. **A limpeza de arquivos e a atualização documental não executam testes por si só.**
 
 ## Matriz mínima de regressão
 
@@ -64,6 +64,9 @@ O estado de cada job deve ser consultado na execução correspondente ao SHA do 
 | Autenticação | Login, logout, troca inicial, expiração, usuário inativo, credenciais inválidas |
 | Autorização | VIEWER/ANALYST/ADMIN, escopo por unidade, recurso de outra unidade, área administrativa |
 | Catálogos/EAP | Hierarquia, prefixo manual, família 00, aliases aprovados, casos unresolved |
+| Catálogo Mestre | CRUD de áreas/equipamentos/componentes, seed dry-run, vínculos, criação idempotente de obra |
+| Simulador de Startup | Unidade/obra isoladas, cenários vazios, itens dinâmicos, datas calculadas, clone, comparação e planilha |
+| Edição em lote | Seleção filtrada, validação em preview, autorização, aplicação atômica e conflitos |
 | Equipamentos | CRUD, componentes, filtros Unidade/Projeto/Equipamento, paginação |
 | Workflow | Requisitos por etapa, avanço sequencial, waiver, estados operacionais, reabertura |
 | Compras | Contratos/SC/OCI/OC 1:N, registro completo, fornecedor único, documentos |

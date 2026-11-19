@@ -66,11 +66,13 @@ openapi.json
 # Ferramentas locais / cache de pacotes
 .pnpm-store/
 .playwright-mcp/
-.claude/
 
-# Instruções locais do Claude Code (não versionar)
+# Configurações e tarefas locais do Claude Code (não versionar)
 CLAUDE.md
 .claude/
+# Arquivos temporários de QA e experimentos de CSS na raiz
+/design-qa.md
+/aaaaa.css
 
 # Dados corporativos reais e dumps gerados devem ficar somente fora do Git.
 /backend/app/data/supplier_catalog.json

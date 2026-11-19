@@ -55,4 +55,10 @@ A importação Monday **já dispõe de endpoints de administração** sob `/api/
 
 As notificações usam regras e modelos no PostgreSQL, com editor e prévia HTML; há integrações configuráveis Microsoft Graph e Resend, outbox e processamento. O envio real depende de ambiente e credenciais protegidas.
 
-Documentação: [importação](../docs/importacao-monday.md), [notificações](../docs/notificacoes.md), [ambientes](../docs/ambientes-deploy.md).
+## Catálogo Mestre, edição em lote e Simulador de Startup
+
+- O Catálogo Mestre é global, separado dos equipamentos operacionais. A criação de obra a partir dele copia seleções e componentes, sem manter dependência direta com os registros mestres.
+- Equipamentos e componentes possuem operações de edição em lote com prévia antes da aplicação.
+- O simulador mantém unidades, obras e cenários independentes das obras operacionais; alterações no cenário não atualizam os processos de aquisição.
+
+Documentação: [Catálogo Mestre](../docs/catalogo-mestre.md), [Simulador de Startup](../docs/simulacoes.md), [API](../docs/api.md), [importação](../docs/importacao-monday.md), [notificações](../docs/notificacoes.md) e [ambientes](../docs/ambientes-deploy.md).

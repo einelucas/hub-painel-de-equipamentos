@@ -4,13 +4,13 @@ Módulo corporativo de **Planejamento → Painel de Equipamentos** para cadastro
 
 O Hub centraliza equipamentos, componentes, responsáveis, fornecedores, prazos, processos de negociação e jurídico, contratos, solicitações de compra (SC/OCI), ordens de compra (OC), histórico e indicadores. Os dados originados no Monday.com são incorporados por um processo controlado de importação, sem reproduzir um aplicativo por board.
 
-> **Situação:** aplicação em consolidação/homologação. O código contém funcionalidades operacionais e administrativas, mas a prontidão de produção depende da validação do ambiente, das permissões, das integrações e da CI. A presença de uma migration no Git não comprova sua aplicação no banco implantado.
+> **Situação (novembro/2026):** desenvolvimento funcional considerado concluído; o trabalho corrente está concentrado em refinamentos visuais, manutenção e documentação. Essa condição **não substitui** validação de deploy, CI, integrações, permissões ou migrations no banco de cada ambiente.
 
 ## Tecnologias
 
 | Camada | Tecnologias |
 | --- | --- |
-| Interface | Nuxt 4, Vue 3, TypeScript, Pinia, Tailwind CSS |
+| Interface | Nuxt 4, Vue 3, TypeScript, Pinia, Tailwind CSS, Vuetify, ApexCharts e Lucide |
 | HTTP | Axios centralizado em `frontend/services/api/http.ts` e `frontend/composables/useApi.ts` |
 | API | Python 3.12+, FastAPI, Pydantic v2 |
 | Persistência | PostgreSQL, SQLAlchemy assíncrono, Alembic |
@@ -19,8 +19,10 @@ O Hub centraliza equipamentos, componentes, responsáveis, fornecedores, prazos,
 
 ## Principais capacidades
 
-- Dashboard com indicadores, status e alertas de prazo.
-- Equipamentos e componentes com filtros por unidade, projeto e equipamento.
+- Dashboard com indicadores, status, alertas de prazo e gráficos ApexCharts.
+- Equipamentos e componentes com filtros por unidade, projeto e equipamento, inclusive edição em lote com prévia/validação.
+- **Catálogo Mestre global:** áreas, modelos de equipamentos e opções de componentes; composição de novas obras sem vincular diretamente o catálogo às instâncias operacionais.
+- **Simulador de Startup:** unidades e obras de simulação independentes, cenários com equipamentos livremente adicionados, comparação entre cenários, importação/exportação de planilhas.
 - Filas operacionais de Engenharia, Jurídico e Suprimentos, além do Kanban.
 - Workflow de aquisição nas fases 0–8; estados operacionais independentes; dispensa auditada de requisitos e fluxo controlado de reabertura.
 - Fornecedores, work packages, EAP, negociação, contratos, SC/OCI e OC.
@@ -91,6 +93,6 @@ A suíte de integração com operações destrutivas exige um PostgreSQL **local
 
 ## Documentação
 
-Comece pelo [índice técnico](docs/README.md). Ele reúne arquitetura, funcionalidades, domínio e EAP, API, autenticação, importação Monday, notificações, ambientes e testes.
+Comece pelo [índice técnico](docs/README.md). Ele reúne arquitetura, funcionalidades, [Catálogo Mestre](docs/catalogo-mestre.md), [Simulador de Startup](docs/simulacoes.md), domínio e EAP, API, autenticação, importação Monday, notificações, ambientes e testes.
 
 Para procedimentos de backend consulte também [backend/README.md](backend/README.md). Não utilize relatórios antigos de etapas ou escopos como especificação vigente: as decisões técnicas atuais devem ser verificadas contra o código, migrations e documentação consolidada.

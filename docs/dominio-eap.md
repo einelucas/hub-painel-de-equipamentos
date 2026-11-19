@@ -26,6 +26,16 @@ Unit
 
 `Equipment` é o registro mestre do pacote/equipamento. `EquipmentComponent` representa o subitem técnico; não presuma que um componente equivalha sempre a uma unidade financeira de compra. Os dados são filtrados por unidade/autorização.
 
+## Catálogo Mestre global — distinto da EAP e da obra
+
+`MasterArea`, `MasterEquipment`, `MasterEquipmentArea` e `MasterComponentOption` compõem um catálogo reutilizável, independente do `Equipment` de uma obra. Um equipamento mestre pode ter múltiplas áreas por `MasterEquipmentArea` e várias opções de componentes. A categoria virtual **Sem área definida** não deve ser tratada como área industrial real. O catálogo é gerenciado separadamente da árvore `EapNode`; nomes de áreas do catálogo não justificam associação automática a nós EAP.
+
+A criação de obra a partir do Catálogo Mestre faz **cópia transacional** das seleções para `ProjectContext`/`Equipment`/`EquipmentComponent`, com chave de idempotência `MasterProjectCreation`. Alterações posteriores no catálogo não propagam automaticamente para equipamentos existentes. Veja [Catálogo Mestre](catalogo-mestre.md).
+
+## Simulações sem impacto operacional
+
+`SimulationUnit`, `SimulationProject`, `StartupScenario` e `StartupScenarioEquipment` pertencem exclusivamente ao Simulador de Startup. Datas, fornecedores, responsáveis e premissas de cada cenário são snapshots independentes, sem aplicar alterações às obras operacionais ou ao workflow. Veja [Simulador](simulacoes.md).
+
 ## Fornecedores e pacotes
 
 - `Supplier` é cadastro corporativo/global com código corporativo, nome e, quando disponível, documento. `SupplierAlias` registra nomes de origem.

@@ -17,12 +17,13 @@ flowchart TD
 
 ## Frontend
 
-- `frontend/pages/`: rotas de dashboard, equipamentos, engenharia, jurídico, suprimentos, fornecedores, administração, autenticação e Kanban.
+- `frontend/pages/`: rotas de dashboard, equipamentos, engenharia, jurídico, suprimentos, fornecedores, simulações, administração (incluindo Catálogo Mestre), autenticação e Kanban.
 - `frontend/components/`: componentes de interface, formulários, tabelas, cards, gráficos e shells reutilizáveis.
 - `frontend/stores/moduleContext.ts`: filtros de unidade, contexto/projeto e equipamento; garante compatibilidade quando o filtro superior muda.
 - `frontend/stores/auth.ts` e composables de autenticação: sessão e identidade.
 - `frontend/composables/useApi.ts`: fachada pública de requisições.
 - `frontend/services/api/http.ts`: instância **Axios** centralizada, normalização de URLs/erros, token Bearer, downloads e progresso de upload.
+- `frontend/nuxt.config.ts` carrega os estilos globais `assets/css/vue.css` e `assets/css/vuetify-hub.css`; elementos visuais utilizam Vuetify, gráficos ApexCharts e ícones Lucide/MDI.
 - `frontend/utils/navigation.ts`: itens e permissões da navbar. A auditoria e recursos administrativos também podem ser acessados por rotas/contextos próprios.
 
 Não faça novas chamadas Axios diretamente das páginas: preserve a fachada compartilhada e os contratos dos componentes.
@@ -42,7 +43,15 @@ modulo/
 
 Alguns domínios possuem serviços especializados, workers, validações e adaptadores. Os modelos SQLAlchemy continuam centralizados em `backend/app/models/`; não foram movidos automaticamente para cada módulo.
 
-Módulos relevantes: `access`, `audit`, `catalogs`, `comments`, `dashboard`, `equipments`, `imports`, `monday_import`, `notifications`, `processes`, `queues`, `suppliers`, `users` e `workflow`; a EAP tem componentes de catálogo e reconciliação especializados.
+Módulos relevantes: `access`, `audit`, `catalogs`, `comments`, `dashboard`, `equipments`, `imports`, `master_catalog`, `monday_import`, `notifications`, `processes`, `queues`, `startup_simulations`, `suppliers`, `sync`, `users` e `workflow`; a EAP tem componentes de catálogo e reconciliação especializados.
+
+## Separação de dados do Catálogo Mestre e do simulador
+
+- `MasterArea`, `MasterEquipment` e `MasterComponentOption` formam um catálogo **global e reutilizável**. Ao criar uma obra pelo catálogo, o backend instancia novos `ProjectContext`, `Equipment` e `EquipmentComponent`. Mudanças no catálogo não reescrevem equipamentos operacionais já criados.
+- `SimulationUnit`, `SimulationProject`, `StartupScenario` e `StartupScenarioEquipment` são entidades **isoladas do processo operacional**. O simulador persiste snapshots editáveis de cada cenário, sem modificar `Equipment` ou o workflow real.
+- Edição em lote operacional passa por endpoints de seleção, `preview` e `apply`; essas operações continuam sujeitas a validação, permissão e escopo no backend.
+
+Consulte [Catálogo Mestre](catalogo-mestre.md) e [Simulador de Startup](simulacoes.md).
 
 ## Persistência
 

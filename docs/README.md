@@ -1,6 +1,6 @@
 # Documentação técnica | Painel de Equipamentos
 
-Esta é a referência de **manutenção e homologação da implementação atual** do módulo. Não é um diário de sprints, nem uma coleção de instruções de prompts. A documentação descreve comportamento presente no código; decisões futuras e limitações são diferenciadas da funcionalidade implementada.
+Esta é a referência de **manutenção da versão funcional concluída e dos refinamentos de design em andamento** do módulo. Não é um diário de sprints, nem uma coleção de instruções de prompts. A documentação descreve comportamento presente no código; decisões futuras e limitações são diferenciadas da funcionalidade implementada.
 
 ## Índice
 
@@ -8,6 +8,8 @@ Esta é a referência de **manutenção e homologação da implementação atual
 | --- | --- |
 | [Arquitetura](arquitetura.md) | Camadas, módulos, fluxo de dados, frontend e backend |
 | [Funcionalidades](funcionalidades.md) | Navegação, processos e experiência operacional |
+| [Catálogo Mestre](catalogo-mestre.md) | Áreas, equipamentos globais, componentes e criação de obras |
+| [Simulador de Startup](simulacoes.md) | Cenários independentes, prazos, comparação e importação/exportação |
 | [Domínio e EAP](dominio-eap.md) | Entidades, cardinalidades, workflow e regras canônicas |
 | [API](api.md) | Endpoints, contratos, autorização e erros |
 | [Autenticação e segurança](autenticacao.md) | Identidade, papéis, escopo e riscos de configuração |

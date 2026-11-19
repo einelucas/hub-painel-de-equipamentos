@@ -4,7 +4,7 @@ Este documento descreve as capacidades identificadas no frontend, nos controller
 
 ## Navegação e contexto
 
-A navegação principal definida em `frontend/utils/navigation.ts` contém Dashboard, Equipamentos, Engenharia, Jurídico, Suprimentos, Fornecedores e Kanban (os dois últimos com checagem de permissões na navegação). A aba **Jurídico está oculta na navbar** desde 2026-11-04 (item com `hidden: true`); a rota `/juridico` permanece ativa e acessível por URL direta. Consulte [pendências de verificação](pendencias.md). Há rotas adicionais para auditoria, administração, notificações, usuários e detalhes.
+A navegação principal definida em `frontend/utils/navigation.ts` contém Dashboard, Equipamentos, Engenharia, Jurídico, Suprimentos, Fornecedores, Simulações e Kanban (os três últimos sujeitos a permissões). A aba **Jurídico está oculta na navbar** desde 2026-11-04 (item com `hidden: true`); a rota `/juridico` permanece ativa e acessível por URL direta. Consulte [pendências de verificação](pendencias.md). Há rotas adicionais para auditoria, administração, notificações, usuários e detalhes.
 
 O store `moduleContext` centraliza a seleção de **Unidade → Projeto/Contexto → Equipamento**, propaga filtros à API e evita manter um equipamento incompatível ao trocar de unidade/contexto. A autorização no backend sempre prevalece sobre o filtro visual.
 
@@ -18,6 +18,7 @@ Valores de fórmulas dependem de marcos preenchidos e das regras confirmadas. Au
 
 - Listagem paginada, busca e filtros por unidade/contexto/equipamento.
 - Cadastro, edição, detalhes e componentes técnicos (subitens).
+- Edição em lote de equipamentos e componentes com resolução de seleção, prévia e aplicação no backend.
 - Área/EAP, disciplina, criticidade, responsável, work packages e marcos de projeto.
 - Abas de visão geral, processos, prazos, histórico, comentários, documentos e dados vinculados.
 - Associação ao contexto operacional; validações de domínio e escopo no backend.
@@ -45,6 +46,14 @@ Consulte [domínio e EAP](dominio-eap.md) para regras exatas.
 ## Filas operacionais e Kanban
 
 Engenharia, Jurídico e Suprimentos usam filtros e tabelas orientados ao trabalho de cada equipe. O Kanban apresenta o estágio operacional do processo em outra visualização. Não se devem confundir visualizações filtradas com modelos de dados diferentes.
+
+## Catálogo Mestre e criação de obras
+
+O [Catálogo Mestre](catalogo-mestre.md), disponível em `/administracao/catalogo-mestre` para perfis autorizados, mantém **áreas, equipamentos globais e opções de componentes**. Permite cadastrar, renomear, ativar/desativar, associar equipamentos a áreas e importar seed JSON com prévia antes da aplicação. A criação de obra seleciona modelos/componentes do catálogo e gera registros operacionais próprios: editar o catálogo posteriormente não altera automaticamente obras já criadas.
+
+## Simulador de Startup
+
+A rota [`/simulacoes`](simulacoes.md) possui cadastros **independentes de unidades e obras do processo operacional**, além de cenários com data de startup. A tabela começa sem equipamentos para novos cenários manuais; cada item pode ser acrescentado e editado com nome, origem, disciplina, fornecedor, área, responsável e premissas de prazo. O sistema calcula datas-limite de negociação, contrato/OC e entrega; permite duplicar, comparar dois cenários, importar XLSX e exportar resultados. Não há escrita nos equipamentos reais. Consulte [a documentação do simulador](simulacoes.md).
 
 ## Fornecedores e cadastros
 
